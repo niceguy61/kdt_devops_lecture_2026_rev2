@@ -54,7 +54,7 @@
 - 3교시 : 개발자가 보는 인프라 vs 인프라 엔지니어가 보는 인프라 - 안정성, 확장성, 비용, 보안 관점
 - 4교시 : 재현 가능한 인프라의 필요성 - 문서, 스크립트, IaC의 개념과 설계도 작성의 중요성
 - 5교시 : Docker가 필요한 이유 - 로컬 환경 차이, 의존성 충돌, 배포 단위, 실행 환경 표준화
-- 6교시 : Docker Desktop 설치 및 동작 확인 - 설치, 로그인 또는 계정 확인, docker version, hello-world 실행
+- 6교시 : 프로젝트 구성요소와 3-tier 아키텍처 - 웹 애플리케이션, 데이터베이스, 캐시, 로드 밸런서, 관찰 지점 이해
 - 7교시 : AI Coding Tool 계정/설치 준비 - Claude Code, Codex, Kiro, Antigravity 등 사용 가능한 도구 로그인 및 기본 실행 확인
 - 8교시 : AI Coding Tool 실습 - 간단한 웹 애플리케이션 제작 요청, 생성된 코드 구조 읽기
 
@@ -93,6 +93,7 @@
 - GitHub 저장소 1개
 - README.md 1개
 - 브라우저에서 실행 가능한 미니 웹 애플리케이션 1개
+- 3-tier 관점의 Architecture Note 1개
 - 로컬 실행 명령 또는 Docker 실행 명령
 - 간단한 장애 분석 기록 1개
 - 2주차 Docker 학습 전 개인 체크리스트
@@ -101,8 +102,7 @@
 - GitHub 계정 생성, 이메일 인증, repository 생성
 - Git 설치 및 `git --version` 확인
 - VS Code 설치, 터미널 실행, 프로젝트 폴더 열기
-- Docker Desktop 설치, 실행 상태 확인, `docker version` 확인
-- Docker Hub 또는 Docker Desktop 로그인 상태 확인
+- Docker Desktop 설치는 2주 1일차에 진행한다는 것을 안내하고, 1주차에는 설치를 요구하지 않음
 - AI Coding Tool 계정 생성 또는 로그인, 간단한 프롬프트 실행 확인
 - AWS 계정 생성, MFA 설정, Billing 알림 또는 비용 확인 화면 접근
 - 브라우저 개발자 도구, curl, 로컬 서버 접속 확인
@@ -135,11 +135,11 @@
 
 ## 1일차
 - 1교시 : 1주차 복습 및 Docker 학습 목표 - 로컬 실행 문제, 배포 문제, 환경 차이 문제 정리
-- 2교시 : Docker의 컨셉과 작동 방식 - image, container, registry, Docker Engine, Docker Desktop
-- 3교시 : Docker vs Local Computer - 좋아지는 점, 나빠지는 점, 언제 Docker를 쓰지 말아야 하는지
-- 4교시 : Docker 기본 명령어 1 - docker version, pull, images, run, ps, stop, rm
-- 5교시 : Hello World와 nginx 실행 실습 - 컨테이너 실행, 브라우저 접속, curl 확인
-- 6교시 : 표준 실습 앱 이미지 실행 - Docker Hub에서 pull, run, logs, 브라우저 접속 확인
+- 2교시 : Docker Desktop 설치 및 계정 확인 - 공식 문서 기준 설치, Docker Hub 로그인, 권한/가상화 이슈 기록
+- 3교시 : Docker의 컨셉과 작동 방식 - image, container, registry, Docker Engine, Docker Desktop
+- 4교시 : Docker vs Local Computer - 좋아지는 점, 나빠지는 점, 언제 Docker를 쓰지 말아야 하는지
+- 5교시 : Docker 기본 명령어 1 - docker version, pull, images, run, ps, stop, rm
+- 6교시 : Hello World, nginx, 표준 실습 앱 첫 실행 - 컨테이너 실행, Docker Hub pull, 브라우저 접속, curl 확인
 - 7교시 : 개인 면담 및 환경 점검 - Docker Desktop 실행, WSL/가상화, 권한, 로그인 문제 해결
 - 8교시 : 보충 실습 - 기본 명령어 재실습, 막힌 학생 진도 회복
 

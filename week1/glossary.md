@@ -118,6 +118,44 @@
 - 수업에서 다시 나오는 곳: Week 1 Day 2, 전체 장애 분석 실습
 - 공식 참고: https://sre.google/sre-book/monitoring-distributed-systems/
 
+## Application Architecture
+
+### 3-tier Architecture
+- 한 줄 뜻: 서비스를 화면/입구 계층, 애플리케이션 처리 계층, 데이터 저장 계층으로 나누어 보는 구조
+- 왜 중요한가: 웹 앱, DB, 캐시, 로드 밸런서가 어디에 놓이는지 이해하는 기본 지도다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 3 MSA, Week 5 AWS
+- 공식 참고: https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/build-a-three-tier-architecture-on-aws.html
+
+### Load Balancer
+- 한 줄 뜻: 들어온 요청을 여러 서버 중 적절한 대상으로 나누어 보내는 입구
+- 왜 중요한가: 서버 한 대 장애나 트래픽 증가 상황에서 서비스 접속을 유지하는 핵심 컴포넌트다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 4 Kubernetes Ingress, Week 5 ALB
+- 공식 참고: https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/what-is-load-balancing.html
+
+### Application Server
+- 한 줄 뜻: API, 인증, 업무 로직처럼 서비스의 실제 기능을 실행하는 서버
+- 왜 중요한가: 인프라 엔지니어가 로그, 응답 시간, 오류율, 리소스 사용량을 함께 봐야 하는 중심 실행 지점이다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 2 Docker, Week 4 Kubernetes
+- 공식 참고: https://12factor.net/processes
+
+### Database
+- 한 줄 뜻: 재시작 후에도 남아야 하는 데이터를 영속적으로 저장하는 시스템
+- 왜 중요한가: 데이터 손실, 백업, 복구, 연결 수, 쿼리 성능은 서비스 안정성과 직접 연결된다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 3 MSA, Week 5 RDS
+- 공식 참고: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html
+
+### Cache
+- 한 줄 뜻: 자주 읽는 데이터를 더 빠르게 제공하기 위해 잠시 저장하는 계층
+- 왜 중요한가: 응답 속도와 비용을 줄일 수 있지만, 오래된 데이터나 무효화 문제를 함께 관리해야 한다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 3 MSA, Week 5 ElastiCache
+- 공식 참고: https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html
+
+### Object Storage
+- 한 줄 뜻: 이미지, 첨부파일, 백업처럼 파일 단위 객체를 저장하는 서비스
+- 왜 중요한가: 앱 서버 디스크에 파일을 묶어두지 않아 확장, 복구, 배포를 더 단순하게 만든다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 5 S3
+- 공식 참고: https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html
+
 ## Cost And Cloud Economics
 
 ### CAPEX
