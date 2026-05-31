@@ -1,0 +1,2 @@
+# kdt_devops_lecture_2026_rev2
+kdt_devops_lecture_2026_rev2
