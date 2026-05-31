@@ -17,6 +17,14 @@
 ## 공식 참고 자료
 - The Twelve-Factor App: Build, release, run  
   https://12factor.net/build-release-run
+- AWS Well-Architected DevOps Guidance: Automate the entire deployment process
+  https://docs.aws.amazon.com/wellarchitected/latest/devops-guidance/dl.cd.4-automate-the-entire-deployment-process.html
+- AWS CodePipeline User Guide: Continuous delivery and continuous integration
+  https://docs.aws.amazon.com/codepipeline/latest/userguide/concepts-continuous-delivery-integration.html
+- GitHub Docs: Understanding GitHub Actions
+  https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions
+- Google Cloud DORA: Accelerate State of DevOps
+  https://cloud.google.com/resources/state-of-devops
 - GitHub Docs: About READMEs  
   https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
 - Python Docs: `http.server`  
@@ -27,6 +35,7 @@
 |---|---|---|
 | Local Run | 내 컴퓨터에서 직접 실행하는 상태 | 개인 환경에 강하게 의존한다 |
 | Deployment | 사용 가능한 환경에 변경을 반영하는 절차 | 실행, 검증, 복구, 기록이 포함된다 |
+| Deployment Automation | 빌드, 테스트, 배포 검증을 자동 절차로 실행하는 방식 | 사람 대기 시간과 반복 실수를 줄인다 |
 | Release | 배포 가능한 버전 또는 변경 묶음 | 어떤 코드와 설정인지 추적 가능해야 한다 |
 | Runtime | 프로그램이 실제로 실행되는 환경 | 버전, OS, 권한, 네트워크가 영향을 준다 |
 | Service Endpoint | 사용자가 접근하는 주소 | URL, port, protocol이 명확해야 한다 |
@@ -71,6 +80,52 @@
 | 빠른 hotfix push | 코드만 수정해도 실행환경이 일관되어야 한다 | build/deploy 기준, branch와 push 절차 |
 
 이 관점에서 좋은 저장소는 단순히 코드 보관함이 아니다. 긴급 상황에서 다른 장비로 열어도 최소한 "무엇을 설치하고, 어떤 설정을 만들고, 어떤 명령으로 검증할지"를 알려주는 운영 패키지다.
+
+## 배포 자동화가 중요한 이유
+배포가 수동 절차에 묶이면 담당자와 시간표가 병목이 된다. 특정 배포 담당자가 있어야만 개발환경, 스테이징 환경, 운영환경에 반영할 수 있다면 개발자는 기능을 완성하고도 검증을 기다리게 된다. 이 대기 시간은 단순한 불편함이 아니라 lead time을 늘리고, 피드백을 늦추며, 장애 수정 속도를 떨어뜨린다.
+
+공식 자료들도 같은 방향을 말한다. AWS Well-Architected DevOps Guidance는 전체 배포 프로세스를 자동화하는 것이 사람 실수 위험을 줄이고, 배포 일관성을 만들며, 전달 과정을 빠르게 한다고 설명한다. AWS CodePipeline 문서는 continuous delivery를 release process가 자동화되는 방법론으로 설명하고, CodePipeline을 build, test, deployment 자동화 서비스로 제시한다. GitHub Actions 문서는 repository 안에서 build, test, deployment pipeline을 자동화할 수 있다고 설명한다. Google Cloud DORA 연구도 deployment automation, continuous testing, observability 같은 technical capabilities가 delivery performance와 연결된다고 본다.
+
+배포 자동화의 핵심 효과는 "버튼 하나로 멋지게 배포한다"가 아니다. 더 중요한 효과는 개발자가 개발환경과 스테이징 환경에 자주, 작게, 같은 방식으로 배포할 수 있다는 점이다. 운영환경에는 승인 단계가 필요할 수 있지만, 개발/스테이징 환경까지 모든 배포가 특정 담당자에게 묶여 있으면 팀의 학습 속도가 느려진다. 개발자는 변경 결과를 늦게 확인하고, QA는 오래된 버전을 보며, 인프라 담당자는 반복 배포 요청을 처리하느라 더 중요한 자동화와 안정화 작업을 미루게 된다.
+
+자동화된 배포는 다음 질문에 답해야 한다.
+
+| 질문 | 자동화가 제공해야 할 답 |
+|---|---|
+| 어떤 코드가 배포되는가? | commit SHA, branch, tag |
+| 어떤 검증을 통과했는가? | build, test, lint, health check |
+| 어느 환경에 반영되는가? | dev, staging, production |
+| 누가 실행했는가? | workflow 실행자 또는 trigger |
+| 실패하면 어디서 멈추는가? | 실패한 stage와 log |
+| 운영환경은 어떻게 보호되는가? | approval gate, rollback, 권한 제한 |
+
+## 자동화 전후의 배포 시간 차이
+수동 배포는 실제 명령 실행 시간보다 대기 시간이 더 큰 경우가 많다. 담당자를 찾고, 접속 권한을 확인하고, 명령을 복사해 실행하고, 결과를 캡처해 공유하는 시간이 누적된다. 자동화된 pipeline은 같은 절차를 표준화된 runner에서 반복한다. 그래서 배포 시간이 "담당자가 가능한 시간"에서 "pipeline이 완료되는 시간"으로 바뀐다.
+
+교육용 예시:
+
+| 단계 | 수동 배포 | 자동화 배포 |
+|---|---:|---:|
+| 담당자 확인 | 10분 | 0분 |
+| 서버 접속/환경 확인 | 10분 | 0분 |
+| build/test 실행 | 10분 | 5분 |
+| 파일 복사/재시작 | 10분 | 3분 |
+| health check/로그 확인 | 10분 | 2분 |
+| 결과 공유 | 10분 | 0~1분 |
+| 합계 | 약 60분 | 약 10~11분 |
+
+이 숫자는 교육용 가정값이다. 실제 시간은 시스템 크기, 테스트 수, 승인 절차, 배포 전략에 따라 달라진다. 중요한 것은 자동화가 배포 명령 자체만 줄이는 것이 아니라 대기, 전달, 확인, 공유에 들어가는 시간을 줄인다는 점이다.
+
+## 환경별 셀프서비스 배포
+모든 환경에 같은 권한 정책을 적용하면 안 된다. 운영환경은 승인, 감사, rollback 기준이 필요하다. 하지만 개발환경과 스테이징 환경은 개발자가 안전한 범위 안에서 직접 배포하고 검증할 수 있어야 피드백 속도가 올라간다.
+
+| 환경 | 자동화 수준 | 권장 통제 |
+|---|---|---|
+| Development | push 또는 수동 workflow로 빠르게 배포 | 낮은 권한, 테스트 데이터 |
+| Staging | main merge 또는 release candidate 배포 | 운영과 비슷한 설정, 승인 선택 |
+| Production | 승인된 release만 배포 | approval gate, rollback, 감사 로그 |
+
+이 구조에서 인프라/DevOps 엔지니어의 역할은 매번 대신 배포하는 사람이 아니라, 개발자가 안전하게 배포할 수 있는 길을 만드는 사람에 가깝다. pipeline, 권한, secret 주입, 로그, 알림, rollback 기준을 만들어두면 개발자는 기다리지 않고 검증할 수 있고, 운영환경은 필요한 통제를 유지할 수 있다.
 
 ## 실습 1: 배포 가능성 체크리스트 만들기
 `mini-deploy-lab` 앱으로 이동한다.
@@ -127,6 +182,8 @@ tail -n 20 logs/app.log
 | `.env.example` | 실제 secret 없이 필요한 설정 목록을 공유한다 |
 | dependency 기준 | 새 장비에서 무엇을 설치해야 하는지 알 수 있다 |
 | push 후 검증 절차 | 긴급 수정이 실제로 반영됐는지 확인한다 |
+| deployment pipeline | 담당자 없이 같은 절차로 dev/staging에 반영한다 |
+| approval gate | production 배포를 보호하면서 자동화 이점을 유지한다 |
 
 ## Mermaid: 로컬 실행에서 배포 조건으로
 ```mermaid
@@ -135,10 +192,11 @@ flowchart TD
     B --> C["포트와 설정 기록"]
     C --> D["health check 정의"]
     D --> E["로그 위치 확인"]
-    E --> F["다른 사람 또는 다른 장비의 내가 재현"]
-    F --> G{"같은 결과?"}
-    G -- "예" --> H["배포 가능한 상태에 가까움"]
-    G -- "아니오" --> I["환경 차이 분석"]
+    E --> F["배포 자동화 정의"]
+    F --> G["다른 사람 또는 다른 장비의 내가 재현"]
+    G --> H{"같은 결과?"}
+    H -- "예" --> I["배포 가능한 상태에 가까움"]
+    H -- "아니오" --> J["환경 차이 분석"]
 ```
 
 ## 긴급 대응 관점의 배포 조건
@@ -154,6 +212,7 @@ flowchart TD
 | 실행됐는지 어떻게 확인하는가? | `/health`, `curl` 명령 |
 | 문제가 나면 어디를 보는가? | log 위치, troubleshooting note |
 | 수정 후 무엇을 push해야 하는가? | Git branch/commit/push 절차 |
+| push 후 어떤 자동 절차가 실행되는가? | CI/CD workflow, deployment pipeline |
 
 ## 실습 기록 양식
 ```markdown
@@ -186,17 +245,21 @@ flowchart TD
 - 새 노트북에서 clone 후 실행 가능한가:
 - code만 수정해서 push해도 반영 가능한 구조인가:
 - push 후 확인할 명령:
+- 자동 배포가 있다면 실행되는 workflow:
+- 자동 배포가 없다면 수동으로 필요한 단계:
 ```
 
 ## DevOps 원칙 연결
 - 비용 절감: 배포 조건이 불명확하면 문제 해결에 사람이 오래 붙어야 하고, 그 시간이 비용이 된다.
-- 개발/배포 효율성: 실행 방법이 문서화되면 새 팀원뿐 아니라 다른 장비를 쓰는 나도 빠르게 재현할 수 있다.
+- 개발/배포 효율성: 실행 방법과 배포가 자동화되면 새 팀원뿐 아니라 다른 장비를 쓰는 나도 빠르게 재현하고, 개발/스테이징 환경에 기다림 없이 반영할 수 있다.
 - 관리 효율성: health check와 로그 위치가 명확하면 장애 대응이 개인 기억에 의존하지 않는다.
 
 ## 확인 질문
 - "내 PC에서 된다"는 말이 배포 가능성을 증명하지 못하는 이유는 무엇인가?
 - 1인 개발자에게도 README와 `.env.example`이 필요한 이유는 무엇인가?
 - 휴가 중 긴급 수정이 필요한 상황에서 code만 push해도 대응 가능하려면 어떤 조건이 필요할까?
+- 배포 담당자가 한 명뿐이면 개발환경과 스테이징 환경의 피드백 속도에 어떤 문제가 생기는가?
+- 운영환경 배포 자동화에 approval gate가 필요한 이유는 무엇인가?
 - 배포 문서에 포트와 로그 위치가 빠지면 어떤 문제가 생기는가?
 - health check는 사용자를 위한 기능인가, 운영자를 위한 기능인가?
 
