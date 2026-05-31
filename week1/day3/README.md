@@ -12,7 +12,8 @@
 - 개발자가 보는 인프라와 인프라/DevOps 엔지니어가 보는 인프라의 차이를 구분한다.
 - 재현 가능한 실행 환경이 왜 Docker, 스크립트, IaC로 이어지는지 설명한다.
 - 웹 애플리케이션, 데이터베이스, 캐시, 로드 밸런서, 관찰 도구를 3-tier 아키텍처 안에서 설명한다.
-- AI Coding Tool로 만든 코드를 실행 조건, 포트, 로그, README, 보안 관점에서 점검한다.
+- AI Coding Tool을 개념 학습, 질문 설계, 에러 메시지 기반 디버깅, 결과 검증에 활용한다.
+- AI Coding Tool로 만든 코드와 답변을 실행 조건, 포트, 로그, README, 보안 관점에서 점검한다.
 - 미니 웹 애플리케이션의 실행 방법과 장애 관찰 기록을 남긴다.
 
 ## Lesson Index
@@ -22,7 +23,7 @@
 - 4교시: 재현 가능한 인프라의 필요성 - 문서, 스크립트, IaC의 출발점
 - 5교시: Docker가 필요한 이유 - 실행 환경 차이와 의존성 충돌
 - 6교시: 프로젝트 구성요소와 3-tier 아키텍처
-- 7교시: AI Coding Tool 계정/설치 준비와 사용 기준
+- 7교시: AI Coding Tool 학습/실습 준비 - 개념 학습, 질문 설계, 디버깅 보조, 책임 있는 사용
 - 8교시: AI Coding Tool 실습 - 생성 코드 구조 읽기와 운영성 점검
 
 ## Official References
@@ -40,6 +41,10 @@
   https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
 - GitHub Docs: GitHub Copilot documentation
   https://docs.github.com/en/copilot
+- Anthropic Docs: Claude Code subagents
+  https://docs.anthropic.com/en/docs/claude-code/sub-agents
+- Anthropic Docs: Claude Code skills
+  https://docs.anthropic.com/en/docs/claude-code/skills
 - The Twelve-Factor App: Build, release, run
   https://12factor.net/build-release-run
 
@@ -54,6 +59,9 @@
 - Container: image를 바탕으로 실행 중인 프로세스
 - IaC: 인프라 구성을 코드로 기록하고 재현하는 방식
 - Prompt: AI 도구에 전달하는 작업 요청 문장
+- Persona: AI 답변의 관점과 역할을 정하는 설정
+- Agent: 특정 목적을 수행하도록 역할과 절차를 묶은 작업 단위
+- Skill: 반복 작업 절차와 기준을 재사용하기 위한 지침 묶음
 
 자세한 용어 정리는 [Week 1 Glossary](../glossary.md)를 참고한다.
 
@@ -81,6 +89,8 @@
 ## Deliverables
 - 3-tier 아키텍처 구성요소 분류표
 - 미니 앱 Architecture Note 초안
+- AI 개념 학습 사다리와 크로스체크 기록
+- 에러 메시지 기반 디버깅 요청 예시
 - 미니 웹 앱 실행 화면 또는 `curl` 결과
 - README에 실행 방법, 포트, 로그 위치, known issue 정리
 - AI 도구 사용 기록과 생성 코드 운영성 점검표
@@ -91,5 +101,7 @@
 - Docker image와 container의 차이를 2주차 전에 예비 개념으로 설명할 수 있다.
 - 3-tier 아키텍처에서 웹, 애플리케이션, 데이터 계층의 책임을 구분할 수 있다.
 - 데이터베이스, 캐시, 로드 밸런서, 오브젝트 스토리지가 필요한 조건을 예로 설명할 수 있다.
+- AI에게 개념 설명을 수준별로 요청하고 공식 문서/강사/전문가/팀과 크로스체크할 수 있다.
+- 에러 메시지와 실행 조건을 정리해 AI에게 빠르게 원인 분석을 요청할 수 있다.
 - AI가 만든 코드를 실행 조건, 보안, 로그, README 관점에서 검토할 수 있다.
 - 다른 사람이 같은 프로젝트를 실행할 수 있도록 README를 작성할 수 있다.

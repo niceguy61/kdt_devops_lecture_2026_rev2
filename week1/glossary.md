@@ -293,3 +293,35 @@
 - 왜 중요한가: 개인 작업을 팀과 공유 가능한 상태로 만든다.
 - 수업에서 다시 나오는 곳: Week 1 Day 1, 전체 실습
 - 공식 참고: https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository
+
+## AI-Assisted Learning And Work
+
+### Prompt
+- 한 줄 뜻: AI에게 전달하는 작업 요청 문장
+- 왜 중요한가: 요구사항, 제약, 검증 기준을 어떻게 쓰느냐에 따라 답변 품질이 크게 달라진다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, 전체 AI 보조 실습
+- 공식 참고: https://platform.openai.com/docs
+
+### Persona
+- 한 줄 뜻: AI가 어떤 역할과 관점으로 답할지 정하는 설정
+- 왜 중요한가: 초보자 설명, 인프라 엔지니어 관점, 비용 관점처럼 같은 개념을 다른 눈높이로 이해하게 한다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, 전체 AI 보조 실습
+- 공식 참고: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
+
+### Agent
+- 한 줄 뜻: 특정 목적을 수행하도록 역할, 도구, 절차를 묶은 작업 단위
+- 왜 중요한가: 로그 분석, 문서 검토, 코드 리뷰처럼 반복되는 일을 구조화할 수 있지만 권한 범위를 신중히 정해야 한다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 6 IaC 리뷰
+- 공식 참고: https://docs.anthropic.com/en/docs/claude-code/sub-agents
+
+### Skill
+- 한 줄 뜻: 반복 작업에 필요한 절차, 기준, 예시를 재사용 가능하게 묶은 지침
+- 왜 중요한가: 공식 문서 확인, 제약 정리, 실습 체크리스트처럼 반복 품질을 높이는 데 도움이 된다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, 전체 실습 문서화
+- 공식 참고: https://docs.anthropic.com/en/docs/claude-code/skills
+
+### Cross Check
+- 한 줄 뜻: AI 답변이나 판단을 다른 근거로 다시 확인하는 과정
+- 왜 중요한가: 인프라 변경은 비용, 보안, 장애 영향이 크므로 공식 문서, 강사, 전문가, 팀 합의로 검증해야 한다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 5 AWS, Week 6 Terraform
+- 공식 참고: https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html
