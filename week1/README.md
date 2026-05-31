@@ -72,7 +72,7 @@
 ## Glossary
 - [Week 1 Glossary](./glossary.md)
 
-이번 주 핵심 용어는 Cloud Native, Cloud Computing, Compute, Network, Storage, DevOps, GitHub, Git, CAPEX, OPEX, TCO다. 각 교안에서는 용어가 처음 나올 때 짧은 뜻을 함께 적고, 자세한 복습은 glossary에서 한다.
+이번 주 핵심 용어는 Cloud Native, Cloud Computing, Compute, Network, Storage, DevOps, Deployment, Build, Docker Image, Container, GitHub, Git, CAPEX, OPEX, TCO다. 각 교안에서는 용어가 처음 나올 때 짧은 뜻을 함께 적고, 자세한 복습은 glossary에서 한다.
 
 ## Cost And Security Notes
 - 1주차에는 원칙적으로 비용이 발생하는 클라우드 리소스를 만들지 않는다.

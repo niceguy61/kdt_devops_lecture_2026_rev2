@@ -152,6 +152,48 @@
 - 수업에서 다시 나오는 곳: Week 1 Day 1, Week 6 Terraform
 - 공식 참고: https://aws.amazon.com/devops/what-is-devops/
 
+### Deployment
+- 한 줄 뜻: 소프트웨어 변경을 사용 가능한 환경에 반영하고 검증하는 절차
+- 왜 중요한가: 단순 파일 복사가 아니라 실행, 설정, 로그, health check, 복구 기준을 포함한다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 4 Kubernetes rollout, Week 5 AWS
+- 공식 참고: https://12factor.net/build-release-run
+
+### Build
+- 한 줄 뜻: 소스 코드를 실행 가능한 산출물로 만드는 과정
+- 왜 중요한가: 배포 전에 문법, 의존성, 산출물 생성을 검증하는 단계다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 2 Dockerfile, Week 6 CI/IaC
+- 공식 참고: https://12factor.net/build-release-run
+
+### Artifact
+- 한 줄 뜻: 빌드 결과로 만들어지는 배포 대상
+- 왜 중요한가: 무엇을 배포했는지 추적해야 rollback과 장애 분석이 가능하다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 2 Docker image
+- 공식 참고: https://12factor.net/build-release-run
+
+### Reproducibility
+- 한 줄 뜻: 같은 입력과 절차로 같은 결과를 다시 만들 수 있는 성질
+- 왜 중요한가: Docker, Terraform, runbook이 모두 재현 가능성을 높이기 위한 도구다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 2 Docker, Week 6 Terraform
+- 공식 참고: https://12factor.net/build-release-run
+
+### IaC
+- 한 줄 뜻: Infrastructure as Code, 인프라 구성을 코드로 기록하고 관리하는 방식
+- 왜 중요한가: 수동 콘솔 작업을 리뷰, 반복, 추적 가능한 변경으로 바꾼다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 6 Terraform
+- 공식 참고: https://developer.hashicorp.com/terraform/docs
+
+### Docker Image
+- 한 줄 뜻: 애플리케이션 실행에 필요한 파일과 환경을 묶은 읽기 전용 실행 재료
+- 왜 중요한가: 실행 환경 차이를 줄이고 배포 단위를 명확히 한다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 2 Docker
+- 공식 참고: https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-an-image/
+
+### Container
+- 한 줄 뜻: image를 바탕으로 실행 중인 격리된 프로세스
+- 왜 중요한가: Docker, Kubernetes Pod, 포트 바인딩, 로그 수집의 기본 실행 단위다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 2 Docker, Week 4 Kubernetes
+- 공식 참고: https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-container/
+
 ### Deployment Frequency
 - 한 줄 뜻: 얼마나 자주 배포하는지 나타내는 지표
 - 왜 중요한가: 배포 절차가 작고 안정적으로 반복되는지 보여준다.
