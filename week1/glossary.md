@@ -325,3 +325,9 @@
 - 왜 중요한가: 인프라 변경은 비용, 보안, 장애 영향이 크므로 공식 문서, 강사, 전문가, 팀 합의로 검증해야 한다.
 - 수업에서 다시 나오는 곳: Week 1 Day 3, Week 5 AWS, Week 6 Terraform
 - 공식 참고: https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html
+
+### Dummy JSON
+- 한 줄 뜻: 데이터베이스나 외부 API 없이 화면 데이터를 표현하기 위해 준비한 로컬 JSON 파일
+- 왜 중요한가: 비용, 계정, 네트워크, API key 문제 없이 프론트엔드 기능과 데이터 구조를 먼저 검증하게 한다.
+- 수업에서 다시 나오는 곳: Week 1 Day 3, Week 2 Docker static app, Week 3 MSA API contract
+- 공식 참고: https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/JSON
