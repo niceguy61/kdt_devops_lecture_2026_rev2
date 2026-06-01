@@ -22,7 +22,7 @@
 - 2교시: 클라우드 서비스 모델 - IaaS, PaaS, SaaS, Managed Service, Shared Responsibility Model
 - 3교시: AWS 계정 생성 전 안내 - 과금 구조, Free Tier, 결제 수단, MFA, root 계정 주의사항
 - 4교시: AWS 계정 생성 101 가이드 - 기존 계정 조사, Free/Paid plan, MFA, Billing, Budget, 리소스 생성 금지
-- 5교시: AWS Pricing Calculator 실습 - 프로젝트 아이디어를 월 비용으로 바꾸기
+- 5교시: AWS Pricing Calculator 실습 - 표준 3-tier 아키텍처 월 비용 계산
 - 6교시: 보안 기본 원칙과 공식 Documentation 읽는 법 - 최소 권한, secret 관리, AI 답변 검증, 버전과 전제 조건 확인
 - 7교시: 개인 면담 및 환경 점검 - AWS 계정, MFA, Billing 알림, Docker 실행 상태 확인
 - 8교시: 프로젝트 아이디어 면담 - 만들고 싶은 서비스, 필요한 리소스, 예상 위험 요소 정리
@@ -105,7 +105,7 @@
 - AWS 계정 생성 전 체크리스트와 Free plan/Paid plan 확인 기록
 - 기존 AWS 계정 조사표, MFA와 Billing/Budget 접근 확인 기록
 - 교육용 비용 계산 예제와 낭비 리소스 점검표
-- AWS Pricing Calculator estimate와 비용 가정 README 기록
+- 표준 3-tier AWS Pricing Calculator estimate와 트래픽/EBS/S3 비용 가정 README 기록
 - 공식 문서 검증 기록
 - 개인 환경 점검표
 - 프로젝트 아이디어 리소스/비용/보안 위험 분석표
