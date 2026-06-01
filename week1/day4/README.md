@@ -95,6 +95,7 @@
 - `assets/week1-day4-overview.png`: 4일차 클라우드 안전 지도 인포그래픽
 - `assets/lesson-02-service-model-overview.png`: IaaS, PaaS, SaaS, Managed Service 책임 경계 오버뷰
 - `assets/lesson-02-platform-permission-control.png`: 플랫폼별 권한 제어와 책임 범위 다이어그램
+- `assets/lesson-03-aws-cost-security-guardrails.png`: AWS 계정 생성 전 비용·보안 가드레일 인포그래픽
 
 ## Deliverables
 - 클라우드 기본 구성요소 매핑표

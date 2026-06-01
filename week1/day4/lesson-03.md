@@ -13,6 +13,11 @@ AWS 공식 Free Tier 페이지와 Billing 문서는 Free plan이 6개월 또는 
 
 AWS 계정은 단순 웹사이트 회원가입이 아니다. 결제 수단과 연결되고, root user는 계정 전체를 통제할 수 있다. 그래서 계정 생성 전에는 실습 범위, 비용 확인 방법, MFA 설정, root user 사용 제한을 먼저 이해해야 한다.
 
+## 인포그래픽: AWS 계정 생성 전 비용·보안 가드레일
+아래 인포그래픽은 계정 생성 전에 확인할 Free Tier/Credits, 비용 가드레일, secret 보호, 계산 기준을 한 장으로 정리한다. 이미지 안의 인스턴스 이름과 금액은 학습용 예시이며, 실제 무료 조건과 요금은 계정 plan, 리전, 서비스, 날짜에 따라 달라질 수 있으므로 공식 문서와 Billing 화면에서 확인한다.
+
+![AWS 계정 생성 전 비용·보안 가드레일](./assets/lesson-03-aws-cost-security-guardrails.png)
+
 ## 공식 참고 자료
 - AWS Free Tier  
   https://aws.amazon.com/free/
