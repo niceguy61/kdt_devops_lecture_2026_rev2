@@ -69,10 +69,16 @@
 - 공식 참고: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa.html
 
 ### Free Tier
-- 한 줄 뜻: 조건을 만족하는 사용량에 적용되는 무료 범위
-- 왜 중요한가: 무조건 무료가 아니므로 서비스, 기간, 사용량, 초과 비용을 확인해야 한다.
+- 한 줄 뜻: 신규 고객 크레딧과 일부 서비스 무료 사용량을 포함한 AWS 무료 사용 구조
+- 왜 중요한가: 무조건 무료가 아니므로 크레딧, 계정 plan, 서비스별 사용량, 기간, 초과 비용을 확인해야 한다.
 - 수업에서 다시 나오는 곳: Week 1 Day 4, Week 5 AWS
 - 공식 참고: https://aws.amazon.com/free/
+
+### AWS Credits
+- 한 줄 뜻: AWS 사용 요금을 상쇄하는 계정 단위 크레딧
+- 왜 중요한가: 현금이 아니며, 잔액과 만료, 적용 가능한 서비스와 사용량을 확인해야 한다.
+- 수업에서 다시 나오는 곳: Week 1 Day 4, Week 5 AWS
+- 공식 참고: https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-FAQ.html
 
 ### Billing
 - 한 줄 뜻: 클라우드 사용량과 비용 청구를 확인하는 영역
