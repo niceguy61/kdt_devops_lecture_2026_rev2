@@ -21,7 +21,7 @@
 - 1교시: 클라우드 기본 구성 요소 - Region, AZ, Compute, Storage, Network, IAM의 큰 그림
 - 2교시: 클라우드 서비스 모델 - IaaS, PaaS, SaaS, Managed Service, Shared Responsibility Model
 - 3교시: AWS 계정 생성 전 안내 - 과금 구조, Free Tier, 결제 수단, MFA, root 계정 주의사항
-- 4교시: AWS 계정 생성 및 보안 기본 설정 - 계정 생성, MFA 설정, Billing 알림 확인, 콘솔 로그인
+- 4교시: AWS 계정 생성 101 가이드 - 기존 계정 조사, Free/Paid plan, MFA, Billing, Budget, 리소스 생성 금지
 - 5교시: 클라우드 비용 관리 기본 - 데이터센터 비용과 클라우드 비용 비교, 사용량 기반 과금, 낭비 사례
 - 6교시: 보안 기본 원칙과 공식 Documentation 읽는 법 - 최소 권한, secret 관리, AI 답변 검증, 버전과 전제 조건 확인
 - 7교시: 개인 면담 및 환경 점검 - AWS 계정, MFA, Billing 알림, Docker 실행 상태 확인
@@ -87,7 +87,7 @@
 - `lesson-01.md`: 클라우드 기본 구성요소
 - `lesson-02.md`: 클라우드 서비스 모델과 책임 분담
 - `lesson-03.md`: AWS 계정 생성 전 과금/보안 안내
-- `lesson-04.md`: AWS 계정 생성 및 보안 기본 설정
+- `lesson-04.md`: AWS 계정 생성 101 가이드
 - `lesson-05.md`: 클라우드 비용 관리 기본
 - `lesson-06.md`: 보안 원칙과 공식 문서 읽는 법
 - `lesson-07.md`: 개인 면담 및 환경 점검
@@ -96,12 +96,13 @@
 - `assets/lesson-02-service-model-overview.png`: IaaS, PaaS, SaaS, Managed Service 책임 경계 오버뷰
 - `assets/lesson-02-platform-permission-control.png`: 플랫폼별 권한 제어와 책임 범위 다이어그램
 - `assets/lesson-03-aws-cost-security-guardrails.png`: AWS 계정 생성 전 비용·보안 가드레일 인포그래픽
+- `assets/lesson-04-aws-account-setup-101.png`: AWS 계정 생성 101 흐름 인포그래픽
 
 ## Deliverables
 - 클라우드 기본 구성요소 매핑표
 - 서비스 모델별 책임 분담 표
 - AWS 계정 생성 전 체크리스트와 Free plan/Paid plan 확인 기록
-- MFA와 Billing 접근 확인 기록
+- 기존 AWS 계정 조사표, MFA와 Billing/Budget 접근 확인 기록
 - 교육용 비용 계산 예제와 낭비 리소스 점검표
 - 공식 문서 검증 기록
 - 개인 환경 점검표
