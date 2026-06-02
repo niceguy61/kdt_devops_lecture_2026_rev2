@@ -1,135 +1,58 @@
-# Week 1 Day 4: 클라우드 기본 구성요소, AWS 계정, 비용/보안, 공식 문서 읽기
+# Week 1 Day 4: 미니 앱 범위 설정, skeleton, 구현, 실행 증거, 위험 분류, 개인 면담
 
-## Overview
-4일차는 로컬 컴퓨터와 미니 웹앱에서 배운 실행 조건을 클라우드의 기본 구성요소로 확장한다. 오늘의 목표는 AWS 서비스를 많이 생성하는 것이 아니라, 클라우드 리소스를 만들기 전에 반드시 확인해야 하는 위치, 권한, 비용, 보안, 공식 문서 기준을 세우는 것이다.
+## Day Goal
+학생은 Week1 기준의 작은 정적 미니 앱을 범위 안에서 설계하고, skeleton 생성, data rendering 구현, 실행 증거 작성, 위험 분류, README/runbook 초안까지 완성한다. 7~8교시는 반드시 개인 면담과 보충 실습으로 운영하며 새 진도를 추가하지 않는다.
 
-클라우드는 필요한 자원을 빠르게 빌려 쓰게 해 주지만, 잘못 켜 둔 리소스, 과한 권한, 노출된 secret, 확인하지 않은 리전 선택은 실제 비용과 보안 사고로 이어질 수 있다. 그래서 1주차 4일차는 계정 생성과 콘솔 탐색을 하더라도 "무엇을 만들 수 있는가"보다 "무엇을 만들기 전에 어떤 증거를 확인해야 하는가"에 초점을 둔다.
-
-![4일차 클라우드 안전 지도](./assets/week1-day4-overview.png)
-
-## Learning Goals
-- Region, Availability Zone, Compute, Storage, Network, IAM을 클라우드 운영의 기본 지도 안에서 설명한다.
-- IaaS, PaaS, SaaS, Managed Service, Shared Responsibility Model의 차이를 운영 책임 관점에서 구분한다.
-- AWS 계정 생성 전 확인할 과금 구조, Free Tier, 결제 수단, MFA, root 계정 주의사항을 설명한다.
-- AWS 콘솔 로그인, MFA 설정, Billing 접근 확인, 비용 알림 확인 흐름을 따라간다.
-- CAPEX, OPEX, TCO, ROI와 사용량 기반 과금의 차이를 간단한 계산으로 비교한다.
-- AWS Well-Architected Framework의 6개 pillar를 사용해 3-tier 설계를 질문으로 점검한다.
-- AWS 계정, MFA, Billing, Docker 실행 상태를 개인별로 점검하고 문제를 기록한다.
-- 만들고 싶은 서비스 아이디어를 필요한 리소스, 비용 위험, 보안 위험, 1주차 범위 조정 관점에서 정리한다.
+## 운영 원칙
+- Week1 앱은 HTML/CSS/JS, dummy JSON, local static server, README evidence만 포함한다.
+- backend, database, paid API, authentication은 제외한다.
+- 기능 수보다 실행 가능성, 재현성, handoff 가능성을 우선한다.
+- DORA와 Well-Architected는 Week1 독립 수업으로 다루지 않는다. 필요한 경우 변경 증거, 재현성, 위험 인식이라는 현업 습관으로만 짧게 연결한다.
 
 ## Lesson Index
-- 1교시: 클라우드 기본 구성 요소 - Region, AZ, Compute, Storage, Network, IAM의 큰 그림
-- 2교시: 클라우드 서비스 모델 - IaaS, PaaS, SaaS, Managed Service, Shared Responsibility Model
-- 3교시: AWS 계정 생성 전 안내 - 과금 구조, Free Tier, 결제 수단, MFA, root 계정 주의사항
-- 4교시: AWS 계정 생성 101 가이드 - 기존 계정 조사, Free/Paid plan, MFA, Billing, Budget, 리소스 생성 금지
-- 5교시: AWS Pricing Calculator 실습 - 표준 3-tier 아키텍처 월 비용 계산
-- 6교시: AWS Well-Architected Framework - AWS를 쓰기 전에 아키텍처를 질문으로 점검하기
-- 7교시: 개인 면담 및 환경 점검 - AWS 계정, MFA, Billing 알림, Docker 실행 상태 확인
-- 8교시: 프로젝트 아이디어 면담 - 만들고 싶은 서비스, 필요한 리소스, 예상 위험 요소 정리
+| 교시 | 주제 | 핵심 산출물 |
+|---|---|---|
+| 1교시 | 미니 앱 요구사항과 범위 경계 | scope note, include/exclude table |
+| 2교시 | 미니 앱 skeleton 생성 | file tree, minimal static app |
+| 3교시 | 구현 1 - HTML/CSS/JS/dummy JSON 연결 | data rendering evidence |
+| 4교시 | 구현 2 - 사용자 흐름과 error state | normal/empty/error state |
+| 5교시 | 실행 증거 작성 | command, path, port, URL, HTTP/browser evidence |
+| 6교시 | 운영 위험 분류와 README/runbook 기초 | risk table, runbook draft |
+| 7교시 | 개인 면담 및 환경 점검 | blocker classification, recovery action |
+| 8교시 | 개인 면담 및 보충 실습 | Day4 submission package, peer test note |
 
-## Official References
-- AWS Documentation: What is cloud computing?
-  https://docs.aws.amazon.com/whitepapers/latest/aws-overview/what-is-cloud-computing.html
-- AWS Documentation: Regions and Availability Zones
-  https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
-- AWS Documentation: AWS global infrastructure
-  https://docs.aws.amazon.com/whitepapers/latest/aws-overview/global-infrastructure.html
-- AWS Documentation: Security best practices in IAM
-  https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html
-- AWS Documentation: AWS account root user
-  https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html
-- AWS Documentation: Multi-factor authentication in IAM
-  https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa.html
-- AWS Billing and Cost Management User Guide
-  https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-what-is.html
-- AWS Free Tier
-  https://aws.amazon.com/free/
-- AWS Pricing Calculator
-  https://calculator.aws/
-- AWS Well-Architected Framework
-  https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html
-- AWS Well-Architected Framework: Operational Excellence pillar
-  https://docs.aws.amazon.com/wellarchitected/latest/operational-excellence-pillar/welcome.html
-- AWS Well-Architected Framework: Security pillar
-  https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html
-- AWS Well-Architected Framework: Reliability pillar
-  https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html
-- AWS Well-Architected Framework: Performance Efficiency pillar
-  https://docs.aws.amazon.com/wellarchitected/latest/performance-efficiency-pillar/welcome.html
-- AWS Well-Architected Framework: Cost Optimization pillar
-  https://docs.aws.amazon.com/wellarchitected/latest/cost-optimization-pillar/welcome.html
-- AWS Well-Architected Framework: Sustainability pillar
-  https://docs.aws.amazon.com/wellarchitected/latest/sustainability-pillar/welcome.html
-- AWS Shared Responsibility Model
-  https://aws.amazon.com/compliance/shared-responsibility-model/
+## Required Deliverables
+| Deliverable | Minimum Evidence |
+|---|---|
+| working static mini app | local server URL and visible page |
+| dummy JSON rendering | data value visible in browser |
+| execution evidence table | command, working directory, port, URL, status/result |
+| risk classification table | cost/security/reproducibility risks and responses |
+| README/runbook sections | start/check/stop/troubleshoot |
+| interview/blocker note | blocker type and next action |
 
-## Today's Key Terms
-- Region: 클라우드 리소스가 배치되는 지리적 지역
-- Availability Zone: 한 Region 안에서 분리된 데이터센터 묶음
-- Compute: 애플리케이션을 실행하는 계산 자원
-- Storage: 데이터를 저장하는 자원
-- Network: 요청과 응답이 이동하는 통신 경로
-- IAM: AWS 리소스 접근 권한을 관리하는 서비스
-- Root User: AWS 계정의 최고 권한 사용자
-- MFA: 비밀번호 외 추가 인증 요소
-- Free Tier Credits: 신규 고객에게 제공될 수 있는 AWS 사용 크레딧
-- Always Free: 일부 서비스가 제공하는 월별 무료 사용량 또는 상시 무료 범위
-- Billing: 사용량과 비용 청구를 확인하는 영역
-- Shared Responsibility Model: 클라우드 제공자와 사용자의 보안 책임 분담 모델
-- Well-Architected Framework: 클라우드 아키텍처를 운영, 보안, 안정성, 성능, 비용, 지속 가능성 관점에서 검토하는 공식 질문 체계
-- Least Privilege: 필요한 작업에 필요한 최소 권한만 부여하는 원칙
-- CAPEX: 초기 투자 비용
-- OPEX: 운영 중 계속 발생하는 비용
+## 50분 수업 공통 구조
+각 lesson은 다음 구조로 운영한다.
+1. 5분: 이전 산출물 확인과 목표 고정
+2. 10~15분: 핵심 개념과 예시 설명
+3. 20~25분: 개인 또는 짝 실습
+4. 5~10분: evidence 기록과 평가 체크
+5. 마지막 2~5분: 다음 교시 연결
 
-자세한 용어 정리는 [Week 1 Glossary](../glossary.md)를 참고한다.
+7~8교시는 이 구조를 강의가 아니라 면담/보충 실습에 적용한다.
 
-## Setup And Permissions
-오늘은 AWS 계정과 보안 설정을 확인하지만, 원칙적으로 비용이 발생하는 리소스 생성 실습은 하지 않는다. 학생 개인 상황에 따라 계정 생성이 이미 완료되었을 수도 있고, 결제 수단 인증 또는 보호자/회사 승인 때문에 오늘 완료하지 못할 수도 있다. 완료 여부보다 중요한 것은 비용과 보안 기준을 이해하고, 완료하지 못한 항목을 정확히 기록하는 것이다.
+## 평가 기준 요약
+- 앱이 정적 서버에서 실행된다.
+- README만 보고 시작, 확인, 중지할 수 있다.
+- 사용자 흐름이 1개로 제한되어 있다.
+- dummy JSON, error state, 실행 evidence가 확인된다.
+- 비용, 보안, 재현성 위험이 명시되어 있다.
+- 개인 blocker와 보완 계획이 남아 있다.
 
-필요한 준비:
-- 개인 이메일 또는 교육용 이메일
-- 휴대폰 인증 가능 상태
-- MFA 앱 또는 passkey 사용 가능 환경
-- 결제 수단 준비 여부 확인
-- 브라우저에서 AWS Console 접속 가능
-- Docker Desktop 실행 상태 확인 가능
+## 다음 주차 연결
+Day4 산출물은 Week2 Docker 실습의 입력이다. 앱 폴더는 build context가 되고, 실행 명령은 container command와 port mapping으로 바뀐다. README/runbook은 Docker runbook으로 확장된다.
 
-## Required Files And Assets
-- `lesson-01.md`: 클라우드 기본 구성요소
-- `lesson-02.md`: 클라우드 서비스 모델과 책임 분담
-- `lesson-03.md`: AWS 계정 생성 전 과금/보안 안내
-- `lesson-04.md`: AWS 계정 생성 101 가이드
-- `lesson-05.md`: AWS Pricing Calculator 실습
-- `lesson-06.md`: AWS Well-Architected Framework와 3-tier 설계 리뷰
-- `lesson-07.md`: 개인 면담 및 환경 점검
-- `lesson-08.md`: 프로젝트 아이디어 면담
-- `assets/week1-day4-overview.png`: 4일차 클라우드 안전 지도 인포그래픽
-- `assets/lesson-02-service-model-overview.png`: IaaS, PaaS, SaaS, Managed Service 책임 경계 오버뷰
-- `assets/lesson-02-platform-permission-control.png`: 플랫폼별 권한 제어와 책임 범위 다이어그램
-- `assets/lesson-03-aws-cost-security-guardrails.png`: AWS 계정 생성 전 비용·보안 가드레일 인포그래픽
-- `assets/lesson-04-aws-account-setup-101.png`: AWS 계정 생성 101 흐름 인포그래픽
-- `assets/lesson-05-pricing-calculator-workflow.png`: AWS Pricing Calculator 실습 흐름 인포그래픽
-- `assets/lesson-06-well-architected-framework.png`: Well-Architected Framework 6개 pillar 인포그래픽
+## Visual Support
+![Local service evidence flow](../assets/week1-service-evidence-flow.png)
 
-## Deliverables
-- 클라우드 기본 구성요소 매핑표
-- 서비스 모델별 책임 분담 표
-- AWS 계정 생성 전 체크리스트와 Free plan/Paid plan 확인 기록
-- 기존 AWS 계정 조사표, MFA와 Billing/Budget 접근 확인 기록
-- 교육용 비용 계산 예제와 낭비 리소스 점검표
-- 표준 3-tier AWS Pricing Calculator estimate와 트래픽/EBS/S3 비용 가정 README 기록
-- Well-Architected mini review와 공식 문서 검증 기록
-- 개인 환경 점검표
-- 프로젝트 아이디어 리소스/비용/보안 위험 분석표
-
-## End-Of-Day Checklist
-- Region과 AZ의 차이를 설명할 수 있다.
-- Compute, Storage, Network, IAM이 어떤 운영 문제와 연결되는지 말할 수 있다.
-- IaaS, PaaS, SaaS, Managed Service에서 사용자가 책임지는 범위가 달라짐을 설명할 수 있다.
-- AWS root user를 일상 작업에 쓰지 않아야 하는 이유를 설명할 수 있다.
-- MFA가 설정되었는지 확인하거나, 설정하지 못한 이유와 다음 조치를 기록했다.
-- Billing 또는 비용 확인 화면 접근 가능 여부를 확인했다.
-- AWS 신규 고객 크레딧과 일부 서비스의 무료 사용량이 "무조건 무료"와 다르다는 점을 설명할 수 있다.
-- 클라우드 비용을 시간당 비용, 월 비용, 유휴 리소스 비용으로 계산할 수 있다.
-- 3-tier 설계를 Well-Architected Framework의 6개 pillar 질문으로 검토할 수 있다.
-- 만들고 싶은 프로젝트의 필요한 리소스와 비용/보안 위험을 1차로 줄여 설명할 수 있다.
+Day4에서는 이 evidence flow를 미니 앱 구현에 적용한다. 구현 자체보다 command, port, status, log, README evidence가 함께 남는지 확인한다.

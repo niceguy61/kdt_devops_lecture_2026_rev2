@@ -1,120 +1,180 @@
-# 7교시: 개인 면담 및 환경 점검 - AWS 계정, MFA, Billing 알림, Docker 실행 상태 확인
+# 7교시: 개인 면담 및 환경 점검
 
 ## 수업 목표
-- 개인별 AWS 계정, MFA, Billing 접근, Docker 실행 상태를 확인한다.
-- 완료 여부보다 막힌 지점과 다음 조치를 명확히 기록한다.
-- 이후 Docker와 AWS 실습에서 반복될 환경 문제를 조기에 발견한다.
-- 비용과 보안 위험이 있는 미완료 항목을 구분한다.
+- 학생별 blocker를 확인하고 Day4 산출물 완성 계획을 조정한다.
+- 환경 문제, 범위 초과, 실행 실패, 문서 누락을 구분한다.
+- 새 진도를 나가지 않고 개인 회복 시간을 확보한다.
 
-## 시작 상황
-클라우드와 Docker 수업은 개인 환경 차이가 크게 영향을 준다. 어떤 학생은 계정 생성이 끝났지만 Billing 접근이 안 될 수 있고, 어떤 학생은 Docker가 실행되지만 가상화 설정이 꺼져 있을 수 있다. 또 어떤 학생은 회사 또는 교육장 보안 정책 때문에 설치나 결제 수단 등록이 막힐 수 있다.
-
-환경 점검의 목적은 학생을 평가하는 것이 아니다. 이후 실습이 막히지 않도록 위험을 빨리 발견하고, 수업 중 해결할 것과 별도 조치가 필요한 것을 나누는 것이다.
-
-## 공식 참고 자료
-- AWS IAM User Guide: Multi-factor authentication in IAM  
-  https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa.html
-- AWS Billing and Cost Management User Guide  
-  https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-what-is.html
-- Docker Docs: Install Docker Desktop  
-  https://docs.docker.com/desktop/
-- Docker Docs: Troubleshoot Docker Desktop  
-  https://docs.docker.com/desktop/troubleshoot/
-
-## 점검 항목
-| 영역 | 확인 항목 | 상태 | 다음 조치 |
+## 50분 운영
+| 시간 | 활동 | 학습 초점 | 학생 산출 |
 |---|---|---|---|
-| AWS 계정 | 로그인 가능 |  |  |
-| AWS 보안 | root user MFA 설정 |  |  |
-| AWS 비용 | Billing 화면 접근 |  |  |
-| AWS 비용 | Budget 또는 알림 메뉴 위치 확인 |  |  |
-| AWS 콘솔 | 현재 Region 확인 가능 |  |  |
-| Docker | Docker Desktop 실행 |  |  |
-| Docker | `docker version` 확인 |  |  |
-| GitHub | secret이 저장소에 없는지 확인 |  |  |
+| 0-5분 | 면담 방식 안내 | 대기 중 학생은 보충 실습을 진행한다. | 자기 점검표 |
+| 5-40분 | 1:1 또는 소그룹 면담 | blocker를 분류하고 다음 행동을 정한다. | interview note |
+| 40-48분 | 개인 수정 시간 | 범위 축소와 실행 회복 행동을 선택한다. | 수정 commit 또는 파일 |
+| 48-50분 | 종료 체크 | 다음 교시 보충 우선순위를 정한다. | priority list |
 
-## Docker 상태 확인 명령
-Docker는 2주차에 본격적으로 다루지만, 설치와 실행 상태는 미리 확인한다.
+## 0-5분 면담 방식 안내
 
-```bash
-docker version
-docker info
-```
+- 진행: 면담 방식 안내
 
-기대 결과:
-- Docker Client와 Server 정보가 모두 보인다.
-- Docker Desktop이 실행 중이어야 한다.
-- Server에 연결할 수 없다는 메시지가 나오면 Docker daemon이 실행 중인지 확인한다.
+- 초점: 대기 중 학생은 보충 실습을 진행한다.
 
-흔한 증상:
-| 증상 | 가능한 원인 | 대응 |
-|---|---|---|
-| `Cannot connect to the Docker daemon` | Docker Desktop 미실행 | Docker Desktop 실행 후 재시도 |
-| 가상화 관련 오류 | BIOS/WSL/Hyper-V 설정 문제 | 운영체제별 공식 문서 확인 |
-| 권한 오류 | 사용자 그룹 또는 관리자 권한 문제 | 설치 방식과 권한 확인 |
-| 회사 PC 제한 | 보안 정책 | 별도 장비 또는 승인 필요 |
+- 학생 산출: 자기 점검표
 
-## AWS 상태 확인 기록
-```text
-이름:
-AWS 로그인 가능 여부:
-root MFA 상태:
-Billing 접근 가능 여부:
-Budget/알림 메뉴 확인 여부:
-현재 Region:
-오늘 생성한 AWS 리소스:
-계정 생성/인증에서 막힌 지점:
-다음 수업 전 필요한 조치:
-```
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
 
-## 환경 문제 우선순위
-| 우선순위 | 문제 | 이유 |
-|---|---|---|
-| 높음 | MFA 미설정 상태로 계정 사용 | 계정 탈취 위험이 크다 |
-| 높음 | Billing 접근 불가 | 비용 확인 없이 리소스 실습을 진행할 수 없다 |
-| 높음 | 결제 수단/계정 생성 미완료 | 5주차 AWS 실습 참여 방식 조정 필요 |
-| 중간 | Docker daemon 연결 실패 | 2주차 전 해결 필요 |
-| 중간 | GitHub secret 노출 의심 | 즉시 삭제만으로 충분하지 않을 수 있다 |
-| 낮음 | 콘솔 언어/테마 차이 | 수업 흐름에는 큰 영향 없음 |
 
-## 면담 질문
-- AWS 계정 생성에서 가장 막힌 단계는 어디인가?
-- MFA를 설정했다면 어떤 방식으로 설정했는가?
-- Billing 화면을 열 수 있는가?
-- Docker Desktop은 실행되는가?
-- 3일차 미니 앱을 다시 실행할 수 있는가?
-- GitHub 저장소에 secret, token, 결제 정보, 개인정보가 들어간 적이 있는가?
-- 다음 수업 전 혼자 해결해야 할 항목과 수업 중 도움받아야 할 항목은 무엇인가?
 
-## Mermaid: 환경 점검 분기
+### 핵심 설명
+7교시는 개인 면담과 보충 실습 시간이다. 이 시간에는 새 개념보다 개인별 산출물 회복에 집중한다. 목표는 "모두 같은 속도"가 아니라 각 학생이 제출 가능한 산출물까지 복구하는 것이다.
+
+
+
+### Visual 1: 구조 다이어그램
+![면담과 Blocker 회복 Lane](./assets/lesson-07-interview-recovery.png)
+
+이 이미지는 7교시 면담을 새 진도 시간이 아니라 blocker를 분류하고 다음 행동을 정하는 회복 시간으로 고정한다. 개인 정보가 아니라 환경, 개념, 진행 evidence만 다룬다.
+
 ```mermaid
-flowchart TD
-    A["개인 환경 점검"] --> B{"AWS 로그인 가능?"}
-    B -- "아니오" --> C["계정 생성/인증 문제 기록"]
-    B -- "예" --> D{"MFA 설정됨?"}
-    D -- "아니오" --> E["MFA 설정 우선"]
-    D -- "예" --> F{"Billing 접근 가능?"}
-    F -- "아니오" --> G["권한/계정 설정 확인"]
-    F -- "예" --> H["AWS 기본 준비 완료"]
-    A --> I{"Docker 실행 가능?"}
-    I -- "아니오" --> J["공식 troubleshooting 기준으로 기록"]
-    I -- "예" --> K["2주차 준비 상태 양호"]
+flowchart LR
+  Check[Self check] --> Interview[Interview]
+  Interview --> Classify[Classify blocker]
+  Classify --> Action[One recovery action]
+  Action --> Evidence[Evidence or 8th-period support]
 ```
 
-## 산출물
-오늘의 산출물은 "모든 항목 완료"가 아니라 "상태가 분명한 점검표"다. 다음과 같이 분류한다.
+## 5-40분 1:1 또는 소그룹 면담
 
-| 분류 | 의미 |
+- 진행: 1:1 또는 소그룹 면담
+
+- 초점: blocker를 분류하고 다음 행동을 정한다.
+
+- 학생 산출: interview note
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 2: 면담 캡처 항목
+| 면담 캡처 항목 | 학생이 적는 내용 | 확인 기준 |
+|---|---|---|
+| 현재 상태 | 실행됨/실행 안 됨/모름 | 환경 문제와 구현 문제 분리 |
+| blocker type | Environment, Scope, Implementation, Evidence, Confidence | 즉시 처방 선택 |
+| 다음 행동 | 10분 안에 할 한 가지 | 새 진도가 아니라 회복 행동인지 확인 |
+| 이월 여부 | 8교시 지원 필요/불필요 | 우선 지원 순서 |
+
+## 40-48분 개인 수정 시간
+
+- 진행: 개인 수정 시간
+
+- 초점: 범위 축소와 실행 회복 행동을 선택한다.
+
+- 학생 산출: 수정 commit 또는 파일
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 3: blocker 유형별 회복 lane
+| Type | 즉시 회복 행동 | evidence |
+|---|---|---|
+| Environment | command/path/port 재확인 | terminal output |
+| Scope | 기능 줄이기 | include/exclude note |
+| Evidence | README 표 채우기 | command/status 기록 |
+
+
+
+### 면담 질문
+| 질문 | 확인하려는 것 |
 |---|---|
-| 완료 | 바로 다음 실습에 사용할 수 있음 |
-| 수업 중 도움 필요 | 오류 메시지와 환경 정보가 있어 함께 해결 가능 |
-| 외부 승인 필요 | 결제 수단, 회사 정책, 보호자 승인 등 수업 중 해결 불가 |
-| 대체 경로 필요 | 개인 계정 사용이 어려워 수업 데모 또는 팀 계정 관찰로 진행 |
+| 지금 앱은 실행되는가? | 환경/명령 문제 |
+| 사용자 흐름은 1개인가? | 범위 초과 |
+| `data.json`은 화면에 보이는가? | 구현 연결 |
+| README만 보고 다시 실행할 수 있는가? | 재현성 |
+| 가장 막힌 지점은 무엇인가? | 보충 실습 우선순위 |
 
-## DevOps 원칙 연결
-- 비용 절감: Billing 접근과 리소스 생성 여부를 확인하면 비용 사고를 예방한다.
-- 개발/배포 효율성: 환경 문제를 미리 분류하면 Docker/AWS 실습 시간을 지킬 수 있다.
-- 관리 효율성: 개인 상태 기록은 이후 장애 대응과 보충 실습의 기준 자료가 된다.
 
-## 다음 수업 연결
-마지막 교시에서는 학생이 만들고 싶은 프로젝트 아이디어를 클라우드 리소스, 비용, 보안 위험으로 해석한다. 좋은 프로젝트 아이디어는 큰 기술 목록이 아니라 운영 가능한 범위 조정에서 시작한다.
+
+### Blocker 분류
+| Type | 예시 | 즉시 처방 |
+|---|---|---|
+| Environment | Python command 없음, port 충돌 | 다른 port, 설치 상태 확인 |
+| Scope | 로그인/API/DB를 넣으려 함 | dummy JSON으로 축소 |
+| Implementation | fetch path 오류, DOM 선택자 오류 | 파일 위치와 console 확인 |
+| Evidence | 실행은 되지만 기록 없음 | README evidence table 작성 |
+| Confidence | 어디부터 해야 할지 모름 | skeleton부터 재작성 |
+
+
+
+### 흔한 오해
+| 오해 | 교정 |
+|---|---|
+| 산출물이 있으면 evidence는 나중에 채워도 된다. | evidence는 산출물의 일부다. command, path, status, log, note가 함께 있어야 평가 가능하다. |
+| Week1에서 모든 기술을 깊게 익혀야 한다. | Week1은 컴퓨팅 spine과 운영 증거를 만드는 주차이며, 깊은 hands-on은 각 기술 주차에서 진행한다. |
+| 막힌 내용을 숨기는 것이 좋다. | blocker를 증상, 시도한 일, 다음 조치로 기록하는 것이 현업식 진행 관리다. |
+
+## 48-50분 종료 체크
+
+- 진행: 종료 체크
+
+- 초점: 다음 교시 보충 우선순위를 정한다.
+
+- 학생 산출: priority list
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### 보충 실습 절차
+1. 학생은 자기 점검표에 현재 상태를 표시한다.
+2. blocker type을 하나로 표시하고 다음 행동을 정한다.
+3. 10분 안에 끝낼 수 있는 다음 행동을 정한다.
+4. 학생은 바로 수정하고 결과를 evidence로 남긴다.
+5. 해결되지 않으면 8교시 우선 지원 대상으로 표시한다.
+
+
+
+### 산출물
+- 개인 면담 기록
+- blocker 분류
+- 다음 행동 1개
+- 보충 실습 결과 또는 8교시 지원 요청
+
+
+
+### 평가 기준
+| 기준 | 충족 |
+|---|---|
+| 모든 학생이 최소 1회 자기 상태를 점검했다. | |
+| blocker가 유형별로 분류되었다. | |
+| 새 진도 없이 Day4 산출물 회복에 집중했다. | |
+| 8교시 보충 대상과 목표가 정해졌다. | |
+
+
+
+### 현업 DevOps insight
+팀 운영에서 blocker triage는 비난이 아니라 흐름 복구다. 문제를 환경, 범위, 구현, 증거로 나누면 해결 담당자와 다음 행동이 명확해진다.
+
+
+
+### 학술 근거
+- Formative feedback: 제출 전 개인별 피드백으로 학습 격차를 줄인다.
+- Mastery learning: 일정 수준의 산출물 완성 전 다음 개념으로 넘어가지 않는다.
+- Self-regulated learning: 학생이 자신의 막힘을 언어화한다.
+
+
+
+### 다음 주차 연결
+Week2 Docker 진입 전에 로컬 실행과 문서화 blocker를 줄여야 한다. 오늘 해결하지 못한 문제는 Docker 학습에서 더 크게 보인다.
+
+
+
+### 다음 연결
+다음 8교시도 개인 면담과 보충 실습을 이어가며 Day4 제출물을 닫는다.
+
+
+
+### 공식/학술 근거 링크
+- CMU Eberly Center: Learning Objectives, https://www.cmu.edu/teaching/designteach/design/learningobjectives.html - 면담 목표를 관찰 가능한 행동과 산출물로 정리하는 기준이다.
+- Monash Constructive Alignment, https://www.monash.edu/learning-teaching/teachhq/Teaching-practices/learning-outcomes/how-to/constructive-alignment - 개인 blocker, 보강 활동, 평가 증거를 맞추는 기준이다.
+- Google SRE Book: Postmortem Culture, https://sre.google/sre-book/postmortem-culture/ - 문제를 책임 추궁이 아니라 개선 가능한 evidence로 다루는 기준이다.

@@ -1,304 +1,167 @@
-# 7교시: 로그와 설정의 기본 - env 수정, 재기동, 로그 분석, 트러블슈팅
+# 7교시: Memory와 storage - RAM, filesystem, path, persistence, permission
 
 ## 수업 목표
-- 로그를 "프로그램이 남기는 관찰 가능한 증거"로 이해한다.
-- stdout, stderr, file log, error message, config, secret, `.env`의 차이를 설명한다.
-- `.env`를 수정하고 애플리케이션을 재기동해야 설정이 반영되는 흐름을 실습한다.
-- 정상 요청, 404, 500, 포트 변경을 로그로 확인하고 트러블슈팅 기록을 남긴다.
-- secret을 코드와 GitHub에 올리면 안 되는 이유를 이해한다.
+- memory와 storage의 차이를 설명한다.
+- file path, directory, permission이 서비스 실행에 미치는 영향을 설명한다.
+- Docker volume, Kubernetes Volume, AWS S3/EBS/RDS의 기초가 storage 개념임을 연결한다.
 
-## 공식 참고 자료
-- The Twelve-Factor App: Config  
-  https://12factor.net/config
-- GitHub Docs: Ignoring files  
-  https://docs.github.com/en/get-started/git-basics/ignoring-files
-- Python Docs: `http.server`  
-  https://docs.python.org/3/library/http.server.html
-- Python Docs: `os.environ`
-  https://docs.python.org/3/library/os.html#os.environ
-- GNU Coreutils Manual: `tail`
-  https://www.gnu.org/software/coreutils/manual/coreutils.html
-
-## 실습 대상 스펙과 제약
-| 항목 | 값 |
+## 50분 흐름
+| Time | Activity |
 |---|---|
-| 실습 폴더 | `week1/day2/sample-app` |
-| 실행 파일 | `app.py` |
-| 설정 예시 | `.env.example` |
-| 로컬 설정 파일 | `.env` |
-| 기본 포트 | `8000` |
-| 로그 파일 | `logs/app.log` |
-| 확인 도구 | `curl`, `tail`, `grep`, `ps`, `ss` |
+| 0-5분 | process/exit code evidence 확인 |
+| 5-15분 | memory와 storage 차이 설명 |
+| 15-30분 | file 생성, 읽기, path 확인 |
+| 30-40분 | permission과 persistence 실패 사례 정리 |
+| 40-50분 | volume/object/database storage preview |
 
-제약점:
-- `.env`는 애플리케이션 시작 시점에 읽는다. 실행 중에 `.env`만 바꿔도 이미 실행 중인 프로세스에는 바로 반영되지 않는다.
-- `.env`와 `logs/`는 `.gitignore`에 포함되어 Git에 올리지 않는다.
-- 실습용 `SECRET_TOKEN`은 실제 secret이 아니다. 실제 token, password, key를 `.env.example`, README, GitHub에 쓰면 안 된다.
-- file log는 로컬 실습을 위해 사용한다. 운영 환경에서는 로그 수집기, CloudWatch, Grafana Loki 같은 별도 로그 시스템을 사용할 수 있다.
+## 0-5분 process/exit code evidence 확인
 
-## 핵심 개념
-| 용어 | 뜻 | 예시 | 주의 |
-|---|---|---|---|
-| stdout | 일반 출력 통로 | 서버 시작 로그, 요청 로그 | 컨테이너 환경에서는 기본 로그 수집 대상 |
-| stderr | 에러 출력 통로 | 예외, 실패 메시지 | 장애 분석의 핵심 단서 |
-| file log | 파일에 저장되는 로그 | `logs/app.log` | 디스크 용량과 보관 주기 관리 필요 |
-| Error message | 실패 이유를 알려주는 문장 | `Address already in use` | 그대로 복사해 기록 |
-| Config | 환경별로 달라지는 설정 | `PORT`, `APP_MODE` | 코드와 분리하면 변경이 쉬움 |
-| Secret | 노출되면 위험한 값 | password, token, API key | GitHub에 올리면 안 됨 |
-| `.env` | 환경변수를 파일로 관리하는 방식 | `PORT=8000` | `.gitignore`로 제외 필요 |
-| 재기동 | 프로세스를 종료하고 다시 시작 | `Ctrl+C` 후 `python3 app.py` | 시작 시점 설정을 다시 읽게 함 |
+- 진행: process/exit code evidence 확인
 
-## 쉬운 비유
-로그와 설정은 여행 기록과 준비물 목록에 비유할 수 있다.
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
 
-- stdout은 여행 중 실시간으로 말하는 상황 공유다.
-- file log는 나중에 다시 볼 수 있도록 남기는 여행 일지다.
-- Config는 목적지에 따라 바뀌는 준비물 목록이다.
-- Secret은 여권 번호나 카드 비밀번호처럼 공개하면 안 되는 정보다.
-- `.env`는 개인별 준비물 메모장이다.
-- 재기동은 메모장을 바꾼 뒤 새 계획으로 다시 출발하는 일이다.
 
-비유의 한계:
-- 실제 secret은 단순 메모가 아니라 접근 권한, 암호화, 회전 정책까지 함께 관리해야 한다.
 
-## 인포그래픽
-이 인포그래픽은 로그, 에러, 설정, `.env`, secret을 분리해서 보여준다. 특히 secret은 코드 저장소에 올리지 않는다는 점을 강조한다.
+### 상세 설명
+Memory는 process가 실행 중에 빠르게 사용하는 임시 공간이고, storage는 파일이나 데이터를 더 오래 보관하는 공간이다. 컴퓨터를 껐다 켜도 남아야 하는 것은 storage에 있어야 한다. 서비스 운영에서 이 차이는 중요하다. process가 재시작될 때 memory의 값은 사라질 수 있지만, log file, uploaded file, database data는 보존되어야 할 수 있다.
 
-저장 위치:
-- `week1/day2/assets/lesson-07-logs-config-env.png`
+Path는 storage의 위치를 가리키는 주소다. 같은 파일 이름도 어느 directory에서 실행하느냐에 따라 찾을 수도 있고 못 찾을 수도 있다. Permission은 누가 읽고 쓸 수 있는지를 정한다. 권한 실패는 application logic 버그처럼 보일 수 있지만, evidence는 보통 "Permission denied"와 같은 메시지로 드러난다.
 
-![로그와 설정의 기본](./assets/lesson-07-logs-config-env.png)
 
-## 실습 1: 환경 파일 준비
-샘플 앱 폴더로 이동한다.
 
-```bash
-cd week1/day2/sample-app
-```
+### Visual 1: memory와 storage 구분
+![Memory와 Storage 구분](./assets/lesson-07-memory-storage.png)
 
-실습용 `.env`를 만든다.
+이 이미지는 실행 중 상태와 파일로 보존되는 상태를 분리해서 보게 한다. 이후 Docker volume, Kubernetes volume, AWS storage를 설명할 때 같은 기준으로 다시 매핑할 수 있다.
 
-```bash
-cp .env.example .env
-cat .env
-```
-
-기대 내용:
-
-```text
-APP_NAME=local-server-lab
-APP_MODE=local
-PORT=8000
-LOG_FILE=logs/app.log
-# Do not put real secrets in this training file.
-SECRET_TOKEN=
-```
-
-Git에 올라가지 않는지 확인한다.
-
-```bash
-cat .gitignore
-git status --short
-```
-
-확인할 것:
-- `.gitignore`에 `.env`와 `logs/`가 있다.
-- `git status --short`에 `.env`와 `logs/`가 보이지 않아야 한다.
-
-## 실습 2: 앱 실행과 로그 생성
-앱을 실행한다.
-
-```bash
-python3 app.py
-```
-
-기대 stdout:
-
-```text
-{"time": "...", "level": "INFO", "app": "local-server-lab", "mode": "local", "message": "server starting", "port": 8000, "logFile": ".../logs/app.log"}
-```
-
-다른 터미널에서 정상 요청을 보낸다.
-
-```bash
-curl http://localhost:8000/
-curl http://localhost:8000/health
-curl http://localhost:8000/config
-```
-
-로그 파일을 확인한다.
-
-```bash
-tail -n 20 logs/app.log
-```
-
-확인할 것:
-- `server starting`
-- `request handled`
-- `health check`
-- `config requested`
-- `status: 200`
-
-## 실습 3: 404와 500 로그 분석
-없는 경로를 요청한다.
-
-```bash
-curl -i http://localhost:8000/not-found
-```
-
-의도적으로 에러 응답을 만든다.
-
-```bash
-curl -i http://localhost:8000/error
-```
-
-로그를 확인한다.
-
-```bash
-tail -n 20 logs/app.log
-grep '"level": "WARN"' logs/app.log
-grep '"level": "ERROR"' logs/app.log
-```
-
-해석:
-- `/not-found`는 `WARN`과 `status: 404`로 남는다.
-- `/error`는 `ERROR`와 `status: 500`으로 남는다.
-- 404는 경로 문제, 500은 서버 내부 처리 실패로 분류한다.
-
-## 실습 4: env 수정 후 재기동
-`.env`에서 포트와 모드를 바꾼다.
-
-```bash
-sed -i 's/PORT=8000/PORT=8001/' .env
-sed -i 's/APP_MODE=local/APP_MODE=debug/' .env
-cat .env
-```
-
-중요한 점:
-- `.env`를 바꿔도 이미 실행 중인 서버는 아직 8000번 포트에서 동작한다.
-- 설정 파일을 시작 시점에 읽는 앱은 재기동해야 변경이 반영된다.
-
-기존 서버를 종료한다.
-
-```text
-Ctrl+C
-```
-
-다시 실행한다.
-
-```bash
-python3 app.py
-```
-
-새 포트로 확인한다.
-
-```bash
-curl http://localhost:8001/config
-```
-
-확인할 것:
-- `APP_MODE`가 `debug`로 보인다.
-- `PORT`가 `8001`로 보인다.
-- `logs/app.log`에 새 `server starting` 로그가 추가된다.
-
-## 실습 5: 포트 설정 오류 트러블슈팅
-잘못된 포트를 넣어본다.
-
-```bash
-sed -i 's/PORT=8001/PORT=abc/' .env
-python3 app.py
-```
-
-기대 오류:
-
-```text
-Invalid PORT: abc. PORT must be a number.
-```
-
-해석:
-- 앱이 시작되기 전에 설정값 검증에서 실패했다.
-- 이 경우 포트 충돌이 아니라 config 값 오류다.
-
-정상값으로 복구한다.
-
-```bash
-sed -i 's/PORT=abc/PORT=8000/' .env
-sed -i 's/APP_MODE=debug/APP_MODE=local/' .env
-python3 app.py
-```
-
-## Mermaid: env 수정과 재기동
 ```mermaid
-flowchart TD
-    A[".env 수정"] --> B["실행 중인 프로세스"]
-    B --> C{"자동 반영?"}
-    C -- "아니오" --> D["Ctrl+C로 종료"]
-    D --> E["python3 app.py 재실행"]
-    E --> F["새 env 값 반영"]
-    F --> G["curl/log로 확인"]
+flowchart LR
+    A[Process 실행 중] --> B[Memory<br/>임시 값]
+    A --> C[Filesystem storage<br/>파일로 보존]
+    C --> D[`data/status.json`]
+    D --> E[`cat data/status.json` evidence]
 ```
 
-## Mermaid: 로그 기반 원인 분석
-```mermaid
-flowchart TD
-    A["증상 발생"] --> B["status code 확인"]
-    B --> C["logs/app.log 확인"]
-    C --> D{"404?"}
-    D -- "예" --> E["path/file 확인"]
-    D -- "아니오" --> F{"500?"}
-    F -- "예" --> G["ERROR 로그와 최근 변경 확인"]
-    F -- "아니오" --> H["config, port, process 확인"]
+## 5-15분 memory와 storage 차이 설명
+
+- 진행: memory와 storage 차이 설명
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 2: 데이터 위치와 보존성
+| 데이터 위치 | 재시작 후 기대 | 오늘의 evidence |
+|---|---|---|
+| process memory | 사라질 수 있다. | 개념 note |
+| `data/status.json` 파일 | 파일을 지우지 않으면 남는다. | `ls -la data`, `cat` |
+| Git에 추가된 파일 | 다른 컴퓨터로 공유 가능하다. | `git status`에서 추적 여부 확인 |
+
+## 15-30분 file 생성, 읽기, path 확인
+
+- 진행: file 생성, 읽기, path 확인
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 3: storage 캡처 가이드
+| 캡처할 장면 | 확인할 부분 |
+|---|---|
+| `ls -la data` | 권한, 소유자, 크기, 수정 시간 |
+| `cat data/status.json` | 저장된 JSON 내용 |
+| 현재 `pwd` | 상대 path가 어느 위치 기준인지 |
+
+
+
+### 명령 절차
+```bash
+pwd
+mkdir -p week1-lab/data
+cd week1-lab
+printf '{"status":"ok"}\n' > data/status.json
+ls -la
+ls -la data
+cat data/status.json
 ```
 
-## 실습 기록 양식
-```markdown
-# Env And Log Lab Note
 
-## 정상 요청
-- 실행 명령:
-- 확인 URL:
-- status code:
-- 로그 파일:
 
-## 404 분석
-- 요청:
-- 로그 레벨:
-- 원인:
+### 확인 질문
+- `data/status.json`은 memory인가 storage인가?
+- 경로가 틀리면 서비스는 어떤 증상을 보일 수 있는가?
+- 파일 권한 문제는 application bug와 어떻게 다르게 관찰되는가?
 
-## 500 분석
-- 요청:
-- 로그 레벨:
-- 원인:
+## 30-40분 permission과 persistence 실패 사례 정리
 
-## env 수정과 재기동
-- 변경 전:
-- 변경 후:
-- 재기동 명령:
-- 확인 결과:
+- 진행: permission과 persistence 실패 사례 정리
 
-## 설정 오류
-- 잘못된 설정:
-- 에러 메시지:
-- 복구 방법:
-```
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
 
-## 50분 실습 흐름
-- 0~6분: 로그, config, secret, `.env`, 재기동 개념 설명
-- 6~13분: `.env.example`에서 `.env` 생성, `.gitignore` 확인
-- 13~22분: `python3 app.py` 실행, 정상 요청과 stdout/file log 확인
-- 22~31분: `/not-found`, `/error`로 404/500 로그 분석
-- 31~40분: `.env`에서 `PORT`, `APP_MODE` 변경 후 재기동
-- 40~46분: 잘못된 `PORT=abc` 설정 오류 재현과 복구
-- 46~50분: 실습 기록 작성과 8교시 원인 분석으로 연결
 
-## DevOps 원칙 연결
-- 비용 절감: 로그로 원인을 좁히면 추측성 재시작과 증설을 줄인다.
-- 개발/배포 효율성: 설정을 코드와 분리하면 환경별 배포가 쉬워진다.
-- 관리 효율성: secret 관리와 로그 표준화는 Docker, Kubernetes, AWS 운영으로 이어진다.
 
-## 확인 질문
-- stdout과 file log는 무엇이 다른가?
-- `.env`를 수정했는데 왜 재기동이 필요한가?
-- 404 로그와 500 로그는 원인 분석에서 어떻게 다르게 읽어야 하는가?
-- `PORT=abc`는 포트 충돌인가, 설정값 오류인가?
-- secret을 `.env.example`이나 GitHub에 올리면 왜 안 되는가?
+### 다음 주차 매핑
+Docker volume은 container lifecycle과 data lifecycle을 분리한다. Kubernetes Volume과 PersistentVolume은 Pod 재시작과 storage 보존을 분리한다. AWS S3, EBS, RDS는 storage 성격이 서로 다르며 Terraform은 그 선택을 코드로 고정한다.
+
+
+
+### 예상 결과
+- `data/status.json` 파일이 생성된다.
+- `cat data/status.json`은 `{"status":"ok"}`를 출력한다.
+- `ls -la data`는 파일 권한, 소유자, 크기, 수정 시간을 보여준다.
+
+
+
+### 의사결정 표
+| 증상 | 먼저 확인할 것 | 관련 명령 |
+|---|---|---|
+| 파일을 못 찾음 | 현재 path와 file path | `pwd`, `ls` |
+| 읽기 실패 | permission | `ls -la` |
+| 재시작 후 데이터 사라짐 | memory에만 저장했는지 | README/data note |
+| 다른 컴퓨터에서 실행 실패 | 필요한 data file 누락 | `git status`, `ls` |
+
+## 40-50분 volume/object/database storage preview
+
+- 진행: volume/object/database storage preview
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### 흔한 오해
+| 오해 | 교정 |
+|---|---|
+| JSON 파일을 만들었으니 memory에 저장한 것이다. | 파일은 storage에 저장된다. process 내부 변수는 memory다. |
+| path 문제는 초보 실수라 운영과 관계없다. | production 장애에서도 잘못된 mount path와 working directory는 흔한 원인이다. |
+| permission은 보안 수업에서만 중요하다. | 실행 가능 여부, log 작성, 업로드 저장에 직접 영향을 준다. |
+
+
+
+### 실습 Evidence
+| Evidence | Value |
+|---|---|
+| project path | |
+| data file path | |
+| `ls -la data` summary | |
+| file content | |
+
+
+
+### 학술 근거와 DevOps insight
+시스템 교육에서 volatile memory와 persistent storage 구분은 기본이다. DevOps 현업에서는 container 재시작, node 교체, 배포 rollback 때 데이터가 어디에 저장되는지 모르면 장애를 키운다. "데이터가 process 안에 있는가, filesystem에 있는가, 외부 저장소에 있는가"를 계속 질문해야 한다.
+
+
+
+### 평가 기준
+| 기준 | 2점 evidence |
+|---|---|
+| 50분 참여 | 시간 흐름에 맞춰 설명, 활동, 산출물 작성에 참여했다. |
+| 증거 산출 | 수업에서 요구한 note, command, table, blocker 중 해당 산출물을 구체적으로 남겼다. |
+| 전이 연결 | 오늘 개념이 Week2~6 기술 또는 자기 산출물과 어떻게 연결되는지 한 문장 이상 설명했다. |
+
+
+
+### 공식/학술 근거 링크
+- Google SRE Book: Introduction, https://sre.google/sre-book/introduction/ - monitoring, emergency response, change management가 운영 책임에 포함되는 근거다.
+- Google SRE Book: Postmortem Culture, https://sre.google/sre-book/postmortem-culture/ - 로그와 timeline을 blame이 아니라 학습 evidence로 다루는 기준이다.
+- MIT Missing Semester, https://missing.csail.mit.edu/ - debugging과 shell 기록을 실무형 학습 증거로 연결한다.

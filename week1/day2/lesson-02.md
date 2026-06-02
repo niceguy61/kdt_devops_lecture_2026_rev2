@@ -1,115 +1,159 @@
-# 2교시: Linux/CLI 기본 - 상태를 확인하는 명령어 도구함
+# 2교시: GitHub 계정, Git 설치, VS Code 확인
 
 ## 수업 목표
-- CLI(Command Line Interface, 명령어 인터페이스)를 상태 확인 도구로 이해한다.
-- `pwd`, `ls`, `cd`, `cat`, `grep`, `curl`, `ps`, `kill`의 목적을 설명한다.
-- 환경변수와 권한이 실행 문제와 어떻게 연결되는지 이해한다.
+- GitHub 계정, Git 설치, VS Code terminal 상태를 확인한다.
+- 계정/인증 정보와 공개 가능한 evidence를 구분한다.
+- 설치 확인을 "버전 출력"과 "터미널에서 실행 가능"으로 판단한다.
 
-## 공식 참고 자료
-- GNU Coreutils Manual  
-  https://www.gnu.org/software/coreutils/manual/coreutils.html
-- curl Documentation  
-  https://curl.se/docs/
-- Linux man-pages project  
-  https://www.kernel.org/doc/man-pages/
-- GitHub Docs: Set up Git  
-  https://docs.github.com/en/get-started/git-basics/set-up-git
+## 50분 흐름
+| Time | Activity |
+|---|---|
+| 0-5분 | 작업 폴더 path evidence 확인 |
+| 5-15분 | Git, GitHub, VS Code의 역할 구분 |
+| 15-30분 | 버전 확인과 VS Code terminal 확인 |
+| 30-40분 | 계정 보안, MFA, token 비공개 기준 정리 |
+| 40-50분 | blocker 분류와 다음 실습 준비 |
 
-## 명령어 스펙과 제약
-CLI 명령은 운영체제와 shell에 따라 옵션과 출력이 다를 수 있다. 수업에서는 의미가 같은 명령을 중심으로 다룬다.
+## 0-5분 작업 폴더 path evidence 확인
 
-| 목적 | macOS/Linux/Git Bash | Windows PowerShell | 의미 |
-|---|---|---|---|
-| 현재 위치 | `pwd` | `Get-Location` | 내가 어느 폴더에 있는지 확인 |
-| 파일 목록 | `ls` | `Get-ChildItem` | 폴더 안 파일 확인 |
-| 폴더 이동 | `cd` | `Set-Location` 또는 `cd` | 작업 위치 변경 |
-| 파일 보기 | `cat README.md` | `Get-Content README.md` | 파일 내용 출력 |
-| 문자열 찾기 | `grep "port" README.md` | `Select-String "port" README.md` | 특정 단어 검색 |
-| HTTP 요청 | `curl http://localhost:8000` | `curl.exe http://localhost:8000` | 웹 응답 확인 |
-| 프로세스 보기 | `ps` | `Get-Process` | 실행 중 프로그램 확인 |
-| 프로세스 종료 | `kill <PID>` | `Stop-Process -Id <PID>` | 실행 중 프로그램 종료 |
+- 진행: 작업 폴더 path evidence 확인
 
-제약점:
-- `kill`은 먼저 종료해도 되는 프로세스인지 확인한 뒤 사용한다.
-- `curl`은 네트워크, DNS, 방화벽, 서버 상태에 따라 실패할 수 있다.
-- 권한 문제는 명령어를 많이 입력한다고 해결되지 않는다. 필요한 권한과 정책을 확인해야 한다.
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
 
-## 쉬운 비유
-CLI는 엔지니어의 도구함이다.
 
-- `pwd`는 현재 위치를 알려주는 지도다.
-- `ls`는 서랍 안 목록을 보여주는 라벨이다.
-- `cat`은 문서를 펼쳐보는 도구다.
-- `grep`은 단어를 찾는 돋보기다.
-- `curl`은 웹 서버에 직접 말을 걸어보는 전화기다.
-- `ps`는 지금 일하는 사람 명단이다.
-- `kill`은 일을 멈추라고 요청하는 정지 버튼이다.
 
-비유의 한계:
-- 실제 명령은 실수하면 파일 삭제나 프로세스 종료 같은 영향을 줄 수 있다.
-- 오늘은 삭제 명령을 사용하지 않고 읽기와 확인 중심으로 진행한다.
+### 상세 설명
+Git은 내 컴퓨터에서 변경 이력을 관리하는 도구이고, GitHub는 repository를 원격에서 공유하고 협업하는 서비스다. VS Code는 코드를 편집하고 terminal을 함께 사용할 수 있는 작업 환경이다. 세 도구는 같은 것이 아니다. GitHub 계정이 있어도 Git이 설치되어 있지 않을 수 있고, Git이 설치되어 있어도 VS Code terminal에서 명령을 찾지 못할 수 있다.
 
-## imagegen 인포그래픽
-이 인포그래픽은 CLI 명령어를 엔지니어의 도구함으로 표현한다. 각 명령은 "무엇을 확인하려는가"와 연결해서 읽는다.
+설치 확인은 "설치한 것 같다"가 아니라 명령 출력으로 판단한다. `git --version`이 나오면 현재 shell에서 Git 실행 파일을 찾았다는 뜻이다. 반대로 command not found가 나오면 설치가 안 되었거나 PATH에 등록되지 않은 상태다.
 
-저장 위치:
-- `week1/day2/assets/lesson-02-cli-toolbelt.png`
-- `week1/day2/assets/lesson-02-process-control.png`
 
-![CLI 도구함](./assets/lesson-02-cli-toolbelt.png)
 
-프로세스 종료는 별도 주의가 필요하다. 아래 이미지는 `ps`로 PID를 확인하고, `kill`로 종료 요청을 보내는 관계를 보여준다.
+### Visual 1: 세 도구의 역할 구분
+![GitHub, Git, VS Code 역할 구분](./assets/lesson-02-git-vscode-roles.png)
 
-![프로세스 관찰과 종료](./assets/lesson-02-process-control.png)
+이 이미지는 세 도구를 설치 목록이 아니라 협업 시스템의 서로 다른 책임으로 구분하게 한다. 학생에게 먼저 `clone`, `commit`, `push` 화살표를 읽게 한 뒤, 각 명령이 어느 경계를 넘는지 확인한다.
 
-## 실습 명령
-현재 폴더와 파일을 확인한다.
+```mermaid
+flowchart LR
+    A[GitHub 계정<br/>원격 repository] <-- push/clone --> B[Git CLI<br/>변경 이력 관리]
+    B --> C[VS Code terminal<br/>명령 실행 환경]
+    C --> D[`git --version` evidence]
+```
+
+## 5-15분 Git, GitHub, VS Code의 역할 구분
+
+- 진행: Git, GitHub, VS Code의 역할 구분
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### 공식 참고
+- GitHub account: https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github
+- Git install: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+- VS Code docs: https://code.visualstudio.com/docs
+
+
+
+### Visual 2: 설치 확인 화면 가이드
+| 화면/출력 | 확인할 뜻 | README에 남길 것 |
+|---|---|---|
+| GitHub 로그인 화면 | 계정 접근 가능 | 계정명은 공개 가능하지만 token은 기록하지 않는다. |
+| `git --version` | 현재 terminal에서 Git 실행 가능 | version 문자열 |
+| VS Code terminal의 `pwd` | 편집기 안 terminal 사용 가능 | 작업 path 또는 blocker |
+
+## 15-30분 버전 확인과 VS Code terminal 확인
+
+- 진행: 버전 확인과 VS Code terminal 확인
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 3: 실패 장면 triage
+| 실패 장면 | 먼저 의심할 원인 | 학생용 기록 문장 |
+|---|---|---|
+| `git: command not found` | Git 미설치 또는 PATH 문제 | "Git 명령을 shell이 찾지 못함" |
+| `code --version` 실패 | VS Code CLI 미등록 | "GUI terminal에서 대체 확인함" |
+| 인증 팝업 반복 | credential/token/권한 문제 | "secret은 기록하지 않고 증상만 기록함" |
+
+
+
+### 명령 절차
+```bash
+git --version
+pwd
+code --version
+```
+
+`code --version`이 실패하면 VS Code GUI에서 `Terminal > New Terminal`을 열고 다음을 실행한다.
 
 ```bash
 pwd
-ls
+git --version
 ```
 
-샘플 앱 폴더로 이동한다.
 
-```bash
-cd week1/day2/sample-app
-ls
-cat README.md
-```
 
-README에서 `localhost` 단어를 찾는다.
+### 확인 질문
+- Git과 GitHub의 차이를 한 문장으로 설명할 수 있는가?
+- Git 설치 확인 evidence는 무엇인가?
+- VS Code가 준비되지 않았을 때 blocker를 어떻게 기록해야 하는가?
 
-```bash
-grep "localhost" README.md
-```
+## 30-40분 계정 보안, MFA, token 비공개 기준 정리
 
-환경변수를 확인한다.
+- 진행: 계정 보안, MFA, token 비공개 기준 정리
 
-```bash
-printenv
-```
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
 
-Windows PowerShell에서는:
 
-```powershell
-Get-ChildItem Env:
-```
 
-## 50분 강의 흐름
-- 0~7분: CLI를 왜 배우는지 설명
-- 7~20분: 위치/파일/내용 확인 명령 실습
-- 20~30분: `grep`, 환경변수, 권한 개념 설명
-- 30~40분: `ps`, `kill`, PID와 프로세스 종료 주의사항
-- 40~47분: `curl`이 3교시 웹 흐름과 연결되는 방식 예고
-- 47~50분: 명령어 목적 다시 말하기
+### 다음 주차 매핑
+Docker, Kubernetes, AWS CLI, Terraform도 모두 같은 방식으로 확인한다. `tool --version`, 현재 path, 인증 상태, secret 비공개 기준은 이후 모든 주차의 공통 준비 절차다.
 
-## DevOps 원칙 연결
-- 비용 절감: 상태 확인 없이 리소스를 새로 만들거나 재설치하는 일을 줄인다.
-- 개발/배포 효율성: 실행 위치와 로그를 빠르게 확인하면 문제 전달이 빨라진다.
-- 관리 효율성: 명령어는 자동화 스크립트와 IaC의 기초가 된다.
 
-## 확인 질문
-- `pwd`와 `ls`를 먼저 확인해야 하는 이유는 무엇인가?
-- `curl`은 브라우저와 무엇이 다른가?
-- `kill`을 쓰기 전에 확인해야 하는 것은 무엇인가?
+
+### 예상 결과
+- `git --version`은 `git version 2.x.x` 형태의 문자열을 출력한다.
+- `pwd`는 현재 작업 path를 출력한다.
+- `code --version`은 VS Code CLI가 PATH에 있을 때만 성공한다. 실패해도 VS Code 내부 terminal에서 `pwd`와 `git --version`이 되면 수업 진행은 가능하다.
+
+
+
+### 흔한 오해
+| 오해 | 교정 |
+|---|---|
+| GitHub에 로그인했으니 Git도 설치된 것이다. | GitHub는 웹 서비스이고 Git은 로컬 CLI 도구다. |
+| `code --version` 실패는 VS Code 미설치와 같다. | CLI 등록만 안 된 상태일 수 있다. GUI terminal에서 확인한다. |
+| token을 README에 붙이면 인증 문제가 해결된다. | token은 secret이다. 공개 repository에 절대 남기지 않는다. |
+
+## 40-50분 blocker 분류와 다음 실습 준비
+
+- 진행: blocker 분류와 다음 실습 준비
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### 실습 Evidence
+| Step | Command 또는 확인 | Evidence |
+|---|---|---|
+| Git 확인 | `git --version` | |
+| 현재 위치 | `pwd` | |
+| VS Code terminal | `pwd` 또는 blocker | |
+| 계정 보안 | MFA/token 비공개 확인 | |
+
+
+
+### 학술 근거와 DevOps insight
+NIST NICE류 실무 역량은 도구 설치 자체보다 시스템 상태 식별을 강조한다. 현업에서는 "제 노트북에서는 됩니다"라는 말이 충분하지 않다. 어떤 shell에서 어떤 version이 실행되는지 기록해야 팀원이 같은 문제를 재현할 수 있다.
+
+
+
+### 평가 기준
+| 기준 | 2점 evidence |
+|---|---|
+| 50분 참여 | 시간 흐름에 맞춰 설명, 활동, 산출물 작성에 참여했다. |
+| 증거 산출 | 수업에서 요구한 note, command, table, blocker 중 해당 산출물을 구체적으로 남겼다. |
+| 전이 연결 | 오늘 개념이 Week2~6 기술 또는 자기 산출물과 어떻게 연결되는지 한 문장 이상 설명했다. |

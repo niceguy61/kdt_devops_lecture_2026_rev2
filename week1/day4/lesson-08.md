@@ -1,122 +1,184 @@
-# 8교시: 프로젝트 아이디어 면담 - 만들고 싶은 서비스, 필요한 리소스, 예상 위험 요소 정리
+# 8교시: 개인 면담 및 보충 실습
 
 ## 수업 목표
-- 만들고 싶은 서비스를 기능이 아니라 필요한 리소스와 운영 위험으로 분해한다.
-- 1주차 범위에 맞게 비용이 들지 않는 더미 데이터와 정적 앱 구조로 아이디어를 줄인다.
-- 이후 Docker, Kubernetes, AWS, Terraform으로 확장할 수 있는 프로젝트 후보를 정리한다.
-- 비용, 보안, 관찰 가능성, 공식 문서 확인이 프로젝트 설계의 일부임을 이해한다.
+- Day4 필수 산출물을 제출 가능한 상태로 마감한다.
+- 미해결 blocker를 줄이고 다음 주차 전 보완 계획을 남긴다.
+- 개인별 수준 차이를 고려해 최소 제출 기준과 확장 과제를 분리한다.
 
-## 시작 상황
-"쇼핑몰을 만들고 싶다", "채팅 앱을 만들고 싶다", "AI 서비스를 만들고 싶다" 같은 아이디어는 좋은 출발점이다. 하지만 운영 관점에서는 곧바로 질문이 따라온다. 사용자는 몇 명인가, 로그인은 필요한가, 데이터는 저장되는가, 파일 업로드가 있는가, 외부 API key가 필요한가, 비용이 계속 발생하는 리소스가 있는가, 장애가 나면 어디서 증거를 볼 것인가.
+## 50분 운영
+| 시간 | 활동 | 학습 초점 | 학생 산출 |
+|---|---|---|---|
+| 0-5분 | Day4 제출 기준 재확인 | 최소 제출 기준을 다시 말한다. | 체크리스트 |
+| 5-30분 | 집중 보충 실습 | blocker 우선순위가 높은 항목부터 수정한다. | 수정된 앱/문서 |
+| 30-40분 | 짝 실행 테스트 | README만 보고 서로 실행한다. | peer test note |
+| 40-47분 | 제출 패키지 정리 | 파일 누락과 evidence 누락을 확인한다. | Day4 package |
+| 47-50분 | Day5 연결 | 통합과 handoff로 이어지는 이월 메모를 작성한다. | 이월 메모 |
 
-1주차의 프로젝트 아이디어 면담은 아이디어를 작게 만들기 위한 시간이 아니다. 운영 가능한 첫 버전으로 줄이기 위한 시간이다. 줄인 첫 버전은 2주차 Docker, 3주차 MSA, 4주차 Kubernetes, 5주차 AWS, 6주차 Terraform에서 점진적으로 확장할 수 있다.
+## 0-5분 Day4 제출 기준 재확인
 
-## 공식 참고 자료
-- AWS Well-Architected Framework  
-  https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html
-- AWS Well-Architected Framework: Cost Optimization pillar  
-  https://docs.aws.amazon.com/wellarchitected/latest/cost-optimization-pillar/welcome.html
-- AWS Well-Architected Framework: Security pillar  
-  https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html
-- GitHub Docs: About READMEs  
-  https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
-- MDN Web Docs: JSON  
-  https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/JSON
+- 진행: Day4 제출 기준 재확인
 
-## 아이디어를 운영 관점으로 바꾸는 질문
-| 질문 | 왜 필요한가 |
-|---|---|
-| 사용자는 누구인가? | 공개 범위, 인증, 개인정보 여부가 달라진다 |
-| 데이터는 무엇인가? | 더미 JSON, DB, 객체 저장소 중 선택 기준이 된다 |
-| 데이터가 사라지면 안 되는가? | 백업과 영속 저장 필요 여부가 결정된다 |
-| 외부 API가 필요한가? | 비용, quota, secret 관리가 필요하다 |
-| 파일 업로드가 있는가? | 저장소, 용량, 악성 파일 위험이 생긴다 |
-| 로그인/권한이 필요한가? | 인증, 세션, 개인정보 보호가 필요하다 |
-| 장애가 나면 무엇을 확인할 것인가? | 로그, health check, 상태 페이지가 필요하다 |
-| 이번 주차에서 제외할 기능은 무엇인가? | 실습 범위와 비용을 통제한다 |
+- 초점: 최소 제출 기준을 다시 말한다.
 
-## 쉬운 비유: 건물 조감도와 1차 모형
-프로젝트 아이디어는 큰 건물 조감도와 같다. 조감도에는 멋진 입구, 여러 층, 주차장, 보안실, 전기실, 엘리베이터가 모두 보일 수 있다. 하지만 첫 수업에서 실제 건물을 모두 짓지는 않는다. 먼저 작은 모형을 만들어 동선과 방의 역할을 확인한다.
+- 학생 산출: 체크리스트
 
-1주차의 정적 프론트엔드 앱과 더미 JSON은 이 모형에 해당한다. 실제 로그인, 결제, 데이터베이스, AI API를 붙이지 않아도 화면 흐름과 데이터 구조, README, 실행 방법을 검증할 수 있다. 비유의 한계는 실제 서비스에서는 모형에서 보이지 않는 성능, 보안, 데이터 정합성 문제가 반드시 생긴다는 점이다. 그래서 이후 주차에서 Docker, MSA, Kubernetes, AWS, Terraform으로 확장한다.
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
 
-## 리소스 분해 표
-아이디어를 아래 표로 분해한다.
 
-| 기능 | 필요한 리소스 후보 | 1주차 대체 방식 | 비용 위험 | 보안 위험 |
-|---|---|---|---|---|
-| 상품 목록 | DB 또는 JSON | `data/products.json` | DB 실행 비용 | 개인정보 없음 |
-| 로그인 | 인증 서비스 | 제외, 샘플 사용자 표시 | 인증 서비스 비용 | 비밀번호/토큰 |
-| 이미지 업로드 | 객체 저장소 | 로컬 샘플 이미지 | 저장량/요청 비용 | 공개 파일, 악성 파일 |
-| AI 요약 | 외부 AI API | 미리 작성한 더미 요약 | API 호출 비용 | API key 노출 |
-| 관리자 페이지 | 권한 시스템 | 제외, README에 확장 계획 | 개발/운영 복잡도 | 권한 우회 |
 
-## 프로젝트 범위 조정 기준
-| 원래 요구 | 1주차 범위로 줄인 형태 |
-|---|---|
-| 실제 회원가입과 로그인 | 샘플 사용자 3명을 JSON으로 표시 |
-| 실시간 채팅 | 정적 메시지 목록과 필터 |
-| 결제 연동 | 샘플 결제 내역 JSON |
-| AI API 호출 | 더미 응답과 프롬프트 기록 |
-| 데이터베이스 저장 | 읽기 전용 JSON 목록 |
-| 관리자 권한 | 화면 구조만 만들고 실제 권한 제외 |
+### 핵심 설명
+8교시는 7교시에 이어 개인 면담과 보충 실습으로 운영한다. 새 강의 주제보다 Day4 산출물 회복과 제출 준비에 집중한다. 각자는 "필수 제출", "가능하면 보완", "다음 주차로 이월"을 구분한다.
 
-범위를 줄일 때 중요한 것은 "언젠가 만들 기능"을 삭제하는 것이 아니라, 지금 만들지 않는 이유를 기록하는 것이다. README에 제외한 기능과 이유가 있으면 프로젝트가 미완성으로 보이지 않고, 운영 판단이 있는 첫 버전으로 보인다.
 
-## Mermaid: 아이디어에서 운영 가능한 첫 버전까지
+
+### Visual 1: 구조 다이어그램
+![Week1 service evidence flow](../assets/week1-service-evidence-flow.png)
+
 ```mermaid
-flowchart TD
-    A["서비스 아이디어"] --> B["사용자와 데이터 정의"]
-    B --> C["필요 리소스 후보 나열"]
-    C --> D["비용/보안 위험 표시"]
-    D --> E["1주차 범위로 축소"]
-    E --> F["정적 앱 + 더미 JSON"]
-    F --> G["README와 실행 검증"]
-    G --> H["2~6주차 확장 후보 기록"]
+flowchart TB
+  Minimum[Required submission] --> Run[App runs]
+  Minimum --> Data[Data appears]
+  Minimum --> Evidence[Evidence recorded]
+  Minimum --> Risk[Risk classified]
+  Minimum --> Note[Blocker and next action]
+  Run --> Package[Day4 package]
+  Data --> Package
+  Evidence --> Package
+  Risk --> Package
+  Note --> Package
 ```
 
-## 실습: 프로젝트 아이디어 카드 작성
-아래 양식을 작성한다.
+## 5-30분 집중 보충 실습
 
-```text
-프로젝트 이름:
-한 문장 설명:
-주 사용자:
-핵심 화면 3개:
-필요한 데이터:
-1주차에서 만들 범위:
-1주차에서 제외할 기능:
-외부 API 필요 여부:
-비용이 생길 수 있는 지점:
-secret 또는 개인정보 위험:
-장애가 나면 확인할 증거:
-공식 문서로 확인해야 할 주제:
-2주차 Docker로 확장할 지점:
-5주차 AWS로 확장할 지점:
-```
+- 진행: 집중 보충 실습
 
-## 의사결정 표: 지금 만들 것과 나중에 만들 것
-| 판단 기준 | 지금 만든다 | 나중에 만든다 |
+- 초점: blocker 우선순위가 높은 항목부터 수정한다.
+
+- 학생 산출: 수정된 앱/문서
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 2: 마감 판단 표
+| 마감 판단 | 기준 | 새 진도 여부 |
 |---|---|---|
-| 비용 | 무료 로컬 실행 가능 | 유료 API/클라우드 리소스 필요 |
-| 보안 | secret과 개인정보 없음 | 인증, 결제, 개인정보 필요 |
-| 시간 | 2시간 안에 기본 동작 가능 | 여러 서비스 연동 필요 |
-| 검증 | 브라우저와 README로 확인 가능 | 배포, 모니터링, 알림 필요 |
-| 학습 연결 | Docker 이미지화 가능 | AWS/Terraform 이후 적합 |
+| 필수 제출 | 실행, data rendering, evidence, risk, README/runbook | 새 진도 아님 |
+| 가능하면 보완 | 문서 표현 정리, 캡처 누락 보완 | 새 진도 아님 |
+| 다음 주차 이월 | 오늘 해결 못 한 blocker와 다음 행동 | 새 진도 아님 |
 
-## 발표 준비 질문
-- 이 프로젝트는 어떤 문제를 해결하는가?
-- 1주차 버전에서 일부러 제외한 기능은 무엇인가?
-- 데이터베이스 대신 더미 JSON을 사용한 이유는 무엇인가?
-- 비용이 발생할 수 있는 지점은 어디인가?
-- secret이 필요한 기능은 무엇이며, 이번 버전에서는 어떻게 피했는가?
-- 2주차 Docker에서는 무엇을 컨테이너로 실행할 수 있는가?
-- 5주차 AWS에서는 어떤 서비스 후보를 검토할 수 있는가?
+## 30-40분 짝 실행 테스트
 
-## DevOps 원칙 연결
-- 비용 절감: 아이디어 단계에서 유료 API와 데이터베이스를 제외하면 실습 비용과 계정 문제를 줄인다.
-- 개발/배포 효율성: 작은 첫 버전은 실행, README, 검증을 빠르게 반복하게 한다.
-- 관리 효율성: 필요한 리소스와 제외한 기능을 문서화하면 이후 Docker/AWS/Terraform 확장이 자연스럽다.
+- 진행: 짝 실행 테스트
 
-## 4일차 정리
-오늘 배운 클라우드 기본 구성요소, 서비스 모델, 계정 보안, 비용 계산, 공식 문서 검증은 이후 모든 주차의 안전 기준이다. 2주차 Docker는 실행 환경을 표준화하고, 5주차 AWS는 오늘 만든 클라우드 지도를 실제 서비스 이름으로 확장한다. 좋은 인프라 엔지니어는 리소스를 빨리 만드는 사람만이 아니라, 만들기 전에 위치, 비용, 권한, 책임, 정리 방법을 설명할 수 있는 사람이다.
+- 초점: README만 보고 서로 실행한다.
+
+- 학생 산출: peer test note
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 3: Day4 제출 패키지
+| Package item | 최소 기준 |
+|---|---|
+| app | 정적 서버에서 열림 |
+| data | 화면에 dummy JSON 표시 |
+| evidence | command/path/port/status |
+| handoff | blocker와 다음 행동 |
+
+
+
+### 필수 제출 기준
+| Artifact | Minimum |
+|---|---|
+| mini app | 정적 서버에서 열리는 `index.html` |
+| data | 화면에 표시되는 dummy JSON |
+| evidence | command, path, port, URL, 확인 결과 |
+| risk | 비용/보안/재현성 위험 분류 |
+| README/runbook | start/check/stop/troubleshoot |
+| interview note | blocker와 다음 행동 |
+
+
+
+### 보충 실습 절차
+1. 필수 제출 기준에서 비어 있는 항목을 표시한다.
+2. 가장 먼저 실행 실패를 해결한다.
+3. 다음으로 data rendering을 확인한다.
+4. 마지막으로 README/runbook과 risk table을 채운다.
+5. 짝이 README만 보고 실행해 보고 누락을 적는다.
+
+## 40-47분 제출 패키지 정리
+
+- 진행: 제출 패키지 정리
+
+- 초점: 파일 누락과 evidence 누락을 확인한다.
+
+- 학생 산출: Day4 package
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### 흔한 오해
+| 오해 | 교정 |
+|---|---|
+| 산출물이 있으면 evidence는 나중에 채워도 된다. | evidence는 산출물의 일부다. command, path, status, log, note가 함께 있어야 평가 가능하다. |
+| Week1에서 모든 기술을 깊게 익혀야 한다. | Week1은 컴퓨팅 spine과 운영 증거를 만드는 주차이며, 깊은 hands-on은 각 기술 주차에서 진행한다. |
+| 막힌 내용을 숨기는 것이 좋다. | blocker를 증상, 시도한 일, 다음 조치로 기록하는 것이 현업식 진행 관리다. |
+
+## 47-50분 Day5 연결
+
+- 진행: Day5 연결
+
+- 초점: 통합과 handoff로 이어지는 이월 메모를 작성한다.
+
+- 학생 산출: 이월 메모
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### 산출물
+- Day4 제출 패키지
+- peer test note
+- 남은 위험 또는 다음 행동 메모
+
+
+
+### 평가 기준
+| 기준 | 충족 |
+|---|---|
+| 앱이 정적 서버로 실행된다. | |
+| README만 보고 시작/확인/중지할 수 있다. | |
+| 위험 분류가 앱 범위와 연결된다. | |
+| 개인 blocker와 보완 계획이 남아 있다. | |
+
+
+
+### 현업 DevOps insight
+완성은 기능 수가 아니라 handoff 가능성으로 판단한다. 동료가 README만 보고 실행할 수 있다면 작은 서비스라도 운영 가능한 산출물에 가까워진다.
+
+
+
+### 학술 근거
+- Peer instruction: 짝 실행 테스트가 문서의 모호함을 드러낸다.
+- Mastery threshold: 다음 단계로 넘어가기 전 최소 역량 기준을 확인한다.
+- Evidence-centered assessment: 제출물과 실행 증거가 평가의 중심이다.
+
+
+
+### 다음 주차 연결
+Week2 Docker preview에서 Day4 앱을 컨테이너로 실행한다. Day4 산출물이 불안정하면 container 문제가 아니라 기존 실행 계약 문제가 된다.
+
+
+
+### 다음 연결
+Day5는 Day1~4 산출물을 통합하고, spine 최종 매핑과 handoff package를 완성한다.
+
+
+
+### 공식/학술 근거 링크
+- CMU Eberly Center: Bloom's Taxonomy, https://www.cmu.edu/teaching/designteach/design/bloomsTaxonomy.html - 보강 활동을 이해, 적용, 분석 수준으로 구분하는 기준이다.
+- MIT Missing Semester, https://missing.csail.mit.edu/ - shell/Git/debugging 보강이 기술 주차의 선행 역량인 근거다.
+- Google SRE Book: Introduction, https://sre.google/sre-book/introduction/ - 운영자는 장애 대응과 change management를 학습 증거로 남겨야 한다는 기준이다.

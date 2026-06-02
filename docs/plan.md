@@ -2,6 +2,7 @@
 
 - 주차 : 6주
 - 일별 수업 시간 : 일 8시간, 50분 수업 10분 휴식, 매 정시 시작
+- 1주차 1일차 과정별 OT는 운영 확정 일정에 따라 2026-06-10(수) 12:00~18:00, 점심시간 13:00~14:00, 총 5시간으로 진행한다.
 - 수업 범위 : Devops, Cloud(AWS), Docker, Kubernetes, MSA, IaC, Observability, Kubernetes Known plugins
 - 과목 명 : Cloud Native
 - 대상자 : 전공 막학기 학생, 비전공 취업준비생, 전직 개발자 (클라우드 직군 이직 희망자)
@@ -9,100 +10,100 @@
 # 1주차
 
 ## keyword
-- overview, mindset, cloud, devops, linux, network, git, ai, mini-project
+- overview, computing fundamentals, devops mindset, linux, network, http, process, observability, git, documentation, mini-project
 
 ## 1주차 목표
-- Cloud Native를 배우는 이유와 DevOps 엔지니어의 역할을 이해한다.
-- 로컬 컴퓨터에서 웹 서비스가 실행되고 접속되는 기본 흐름을 설명할 수 있다.
-- GitHub, VS Code, Docker, AI Coding Tool 계정 생성, 설치, 로그인, 기본 동작 확인을 완료한다.
-- 간단한 웹 애플리케이션을 만들고, 로컬 또는 Docker 환경에서 실행할 수 있다.
-- 로그, 포트, 프로세스, HTTP 요청을 이용해 기본적인 문제 원인 분석을 수행한다.
-- 비용, 보안, 공식 문서, 운영 지표를 기술 선택의 일부로 바라보는 습관을 만든다.
+- Cloud Native를 배우기 전에 필요한 컴퓨팅 구성요소의 공통 언어를 만든다.
+- compute, memory, storage, network, process lifecycle, configuration, identity/access, observability, cost/resource boundary를 구분한다.
+- 로컬 컴퓨터에서 웹 서비스가 실행되고 접속되는 흐름을 command, port, HTTP status, log evidence로 설명한다.
+- GitHub, VS Code, Git, CLI, README를 이용해 실습 산출물을 재현 가능한 형태로 남긴다.
+- 작은 정적 웹 애플리케이션을 만들고, 실행 증거와 장애/RCA 기록을 작성한다.
+- Docker, MSA, Kubernetes, AWS, Terraform, Observability가 Week 1 컴퓨팅 spine 위에서 어떤 문제를 확장해 해결하는지 설명한다.
 
 ## 1주차 운영 원칙
-- 계정 생성, 프로그램 설치, 로그인, 버전 확인은 수업 시간 안에서 천천히 함께 진행한다.
-- 설치 자체를 과제로 넘기지 않고, 설치 중 발생하는 오류를 문제 해결 훈련의 일부로 다룬다.
-- 모든 설치형 도구는 설치 후 바로 버전 확인 또는 Hello World 수준의 동작 확인까지 진행한다.
-- 매주 1일차와 4일차 7~8교시는 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 둔다.
+- 1주차는 overview 주간이지만 얕은 용어 소개가 아니다. 이후 기술을 해석할 컴퓨팅 좌표계를 만든다.
+- Docker 명령 실습, AWS 리소스 생성, DORA 지표 수업, Well-Architected 독립 수업은 1주차에서 진행하지 않는다.
+- Docker, Kubernetes, AWS, Terraform은 미래 anchor로만 언급하고, 모든 언급은 Week 1 컴퓨팅 spine에 연결한다.
+- 모든 활동은 관찰 가능한 증거를 남긴다. "완료"라는 말만으로는 통과하지 않는다.
+- 비유는 최소화하고 공식 문서, 학술 기준, 현업 DevOps/SRE 기준, 실행 증거를 우선한다.
+- 매주 4일차 7~8교시는 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 둔다.
+
+## 1주차 컴퓨팅 spine
+| Fundamental | Local computer | Docker로 확장 | Kubernetes로 확장 | AWS로 확장 | Terraform/IaC로 확장 |
+|---|---|---|---|---|---|
+| Compute | CPU가 process를 실행 | container process | Pod/container, replica | EC2, ECS task, Lambda, EKS node | compute resource |
+| Memory | process가 RAM을 사용 | memory limit/usage | requests/limits, OOMKilled | instance/task memory | size variable |
+| Storage | file/directory/data path | image layer, volume | Volume, PV, ConfigMap mount | EBS, EFS, S3, RDS | bucket/volume/db resource |
+| Network | IP, localhost, port, protocol | port binding, bridge DNS | Service, Ingress, cluster DNS | VPC, subnet, SG, ALB, Route 53 | VPC/subnet/SG resource |
+| Lifecycle | start, stop, crash, restart | run/stop/restart policy | rollout, probe, restart | Auto Scaling, ECS service | plan/apply/destroy |
+| Configuration | env var, config file | `-e`, `.env`, Dockerfile default | ConfigMap, Secret | Parameter Store, Secrets Manager | variables, sensitive values |
+| Identity/access | user, permission, token | registry auth, secret mount | ServiceAccount, RBAC | IAM, MFA, role, access key | provider/IAM resources |
+| Observability | logs, status, exit code | logs, inspect, stats | logs, events, metrics, probes | CloudWatch, CloudTrail | outputs, drift signals |
+| Cost/resource boundary | local resource limits | image size, running containers | node capacity, requests | billing, Free Tier, instance class | cost assumptions, destroy |
 
 ## 1일차
 
-- 1교시 : 오리엔테이션 - 학습 과정 안내, 최종 목표, 6주간 만들 산출물 소개
-- 2교시 : Cloud Native 학습 마인드셋 - 문제 해결 프로세스, 도구 선택법, 도구를 이해한다는 것의 의미
-- 3교시 : 클라우드란 무엇인가? - 로컬 컴퓨터, 데이터센터, 호스팅, 클라우드의 차이
-- 4교시 : DevOps란 무엇인가? - 개발 라이프사이클, 배포, 운영, 피드백 루프, 협업 문화
-- 5교시 : GitHub 계정 생성, Git SCM 설치 및 VS Code 설치 - 계정 생성, 이메일 인증, Git 설치, VS Code 설치, 터미널 열기
-- 6교시 : Git/GitHub 기본 실습 - git 설치 확인, repository 생성, clone, commit, push, README 수정
-- 7교시 : 개인 면담 및 환경 점검 - 설치 상태 확인, 배경 지식 파악, 개인 목표 정리
-- 8교시 : 개인 면담 및 보충 실습 - GitHub, VS Code, Git 설정 문제 해결
+운영 확정: 2026-06-10(수) 12:00~18:00, 점심시간 13:00~14:00, ZEP 과정별 강의실, 총 5시간.
+
+- 12:00~13:00 : 과정별 OT 개요 - 강사 소개, 운영 방식, ZEP/소통 채널, 평가 증거 원칙
+- 13:00~14:00 : 점심시간
+- 14:00~15:00 : 6주 커리큘럼 로드맵 - Week 1 컴퓨팅 spine과 Week 2~6 기술 연결
+- 15:00~16:00 : AI coding agent 시대의 Cloud Native/DevOps 마인드셋 특강 - Claude Code/Codex로 작은 앱은 쉬워졌지만 비즈니스 서비스화에는 인프라, 보안, 배포, 관찰, 비용, 장애 대응 절차가 필요하다는 인사이트
+- 16:00~17:00 : 아이스브레이킹 및 자기소개 - 배경, 목표, 불안 요소, 협업 규칙
+- 17:00~18:00 : 학습 준비와 다음 액션 - 개인 목표, 환경 준비 체크, blocker 기록, 운영팀 공유용 안내 정리
 
 ## 2일차
 
-- 1교시 : 컴퓨팅의 기본 - CPU, Memory, Disk, Network, Process가 애플리케이션과 만나는 방식
-- 2교시 : Linux/CLI 기본 - pwd, ls, cd, cat, grep, curl, ps, kill, 환경변수, 권한
-- 3교시 : 웹 서비스의 기본 흐름 - Browser, DNS, IP, TCP, HTTP, Server, Response
-- 4교시 : 포트와 프로세스 - localhost, 0.0.0.0, port binding, listen 상태 확인
-- 5교시 : 로컬 웹 서버 실행 준비 - 필요한 런타임 설치 여부 확인, 샘플 앱 내려받기, 실행 명령 확인
-- 6교시 : 로컬 웹 서버 실행 실습 - 브라우저와 curl로 접속 확인, 포트 충돌 상황 관찰
-- 7교시 : 로그와 설정의 기본 - stdout 로그, 에러 메시지 읽기, config, secret, .env 개념
-- 8교시 : 원인 분석 기본 라이프사이클 - 재현, 관찰, 가설, 검증, 수정, 기록
+- 1교시 : Day1 OT 연결 및 학습 작업공간 준비 - ZEP 안내 후 GitHub, Git, VS Code, terminal 준비 흐름 정리
+- 2교시 : GitHub 계정, Git 설치, VS Code 확인 - 계정/설치/터미널/민감정보 노출 주의
+- 3교시 : Git/GitHub 기본 실습 - repository, clone, commit, push, README evidence
+- 4교시 : 공식 문서 읽기와 AI 답변 검증 - version, prerequisite, warning, support matrix 확인
+- 5교시 : Linux/CLI 기본 - pwd, ls, cd, cat, grep, curl, ps, kill, env
+- 6교시 : Compute와 process - CPU, process, thread, command, exit code
+- 7교시 : Memory와 storage - RAM, file system, path, persistence, permission
+- 8교시 : Network/HTTP 기본 - localhost, IP, DNS, TCP, port, request/response, status code
 
 ## 3일차
 
-- 1교시 : 배포란 무엇인가? - 내 컴퓨터에서만 되는 프로그램과 다른 사람이 접속 가능한 서비스의 차이
-- 2교시 : 배포 사이클 - 개발, 빌드, 테스트, 패키징, 배포, 모니터링, 피드백
-- 3교시 : 개발자가 보는 인프라 vs 인프라 엔지니어가 보는 인프라 - 안정성, 확장성, 비용, 보안 관점
-- 4교시 : 재현 가능한 인프라의 필요성 - 문서, 스크립트, IaC의 개념과 설계도 작성의 중요성
-- 5교시 : Docker가 필요한 이유 - 로컬 환경 차이, 의존성 충돌, 배포 단위, 실행 환경 표준화
-- 6교시 : 프로젝트 구성요소와 3-tier 아키텍처 - 웹 애플리케이션, 데이터베이스, 캐시, 로드 밸런서, 관찰 지점 이해
-- 7교시 : AI Coding Tool 학습/실습 준비 - 계정/설치 확인, 페르소나/Agent/Skill 활용, 단계별 개념 설명, 에러 메시지 기반 디버깅 요청, 공식 문서/전문가 크로스체크
-- 8교시 : AI Coding Tool 실습 - 무료 범위의 싱글 프론트엔드 앱 제작, 더미 JSON 데이터, 생성 코드 구조와 운영성 점검
-
-### 챌린지 룰
-- 단순한 Hello World가 아닌 내가 실제로 필요하다고 느끼는 기능을 만든다.
-- 이번 챌린지는 HTML/CSS/JavaScript 중심의 싱글 프론트엔드 앱으로 제한한다.
-- 데이터베이스는 사용하지 않고, 데이터베이스나 외부 API에서 가져와야 할 데이터는 `data/*.json` 같은 더미 JSON으로 대체한다.
-- 백엔드 서버 코드는 만들지 않고, 정적 파일을 `python3 -m http.server` 같은 방식으로 확인한다.
-- 유료 AI 구독, 로컬 LLM, 유료 API, 비용 청구 서비스는 필수로 요구하지 않는다.
-- 유료화 API 또는 비용 청구 가능성이 있는 서비스는 사용하지 않는다. 단, 본인이 이미 승인받았고 quota 내에서 비용이 청구되지 않는 경우는 선택적으로 허용한다.
-- 외부 API가 반드시 필요한 아이디어는 이번 시간에는 더미 JSON으로 표현한다.
-- 기본 기능 구조는 최대 2시간 안에 만들 수 있는 범위로 제한한다.
-- GitHub 저장소에 코드와 README를 올린다.
-- README에는 실행 방법, 사용한 AI 도구 또는 강사 제공 템플릿 여부, 주요 프롬프트, 더미 JSON 수정 방법, 제외한 기능, 막힌 점, 해결 과정을 적는다.
-- 로컬 브라우저에서 실행 가능해야 하며, 가능하면 Docker로도 실행할 수 있게 만든다.
-- 최소 1개의 에러 상황 또는 범위 조정 기록을 설명할 수 있어야 한다.
-- 별도의 평가 점수는 없으며, 기본 프로젝트와 심화 프로젝트 아이디어 후보로 활용한다.
+- 1교시 : 로컬 정적 서버 실행 - `python3 -m http.server`, browser/curl 확인
+- 2교시 : Log, config, secret - stdout/stderr, error message, env var, secret non-exposure
+- 3교시 : 서비스 실행 조건 - source, runtime, command, port, data, dependency
+- 4교시 : 재현 가능성 - README, script, path, expected result, clean directory
+- 5교시 : 실패 분석 라이프사이클 - reproduce, observe, hypothesize, fix, recheck, prevent
+- 6교시 : 관찰 가능성과 배포 preview - logs/status evidence, build, artifact, release, deploy, rollback
+- 7교시 : AI Coding Tool 사용 원칙 - 공식 문서 확인, 실행 검증, secret/cost/API 위험 점검
+- 8교시 : 컴퓨팅 spine 매핑 노트 - Docker/Kubernetes/AWS/Terraform에서 같은 개념이 어떻게 이름을 바꾸는지 정리
 
 ## 4일차
 
-- 1교시 : 클라우드 기본 구성 요소 - Region, AZ, Compute, Storage, Network, IAM의 큰 그림
-- 2교시 : 클라우드 서비스 모델 - IaaS, PaaS, SaaS, Managed Service, Shared Responsibility Model
-- 3교시 : AWS 계정 생성 전 안내 - 과금 구조, Free Tier, 결제 수단, MFA, root 계정 주의사항
-- 4교시 : AWS 계정 생성 및 보안 기본 설정 - 계정 생성, MFA 설정, Billing 알림 확인, 콘솔 로그인
-- 5교시 : 클라우드 비용 관리 기본 - 데이터센터 비용과 클라우드 비용 비교, 사용량 기반 과금, 낭비 사례
-- 6교시 : 보안 기본 원칙과 공식 Documentation 읽는 법 - 최소 권한, secret 관리, AI 답변 검증, 버전과 전제 조건 확인
-- 7교시 : 개인 면담 및 환경 점검 - AWS 계정, MFA, Billing 알림, Docker 실행 상태 확인
-- 8교시 : 프로젝트 아이디어 면담 - 만들고 싶은 서비스, 필요한 리소스, 예상 위험 요소 정리
+- 1교시 : 미니 앱 요구사항과 범위 경계 - static frontend, dummy JSON, no backend, no paid API
+- 2교시 : 미니 앱 skeleton 생성 - file tree, README 초안, data path, start command
+- 3교시 : 미니 앱 구현 1 - HTML 구조, CSS, JS, dummy JSON 연결
+- 4교시 : 미니 앱 구현 2 - 사용자 흐름, data rendering, error state
+- 5교시 : 실행 증거 작성 - command, port, URL, curl/browser evidence, screenshot filename
+- 6교시 : 운영 위험 분류와 README/runbook 기초 - cost, security, reliability, reproducibility, handoff risk
+- 7교시 : 개인 면담 및 환경 점검 - Git, CLI, local server, README, 미니 앱 blocker 해결
+- 8교시 : 개인 면담 및 보충 실습 - 범위 조정, 실행 실패 복구, 다음 단계 상담
 
 ## 5일차
 
-- 1교시 : Devops Mindset 원칙 Remind
-- 2교시 : 클라우드 아키텍처의 기본 원칙 - AWS Well-Architected Framework 소개
-- 3교시 : DORA Metric 소개 - 배포 빈도, 변경 리드 타임, 변경 실패율, 복구 시간
-- 4교시 : 미니 챌린지 진행 - 무료 범위의 싱글 프론트엔드 앱 기능 완성, 더미 JSON 수정, 로컬 실행 확인
-- 5교시 : 1주차 통합 체크리스트 작성 - 실행 방법, 포트, 로그, 환경변수, README, 장애 분석 기록 점검
-- 6교시 : 미니 챌린지 간이 발표 - 문제, 해결 아이디어, 구현 방식, 실행 방법, 막힌 점, 배운 점
-- 7교시 : 발표 피드백 및 라이브 Q&A - 기술 피드백, 프로젝트 후보 아이디어 선별, 설치/계정 문제 잔여 해결
-- 8교시 : 차주 수업내용 Overview (Docker)
+- 1교시 : 1주차 산출물 통합 - repo, README, mini app, data, evidence, RCA
+- 2교시 : 컴퓨팅 spine 최종 매핑 - 내 앱을 compute/storage/network/config/observability 관점으로 설명
+- 3교시 : 현업 DevOps handoff - 다른 사람이 실행, 확인, 문제 대응할 수 있는 문서 기준
+- 4교시 : 미니 앱 완성 실습 - 기능 마감, JSON 수정, 오류 처리, README/runbook 보완
+- 5교시 : 통합 체크리스트와 평가 증거 - command evidence, log/status, risk table, blocker log, 2~6주차 기술 매핑
+- 6교시 : 미니 발표 - 문제, 사용자 흐름, 실행 방법, evidence, risk, 다음 기술 연결
+- 7교시 : 발표 피드백 및 live Q&A - 기술 피드백, 위험 triage, Docker readiness
+- 8교시 : 2주차 Docker preview - Week 1 spine 중 process/filesystem/network/config가 container로 확장되는 이유
 
 ## 1주차 산출물
 - GitHub 저장소 1개
 - README.md 1개
 - 브라우저에서 실행 가능한 싱글 프론트엔드 미니 웹 애플리케이션 1개
-- 3-tier 관점의 Architecture Note 1개
-- AI 개념 학습 사다리와 디버깅 요청 예시 1개
+- 컴퓨팅 spine mapping note 1개
+- AI 답변 검증 note 1개
 - 더미 JSON 데이터 파일 1개 이상
-- 로컬 정적 서버 실행 명령 또는 Docker 실행 명령
+- 로컬 정적 서버 실행 명령
 - 간단한 장애 분석 기록 1개
 - 2주차 Docker 학습 전 개인 체크리스트
 
@@ -112,7 +113,7 @@
 - VS Code 설치, 터미널 실행, 프로젝트 폴더 열기
 - Docker Desktop 설치는 2주 1일차에 진행한다는 것을 안내하고, 1주차에는 설치를 요구하지 않음
 - AI Coding Tool 계정 생성 또는 로그인, 간단한 프롬프트 실행 확인
-- AWS 계정 생성, MFA 설정, Billing 알림 또는 비용 확인 화면 접근
+- AWS 계정 생성은 5주차에 진행한다. 1주차에는 cloud cost/security 개념만 future anchor로 기록한다.
 - 브라우저 개발자 도구, curl, 로컬 서버 접속 확인
 
 # 2주차

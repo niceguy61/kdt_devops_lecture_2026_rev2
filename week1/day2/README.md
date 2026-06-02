@@ -1,105 +1,78 @@
-# Week 1 Day 2: 컴퓨팅 기본기와 로컬 웹 서버 실행
+# Week 1 Day 2: 작업공간, Git/GitHub, 공식 문서, CLI, 컴퓨팅 구성요소 입문
 
 ## Overview
-2일차는 "내 컴퓨터에서 웹 서비스가 실행되고 접속되는 과정"을 직접 확인한다. CPU, Memory, Disk, Network, Process 같은 컴퓨팅 구성요소를 먼저 이해하고, Linux/CLI 명령으로 상태를 관찰한 뒤, 브라우저와 `curl`로 로컬 웹 서버에 접속한다.
+Day 2는 Day 1 OT에서 정한 개인 목표와 blocker를 실제 학습 작업공간으로 옮기는 날이다. 학생은 GitHub repository, VS Code terminal, CLI evidence, 공식 문서 읽기 기록을 만들고, compute, memory, storage, network를 "서비스를 실행하기 위해 확인해야 하는 상태"로 이해한다.
 
-이 날의 핵심은 개발자가 코드를 작성하는 방식보다 인프라 엔지니어가 실행 조건, 포트, 프로세스, 로그, 설정을 어떻게 확인하는지에 있다.
-
-![2일차 학습 흐름](./assets/week1-day2-overview.png)
+오늘은 미니앱을 만들지 않는다. 목표는 구현이 아니라 실행 환경을 설명하고, 명령 결과를 근거로 남기고, 모르는 내용을 공식 문서와 실제 출력으로 검증하는 기본 습관을 만드는 것이다.
 
 ## Learning Goals
-- 컴퓨팅 구성요소가 애플리케이션 실행과 어떻게 연결되는지 설명한다.
-- CLI에서 현재 위치, 파일, 프로세스, 네트워크 요청을 확인한다.
-- Browser, DNS, IP, TCP, HTTP, Server, Response의 흐름을 설명한다.
-- `localhost`, `0.0.0.0`, port, process, listen 상태를 구분한다.
-- 샘플 웹 앱을 로컬에서 실행하고 브라우저와 `curl`로 확인한다.
-- 로그, 설정, 환경변수, secret의 차이를 설명한다.
-- 재현, 관찰, 가설, 검증, 수정, 기록 흐름으로 기본 장애를 분석한다.
+- Day 1 OT 산출물을 개인 작업공간과 GitHub repository로 연결한다.
+- Git, GitHub, VS Code terminal의 준비 상태를 공개 가능한 evidence로 기록한다.
+- 공식 문서에서 prerequisite, version, warning, command를 찾는다.
+- CLI 명령을 "무엇을 확인하는가"라는 운영 질문과 연결한다.
+- compute, memory, storage, network의 차이를 로컬 환경 evidence로 설명한다.
 
 ## Lesson Index
-- 1교시: 컴퓨팅의 기본 - CPU, Memory, Disk, Network, Process가 애플리케이션과 만나는 방식
-- 2교시: Linux/CLI 기본 - `pwd`, `ls`, `cd`, `cat`, `grep`, `curl`, `ps`, `kill`, 환경변수, 권한
-- 3교시: 웹 서비스의 기본 흐름 - Browser, DNS, IP, TCP, HTTP, Server, Response
-- 4교시: 포트와 프로세스 - `localhost`, `0.0.0.0`, port binding, listen 상태 확인
-- 5교시: 로컬 웹 서버 실행 준비 - 런타임 설치 여부 확인, 샘플 앱 확인, 실행 명령 확인
-- 6교시: 로컬 웹 서버 실행 실습 - 브라우저와 `curl` 접속 확인, 포트 충돌 관찰
-- 7교시: 로그와 설정의 기본 - stdout 로그, 에러 메시지, config, secret, `.env`
-- 8교시: 관찰 가능성과 원인 분석 실습 - 로그, 메트릭, 가설, 수정 기록
+- 1교시: Day1 OT 연결 및 학습 작업공간 준비
+- 2교시: GitHub 계정, Git 설치, VS Code 확인
+- 3교시: Git/GitHub 기본 실습 - repository, clone, commit, push, README evidence
+- 4교시: 공식 문서 읽기와 AI 답변 검증
+- 5교시: Linux/CLI 기본 - `pwd`, `ls`, `cd`, `cat`, `grep`, `curl`, `ps`, `kill`, `env`
+- 6교시: Compute와 process - CPU, process, thread, command, exit code
+- 7교시: Memory와 storage - RAM, filesystem, path, persistence, permission
+- 8교시: Network/HTTP 기본 - localhost, IP, DNS, TCP, port, request/response, status code
 
 ## Official References
-- GNU Coreutils Manual  
-  https://www.gnu.org/software/coreutils/manual/coreutils.html
-- curl Documentation  
-  https://curl.se/docs/
-- MDN Web Docs: An overview of HTTP  
-  https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview
-- MDN Web Docs: What is a domain name?  
-  https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_domain_name
-- Python Docs: `http.server`  
-  https://docs.python.org/3/library/http.server.html
-- IANA Service Name and Transport Protocol Port Number Registry  
-  https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
-- The Twelve-Factor App: Config  
-  https://12factor.net/config
-- GitHub Docs: Ignoring files  
-  https://docs.github.com/en/get-started/git-basics/ignoring-files
+| Topic | Reference | 오늘 확인할 키워드 |
+|---|---|---|
+| GitHub account | https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github | account, email, MFA |
+| Git install | https://git-scm.com/book/en/v2/Getting-Started-Installing-Git | install, version, OS |
+| VS Code | https://code.visualstudio.com/docs | terminal, command line |
+| README | https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes | README, repository root |
+| HTTP | https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview | request, response, status |
+| Coreutils | https://www.gnu.org/software/coreutils/manual/ | pwd, ls, cat |
+| Linux man-pages | https://www.kernel.org/doc/man-pages/ | ps, kill, env |
 
-## Today's Key Terms
-- CPU: 명령을 계산하는 처리 장치
-- Memory: 실행 중인 데이터가 잠시 올라가는 공간
-- Disk: 파일과 데이터를 저장하는 공간
-- Network: 요청과 응답이 이동하는 통신 경로
-- Process: 실행 중인 프로그램
-- CLI: 명령어로 컴퓨터를 조작하는 인터페이스
-- HTTP: 웹 요청과 응답을 주고받는 프로토콜
-- Port: 한 컴퓨터 안에서 서비스 입구를 구분하는 번호
-- Environment Variable: 실행 시점에 주입하는 설정값
-- stdout/stderr: 프로그램의 일반 출력과 에러 출력 통로
+## Required Evidence
+| Evidence | 제출 기준 |
+|---|---|
+| GitHub repository URL | 공개해도 되는 repository 주소 |
+| Git version | `git --version` 출력 |
+| VS Code terminal | 터미널에서 `pwd` 또는 blocker 기록 |
+| README evidence table | repository root의 README에 표 작성 |
+| Official-doc reading note | URL, version/prerequisite/warning 기록 |
+| CLI command evidence table | 명령, 확인한 상태, 결과 요약 |
+| Component concept note | compute/memory/storage/network 구분 |
 
-자세한 용어 정리는 [Week 1 Glossary](../glossary.md)를 참고한다.
+## 50분 수업 운영 기준
+각 교시는 다음 흐름을 기본으로 한다.
 
-## Setup Flow
-오늘은 비용이 발생하는 클라우드 리소스를 만들지 않는다. 모든 실습은 로컬 컴퓨터에서 진행한다.
+| Time | Activity |
+|---|---|
+| 0-5분 | 이전 교시 evidence 확인 |
+| 5-15분 | 개념 설명과 현업 문제 연결 |
+| 15-35분 | 명령 실습, 관찰, 기록 |
+| 35-45분 | 흔한 실패와 오해 정리 |
+| 45-50분 | 확인 질문과 다음 주차 매핑 |
 
-```mermaid
-flowchart TD
-    A["컴퓨팅 구성요소 이해"] --> B["CLI 기본 명령 확인"]
-    B --> C["웹 요청 흐름 이해"]
-    C --> D["포트/프로세스 확인"]
-    D --> E["수업 저장소 git clone"]
-    E --> F["샘플 앱 폴더 확인"]
-    F --> G["로컬 웹 서버 실행"]
-    G --> H["브라우저/curl 확인"]
-    H --> I["로그/설정 확인"]
-    I --> J["원인 분석 기록"]
-```
+## 비용/보안 주의사항
+- 오늘은 클라우드 리소스를 만들지 않으므로 비용이 발생하지 않아야 한다.
+- GitHub password, token, MFA code, email verification code는 README, 스크린샷, 화면 공유에 남기지 않는다.
+- secret은 "값"이 아니라 "필요 여부와 관리 방식"만 문서화한다.
 
-## Required Files And Assets
-- `lesson-01.md`: 컴퓨팅 기본
-- `lesson-02.md`: Linux/CLI 기본
-- `lesson-03.md`: 웹 서비스 흐름
-- `lesson-04.md`: 포트와 프로세스
-- `lesson-05.md`: 로컬 웹 서버 실행 준비
-- `lesson-06.md`: 로컬 웹 서버 실행 실습
-- `lesson-07.md`: 로그와 설정
-- `lesson-08.md`: 관찰 가능성과 원인 분석 실습
-- `sample-app/`: 로컬 웹 서버 실습용 정적 웹 앱
-- `observability-app/`: 8교시 로그, 메트릭, 장애 분석 실습용 체크아웃 API 앱
-- `assets/`: 교안용 이미지와 시각 자료
-- `assets/lesson-05-sample-app-screenshot.png`: 샘플 앱 정상 실행 화면
+## 수업 종료 전 체크리스트
+- [ ] GitHub repository URL을 기록했다.
+- [ ] `git --version` 결과를 기록했다.
+- [ ] VS Code terminal 또는 blocker를 기록했다.
+- [ ] README evidence table을 commit했다.
+- [ ] 공식 문서 읽기 note를 작성했다.
+- [ ] CLI command evidence table을 작성했다.
+- [ ] compute, memory, storage, network를 한 문장씩 설명했다.
 
-## Deliverables
-- `sample-app`을 로컬 웹 서버로 실행한 화면
-- `git clone https://github.com/niceguy61/kdt_devops_lecture_2026_rev2.git` 실행 결과
-- `curl http://localhost:8000` 실행 결과
-- 포트 충돌 또는 접속 실패 상황 1개 관찰 기록
-- 로그/설정/환경변수 개념 정리
-- `observability-app` 기반 원인 분석 기록 1개
+## 다음 주차 매핑
+Day 2의 네 가지 구성요소는 이후 모든 주차의 spine이다. Docker는 process와 filesystem을 image/container로 묶고, Kubernetes는 process와 network entry를 Pod/Service로 관리한다. AWS는 compute/storage/network를 계정과 권한이 있는 관리형 리소스로 제공하고, Terraform은 그 리소스의 desired state를 코드로 기록한다.
 
-## End-Of-Day Checklist
-- `pwd`, `ls`, `cd`, `cat`, `grep`을 사용할 수 있다.
-- `curl`로 웹 서버 응답을 확인할 수 있다.
-- `ps`로 프로세스를 찾고, 필요한 경우 안전하게 종료할 수 있다.
-- `localhost:8000`과 포트의 의미를 설명할 수 있다.
-- 샘플 앱 실행 방법을 README에 적을 수 있다.
-- 에러 메시지를 복사해 원인 분석 기록에 남길 수 있다.
+## Visual Support
+![Week 1 computing component spine](../assets/week1-computing-spine.png)
+
+이 이미지는 Day2의 compute, memory, storage, network 개념이 Week2 Docker, Week4 Kubernetes, Week5 AWS, Week6 Terraform으로 어떻게 확장되는지 보여준다.

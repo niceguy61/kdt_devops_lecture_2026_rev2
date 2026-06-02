@@ -1,84 +1,85 @@
-# Week 1: Cloud Native 기본기와 운영 마인드셋
+# Week 1: Cloud Native를 위한 컴퓨팅 펀더멘털과 운영 증거
 
 ## Overview
-1주차는 Cloud Native 과정을 시작하기 위한 공통 언어를 만든다. 학생은 Docker, Kubernetes, AWS, Terraform을 바로 배우기 전에 컴퓨터, 네트워크, 스토리지, 프로세스, 포트, 로그, 비용, 보안, 협업 문서가 왜 중요한지 이해해야 한다.
+1주차는 Docker, Kubernetes, AWS, Terraform을 바로 실습하기 전에 필요한 컴퓨팅 좌표계를 만든다. 학생은 도구 이름을 먼저 외우지 않고, 서비스가 실행되는 조건과 운영 증거를 먼저 배운다.
 
-이번 주의 핵심은 "도구를 많이 아는 사람"이 아니라 "서비스를 운영 가능한 상태로 만들고 설명할 수 있는 주니어 인프라/DevOps 엔지니어"가 되는 것이다.
+이번 주의 중심 질문은 다음과 같다.
+
+```text
+내 로컬 컴퓨터에서 실행되는 작은 서비스는 compute, memory, storage, network, configuration, identity, observability 관점에서 어떻게 설명되는가?
+```
 
 ## Learning Goals
-- Cloud Native를 배우는 이유와 DevOps 엔지니어의 역할을 설명한다.
-- 로컬 컴퓨터에서 웹 서비스가 실행되고 접속되는 기본 흐름을 설명한다.
-- GitHub, VS Code, Docker, AI Coding Tool 계정 생성, 설치, 로그인, 기본 동작 확인을 완료한다.
-- 간단한 웹 애플리케이션을 만들고, 로컬 또는 Docker 환경에서 실행한다.
-- 로그, 포트, 프로세스, HTTP 요청을 이용해 기본적인 문제 원인 분석을 수행한다.
-- 비용, 보안, 공식 문서, 운영 지표를 기술 선택의 일부로 바라본다.
-
-## Keywords
-- cloud native
-- devops
-- cloud
-- datacenter
-- linux
-- network
-- git
-- github
-- vscode
-- ai coding tool
-- observability
-- cost
-- security
+- Cloud Native와 DevOps를 도구 목록이 아니라 운영 가능한 서비스를 만드는 관점으로 설명한다.
+- compute, memory, storage, network, process lifecycle, configuration, identity/access, observability, cost/resource boundary를 구분한다.
+- 로컬 웹 서비스를 실행하고 command, port, HTTP status, log, file path로 증거를 남긴다.
+- GitHub, Git, VS Code, README를 이용해 다른 사람이 재현 가능한 handoff 문서를 만든다.
+- 작은 정적 웹앱과 더미 JSON을 만들고, 비용/보안/재현성 위험을 기록한다.
+- Week 2~6의 Docker, MSA, Kubernetes, AWS, Terraform 개념을 Week 1 컴퓨팅 spine에 연결한다.
 
 ## Schedule Index
-- Day 1: 오리엔테이션, Cloud Native/DevOps 마인드셋, GitHub/VS Code/Git 환경 준비
-- Day 2: 컴퓨팅, Linux/CLI, HTTP, 포트, 로그, 원인 분석 기본기
-- Day 3: 배포, Docker 필요성, AI Coding Tool 실습, 미니 웹앱 시작
-- Day 4: 클라우드 기본 구성요소, AWS 계정, 비용/보안, 공식 문서 읽기
-- Day 5: Well-Architected, DORA, 통합 체크리스트, 미니 챌린지 발표
+- Day 1: 과정별 OT, 6주 로드맵, Cloud Native/DevOps 마인드셋, 아이스브레이킹, 학습 준비
+- Day 2: 컴퓨팅 구성요소 spine, Linux/CLI, process, filesystem, network, HTTP, log/config/secret
+- Day 3: 로컬 정적 서버 실행 조건, 재현성, 관찰 가능성, RCA, AI 보조 개발 검증, spine 매핑
+- Day 4: 미니 앱 scope, skeleton, 구현, 실행 증거, 운영 위험 분류, README/runbook, 7~8교시 개인 면담
+- Day 5: 산출물 통합, 컴퓨팅 spine 최종 매핑, handoff, 발표, Docker preview
 
-## Deliverables
-- GitHub 저장소 1개
-- README.md 1개
-- 브라우저에서 실행 가능한 미니 웹 애플리케이션 1개
-- 로컬 실행 명령 또는 Docker 실행 명령
-- 간단한 장애 분석 기록 1개
-- 2주차 Docker 학습 전 개인 체크리스트
+## Computing Component Spine
+![Week 1 computing component spine](./assets/week1-computing-spine.png)
 
-## Required Environment
-- GitHub 계정
-- Git
-- Visual Studio Code
-- 터미널 또는 shell
-- Docker Desktop
-- 브라우저 개발자 도구
-- AI Coding Tool 계정 또는 사용 가능 환경
-- AWS 계정과 MFA
+| Component | Week 1 local evidence | Week 2 Docker | Week 4 Kubernetes | Week 5 AWS | Week 6 Terraform |
+|---|---|---|---|---|---|
+| Compute | process, command, exit code | container process | Pod, Deployment | EC2, ECS, Lambda | compute resource |
+| Memory | process memory note | memory limit | requests/limits | instance memory | variable |
+| Storage | file path, data path | image layer, volume | Volume, ConfigMap mount | S3, EBS, EFS, RDS | bucket/volume/db |
+| Network | localhost, port, HTTP status | port binding, bridge | Service, Ingress | VPC, SG, ALB, Route 53 | VPC/SG resource |
+| Lifecycle | start/stop/recheck | run/stop/restart | rollout/probe | service scaling | plan/apply/destroy |
+| Configuration | env var, config file | `-e`, `.env` | ConfigMap, Secret | Parameter Store | variable/sensitive |
+| Identity/access | account, permission, token risk | registry auth | ServiceAccount/RBAC | IAM/MFA/role | provider/IAM |
+| Observability | log, status, RCA | logs/inspect/stats | logs/events/probes | CloudWatch/CloudTrail | output/drift |
+| Cost boundary | local limits, excluded paid API | running resource count | node capacity | billing/budget | cost assumption |
 
-## Official References
-- GitHub Docs: Getting started with your GitHub account  
-  https://docs.github.com/en/get-started/onboarding/getting-started-with-your-github-account
-- GitHub Docs: Set up Git  
-  https://docs.github.com/en/get-started/git-basics/set-up-git
-- Visual Studio Code Docs: Getting started  
-  https://code.visualstudio.com/docs/getstarted/getting-started
-- Visual Studio Code Docs: Setup overview  
-  https://code.visualstudio.com/docs/setup/setup-overview
+## Official And Academic Foundations
+- ABET Criteria for Accrediting Computing Programs, Student Outcomes  
+  https://www.abet.org/accreditation/accreditation-criteria/criteria-for-accrediting-computing-programs-2025-2026/
+- ACM/IEEE-CS/AAAI CS2023 Final Report  
+  https://csed.acm.org/final-report/
+- NIST NICE Workforce Framework  
+  https://www.nist.gov/itl/applied-cybersecurity/nice/nice-cybersecurity-workforce-framework
+- Vanderbilt Center for Teaching: Bloom's Taxonomy  
+  https://cft.vanderbilt.edu/guides-sub-pages/blooms-taxonomy/
 - AWS: What is DevOps?  
   https://aws.amazon.com/devops/what-is-devops/
-- AWS Documentation: What is cloud computing?  
-  https://docs.aws.amazon.com/whitepapers/latest/aws-overview/what-is-cloud-computing.html
-- AWS Well-Architected Framework: The pillars of the framework  
-  https://docs.aws.amazon.com/wellarchitected/latest/framework/the-pillars-of-the-framework.html
+- Google SRE Book: Postmortem Culture  
+  https://sre.google/sre-book/postmortem-culture/
+- GitHub Docs: About README files  
+  https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
+- MDN Web Docs: An overview of HTTP  
+  https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview
 
-## Glossary
-- [Week 1 Glossary](./glossary.md)
+## Required Deliverables
+- GitHub repository URL
+- `README.md` with start/check/stop/troubleshoot sections
+- Static frontend mini app
+- `data/*.json` dummy data file
+- Computing spine mapping note
+- AI verification note
+- One RCA record
+- Risk classification table
+- Docker readiness note for Week 2
 
-이번 주 핵심 용어는 Cloud Native, Cloud Computing, Compute, Network, Storage, DevOps, Deployment, Build, Docker Image, Container, GitHub, Git, CAPEX, OPEX, TCO다. 각 교안에서는 용어가 처음 나올 때 짧은 뜻을 함께 적고, 자세한 복습은 glossary에서 한다.
+## Week 1 Boundaries
+- Docker command practice starts in Week 2.
+- AWS account creation and cloud resources start in Week 5.
+- Well-Architected is taught as an architecture-risk framework in Week 5.
+- DORA metrics are taught when deployment/operation evidence is concrete enough, later in the course.
+- Week 1 may mention those terms only as future anchors mapped to the computing spine.
 
-## Cost And Security Notes
-- 1주차에는 원칙적으로 비용이 발생하는 클라우드 리소스를 만들지 않는다.
-- AWS 계정 생성 시 MFA를 반드시 설정하고 root 계정 사용을 최소화한다.
-- GitHub 공개 저장소에 API key, password, token, 개인 정보, 과금 정보가 포함되지 않도록 한다.
-- 설치와 계정 생성 중 생기는 오류는 수업의 문제 해결 훈련으로 다룬다.
+## Visual Asset Plan
+| Asset | Use | Source |
+|---|---|---|
+| ![Local service evidence flow](./assets/week1-service-evidence-flow.png) | Day 2~3 command, process, port, HTTP, log, README, RCA evidence flow | imagegen generated asset |
+| ![Week 1 to Docker preview mapping](./assets/week1-docker-preview-mapping.png) | Day 5 Docker preview mapping from local problems to Docker components | imagegen generated asset |
+| `assets/week1-computing-spine.png` | Week 1 component spine mapped to later platforms | imagegen generated asset |
 
-## Connection To Week 2
-1주차의 산출물과 실행 명령은 2주차 Docker 실습의 기반이 된다. 특히 README, 실행 명령, 로그 확인, 포트 개념은 Dockerfile과 Compose를 이해하기 위한 전제다.
+Official diagrams may be linked with attribution when a later week introduces Docker, Kubernetes, AWS, or Terraform in depth.

@@ -1,187 +1,189 @@
-# 5교시: 로컬 웹 서버 실행 준비 - 런타임, 샘플 앱, 실행 명령 확인
+# 5교시: Linux/CLI 기본 - pwd, ls, cd, cat, grep, curl, ps, kill, env
 
 ## 수업 목표
-- 로컬 웹 서버를 실행하기 전에 필요한 준비 항목을 점검한다.
-- macOS/Linux 환경에서 Python 설치 여부를 확인하고, 없으면 설치한다.
-- GitHub 저장소를 `git clone`으로 내려받아 실습 폴더를 준비한다.
-- 샘플 앱 폴더 구조와 실행 명령을 읽는다.
+- 기본 CLI 명령을 서비스 상태 확인 목적과 연결한다.
+- 명령 암기가 아니라 어떤 상태를 확인하는 명령인지 설명한다.
+- command output을 README evidence로 요약한다.
 
-## 공식 참고 자료
-- Python Docs: `http.server`  
-  https://docs.python.org/3/library/http.server.html
-- Python: Downloads  
-  https://www.python.org/downloads/
-- Python: Using Python on Unix platforms  
-  https://docs.python.org/3/using/unix.html
-- Homebrew: Python  
-  https://formulae.brew.sh/formula/python@3.13
-- Visual Studio Code Docs: Integrated Terminal  
-  https://code.visualstudio.com/docs/terminal/basics
-- curl Documentation  
-  https://curl.se/docs/
-- GitHub Docs: Cloning a repository  
-  https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
+## 50분 흐름
+| Time | Activity |
+|---|---|
+| 0-5분 | 공식 문서 읽기 evidence 확인 |
+| 5-15분 | CLI를 운영 관찰 도구로 설명 |
+| 15-35분 | 명령 실행, 결과 관찰, 표 작성 |
+| 35-45분 | 실패 메시지와 권한/경로 문제 구분 |
+| 45-50분 | 다음 교시 process 개념으로 연결 |
 
-## 실습 대상 스펙과 제약
-실습 앱:
-- 원격 저장소: `https://github.com/niceguy61/kdt_devops_lecture_2026_rev2.git`
-- 위치: `week1/day2/sample-app`
-- 구성: 정적 HTML 1개와 README
-- 실행 방식: Python 내장 `http.server`
-- 기본 포트: `8000`
+## 0-5분 공식 문서 읽기 evidence 확인
 
-제약점:
-- 이 교시는 macOS/Linux 기준으로 진행한다.
-- Python이 설치되어 있지 않으면 운영체제별 공식 설치 방법 또는 패키지 관리자를 사용한다.
-- `git clone`은 이미 같은 이름의 폴더가 있으면 실패할 수 있다. 기존 폴더가 있으면 위치를 확인하고 다른 작업 폴더에서 진행한다.
-- 회사/교육장 PC는 설치 권한이 제한될 수 있다. 권한 오류가 나면 무리하게 진행하지 않고 7~8교시 보충 시간에 해결한다.
-- `http.server`는 개발/학습용 간단 서버다. 운영 환경에 그대로 쓰는 서버가 아니다.
-- 같은 포트를 이미 다른 프로그램이 사용 중이면 실행에 실패한다.
+- 진행: 공식 문서 읽기 evidence 확인
 
-## 쉬운 비유
-로컬 웹 서버 실행 준비는 여행 전 체크인과 비슷하다.
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
 
-- Runtime은 이동 수단이다. Python이 있어야 `http.server`를 실행할 수 있다.
-- Sample app은 여행 가방이다. 안에 어떤 파일이 있는지 확인해야 한다.
-- Port는 탑승구 번호다. 이미 다른 사람이 쓰고 있으면 바꿔야 한다.
-- Run command는 탑승권이다. 정확히 어떤 명령으로 실행하는지 확인해야 한다.
 
-비유의 한계:
-- 실제 서버 실행은 여행처럼 한 번 확인하고 끝나는 것이 아니라, 실행 중 계속 상태를 봐야 한다.
 
-## imagegen 인포그래픽
-이 인포그래픽은 로컬 웹 서버 실행 전 점검 항목을 체크리스트로 보여준다. 런타임, 샘플 앱, 폴더, 터미널, 포트, 실행 명령을 빠짐없이 확인한다.
+### 상세 설명
+CLI는 "검은 화면"이 아니라 시스템 상태를 직접 묻는 인터페이스다. `pwd`는 내가 어디에 있는지, `ls`는 어떤 파일이 있는지, `cat`은 파일 내용이 무엇인지, `grep`은 증거 문자열이 어디에 있는지 확인한다. `curl`은 HTTP 응답을 확인하고, `ps`는 실행 중인 process를 확인한다. `env`는 실행 환경에 들어온 설정 값을 보여준다.
 
-저장 위치:
-- `week1/day2/assets/lesson-05-local-server-prep.png`
-- `week1/day2/assets/lesson-05-sample-app-screenshot.png`
+좋은 운영자는 명령 이름보다 질문을 먼저 생각한다. "서버가 안 된다"는 질문을 "파일이 있는가", "process가 떠 있는가", "port로 응답하는가", "config가 들어왔는가"로 나누면 CLI 명령이 자연스럽게 선택된다.
 
-![로컬 웹 서버 실행 준비](./assets/lesson-05-local-server-prep.png)
 
-## Python 설치와 확인
-먼저 Python이 이미 설치되어 있는지 확인한다.
 
-```bash
-python3 --version
-```
+### Visual 1: 운영 질문에서 CLI 선택하기
+![CLI 명령과 운영 질문](./assets/lesson-05-cli-observation.png)
 
-예상 결과:
+이 이미지는 명령어 암기가 아니라 운영 질문에서 관찰 도구를 고르는 훈련을 만든다. 강사는 `pwd`, `ls`, `curl`, `ps`, `env`가 각각 어떤 종류의 evidence를 주는지 짧게 연결한다.
 
-```bash
-Python 3.x.x
-```
-
-명령을 찾을 수 없거나 버전이 나오지 않으면 아래 방법 중 자기 환경에 맞는 방법으로 설치한다. 설치 명령은 네트워크와 권한이 필요할 수 있으므로 수업 시간에 천천히 진행한다.
-
-macOS에서 Homebrew를 사용하는 경우:
-
-```bash
-brew install python
-```
-
-macOS에서 Homebrew를 사용하지 않는 경우:
-- `https://www.python.org/downloads/` 접속
-- macOS용 Python installer 다운로드
-- 설치 후 새 터미널을 열고 `python3 --version` 확인
-
-Ubuntu/Debian 계열 Linux:
-
-```bash
-sudo apt update
-sudo apt install -y python3
-python3 --version
-```
-
-Fedora 계열 Linux:
-
-```bash
-sudo dnf install -y python3
-python3 --version
-```
-
-주의:
-- `sudo`는 관리자 권한으로 설치한다는 뜻이다. 비밀번호 입력이 필요할 수 있다.
-- 설치 후에도 명령이 인식되지 않으면 새 터미널을 열어 다시 확인한다.
-- 여러 Python 버전이 설치된 환경에서는 수업에서는 `python3` 명령만 사용한다.
-
-## 준비 명령
-수업 자료 저장소를 내려받는다. 이미 1일차에 clone을 완료했다면 이 단계는 확인만 한다.
-
-```bash
-git clone https://github.com/niceguy61/kdt_devops_lecture_2026_rev2.git
-cd kdt_devops_lecture_2026_rev2
-```
-
-기대 결과:
-- `kdt_devops_lecture_2026_rev2` 폴더가 생성된다.
-- 폴더 안에 `docs`, `week1` 같은 수업 자료가 보인다.
-
-저장소 루트에서 샘플 앱 폴더로 이동한다.
-
-```bash
-cd week1/day2/sample-app
-ls
-cat README.md
-```
-
-`curl` 설치 여부를 확인한다.
-
-```bash
-curl --version
-```
-
-## 정상 실행 화면 예시
-아래 화면은 `week1/day2/sample-app`에서 로컬 웹 서버를 실행한 뒤 브라우저로 접속했을 때 보이는 결과다. 5교시에서는 이 화면을 목표 상태로 먼저 확인하고, 6교시에서 실제로 서버를 실행한다.
-
-저장 위치:
-- `week1/day2/assets/lesson-05-sample-app-screenshot.png`
-
-![샘플 앱 실행 결과 화면](./assets/lesson-05-sample-app-screenshot.png)
-
-정상 상태에서 확인할 것:
-- 페이지 제목이 `Local Server Lab`으로 보인다.
-- 본문에 로컬 웹 서버가 파일을 응답하고 있다는 문장이 보인다.
-- `localhost:8000`이라는 접속 주소가 보인다.
-- `Status: HTTP 응답 확인 준비 완료` 메시지가 보인다.
-
-## 실행 전 체크리스트
-| 항목 | 확인 방법 | 상태 |
-|---|---|---|
-| Python 설치 | `python3 --version` | 완료/미완료 |
-| 수업 저장소 clone | `git clone https://github.com/niceguy61/kdt_devops_lecture_2026_rev2.git` | 완료/미완료 |
-| 샘플 앱 폴더 | `ls`로 `index.html` 확인 | 완료/미완료 |
-| curl | `curl --version` | 완료/미완료 |
-| 실행 포트 | 기본 `8000` 사용 예정 | 완료/미완료 |
-| 종료 방법 | 실행 터미널에서 `Ctrl+C` | 완료/미완료 |
-
-## Mermaid: 실행 준비 흐름
 ```mermaid
 flowchart TD
-    A["Python 설치 여부 확인"] --> B{"python3 있음?"}
-    B -- "아니오" --> C["macOS/Linux 방식으로 설치"]
-    B -- "예" --> D["git clone 수업 저장소"]
-    C --> D
-    D --> E["sample-app 폴더 이동"]
-    E --> F["index.html 확인"]
-    F --> G["curl 버전 확인"]
-    G --> H["port 8000 사용 예정"]
-    H --> I["실행 명령 준비"]
+    A[서버가 안 된다] --> B[어디에서 실행 중인가?]
+    A --> C[파일이 있는가?]
+    A --> D[process가 떠 있는가?]
+    A --> E[HTTP 응답이 오는가?]
+    A --> F[설정 값이 들어왔는가?]
+    B --> G[`pwd`]
+    C --> H[`ls`, `cat`, `grep`]
+    D --> I[`ps`]
+    E --> J[`curl -I`]
+    F --> K[`env` filtered]
 ```
 
-## 50분 실습 흐름
-- 0~7분: 로컬 웹 서버를 실행하기 전에 확인해야 할 항목 소개
-- 7~22분: Python 설치 여부 확인, macOS/Linux 설치 진행
-- 22~30분: `git clone`으로 수업 저장소 내려받기
-- 30~37분: curl 설치 여부와 실행 포트 확인
-- 37~45분: 실행 명령과 종료 방법 설명, 학생별 준비 상태 기록
-- 45~50분: 6교시 실행 실습으로 연결
+## 5-15분 CLI를 운영 관찰 도구로 설명
 
-## DevOps 원칙 연결
-- 비용 절감: 실행 전 준비 상태를 확인하면 불필요한 재설치와 시간 낭비를 줄인다.
-- 개발/배포 효율성: 실행 명령을 README에 적으면 팀원이 같은 방식으로 실행할 수 있다.
-- 관리 효율성: 준비 체크리스트는 이후 Docker, Terraform 실습에서도 반복된다.
+- 진행: CLI를 운영 관찰 도구로 설명
 
-## 확인 질문
-- Runtime이 없으면 어떤 문제가 발생하는가?
-- `http.server`가 운영용 서버가 아닌 이유는 무엇인가?
-- 실행 전에 포트를 확인해야 하는 이유는 무엇인가?
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 2: CLI 관찰 화면
+| 관찰 화면 | evidence로 남길 최소 내용 |
+|---|---|
+| `cat cli-evidence.txt` | `status=ok`, `port=8000`이 보였는지 |
+| `grep port cli-evidence.txt` | 검색된 한 줄 |
+| `curl -I https://example.com` | status line과 대표 header |
+
+## 15-35분 명령 실행, 결과 관찰, 표 작성
+
+- 진행: 명령 실행, 결과 관찰, 표 작성
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### Visual 3: 안전한 CLI 기록 기준
+| 주의 표시 | 학생 행동 |
+|---|---|
+| `env` 출력에 token/key가 보임 | 전체 복사하지 말고 key 이름만 기록한다. |
+| `ps` 출력이 길게 나옴 | 오늘 실행한 shell/process 중심으로 요약한다. |
+| `kill` 대상이 불명확함 | 종료하지 않고 `kill -l` 개념 확인만 한다. |
+
+
+
+### 명령 매핑
+| Command | 확인하는 것 | 운영 질문 |
+|---|---|---|
+| `pwd` | 현재 path | 어디에서 실행 중인가? |
+| `ls` | file/storage 상태 | 필요한 파일이 있는가? |
+| `cd` | 작업 위치 변경 | 올바른 directory로 이동했는가? |
+| `cat` | file content | 파일 내용이 기대와 같은가? |
+| `grep` | text evidence 검색 | 로그/문서에 단서가 있는가? |
+| `curl` | HTTP response | 네트워크 요청에 응답하는가? |
+| `ps` | process | 실행 중인 program이 있는가? |
+| `kill` | process lifecycle | 종료해야 할 process는 무엇인가? |
+| `env` | environment | 어떤 설정이 들어왔는가? |
+
+
+
+### 명령 절차
+```bash
+pwd
+ls
+printf 'status=ok\nport=8000\n' > cli-evidence.txt
+cat cli-evidence.txt
+grep port cli-evidence.txt
+env | grep -E 'SHELL|HOME|PATH'
+ps
+curl -I https://example.com
+```
+
+`kill`은 실제 대상 process를 이해한 뒤 사용한다. 오늘은 다음처럼 도움말 또는 개념만 확인한다.
+
+```bash
+kill -l
+```
+
+## 35-45분 실패 메시지와 권한/경로 문제 구분
+
+- 진행: 실패 메시지와 권한/경로 문제 구분
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### 확인 질문
+- 파일 존재 여부를 확인하는 명령은 무엇인가?
+- HTTP 응답을 확인할 때 브라우저 대신 `curl`을 쓰는 이유는 무엇인가?
+- `ps`와 `env`가 각각 보여주는 상태는 무엇인가?
+
+
+
+### 다음 주차 매핑
+이후 주차의 container 상태 조회, cluster 상태 조회, cloud identity 확인, infrastructure 변경 검토도 모두 CLI로 시스템 상태를 묻는 확장판이다.
+
+
+
+### 예상 결과
+- `cat cli-evidence.txt`는 `status=ok`, `port=8000`을 출력한다.
+- `grep port cli-evidence.txt`는 `port=8000` 줄만 출력한다.
+- `curl -I https://example.com`은 HTTP header와 status line을 출력한다.
+- `env | grep ...`은 secret 값이 아니라 일반 환경 키 일부만 보여야 한다.
+
+
+
+### 흔한 오해
+| 오해 | 교정 |
+|---|---|
+| CLI 명령은 외우는 과목이다. | 운영 질문에 맞는 관찰 도구로 선택한다. |
+| `kill`은 오류를 고치는 명령이다. | process 종료 명령이다. 원인을 이해하지 못하면 증거를 잃을 수 있다. |
+| `env` 출력은 전부 README에 붙여도 된다. | token, key, credential이 섞일 수 있으므로 필요한 key 이름만 기록한다. |
+
+## 45-50분 다음 교시 process 개념으로 연결
+
+- 진행: 다음 교시 process 개념으로 연결
+
+- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+
+
+
+### 실습 Evidence
+| Command | 확인한 상태 | 결과 요약 |
+|---|---|---|
+| `pwd` | path | |
+| `ls` | files | |
+| `cat cli-evidence.txt` | file content | |
+| `grep port cli-evidence.txt` | text search | |
+| `curl -I https://example.com` | HTTP response | |
+| `ps` | process | |
+| `env` filtered | config keys | |
+
+
+
+### 학술 근거와 현업 DevOps insight
+운영 자동화는 수동 관찰 절차를 코드로 바꾸는 일에서 시작한다. CLI evidence를 읽지 못하면 CI log, container log, Kubernetes event도 읽기 어렵다. 오늘의 명령은 이후 자동화 스크립트와 health check의 원형이다.
+
+
+
+### 평가 기준
+| 기준 | 2점 evidence |
+|---|---|
+| 50분 참여 | 시간 흐름에 맞춰 설명, 활동, 산출물 작성에 참여했다. |
+| 증거 산출 | 수업에서 요구한 note, command, table, blocker 중 해당 산출물을 구체적으로 남겼다. |
+| 전이 연결 | 오늘 개념이 Week2~6 기술 또는 자기 산출물과 어떻게 연결되는지 한 문장 이상 설명했다. |
+
+
+
+### 공식/학술 근거 링크
+- RFC 9110: HTTP Semantics, https://datatracker.ietf.org/doc/html/rfc9110 - HTTP status와 resource 확인을 evidence로 쓰는 공식 기준이다.
+- MDN HTTP Overview, https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview - browser와 local server 관찰을 request/response 흐름으로 설명하는 기준이다.
+- Google SRE Book: Introduction, https://sre.google/sre-book/introduction/ - 상태 확인, monitoring, emergency response가 운영 준비에 포함되는 근거다.

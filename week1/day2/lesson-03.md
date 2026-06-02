@@ -1,279 +1,214 @@
-# 3교시: 웹 서비스의 기본 흐름 - Browser, DNS, IP, TCP, HTTP, Server, Response
+# 3교시: Git/GitHub/VS Code 기본 실습 - clone, MFA/PAT, commit, push
 
 ## 수업 목표
-- 브라우저에서 주소를 입력했을 때 요청이 서버까지 가는 흐름을 설명한다.
-- DNS, IP, TCP, HTTP를 한 문장씩 구분한다.
-- HTTP status code가 원인 분석의 첫 단서가 되는 이유를 이해한다.
+- GitHub repository를 만들고 clone, commit, push 흐름을 수행한다.
+- clone한 repository를 VS Code에서 열고 README를 수정한다.
+- GitHub MFA와 personal access token(PAT) 설정 흐름을 이해한다.
+- token, MFA code, recovery code를 기록하지 않는 보안 기준을 적용한다.
+- README를 첫 handoff/evidence 문서로 작성한다.
 
-## 공식 참고 자료
-- MDN Web Docs: An overview of HTTP  
-  https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview
-- MDN Web Docs: What is a domain name?  
-  https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_domain_name
-- MDN Web Docs: HTTP response status codes  
-  https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
-- MDN Web Docs: HTTPS  
-  https://developer.mozilla.org/en-US/docs/Glossary/HTTPS
-- MDN Web Docs: TLS  
-  https://developer.mozilla.org/en-US/docs/Glossary/TLS
-- Cloudflare Learning Center: What happens in a TLS handshake?  
-  https://www.cloudflare.com/learning/ssl/what-happens-in-a-tls-handshake/
-- Korea.net: Media watchdog defends SNI blocking, denies internet censorship  
-  https://www.korea.net/NewsFocus/policies/view?articleId=168066
-- Open Net Korea: UN Special Rapporteur Expresses Concern over SNI Filtering  
-  https://www.opennetkorea.org/en/wp/2737
+## 50분 흐름
+| Time | Activity |
+|---|---|
+| 0-5분 | Git/VS Code 준비 evidence 확인 |
+| 5-15분 | repository, commit, remote, 인증 흐름 설명 |
+| 15-28분 | repository 생성, clone, VS Code 열기, README 작성 |
+| 28-40분 | MFA 확인, PAT 생성 기준, commit/push |
+| 40-50분 | 실패 증상과 인증 blocker 기록 |
 
-## 컴포넌트 스펙과 제약
-| 구성요소 | 의미 | 운영 관점에서 확인할 것 |
-|---|---|---|
-| Browser | 사용자가 요청을 보내는 클라이언트 | 주소, 캐시, 개발자 도구 |
-| DNS | 이름을 IP로 찾는 체계 | 도메인이 올바른 IP로 가는가 |
-| IP | 네트워크에서 목적지를 찾는 주소 | 서버 주소, 방화벽, 라우팅 |
-| TCP | 연결을 맺고 데이터를 주고받는 전송 방식 | 포트 열림, 연결 실패 |
-| HTTP | 웹 요청/응답 규칙 | method, path, status code, header, body |
-| Server | 요청을 받아 처리하는 프로그램 | process, port, log, config |
-| Response | 서버가 돌려주는 결과 | status code, body, error message |
+## 0-5분 Git/VS Code 준비 evidence 확인
+- 진행: 이전 교시에서 확인한 `git --version`, `pwd`, VS Code terminal 상태를 다시 확인한다.
+- 완료 조건: Git CLI와 VS Code terminal 준비 상태를 말할 수 있다.
 
-제약점:
-- 브라우저에 "안 됨"이라고 보이는 문제도 DNS, TCP, HTTP, 서버 내부 오류 중 어디서 실패했는지 나눠 봐야 한다.
-- HTTP 상태 코드만으로 모든 원인을 알 수는 없다. 로그와 서버 상태를 함께 봐야 한다.
-
-## 쉬운 비유
-웹 요청은 우편을 보내는 과정과 비슷하다.
-
-- Browser: 우편을 보내는 사람이다. 주소창에 목적지를 적는다.
-- URL/Domain: 봉투에 적는 상대방 주소다. 예를 들어 `developer.mozilla.org` 같은 이름이다.
-- DNS: 주소록을 보고 이 우편을 어느 목적지 우체국, 즉 어떤 IP로 보낼지 정하는 과정이다.
-- IP: 실제 수신지 우체국의 주소다.
-- TCP: 우편이 이동할 수 있는 길을 열고, 목적지까지 갈 수 있는지 확인하는 운송 경로다.
-- HTTP Request: 봉투 안에 넣은 요청서다. 어떤 경로를 달라고 하는지, 어떤 방식으로 요청하는지가 들어 있다.
-- HTTP와 HTTPS: 일반 우편과 등기의 차이처럼 이해할 수 있다. HTTP는 내용을 보호하지 않는 기본 전달이고, HTTPS는 암호화와 인증서 검증을 통해 더 안전하게 전달한다.
-- Server: 수신지 우체국 또는 담당 부서처럼 요청을 받아 처리하는 곳이다.
-- HTTP Response: 처리 결과를 돌려보내는 답장이다.
-- Status Code: "전송 요청 접수", "다른 주소로 이동", "주소 없음", "처리 실패" 같은 완료 알림이다.
-
-우편 비유로 보면 DNS는 "주소를 보고 어느 우체국으로 보낼지 정하는 단계"에 가깝고, TCP는 "그 우체국까지 실제로 이동할 수 있는 길을 여는 단계"에 가깝다. HTTP는 "봉투 안에 들어 있는 요청과 답장 형식"이고, status code는 "요청 처리 결과 알림"이다.
-
-비유의 한계:
-- HTTPS는 단순히 속도가 빠른 등기우편이라는 뜻이 아니다. 핵심은 암호화, 인증서, 무결성 확인이다.
-- 실제 네트워크는 우편 배송보다 훨씬 빠르고 여러 계층이 동시에 동작한다.
-- 그래도 "이름 찾기, 연결하기, 요청하기, 응답받기" 순서로 나누면 장애 위치를 좁힐 수 있다.
-
-![우체국 비유로 보는 웹 요청 흐름](./assets/lesson-03-postal-web-flow.png)
-
-## imagegen 인포그래픽
-이 인포그래픽은 브라우저 요청이 DNS, IP, TCP, HTTP를 거쳐 서버에 도달하고 응답으로 돌아오는 흐름을 보여준다.
-
-저장 위치:
-- `week1/day2/assets/lesson-03-web-request-flow.png`
-- `week1/day2/assets/lesson-03-postal-web-flow.png`
-
-![웹 요청과 응답 흐름](./assets/lesson-03-web-request-flow.png)
-
-## Mermaid: 요청 흐름
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant D as DNS
-    participant S as Server
-    B->>D: 도메인 이름 조회
-    D-->>B: IP 주소 반환
-    B->>S: TCP 연결 + HTTP Request
-    S-->>B: HTTP Response + Status Code
+### 준비 확인
+```bash
+git --version
+pwd
 ```
 
-## 손으로 확인하기
-수업 중 실행 중인 로컬 서버가 없다면 5~6교시에서 다시 실행한다.
+VS Code CLI가 등록되어 있으면 아래 명령도 확인한다.
 
 ```bash
-curl -I https://developer.mozilla.org/
+code --version
 ```
 
-확인할 것:
-- `HTTP/`로 시작하는 상태 라인
-- `200`, `301`, `404`, `500` 같은 status code
-- 응답 헤더
+`code --version`이 실패해도 수업 진행은 가능하다. VS Code GUI에서 `File > Open Folder` 또는 `Terminal > New Terminal`을 사용할 수 있으면 된다.
 
-상태 코드 해석:
-- `2xx`: 요청 성공
-- `3xx`: 다른 위치로 이동
-- `4xx`: 클라이언트 요청 문제
-- `5xx`: 서버 처리 문제
+### Visual 1: clone부터 push까지
+![MFA, PAT, Git push 인증 흐름](./assets/lesson-03-mfa-pat-git-flow.png)
 
-## HTTP vs HTTPS
-HTTP(HyperText Transfer Protocol)는 브라우저와 서버가 웹 요청과 응답을 주고받는 규칙이다. HTTPS(HTTP Secure)는 HTTP 메시지를 TLS(Transport Layer Security) 위에서 주고받아 통신 내용을 보호하는 방식이다.
-
-우체국 비유로 다시 보면 HTTP는 봉투에 요청서를 넣어 보내는 기본 우편에 가깝다. 중간에서 누군가 봉투 내용을 볼 수 있거나 바꿀 위험이 있다. HTTPS는 봉투를 잠금 장치가 있는 보안 봉투에 넣고, 받는 우체국이 진짜 수신지가 맞는지 인증서로 확인한 뒤 전달하는 방식에 가깝다.
-
-| 구분 | HTTP | HTTPS |
-|---|---|---|
-| 기본 URL | `http://example.com` | `https://example.com` |
-| 기본 포트 | `80` | `443` |
-| 데이터 보호 | 평문 전송이라 중간에서 내용이 노출될 수 있음 | TLS로 암호화되어 중간자가 내용을 보기 어려움 |
-| 서버 신뢰 확인 | 별도 인증서 검증 없음 | 인증서로 접속한 서버가 신뢰 가능한지 확인 |
-| 변조 방지 | 중간에서 내용이 바뀌어도 탐지하기 어려움 | TLS 무결성 검증으로 변조를 탐지 |
-| 운영 확인 포인트 | 서버 응답, 포트 80, redirect 정책 | 인증서 만료일, 인증서 체인, SNI, 포트 443, TLS 설정 |
-
-HTTPS가 제공하는 핵심:
-- 암호화: 요청과 응답 내용을 중간에서 읽기 어렵게 만든다.
-- 인증: 브라우저가 접속한 서버가 신뢰 가능한 인증서를 가진 서버인지 확인한다.
-- 무결성: 통신 중 데이터가 바뀌었는지 탐지한다.
-
-HTTPS가 보호하는 대표 정보:
-- URL path: `/login`, `/payment` 같은 세부 경로
-- query string: `?q=keyword` 같은 요청 파라미터
-- request/response body: 로그인 요청, API 응답, HTML 내용
-- cookie와 session token
-- 대부분의 HTTP header
-
-HTTPS가 항상 완전히 숨겨주지는 않는 정보:
-- 접속한 IP 주소
-- DNS 질의 정보
-- TLS handshake 중 일부 메타데이터
-- 과거 TLS 구성에서는 SNI(Server Name Indication, 하나의 IP에서 여러 도메인을 구분하기 위해 클라이언트가 보내는 서버 이름)가 평문으로 보일 수 있었다.
-
-이 차이 때문에 HTTPS는 "내용을 보호하는 기술"이지, 모든 접속 사실을 완전히 숨기는 기술은 아니다. 최근에는 ECH(Encrypted ClientHello, TLS ClientHello 일부를 암호화해 SNI 노출을 줄이는 기술) 같은 흐름도 등장했지만, 모든 환경에서 항상 적용된다고 가정하면 안 된다.
-
-## 국내 사례: 2019년 HTTPS/SNI 차단 논란
-2019년 국내에서는 해외 불법 사이트 차단을 위해 SNI 정보를 활용하는 방식이 도입되며 논란이 있었다. 정부 측은 HTTPS 본문을 복호화해 들여다보는 방식이 아니며 불법 정보 차단을 위한 조치라고 설명했고, 시민사회와 국제 인권 전문가 쪽에서는 표현의 자유와 감시 가능성에 대한 우려를 제기했다.
-
-이 사례에서 수업이 가져갈 기술적 포인트는 다음과 같다.
-
-- HTTPS는 HTTP 본문, cookie, path, query, 응답 내용을 보호하기 때문에 중간자가 웹 페이지 내용을 쉽게 볼 수 없게 만든다.
-- 하지만 과거 TLS 구성에서는 SNI처럼 접속 도메인을 추론할 수 있는 메타데이터가 보일 수 있었다.
-- 그래서 웹 서비스 운영자는 가능한 한 HTTPS를 기본으로 적용하고, HTTP 접속은 HTTPS로 redirect하는 구성을 선호해야 한다.
-- 수업과 실습에서도 특별한 이유가 없으면 `http://`보다 `https://`가 적용된 공식 문서와 웹 페이지를 우선 사용한다.
-- 단, 로컬 실습의 `http://localhost:8000`은 학습 편의를 위한 예외다. 운영 서비스라면 HTTPS 적용을 기본 전제로 본다.
-
-이 사례는 특정 정치적 평가보다 "암호화가 어디까지 보호하고, 어디부터 메타데이터로 남는가"를 이해하기 위한 사례로 다룬다.
-
-## HTTPS 암호화는 어떻게 이루어지는가
-HTTPS는 HTTP 메시지를 바로 암호화해서 보내는 것이 아니라, 먼저 TLS handshake로 안전한 통신 조건을 합의한 뒤 HTTP 요청과 응답을 암호화해 보낸다. 아래 흐름은 초급자를 위한 단순화된 설명이다. 실제 TLS 1.2, TLS 1.3의 세부 메시지와 왕복 횟수는 다르다.
+이 이미지는 Git 작업 실패를 “Git이 어렵다”로 뭉개지 않고 계정 로그인, MFA, PAT, 로컬 변경, push의 단계별 문제로 분리하게 한다. 토큰 값은 수업 산출물에 기록하지 않고, 생성 여부와 push 결과만 evidence로 남긴다.
 
 ```mermaid
 sequenceDiagram
-    participant B as Browser
-    participant S as Server
-    B->>S: TCP 연결
-    B->>S: ClientHello<br/>지원 TLS 버전, 암호 스위트, 서버 이름
-    S-->>B: ServerHello<br/>선택한 TLS 버전과 암호 방식
-    S-->>B: Certificate<br/>서버 인증서 전달
-    B->>B: 인증서 검증<br/>도메인, 만료일, 신뢰 체인 확인
-    B->>S: 키 교환 정보 전달
-    B->>S: 암호화 통신 시작
-    S-->>B: 암호화된 HTTP Response
+    participant A as GitHub auth
+    participant G as GitHub repository
+    participant L as Local repository
+    participant V as VS Code
+    participant R as README.md
+    A->>G: MFA/PAT 준비
+    G->>L: git clone
+    L->>V: code . 또는 Open Folder
+    L->>R: evidence table 작성
+    R->>L: git add / git commit
+    L->>G: git push
 ```
 
-핵심 개념:
-- 인증서: 이 서버가 해당 도메인의 서버인지 확인하는 신분증 역할을 한다.
-- 비대칭키/키 교환: 처음 안전하게 통신 키를 합의하기 위해 사용한다.
-- 세션 키: 실제 HTTP 요청과 응답 본문을 빠르게 암호화하는 데 사용하는 대칭키다.
-- 암호화된 HTTP: handshake 이후에는 요청 path, header, body, 응답 body가 암호화되어 전송된다.
+## 5-15분 repository, commit, remote, 인증 흐름 설명
+- 진행: GitHub repository, local repository, commit, remote, credential의 역할을 구분한다.
+- 완료 조건: 학생이 GitHub password, MFA, PAT, credential manager의 차이를 구분한다.
 
-운영자가 확인할 수 있는 명령:
+Git commit은 단순 저장이 아니라 "어떤 변경을 어떤 이유로 남겼는가"를 기록하는 단위다. GitHub repository는 그 기록을 다른 사람과 공유하는 원격 장소다. README는 repository에 들어온 사람이 가장 먼저 읽는 실행 설명서이자 evidence index다.
+
+MFA는 GitHub 계정 로그인을 보호하는 장치다. PAT는 HTTPS push나 API 접근에서 password 대신 쓰는 제한된 access token이다. 수업에서 확인할 것은 설정 상태와 blocker이지, token 값 자체가 아니다.
+
+### 공식 참고
+- Creating a repository: https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository
+- About README files: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
+- Configuring two-factor authentication: https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication
+- Managing personal access tokens: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+
+### Visual 2: Git 단계별 evidence 표
+| 단계 | 보이는 evidence | 운영 의미 |
+|---|---|---|
+| MFA 확인 | GitHub 로그인 후 2FA challenge 통과 | 계정 보호 기준을 충족했다. |
+| PAT 준비 | token 값이 아니라 설정 여부와 만료일만 기록 | HTTPS push 인증 수단을 준비했다. |
+| clone 직후 | repository 폴더 생성 | 원격 기준을 로컬로 가져왔다. |
+| VS Code 열기 | Explorer에 repository 파일 표시 | 수정할 작업공간을 확인했다. |
+| commit 직후 | commit hash 출력 | 변경 이유가 로컬 이력에 남았다. |
+| push 직후 | GitHub README 표시 | 팀원이 같은 evidence를 볼 수 있다. |
+
+## 15-28분 repository 생성, clone, VS Code 열기, README 작성
+- 진행: GitHub 웹에서 새 repository를 만들고, 로컬로 clone한 뒤 VS Code에서 연다.
+- 완료 조건: repository 폴더가 로컬에 있고, VS Code에서 README를 수정한다.
+
+GitHub 웹에서 새 repository를 만든 뒤 `<YOUR_REPOSITORY_URL>`을 자신의 주소로 바꿔 실행한다.
 
 ```bash
-curl -Iv https://example.com
+git clone <YOUR_REPOSITORY_URL>
+cd <YOUR_REPOSITORY_NAME>
+git status
 ```
 
-확인할 것:
-- TLS 버전: 예를 들어 `TLSv1.3`
-- 인증서 subject 또는 issuer
-- 인증서 검증 성공 여부
-- 최종 status code
-
-주의:
-- 인증서 오류가 난다고 무조건 서버가 해킹된 것은 아니다. 만료, 도메인 불일치, 중간 인증서 누락, 사내 프록시 등 여러 원인이 있다.
-- 반대로 자물쇠 아이콘이 있다고 서비스가 안전하게 설계되었다는 뜻도 아니다. HTTPS는 전송 구간 보호이고, 애플리케이션 권한, 입력 검증, secret 관리도 별도로 필요하다.
-
-## 자주 나오는 질문: HTTPS는 암호화 때문에 느리지 않나요?
-암호화와 복호화는 계산 작업이므로 비용이 있다. 브라우저와 서버가 TLS handshake를 하고, 세션 키를 합의하고, 이후 HTTP 요청과 응답을 암호화/복호화해야 하기 때문이다. 그래서 "보안 처리를 하면 항상 느려지는 것 아닌가?"라는 질문은 자연스럽다.
-
-하지만 운영 환경에서는 다음 이유로 HTTPS를 기본값으로 본다.
-
-1. DNS를 매 요청마다 항상 새로 조회하지 않는다.
-   - 브라우저와 운영체제는 DNS 결과를 일정 시간 캐시할 수 있다.
-   - DNS TTL(Time To Live, 캐시 유지 시간)에 따라 같은 도메인의 IP를 재사용할 수 있다.
-
-2. TCP 연결을 매 요청마다 항상 새로 만들지 않는다.
-   - HTTP keep-alive를 사용하면 같은 서버와의 연결을 일정 시간 재사용할 수 있다.
-   - HTTP/2는 하나의 연결에서 여러 요청을 동시에 처리하는 multiplexing을 지원한다.
-
-3. TLS handshake도 매번 전체 과정을 반복하지 않을 수 있다.
-   - TLS session resumption을 사용하면 이전에 합의한 정보를 활용해 연결 비용을 줄일 수 있다.
-   - TLS 1.3은 이전 세대보다 handshake 왕복 비용을 줄였다.
-
-4. 암호화 처리는 많이 최적화되어 있다.
-   - 현대 CPU, 운영체제, TLS 라이브러리, 브라우저, 로드밸런서는 HTTPS 처리를 매우 많이 최적화했다.
-   - 대규모 서비스는 TLS 종료를 로드밸런서나 프록시 계층에서 처리하기도 한다.
-
-5. HTTPS의 보안 이점이 비용보다 훨씬 크다.
-   - 로그인, cookie, token, 결제, 개인정보, API 응답은 평문으로 흘러가면 안 된다.
-   - 운영 관점에서는 "조금 더 빠른 HTTP"보다 "사용자와 서비스 데이터를 보호하는 HTTPS"가 기본 선택이다.
-
-Packet 관점에서 아주 단순히 보면, 네트워크는 큰 데이터를 packet(네트워크가 전송하기 쉽게 나눈 작은 데이터 조각)으로 나누어 보낸다. HTTPS를 사용하면 HTTP 내용이 암호화된 상태로 packet에 담긴다. 중간 장비는 packet의 출발지와 목적지 같은 전송에 필요한 일부 정보는 볼 수 있지만, 암호화된 HTTP 본문 내용은 쉽게 읽을 수 없다.
-
-정리하면 HTTPS는 초기 연결과 암호화/복호화 비용이 있다. 하지만 매번 DNS 조회부터 전체 TLS handshake까지 반복하는 구조는 아니며, 연결 재사용과 세션 재개, HTTP/2/HTTP/3, 하드웨어 최적화로 비용을 줄인다. 그래서 현대 웹 서비스에서는 HTTPS 적용을 예외가 아니라 기본값으로 본다.
-
-운영자가 자주 만나는 HTTPS 문제:
-- 인증서 만료: 브라우저가 "안전하지 않음" 또는 인증서 오류를 표시한다.
-- 도메인 불일치: 인증서의 도메인과 접속한 도메인이 다르다.
-- HTTP에서 HTTPS로 redirect 누락: 사용자가 `http://`로 접속했을 때 보안 접속으로 이동하지 않는다.
-- 로드밸런서 또는 프록시 설정 오류: 외부는 HTTPS인데 내부 서버는 HTTP로 통신할 수 있어 어느 구간에서 TLS가 종료되는지 알아야 한다.
-
-손으로 확인하기:
+VS Code CLI가 등록되어 있으면 repository 폴더를 바로 연다.
 
 ```bash
-curl -I http://example.com
-curl -I https://example.com
+code .
 ```
 
-확인할 것:
-- URL이 `http://`인지 `https://`인지
-- status code가 `301`, `302`, `200` 중 무엇인지
-- `location` header로 HTTPS redirect가 걸리는지
-- HTTPS 요청에서 인증서 오류가 나는지
+`code .`가 실패하면 VS Code GUI에서 `File > Open Folder`를 선택하고 clone한 repository 폴더를 연다.
 
-## HTTP Status Code 빠른 표
-Status code는 서버가 요청을 어떻게 처리했는지 알려주는 짧은 결과 알림이다. 운영자는 status code를 보고 장애 위치를 처음으로 좁힌다.
+README에 다음 표를 작성한다. token, password, MFA code, recovery code는 쓰지 않는다.
 
-| 범주 | 대표 코드 | 뜻 | 운영 관점에서 먼저 볼 것 |
-|---|---|---|---|
-| `2xx` | `200 OK` | 요청이 성공했다 | 응답 본문이 기대한 내용인지 확인 |
-| `2xx` | `201 Created` | 새 리소스가 생성됐다 | 생성 API, 저장소, DB 반영 여부 확인 |
-| `3xx` | `301 Moved Permanently` | 주소가 영구적으로 바뀌었다 | redirect 대상 URL, DNS/도메인 설정 확인 |
-| `3xx` | `302 Found` | 임시로 다른 주소로 이동한다 | 로그인, 지역화, 임시 redirect 정책 확인 |
-| `4xx` | `400 Bad Request` | 요청 형식이 잘못됐다 | 파라미터, JSON 형식, header 확인 |
-| `4xx` | `401 Unauthorized` | 인증이 필요하거나 실패했다 | token, 로그인 상태, 인증 header 확인 |
-| `4xx` | `403 Forbidden` | 인증은 되었지만 권한이 없다 | IAM, role, ACL, 접근 정책 확인 |
-| `4xx` | `404 Not Found` | 요청한 경로나 리소스가 없다 | URL path, 라우팅, 정적 파일 위치 확인 |
-| `4xx` | `429 Too Many Requests` | 요청이 너무 많아 제한됐다 | rate limit, retry 정책, 트래픽 급증 확인 |
-| `5xx` | `500 Internal Server Error` | 서버 내부 처리 중 실패했다 | 애플리케이션 로그, 예외, 최근 배포 확인 |
-| `5xx` | `502 Bad Gateway` | 중간 프록시/게이트웨이가 뒤 서버 응답을 못 받았다 | 로드밸런서, reverse proxy, upstream 상태 확인 |
-| `5xx` | `503 Service Unavailable` | 서비스가 일시적으로 처리 불가하다 | 서버 다운, 배포 중, capacity, health check 확인 |
-| `5xx` | `504 Gateway Timeout` | 중간 장비가 제한 시간 안에 응답을 못 받았다 | timeout, DB 지연, API 지연, 네트워크 경로 확인 |
+| Evidence | Value |
+|---|---|
+| git version | |
+| repository URL | |
+| working directory | |
+| VS Code open method | `code .` 또는 `Open Folder` |
+| MFA status | enabled/blocked |
+| PAT status | ready/blocked, value not recorded |
 
-주의:
-- `4xx`라고 항상 사용자 잘못은 아니다. 서버의 라우팅 설정이나 인증 정책 문제일 수도 있다.
-- `5xx`라고 항상 인프라 문제는 아니다. 애플리케이션 코드 예외일 수도 있다.
-- status code는 출발점일 뿐이며, 로그, 요청 경로, 최근 변경, 프로세스 상태를 함께 확인해야 한다.
+### Visual 3: README 변경 흐름
+```mermaid
+flowchart TD
+    A[README 수정] --> B{git status 확인}
+    B --> C[git add README.md]
+    C --> D[git commit]
+    D --> E[git push]
+    E --> F[GitHub 화면에서 README 확인]
+```
 
-## 50분 강의 흐름
-- 0~8분: 브라우저 주소 입력 후 일어나는 일 질문
-- 8~20분: DNS, IP, TCP, HTTP 역할 설명
-- 20~28분: 우체국 비유와 인포그래픽 설명
-- 28~40분: HTTP와 HTTPS 차이, TLS handshake, SNI 논란 사례, HTTPS 성능 질문 설명
-- 40~45분: `curl -I`로 상태 코드 확인
-- 45~48분: `2xx`, `3xx`, `4xx`, `5xx`를 장애 분석 단서로 읽기
-- 48~50분: 4교시 포트/프로세스와 연결
+## 28-40분 MFA 확인, PAT 생성 기준, commit/push
+- 진행: MFA 설정 상태를 확인하고, 필요한 경우 최소 권한 PAT를 준비한 뒤 commit/push를 수행한다.
+- 완료 조건: push 성공 또는 인증 blocker를 안전하게 기록한다.
 
-## DevOps 원칙 연결
-- 비용 절감: 네트워크 문제와 애플리케이션 문제를 구분하면 불필요한 증설을 줄인다.
-- 개발/배포 효율성: 상태 코드와 요청 경로를 공유하면 개발팀과 협업이 빨라진다.
-- 관리 효율성: HTTP 흐름은 모니터링, 로드밸런서, Ingress 이해의 기본이다.
+### MFA 설정 기준
+GitHub 웹에서 push 권한과 계정 보호를 다룰 때 MFA는 선택 장식이 아니라 기본 보안 조건이다. 수업에서는 MFA secret, recovery code, 인증 앱 화면을 공유하지 않는다.
 
-## 확인 질문
-- DNS와 IP는 무엇이 다른가?
-- HTTP와 HTTPS는 무엇이 다른가?
-- TCP 연결 실패와 HTTP 500은 어떻게 다른가?
-- `curl -I`는 무엇을 확인하는 데 유용한가?
+1. GitHub 우측 상단 profile menu에서 `Settings`로 이동한다.
+2. `Password and authentication`에서 Two-factor authentication 설정 상태를 확인한다.
+3. 가능한 경우 TOTP authenticator app을 우선 사용한다.
+4. recovery code는 개인이 안전하게 보관하고 README, 채팅, 화면 캡처에 남기지 않는다.
+
+### PAT 생성 기준
+HTTPS로 `git push`가 인증을 요구할 때는 GitHub password를 쓰지 않고 PAT 또는 credential manager 흐름을 사용한다. GitHub 공식 문서는 command line/API 인증에서 personal access token을 password 대신 사용할 수 있다고 설명한다.
+
+수업용 fine-grained PAT 권장값:
+
+| 설정 | 권장값 |
+|---|---|
+| Token type | Fine-grained token |
+| Expiration | 수업 기간에 맞춘 짧은 만료일 |
+| Repository access | Only select repositories |
+| Selected repository | 오늘 만든 repository |
+| Repository permissions | Contents: Read and write, Metadata: Read-only |
+| 기록 금지 | token value, recovery code, MFA code |
+
+생성 절차:
+1. GitHub `Settings > Developer settings > Personal access tokens > Fine-grained tokens`로 이동한다.
+2. `Generate new token`을 선택한다.
+3. token name, expiration, repository access, permission을 위 표처럼 최소 범위로 지정한다.
+4. 생성된 token 값은 한 번만 보인다. 복사해서 credential prompt에만 사용하고 README에 붙이지 않는다.
+5. token을 잃어버리면 재확인하지 않고 폐기 후 새로 만든다.
+
+README를 저장한 뒤 VS Code terminal에서 실행한다.
+
+```bash
+git status
+git add README.md
+git commit -m "Add week 1 evidence table"
+git push
+```
+
+`git push`에서 username/password를 묻는 경우:
+- username에는 GitHub username을 입력한다.
+- password 자리에는 GitHub password가 아니라 PAT를 입력한다.
+- Git Credential Manager 또는 browser login이 뜨면 공식 인증 흐름을 따른다.
+- token 값은 terminal 출력, README, screenshot, 채팅에 남기지 않는다.
+
+## 40-50분 실패 증상과 인증 blocker 기록
+- 진행: push 성공 여부를 확인하고, 실패했다면 secret 없이 증상만 기록한다.
+- 완료 조건: GitHub README visible 여부와 auth blocker를 evidence로 남긴다.
+
+### 실패 증상 triage
+| Symptom | First check | Do not record |
+|---|---|---|
+| Authentication failed | PAT permission/expiration, credential cache | token value |
+| 403 | repository permission, selected repository scope | token value |
+| Repository not found | repository URL, owner/name typo | token value |
+| credential prompt 반복 | credential manager cache, wrong token | token value |
+
+### 실습 Evidence
+| Evidence | Value |
+|---|---|
+| repository URL | |
+| first commit message | |
+| `git status` after push | |
+| GitHub README visible | yes/no |
+| MFA status | enabled/blocked |
+| PAT status | ready/blocked, value not recorded |
+| auth blocker | none 또는 symptom only |
+
+### 흔한 오해
+| 오해 | 교정 |
+|---|---|
+| commit은 push와 같다. | commit은 로컬 기록이고 push는 원격 전송이다. |
+| README는 마지막에 쓰는 문서다. | README는 실행 조건과 evidence를 계속 누적하는 문서다. |
+| MFA를 켜면 push도 자동으로 된다. | MFA는 웹 로그인 보호이고, HTTPS push에는 PAT 또는 credential manager 인증이 별도로 필요할 수 있다. |
+| PAT는 GitHub password와 같다. | PAT는 범위와 만료가 있는 access token이다. 값은 password처럼 보호하고 필요 최소 권한으로 만든다. |
+| 인증 오류는 Git 문제다. | token 권한, credential manager, repository 권한, URL 오타 문제일 수 있다. 증상을 기록한다. |
+
+### 학술 근거와 DevOps insight
+소프트웨어 공학에서 형상 관리는 변경 통제의 핵심이다. DevOps 현업에서는 배포 가능한 변경을 commit, pull request, release로 추적한다. 여기에 인증과 권한 관리가 붙으면 "누가 어떤 권한으로 어떤 변경을 원격에 보냈는가"까지 운영 evidence가 된다. 작은 README commit이라도 "변경을 설명하고 보호된 계정으로 공유한다"는 협업의 기본 단위다.
+
+### 다음 주차 매핑
+컨테이너 실행 환경 정의, Kubernetes manifest, Terraform file도 모두 Git에 남는다. commit message와 README evidence는 나중에 배포 변경과 장애 원인을 추적하는 최소 단서가 된다.
+
+### 평가 기준
+| 기준 | 2점 evidence |
+|---|---|
+| Git/GitHub/VS Code 연결 | repository를 clone하고 VS Code에서 열어 README를 수정했다. |
+| 인증 준비 | MFA/PAT 상태를 token 값 없이 기록했다. |
+| commit/push | README 변경을 commit하고 push하거나, 실패 증상을 secret 없이 기록했다. |
+| 보안 책임 | token, MFA code, recovery code를 README, screenshot, 채팅에 남기지 않았다. |
