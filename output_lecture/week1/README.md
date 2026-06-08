@@ -76,6 +76,10 @@
 - Risk classification table
 - Docker readiness note for Week 2
 
+## Assessments
+- [Week 1 객관식 문제 세트](./assessments/week1-multiple-choice-questions.md)
+- [Week 1 Foundations Scorecard](./assessments/week1-foundations-scorecard.md)
+
 ## Glossary
 1주차 용어는 [glossary.md](./glossary.md)를 기준으로 정리한다. 처음 읽을 때는 정의를 외우기보다 각 용어가 어떤 command, output, path, URL evidence로 확인되는지 함께 본다.
 
