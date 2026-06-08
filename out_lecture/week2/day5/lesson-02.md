@@ -201,9 +201,9 @@ Dockerfile review는 보안 review의 일부다.
 | `CMD` | container primary process가 명확한가 |
 | `HEALTHCHECK` | 최소 정상 확인이 가능한가 |
 
-## peer feedback prompt
+## Dockerfile 점검 prompt
 ```markdown
-## Peer Dockerfile Feedback
+## Dockerfile Review Note
 - 가장 명확한 instruction:
 - 가장 위험해 보이는 instruction:
 - build context 우려:

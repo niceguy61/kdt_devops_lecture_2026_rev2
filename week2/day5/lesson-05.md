@@ -172,7 +172,7 @@ audit에서 확인할 것은 남은 resource, image tag, 위험 파일이다.
 - 통합 패키지에서 complete인 항목:
 - partial인 항목:
 - missing인 항목:
-- Day 5 발표 전 반드시 고칠 항목:
+- Day 5 제출 전 반드시 고칠 항목:
 ```
 
 ## 통합 패키지 품질 기준

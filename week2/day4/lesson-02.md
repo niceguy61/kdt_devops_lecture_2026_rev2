@@ -47,7 +47,7 @@ docker compose config
 ## 핵심 유의사항
 YAML은 indentation이 구조다. `ports`가 `web` 아래에 있어야 하는데 top-level로 올라가면 의미가 완전히 달라진다. 파일을 눈으로만 보지 말고 `docker compose config`로 해석 결과를 확인한다.
 
-`${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}` 형식은 값이 없을 때 명시적으로 실패하게 만든다. 조용히 빈 password로 실행되는 것보다 실행 전에 실패하는 편이 안전하다.
+`\${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}` 형식은 값이 없을 때 명시적으로 실패하게 만든다. 조용히 빈 password로 실행되는 것보다 실행 전에 실패하는 편이 안전하다.
 
 ## 자주 놓치는 지점
 | 놓치는 지점 | 증상 | 확인 |
@@ -133,10 +133,10 @@ Day 4 실습의 `web`은 nginx image를 사용하고, host `18084`를 container 
 DB service는 data persistence와 secret handling이 같이 등장하므로 실무 위험도가 web보다 높다.
 
 ## variable interpolation 기준
-Compose는 `${NAME}` 형식으로 host environment 또는 `.env` 값을 치환한다. Day 4 실습은 다음 형식을 사용한다.
+Compose는 `\${NAME}` 형식으로 host environment 또는 `.env` 값을 치환한다. Day 4 실습은 다음 형식을 사용한다.
 
 ```yaml
-POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
 ```
 
 이 형식은 값이 없으면 실패한다. 교육적으로 중요한 이유는 "잘못된 기본값으로 조용히 실행되는 것"보다 "실행 전에 명시적으로 실패하는 것"이 안전하기 때문이다.

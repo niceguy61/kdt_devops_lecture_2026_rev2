@@ -20,7 +20,7 @@
 | 배포 흐름 이해 | build-tag-push-pull-run 순서 설명 | image flow map |
 | 통합 실행 | Dockerfile과 Compose로 앱 실행 | build/run/compose evidence |
 | RCA 작성 | build/run/port/secret failure 분석 | RCA note |
-| 전문 커뮤니케이션 | 발표와 README로 handoff | presentation card |
+| 전문 커뮤니케이션 | 학습 정리와 README로 handoff | learning summary |
 | 전이 준비 | Week 3 service dependency 질문 작성 | MSA readiness checklist |
 
 ## ABET-style Outcome Mapping
@@ -28,9 +28,9 @@
 |---|---|---|
 | 문제 분석 | Docker 운영 위험과 재현성 gap 분석 | risk register |
 | solution 설계/구현/평가 | Dockerfile, Compose, README 통합 | integration package |
-| 커뮤니케이션 | 3분 발표와 README handoff | presentation card |
+| 커뮤니케이션 | 학습 정리와 README handoff | learning summary |
 | 전문적 책임 | secret, public push, cleanup 위험 설명 | security checklist |
-| 협업 | peer feedback을 반영한 수정 | improvement patch list |
+| 형성평가 | 제출물 점검을 반영한 수정 | improvement patch list |
 
 ## CS2023 Knowledge, Skill, Disposition
 | 범주 | Day 5 내용 |
@@ -65,7 +65,7 @@
 | Observability | `docker ps`, `curl`, logs, healthcheck |
 | Incident learning | failure drill과 RCA 템플릿 |
 | Security | secret 제외, image trust, public push gate |
-| Handoff | README와 발표 카드 |
+| Handoff | README와 학습 정리 카드 |
 | Risk classification | likelihood, impact, severity, mitigation |
 
 ## 공식 문서와 수업 활동 연결
@@ -98,7 +98,7 @@
 | Security | 없음 | 주의 문구 | secret 제외와 push gate |
 | RCA | 없음 | 증상만 있음 | fix/recheck/prevention 포함 |
 | Handoff | 없음 | 명령만 있음 | expected result와 risk 포함 |
-| Presentation | 없음 | 기능 소개 | evidence와 남은 위험 설명 |
+| Learning summary | 없음 | 기능 요약 | evidence, 남은 위험, 인사이트 설명 |
 
 ## Day 5 완료 판정
 | 완료 조건 | 증거 |
@@ -108,7 +108,7 @@
 | 보안성 | `.dockerignore`, secret 비노출 |
 | 재현성 | explicit tag, README command |
 | 회복 가능성 | RCA와 troubleshooting |
-| 전달 가능성 | 발표 카드와 README |
+| 전달 가능성 | 학습 정리 카드와 README |
 
 ## Week 3 전이
 Day 5가 끝나면 학생은 단일 container app의 운영 계약을 설명할 수 있어야 한다. Week 3에서는 이 계약이 여러 service로 확장된다. service가 늘어나면 port, network, dependency, health, log, deployment unit이 모두 늘어난다. Day 5의 handoff 기준은 Week 3 topology 문서의 최소 단위가 된다.
@@ -119,16 +119,16 @@ Day 5가 끝나면 학생은 단일 container app의 운영 계약을 설명할 
 | Credential safety | secret을 image와 README에 넣지 않음 |
 | Reproducibility | explicit tag와 expected output 기록 |
 | Operational hygiene | cleanup과 resource audit 작성 |
-| Communication | 발표와 README로 재현 경로 제공 |
+| Communication | 학습 정리와 README로 재현 경로 제공 |
 | Incident learning | 실패를 RCA로 남김 |
 | Scope control | push/cloud/Kubernetes를 필요 이상으로 확장하지 않음 |
 
 ## Formative Assessment Loop
 ```text
-present -> receive feedback -> classify severity -> patch docs/code -> recheck -> record
+submit summary -> review evidence gap -> classify severity -> patch docs/code -> recheck -> record
 ```
 
-이 loop가 있어야 발표가 평가 이벤트를 넘어 학습 이벤트가 된다.
+이 loop가 있어야 제출이 단순 확인을 넘어 학습 이벤트가 된다.
 
 ## Evidence Anti-patterns
 | Anti-pattern | 문제 |
