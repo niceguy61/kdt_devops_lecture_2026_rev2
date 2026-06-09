@@ -12,7 +12,10 @@ docker run -d --name paperclip-day2-static -p 18082:80 paperclip-static-site:day
 
 ## Check
 ```bash
-curl -I http://localhost:18082
+for i in 1 2 3 4 5; do
+  curl -I http://localhost:18082 && break
+  sleep 1
+done
 curl -s http://localhost:18082 | grep "Dockerfile로 만든 표준 실습 앱"
 docker logs paperclip-day2-static
 ```

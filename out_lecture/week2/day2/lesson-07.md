@@ -48,11 +48,15 @@ docker run -d \
   nginx:1.27-alpine
 
 docker ps --filter name=paperclip-day2-disk
-curl -s http://localhost:18083
+for i in 1 2 3 4 5; do
+  curl -s http://localhost:18083 && break
+  sleep 1
+done
 docker exec paperclip-day2-disk ls -l /usr/share/nginx/html
 ```
 
 macOS/Linux shell에서는 위처럼 `$PWD`를 쓴다. 경로 오류가 나면 먼저 `pwd`가 repository root인지 확인한다.
+`403 Forbidden`이 나오면 nginx 자체는 실행 중이지만 mount된 directory에 `index.html`이 없거나 Docker가 source path를 제대로 mount하지 못한 상태일 수 있다.
 
 전체 디스크 연동 절차는 [hands-on-lab.md](./hands-on-lab.md)의 Phase F를 따른다. 이 교시에서는 source path, destination path, mode, inspect evidence를 반드시 기록한다.
 

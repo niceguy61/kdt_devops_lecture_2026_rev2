@@ -85,6 +85,15 @@ curl -I http://localhost:8000
 curl http://localhost:8000
 ```
 
+서버 process가 막 시작되는 순간에는 첫 `curl`이 connection refused로 실패할 수 있다. 그때는 서버 terminal이 종료됐는지 먼저 보고, 종료되지 않았다면 짧게 재시도한다.
+
+```bash
+for i in 1 2 3 4 5; do
+  curl -I http://localhost:8000 && break
+  sleep 1
+done
+```
+
 서버 종료는 실행 중인 terminal에서 `Ctrl+C`를 사용한다.
 
 
@@ -112,6 +121,7 @@ Docker에서는 이 실행이 container command가 되고, Kubernetes에서는 P
 - `curl http://localhost:8000`은 `Week 1 Local Service`가 포함된 HTML을 출력해야 한다.
 - 서버 terminal에는 `GET /` 요청 log가 찍힌다.
 - port 8000이 이미 사용 중이면 address already in use류 오류가 난다.
+- 서버 시작 직후 첫 요청만 실패하고 재시도에서 성공하면 startup timing으로 기록한다.
 
 
 

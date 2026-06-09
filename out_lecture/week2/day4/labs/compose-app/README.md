@@ -16,7 +16,10 @@ cp .env.example .env
 docker compose config
 docker compose up -d
 docker compose ps
-curl -I http://localhost:18084
+for i in 1 2 3 4 5; do
+  curl -I http://localhost:18084 && break
+  sleep 1
+done
 curl -s http://localhost:18084 | grep compose-site-v1
 docker compose logs db
 docker compose run --rm db-client

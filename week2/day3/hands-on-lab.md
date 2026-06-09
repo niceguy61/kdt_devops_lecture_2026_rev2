@@ -76,11 +76,16 @@ docker run -d \
 
 ```bash
 docker logs paperclip-day3-postgres
-docker exec paperclip-day3-postgres pg_isready -U postgres
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  docker exec paperclip-day3-postgres pg_isready -U postgres && break
+  sleep 1
+done
 docker exec paperclip-day3-postgres psql -U postgres -d paperclip -c "select current_database();"
 docker run --rm --network paperclip-day3-net postgres:16-alpine pg_isready -h paperclip-day3-postgres -U postgres
 docker inspect paperclip-day3-postgres --format '{{json .Mounts}}'
 ```
+
+`docker ps`에서 container가 `Up`이어도 PostgreSQL이 SQL 요청을 받을 준비가 끝난 것은 아닐 수 있다. SQL 확인은 `pg_isready`가 `accepting connections`를 출력하거나 exit code `0`으로 끝난 뒤 실행한다.
 
 Linux 사전 테스트 핵심 결과:
 

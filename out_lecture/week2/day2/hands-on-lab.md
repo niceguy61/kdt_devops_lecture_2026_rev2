@@ -277,7 +277,10 @@ docker run -d \
   -v "$PWD/week2/day2/labs/disk-mount/html:/usr/share/nginx/html:ro" \
   nginx:1.27-alpine
 
-curl -s http://localhost:18083
+for i in 1 2 3 4 5; do
+  curl -s http://localhost:18083 && break
+  sleep 1
+done
 docker inspect paperclip-day2-disk
 ```
 
@@ -286,6 +289,8 @@ v1 정상 출력:
 ```text
 <h1>Disk mount lab - host file v1</h1>
 ```
+
+만약 `403 Forbidden`이 나오면 host directory가 비어 있거나 Docker가 bind mount source를 제대로 보지 못한 것이다. `pwd`가 repository root인지, `week2/day2/labs/disk-mount/html/index.html`이 실제로 있는지 먼저 확인한다.
 
 host 파일을 수정한다.
 

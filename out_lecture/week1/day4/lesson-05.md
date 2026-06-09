@@ -49,6 +49,7 @@ python3 -m http.server 8000
 ### Check
 Open http://localhost:8000 and confirm the item list appears.
 Run curl -I http://localhost:8000 and confirm HTTP 200.
+If the first curl fails immediately after starting the server, retry for a few seconds before treating it as a blocker.
 
 
 ### Stop
@@ -90,6 +91,15 @@ Press Ctrl+C in the server terminal.
 3. browser에서 앱 화면과 data rendering을 확인한다.
 4. 서버 중지 방법을 기록한다.
 5. port 충돌, 파일 경로 오류, JSON syntax error의 해결 방법을 README에 적는다.
+
+서버 시작 직후 startup timing을 줄이기 위한 확인 명령:
+
+```bash
+for i in 1 2 3 4 5; do
+  curl -I http://localhost:8000 && break
+  sleep 1
+done
+```
 
 
 ### 실행 증거 표

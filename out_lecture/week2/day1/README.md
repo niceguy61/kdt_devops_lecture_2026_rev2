@@ -101,6 +101,15 @@ Day 1 5~8교시 hands-on 명령은 Linux 환경에서 사전 테스트했다.
 | `docker stop` / `docker rm` | 각각 `paperclip-day1-nginx` 출력 |
 | cleanup recheck | `docker ps --filter name=paperclip-day1-nginx` 헤더만 출력 |
 
+컨테이너 시작 직후 첫 HTTP 요청은 아주 짧은 startup timing 때문에 connection reset/refused가 날 수 있다. 이 경우 container가 종료됐는지 `docker ps`와 `docker logs`로 확인하고, 종료되지 않았다면 아래처럼 짧게 재시도한다.
+
+```bash
+for i in 1 2 3 4 5; do
+  curl -I http://localhost:18080 && break
+  sleep 1
+done
+```
+
 ## Preparation Notes
 - Docker Desktop 설치는 macOS 기준으로 진행한다. Apple silicon과 Intel Mac은 설치 파일과 요구사항이 다를 수 있으므로 공식 Mac 설치 문서를 확인한다.
 - Windows 장비를 사용하는 학생이 있을 경우 별도 예외 경로로 Windows 설치 문서를 확인한다. 이때 WSL 2, 가상화 설정, 관리자 권한, 조직 보안 정책이 blocker가 될 수 있다.

@@ -34,7 +34,10 @@ docker run -d \
 ## Check
 ```bash
 docker ps --filter name=paperclip-day5-web
-curl -I http://localhost:18085
+for i in 1 2 3 4 5; do
+  curl -I http://localhost:18085 && break
+  sleep 1
+done
 curl -s http://localhost:18085 | grep week2-day5-integration-v1
 docker logs paperclip-day5-web
 ```
@@ -52,7 +55,10 @@ week2-day5-integration-v1
 docker compose config
 docker compose up -d
 docker compose ps
-curl -I http://localhost:18085
+for i in 1 2 3 4 5; do
+  curl -I http://localhost:18085 && break
+  sleep 1
+done
 curl -s http://localhost:18085 | grep week2-day5-integration-v1
 ```
 
@@ -93,4 +99,3 @@ docker image rm paperclip/week2-day5-integration:v1
 - [ ] `docker compose up -d` served the same app.
 - [ ] cleanup command was run.
 - [ ] README includes run/check/cleanup.
-

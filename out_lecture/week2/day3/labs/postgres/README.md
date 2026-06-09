@@ -19,9 +19,14 @@ docker run -d \
 ## Check
 ```bash
 docker logs paperclip-day3-postgres
-docker exec paperclip-day3-postgres pg_isready -U postgres
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  docker exec paperclip-day3-postgres pg_isready -U postgres && break
+  sleep 1
+done
 docker exec paperclip-day3-postgres psql -U postgres -d paperclip -c "select current_database();"
 ```
+
+Run SQL only after `pg_isready` reports `accepting connections` or exits with code `0`. A running container is not always a ready database.
 
 ## Cleanup
 ```bash
