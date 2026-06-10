@@ -33,7 +33,7 @@
 ## 1주차 목표
 - Cloud Native를 배우기 전에 필요한 컴퓨팅 구성요소의 공통 언어를 만든다.
 - compute, memory, storage, network, process lifecycle, configuration, identity/access, observability, cost/resource boundary를 구분한다.
-- 로컬 컴퓨터에서 웹 서비스가 실행되고 접속되는 흐름을 command, port, HTTP status, log evidence로 설명한다.
+- 로컬 컴퓨터에서 웹 서비스가 실행되고 접속되는 흐름을 명령, port, HTTP status, log 확인 기록으로 설명한다.
 - GitHub, VS Code, Git, CLI, README를 이용해 실습 산출물을 재현 가능한 형태로 남긴다.
 - 작은 정적 웹 애플리케이션을 만들고, 실행 증거와 장애/RCA 기록을 작성한다.
 - Docker, MSA, Kubernetes, AWS, Terraform, Observability가 Week 1 컴퓨팅 spine 위에서 어떤 문제를 확장해 해결하는지 설명한다.
@@ -72,13 +72,13 @@
 
 ## 2일차
 
-- 1교시 : Day1 OT 연결 및 학습 작업공간 준비 - ZEP 안내 후 GitHub, Git, VS Code, terminal 준비 흐름 정리
+- 1교시 : Day1 OT 연결 및 학습 작업공간 준비 - ZEP 안내 후 GitHub, Git, VS Code, 터미널 준비 흐름 정리
 - 2교시 : GitHub 계정, Git 설치, VS Code 확인 - 계정/설치/터미널/민감정보 노출 주의
-- 3교시 : Git/GitHub 기본 실습 - repository, clone, commit, push, README evidence
-- 4교시 : 공식 문서 읽기와 AI 답변 검증 - version, prerequisite, warning, support matrix 확인
+- 3교시 : Git/GitHub 기본 실습 - repository, clone, commit, push, README 확인 기록
+- 4교시 : 공식 문서 읽기와 AI 답변 검증 - 버전, 사전 조건, warning, support matrix 확인
 - 5교시 : Linux/CLI 기본 - pwd, ls, cd, cat, grep, curl, ps, kill, env
-- 6교시 : Compute와 process - CPU, process, thread, command, exit code
-- 7교시 : Memory와 storage - RAM, file system, path, persistence, permission
+- 6교시 : Compute와 process - CPU, process, thread, 명령, exit code
+- 7교시 : Memory와 storage - RAM, file system, 경로, persistence, permission
 - 8교시 : Network/HTTP 기본 - localhost, IP, DNS, TCP, port, request/response, status code
 
 ## 3일차
@@ -88,7 +88,7 @@
 - 3교시 : 서비스 실행 조건 - source, runtime, command, port, data, dependency
 - 4교시 : 재현 가능성 - README, script, path, expected result, clean directory
 - 5교시 : 실패 분석 라이프사이클 - reproduce, observe, hypothesize, fix, recheck, prevent
-- 6교시 : 관찰 가능성과 배포 preview - logs/status evidence, build, artifact, release, deploy, rollback
+- 6교시 : 관찰 가능성과 배포 preview - logs/status 확인 기록, build, artifact, release, deploy, rollback
 - 7교시 : AI Coding Tool 사용 원칙 - 공식 문서 확인, 실행 검증, secret/cost/API 위험 점검
 - 8교시 : 컴퓨팅 spine 매핑 노트 - Docker/Kubernetes/AWS/Terraform에서 같은 개념이 어떻게 이름을 바꾸는지 정리
 
@@ -98,20 +98,20 @@
 - 2교시 : 미니 앱 skeleton 생성 - file tree, README 초안, data path, start command
 - 3교시 : 미니 앱 구현 1 - HTML 구조, CSS, JS, dummy JSON 연결
 - 4교시 : 미니 앱 구현 2 - 사용자 흐름, data rendering, error state
-- 5교시 : 실행 증거 작성 - command, port, URL, curl/browser evidence, screenshot filename
+- 5교시 : 실행 증거 작성 - 명령, port, URL, curl/browser 확인 기록, screenshot filename
 - 6교시 : 운영 위험 분류와 README/runbook 기초 - cost, security, reliability, reproducibility, handoff risk
-- 7교시 : 개인 면담 및 환경 점검 - Git, CLI, local server, README, 미니 앱 blocker 해결
+- 7교시 : 개인 면담 및 환경 점검 - Git, CLI, local server, README, 미니 앱 막힘 기록 해결
 - 8교시 : 개인 면담 및 보충 실습 - 범위 조정, 실행 실패 복구, 다음 단계 상담
 
 ## 5일차
 
-- 1교시 : 1주차 산출물 통합 - repo, README, mini app, data, evidence, RCA
+- 1교시 : 1주차 산출물 통합 - repo, README, mini app, data, 확인 기록, RCA
 - 2교시 : 컴퓨팅 spine 최종 매핑 - 내 앱을 compute/storage/network/config/observability 관점으로 설명
 - 3교시 : 현업 DevOps handoff - 다른 사람이 실행, 확인, 문제 대응할 수 있는 문서 기준
 - 4교시 : 미니 앱 완성 실습 - 기능 마감, JSON 수정, 오류 처리, README/runbook 보완
-- 5교시 : 통합 체크리스트와 평가 증거 - command evidence, log/status, risk table, blocker log, 2~5주차 기술 매핑
-- 6교시 : 미니 발표 - 문제, 사용자 흐름, 실행 방법, evidence, risk, 다음 기술 연결
-- 7교시 : 발표 피드백 및 live Q&A - 기술 피드백, 위험 triage, Docker readiness
+- 5교시 : 통합 체크리스트와 평가 증거 - 명령 확인 기록, log/status, risk table, 막힘 기록 log, 2~5주차 기술 매핑
+- 6교시 : 미니 발표 - 문제, 사용자 흐름, 실행 방법, 확인 기록, risk, 다음 기술 연결
+- 7교시 : 발표 피드백 및 live Q&A - 기술 피드백, 위험 분류, Docker readiness
 - 8교시 : 2주차 Docker preview - Week 1 spine 중 process/filesystem/network/config가 container로 확장되는 이유
 
 ## 1주차 산출물
