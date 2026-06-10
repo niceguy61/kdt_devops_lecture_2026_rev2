@@ -21,6 +21,7 @@ from urllib.parse import quote
 
 
 IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+LINK_RE = re.compile(r"(?<!!)\[([^\]]+)\]\(([^)]+)\)")
 HTML_IMG_RE = re.compile(r"(<img\b[^>]*\bsrc=[\"'])([^\"']+)([\"'][^>]*>)", re.IGNORECASE)
 MERMAID_RE = re.compile(r"(^```mermaid[^\n]*\n)(.*?)(^```[ \t]*$)", re.MULTILINE | re.DOTALL)
 
@@ -96,6 +97,28 @@ def rewrite_image_target(source_file: Path, repo_root: Path, out_file: Path, bas
         return target
 
 
+def rewrite_link_target(source_file: Path, repo_root: Path, out_file: Path, base: str, target: str, link_mode: str) -> str:
+    url, suffix = split_link_target(target)
+    if is_external(url):
+        return target
+
+    resolved = (source_file.parent / url).resolve()
+    if not resolved.exists():
+        return target
+
+    if link_mode == "relative":
+        try:
+            rel = os.path.relpath(resolved, out_file.parent.resolve())
+            return Path(rel).as_posix() + suffix
+        except ValueError:
+            return target
+
+    try:
+        return raw_url_for_path(repo_root, resolved, base) + suffix
+    except ValueError:
+        return target
+
+
 def render_mermaid(mmdc: list[str], code: str, output: Path, theme: str) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="lecture-mermaid-") as tmp:
@@ -136,6 +159,7 @@ def convert_markdown(
 ) -> tuple[int, int]:
     text = source_file.read_text(encoding="utf-8")
     image_count = 0
+    link_count = 0
     mermaid_count = 0
 
     def image_sub(match: re.Match[str]) -> str:
@@ -154,7 +178,16 @@ def convert_markdown(
             image_count += 1
         return f"{prefix}{html.escape(rewritten, quote=True)}{suffix}"
 
+    def link_sub(match: re.Match[str]) -> str:
+        nonlocal link_count
+        label, target = match.groups()
+        rewritten = rewrite_link_target(source_file, repo_root, out_file, base, target, link_mode)
+        if rewritten != target:
+            link_count += 1
+        return f"[{label}]({rewritten})"
+
     text = IMAGE_RE.sub(image_sub, text)
+    text = LINK_RE.sub(link_sub, text)
     text = HTML_IMG_RE.sub(html_image_sub, text)
 
     def mermaid_sub(match: re.Match[str]) -> str:
@@ -167,10 +200,7 @@ def convert_markdown(
         code = match.group(2)
         if render:
             render_mermaid(mmdc, code, image_out, theme)
-        if link_mode == "relative":
-            image_url = os.path.relpath(image_out, out_file.parent).replace(os.sep, "/")
-        else:
-            image_url = base + quote((out_root.name + "/" + image_rel.as_posix()), safe="/-._~")
+        image_url = os.path.relpath(image_out, out_file.parent).replace(os.sep, "/")
         return f"![Mermaid diagram {mermaid_count}]({image_url})"
 
     text = MERMAID_RE.sub(mermaid_sub, text)
