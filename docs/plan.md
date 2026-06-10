@@ -73,7 +73,7 @@
 ## 2일차
 
 - 1교시 : Day1 OT 연결 및 학습 작업공간 준비 - ZEP 안내 후 GitHub, Git, VS Code, 터미널 준비 흐름 정리
-- 2교시 : GitHub 계정, Git 설치, VS Code 확인 - 계정/설치/터미널/민감정보 노출 주의
+- 2교시 : GitHub 계정, Git, Python3, VS Code 확인 - 계정/설치/터미널/민감정보 노출 주의
 - 3교시 : Git/GitHub 기본 실습 - repository, clone, commit, push, README 확인 기록
 - 4교시 : 공식 문서 읽기와 AI 답변 검증 - 버전, 사전 조건, warning, support matrix 확인
 - 5교시 : Linux/CLI 기본 - pwd, ls, cd, cat, grep, curl, ps, kill, env
