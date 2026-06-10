@@ -151,6 +151,7 @@ def convert_markdown(
     out_file: Path,
     repo_root: Path,
     out_root: Path,
+    mermaid_root: Path,
     base: str,
     mmdc: list[str],
     render: bool,
@@ -195,12 +196,14 @@ def convert_markdown(
         mermaid_count += 1
         rel_source = source_file.relative_to(repo_root)
         stem = rel_source.with_suffix("").as_posix().replace("/", "__")
-        image_rel = Path("mermaid-assets") / f"{stem}--diagram-{mermaid_count:02d}.png"
-        image_out = out_root / image_rel
+        image_out = mermaid_root / f"{stem}--diagram-{mermaid_count:02d}.png"
         code = match.group(2)
         if render:
             render_mermaid(mmdc, code, image_out, theme)
-        image_url = os.path.relpath(image_out, out_file.parent).replace(os.sep, "/")
+        if link_mode == "raw":
+            image_url = raw_url_for_path(repo_root, image_out, base)
+        else:
+            image_url = os.path.relpath(image_out, out_file.parent).replace(os.sep, "/")
         return f"![Mermaid diagram {mermaid_count}]({image_url})"
 
     text = MERMAID_RE.sub(mermaid_sub, text)
@@ -230,12 +233,20 @@ def main() -> int:
     parser.add_argument("--mmdc", default=os.environ.get("MMDC", "npx -y @mermaid-js/mermaid-cli"))
     parser.add_argument("--theme", default="default")
     parser.add_argument("--link-mode", choices=["raw", "relative"], default="raw")
+    parser.add_argument(
+        "--mermaid-assets",
+        default="lecture_mermaid_assets",
+        help="Tracked output directory for rendered Mermaid PNGs when --link-mode=raw.",
+    )
     parser.add_argument("roots", nargs="*", default=["week1", "week2", "week3", "week4", "week5", "week6"])
     args = parser.parse_args()
 
     repo_root = Path(git_value(["rev-parse", "--show-toplevel"], ".")).resolve()
     os.chdir(repo_root)
     out_root = (repo_root / args.out).resolve()
+    mermaid_root = (repo_root / args.mermaid_assets).resolve()
+    if args.link_mode == "relative":
+        mermaid_root = out_root / "mermaid-assets"
     base = raw_base(repo_root, args.branch, args.remote)
     sources = markdown_sources(repo_root, args.roots)
     if not sources:
@@ -244,8 +255,12 @@ def main() -> int:
     if out_root.exists():
         shutil.rmtree(out_root)
     out_root.mkdir(parents=True)
-
     render = not args.no_render_mermaid
+    if render and mermaid_root.exists():
+        shutil.rmtree(mermaid_root)
+    if render:
+        mermaid_root.mkdir(parents=True, exist_ok=True)
+
     mmdc = args.mmdc.split()
     total_images = 0
     total_mermaid = 0
@@ -258,6 +273,7 @@ def main() -> int:
             out_file,
             repo_root,
             out_root,
+            mermaid_root,
             base,
             mmdc,
             render,
@@ -272,6 +288,12 @@ def main() -> int:
     print(f"rendered_mermaid={total_mermaid if render else 0}")
     print(f"raw_base={base}")
     print(f"link_mode={args.link_mode}")
+    if render:
+        try:
+            mermaid_label = mermaid_root.relative_to(repo_root)
+        except ValueError:
+            mermaid_label = mermaid_root
+        print(f"mermaid_assets={mermaid_label}")
     try:
         out_label = out_root.relative_to(repo_root)
     except ValueError:
