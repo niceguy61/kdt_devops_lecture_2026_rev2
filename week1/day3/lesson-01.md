@@ -109,12 +109,41 @@ done
 
 서버 종료는 실행 중인 터미널에서 `Ctrl+C`를 사용한다.
 
+### Body 수정 후 재확인
+정상 응답을 한 번 확인한 뒤에는 `index.html`의 본문을 의도적으로 바꾸고, 그 변경이 실제 HTTP 응답에 반영되는지 다시 확인한다. 이 단계는 "파일을 고쳤다"와 "서비스에서 고친 결과가 보인다"를 구분하기 위한 연습이다.
+
+서버를 계속 켜 둔 상태에서 다른 터미널 또는 에디터로 `index.html`을 수정한다.
+
+```bash
+printf '<!doctype html>\n<title>Week 1 Lab</title>\n<h1>Week 1 Local Service - Updated</h1>\n<p>Day 3 checks path, process, port, HTTP status, and logs.</p>\n' > index.html
+curl http://localhost:8000
+```
+
+응답 본문에 `Week 1 Local Service - Updated`와 `Day 3 checks path`가 보여야 한다. 보이지 않으면 다음 순서로 확인한다.
+
+| 증상 | 먼저 볼 것 | 이유 |
+|---|---|---|
+| 예전 문구가 보임 | `pwd`, `ls index.html` | 서버가 다른 디렉터리에서 실행 중일 수 있다. |
+| 브라우저만 예전 문구를 보임 | `curl http://localhost:8000` | 브라우저 cache 또는 새로고침 문제일 수 있다. |
+| `connection refused` | 서버 터미널 | 서버 프로세스가 종료됐을 수 있다. |
+| 404 | 요청 URL | `/index.html`과 `/` 경로를 구분해야 한다. |
+
+수정 확인 기록은 아래처럼 짧게 남긴다.
+
+| 확인 항목 | 예시 |
+|---|---|
+| changed file | `index.html` |
+| changed body text | `Week 1 Local Service - Updated` |
+| recheck command | `curl http://localhost:8000` |
+| recheck result | 수정된 문구가 응답에 포함됨 |
+
 
 
 ### 확인 질문
 - 서버를 실행한 디렉터리는 어디인가?
 - 브라우저와 `curl -I`은 각각 어떤 확인 기록을 제공하는가?
 - `Ctrl+C` 후 다시 `curl`하면 어떤 증상이 나와야 하는가?
+- 파일을 수정했다는 기록과 수정 결과가 서비스에 반영됐다는 기록은 어떻게 다른가?
 
 ## 30-40분 서버 터미널 로그와 HTTP 상태 코드 기록
 

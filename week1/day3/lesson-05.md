@@ -110,6 +110,41 @@ curl -I http://localhost:8000/no-such-file.html
 curl -I http://localhost:8000/index.html
 ```
 
+### 의도적 오류 로그 수집 절차
+이번 시간에는 실수로 난 오류를 기다리지 않고, 일부러 작고 안전한 오류를 만든다. 없는 파일 요청은 시스템을 망가뜨리지 않으면서도 상태 코드와 서버 로그를 남기므로 RCA 연습에 적합하다.
+
+1. 서버 터미널이 켜져 있는지 확인한다.
+2. 새 터미널에서 실패 요청을 보낸다.
+3. 서버 터미널에서 같은 시간대의 request log를 찾는다.
+4. 실패 상태 코드와 요청 경로만 발췌한다.
+5. 정상 URL로 다시 확인한다.
+
+예상되는 실패 확인 기록은 다음과 같다. 실제 로그 형식은 Python 버전과 OS에 따라 조금 다를 수 있으므로, 문장 그대로 맞추는 것이 아니라 요청 경로와 상태 코드를 찾는다.
+
+```text
+request: GET /no-such-file.html
+status: 404
+interpretation: server process is alive, requested file path does not exist
+```
+
+서버 로그에 `GET /no-such-file.html`이 보이고 `curl -I` 결과가 404라면, 이 실패는 프로세스 종료 문제가 아니라 경로/resource 문제로 분류한다. 이 분류가 중요하다. 원인 후보가 다르면 다음 확인 명령도 달라진다.
+
+| 실패 증상 | 잘못된 결론 | 더 나은 첫 판단 |
+|---|---|---|
+| 404 | 서버가 죽었다. | 서버는 응답했다. URL 경로와 파일 존재 여부를 본다. |
+| connection refused | 파일이 없다. | 서버 프로세스 또는 포트가 먼저 의심된다. |
+| 수정 후 예전 본문 | curl이 틀렸다. | 저장한 파일, 실행 경로, cache를 본다. |
+
+### 수정 후 재확인 기록
+RCA에서 fix는 큰 코드를 새로 만드는 일이 아니다. 이번 실습의 fix는 요청 경로를 존재하는 파일로 바꾸거나, README에 올바른 URL을 명시하는 것이다. 중요한 것은 fix 다음에 같은 관찰 기준으로 다시 확인하는 것이다.
+
+```bash
+curl -I http://localhost:8000/index.html
+curl http://localhost:8000/index.html
+```
+
+재확인 기록에는 200 상태 코드와 예상 본문 일부가 함께 있어야 한다. 상태 코드만 200이어도 본문이 예전 내용이면 수정 확인은 끝난 것이 아니다.
+
 ## 30-40분 fix/recheck/prevent 기록
 
 - 진행: fix/recheck/prevent 기록
@@ -122,6 +157,7 @@ curl -I http://localhost:8000/index.html
 - 이번 실패의 symptom은 무엇인가?
 - root cause candidate는 프로세스, 포트, file 경로 중 어디에 가까운가?
 - recheck에 같은 명령을 다시 써야 하는 이유는 무엇인가?
+- 오류 로그에서 전체 복사 대신 어떤 부분만 발췌해야 안전한가?
 
 
 
@@ -160,6 +196,7 @@ Docker에서는 wrong file 경로가 image build context 문제로 나타날 수
 | server log excerpt | |
 | fixed check URL | |
 | fixed 상태 코드 | |
+| fixed body 확인 | |
 | prevention note | |
 
 
