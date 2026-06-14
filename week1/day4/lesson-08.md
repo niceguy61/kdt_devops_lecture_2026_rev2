@@ -1,64 +1,90 @@
-# 8교시: 최초 1:1 개인 면담 2 및 기본 멘토링
+# 8교시: 카카오페이 - AI 플랫폼, GPU, Kubeflow, Docker 준비도
 
 ## 수업 목표
-- 7교시에 이어 학생별 최초 면담을 완료한다.
-- 학습 목표, 막힘 유형, 복습 방식, 멘토링 필요 항목을 정리한다.
-- Day5 통합 시간으로 넘길 개인별 이월 메모를 남긴다.
+- 고성능 컴퓨팅도 애플리케이션 실행 조건의 일부임을 이해한다.
+- AI 플랫폼에 표준화, 자원 제어, 오케스트레이션이 필요한 이유를 설명한다.
+- Day4 전체를 Docker 준비도로 정리한다.
+- Day6 멘토링이 필요한 학생을 수업 흐름을 끊지 않고 표시한다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| 기본 멘토링 | 기술 설명만으로 해결되지 않는 학습 방향을 잡는다. | 학생이 어디부터 복습해야 할지 모른다. | mentoring note |
-| 막힘 유형 | 환경, 개념, 실습 속도, 자신감, 시간 관리 문제를 구분한다. | 모든 문제를 코드 오류로만 본다. | blocker type |
-| 개인별 다음 행동 | 각자 다음에 할 한 가지를 작게 정한다. | 면담 후에도 행동이 막연하다. | next action |
-| Day5 이월 메모 | 통합/발표 전에 보완할 항목을 넘긴다. | Day5 시작 시 누락을 다시 찾는다. | carry-over note |
-
-### 챌린저 복구 기준
-- 완벽한 면담이 아니라 첫 상태 파악이 목표다.
-- 학생별 next action은 "공부 더 하기"가 아니라 첫 명령, 첫 문서, 첫 확인 항목까지 구체화한다.
-- 샘플앱 보완은 면담의 부속 자료이며, 8교시의 핵심은 개인 학습 지원 방향 설정이다.
+## 참고 자료
+- 카카오페이 기술블로그: https://tech.kakaopay.com/
+- AI 플랫폼 GPU 도입부터 Kubeflow까지 도입기: https://tech.kakaopay.com/post/ai-platform/
+- Kakao Pay DevOps tag: https://tech.kakaopay.com/tag/dev-ops/
 
 ## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
+| 시간 | 활동 | 강사 초점 | 학생 산출 |
 |---|---|---|---|
-| 0-5분 | 7교시 면담 현황 확인 | 남은 면담 대상과 우선순위를 본다. | priority list |
-| 5-35분 | 1:1 면담 계속 | 학습 목표와 막힘 유형을 정리한다. | mentoring note |
-| 35-43분 | 개인별 next action 작성 | 작고 구체적인 다음 행동을 정한다. | next action |
-| 43-48분 | Day5 이월 메모 | 통합 시간에 볼 항목을 정리한다. | carry-over note |
-| 48-50분 | 마감 안내 | Day5 발표/통합 기준을 안내한다. | Day5 준비 |
+| 0-5분 | AI hook | AI는 모델만이 아니라 runtime, data, GPU, workflow이다. | AI condition note |
+| 5-15분 | 플랫폼 사례 읽기 | 표준화, 확장성, 통합, GPU 자원 제어 | source note |
+| 15-25분 | HPC 구성요소 | CPU, memory, disk, GPU, driver, image, scheduler | compute map |
+| 25-35분 | 비용과 희소성 | GPU는 비싸고 공유 자원이다. | cost note |
+| 35-45분 | Day4 종합 | 8개 회사 사례를 실행 조건으로 다시 매핑한다. | final component map |
+| 45-50분 | Day6/Week2 연결 | 멘토링 태그와 Docker 준비 체크리스트 | 준비 체크리스트 |
 
-## 막힘 유형 분류
-| Type | 예시 | 멘토링 방향 |
+## 핵심 설명
+AI 시스템은 웹 서비스와 달라 보이지만 운영 패턴은 비슷하다. 코드, 의존성, runtime, data, config, log, resource limit이 필요하다. 차이는 compute가 더 비싸고 특수하다는 점이다. GPU, memory, storage throughput, model file, scheduling이 중요해진다.
+
+## 시각 자료
+![AI 플랫폼과 고성능 컴퓨팅](./assets/lesson-08-ai-platform-hpc.png)
+
+![AI 엔지니어링 플랫폼 아키텍처 모델](./assets/lesson-08-ai-platform-architecture.png)
+
+![AI 플랫폼 최적화 포인트](./assets/lesson-08-ai-platform-optimization.png)
+
+## 서비스 특장점과 채용 동기 연결
+- 카카오페이형 금융 AI 플랫폼의 강점은 여러 팀이 AI 실험과 서비스 적용을 표준 환경에서 반복할 수 있게 만든다는 점이다.
+- 학생 입장에서는 AI 엔지니어링이 모델 학습만이 아니라 GPU 자원, dataset, container image, scheduler, experiment tracking, inference 운영까지 포함한다는 것을 볼 수 있다.
+- GPU는 비싸고 제한된 자원이므로 표준화와 quota 관리가 곧 비용 관리다.
+
+## AI 엔지니어링 연결
+- 최근 AI 엔지니어링의 핵심은 "모델을 한 번 학습했다"가 아니라 "데이터, 실험, 배포, 모니터링을 반복 가능하게 만들었다"에 가깝다.
+- LLM/RAG/추천/이상탐지 기능은 모두 runtime, dependency, model artifact, secret, 비용 한도, 로그가 필요하다.
+- 그래서 Docker와 Kubernetes는 AI 엔지니어링에서도 모델을 담는 그릇, 실험을 재현하는 단위, GPU 자원을 배치하는 기준으로 이어진다.
+
+## 고성능 컴퓨팅 지도
+| 구성요소 | 웹 앱 버전 | AI/HPC 버전 |
 |---|---|---|
-| Environment | 설치, 터미널, 포트 문제 | 명령 확인 순서 제공 |
-| Concept | 서버, HTTP, 상태 코드가 낯섦 | 비유와 그림으로 재설명 |
-| Practice pace | 따라 치는 속도, 파일 위치 혼동 | 복습 단위 쪼개기 |
-| Confidence | 어디서부터 질문해야 할지 모름 | 질문 템플릿 제공 |
-| Documentation | 실행은 했지만 기록이 없음 | README 표부터 채우기 |
+| Runtime | Node/Python server | Python/ML runtime |
+| Dependency | web framework | ML library, CUDA 관련 stack |
+| Data | DB 또는 JSON | dataset, model artifact |
+| Compute | CPU, memory | GPU, memory, disk throughput |
+| Config | API URL, secret | experiment config, resource quota |
+| Observability | logs, status | training logs, metrics, GPU usage |
+| Lifecycle | start/stop/restart | schedule, train, evaluate, deploy |
 
-## 개인별 next action 템플릿
-| 항목 | 내 답 |
-|---|---|
-| 내가 가장 막힌 부분 | |
-| Day5 전에 확인할 명령/파일 | |
-| 다시 볼 교안 | |
-| 질문으로 남길 것 | |
-| 다음 행동 1개 | |
+## Day4 종합표
+| 교시 | 회사 | 구성요소 | Docker 압력 |
+|---|---|---|---|
+| 1 | 쿠팡 | 전체 앱 지도 | 많은 의존성에 공통 실행 계약이 필요하다. |
+| 2 | 토스 | 프론트엔드 플랫폼 | runtime과 build version이 맞아야 한다. |
+| 3 | 당근 | 백엔드 경계 | 각 service에 port, config, health check가 필요하다. |
+| 4 | 네이버 | DB/storage | DB version, port, data path를 통제해야 한다. |
+| 5 | 카카오 | message streaming | broker와 consumer 실행 순서가 중요하다. |
+| 6 | 우아한형제들 | 배달 이벤트 | API, queue, worker, log를 함께 실행해야 한다. |
+| 7 | 여기어때 | burst traffic | 반복 가능한 disposable test 환경이 필요하다. |
+| 8 | 카카오페이 | AI/HPC | 비싼 compute일수록 표준 runtime이 필요하다. |
 
-## Day5 이월 메모
-| Day5에서 확인할 항목 | 이유 |
-|---|---|
-| Day3 AI 챌린지 결과 | 발표 준비 |
-| Day4 샘플앱 정상 실행 기록 | 통합 확인 |
-| 404 또는 data/JSON 오류 기록 | 실패 관찰 확인 |
-| README/runbook | handoff 확인 |
-| 개인 질문 | live Q&A 또는 멘토링 연결 |
+## 최종 산출물
+```text
+Week2 Docker 준비 note
 
-## 산출물
-- mentoring note
-- blocker type
-- next action
-- Day5 carry-over note
+1. 내가 가장 잘 이해한 app/component:
+2. 이해에 도움이 된 회사 사례:
+3. 내가 설명할 수 있는 수동 설치의 고통:
+4. 고정해야 할 runtime 또는 version:
+5. 고정해야 할 port 또는 network 조건:
+6. 보호해야 할 data 또는 file path:
+7. hard-code하면 안 되는 config 또는 secret:
+8. Docker 주차에 물어보고 싶은 질문:
+9. Day6 멘토링 필요 여부: yes/no
+```
+
+## Day6 멘토링 태그 기준
+- project folder나 repository를 찾지 못한다.
+- local app을 실행하거나 command를 설명하지 못한다.
+- frontend, backend, database, cache, queue를 구분하지 못한다.
+- 환경 오류가 반복되어 자신감이 낮다.
+- Docker 설치 전 용어 회복 lane이 필요하다.
 
 ## 다음 연결
-Day5는 Day3 AI 챌린지 결과와 Day4 샘플앱 운영 기록을 통합하고 발표한다. 7~8교시 면담에서 나온 개인 질문은 Day5 live Q&A와 이후 멘토링의 입력으로 사용한다.
+Day5는 Day4 구성요소 지도를 학생 본인의 앱 지도와 짧은 발표로 바꾼다. Day6는 Week2 Docker 진입 전에 멘토링과 회복을 담당한다.

@@ -1,206 +1,135 @@
-# 5교시: 통합 체크리스트, 평가 기준, 2~5주차 기술 매핑
+# 5교시: 삭제해도 남는 것들
 
 ## 수업 목표
-- Week1 최종 제출물을 평가 가능한 증거 기준으로 점검한다.
-- 2~5주차 기술이 Week1 산출물의 어떤 한계를 해결하는지 매핑한다.
-- 제출 전 남은 위험을 명시한다.
+- 프로그램 삭제가 실행 파일 삭제만으로 끝나지 않는 이유를 이해한다.
+- 로컬 디스크가 복잡해지는 원인을 service, data, cache, log 관점으로 설명한다.
+- Docker cleanup 개념이 왜 필요한지 이해한다.
 
-## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
-|---|---|---|---|
-| 0-10분 | 평가 기준 설명 | 점수 기준을 확인 기록과 연결한다. | 평가 기준 이해 |
-| 10-25분 | 자기 체크 | 체크리스트 status를 채운다. | self assessment |
-| 25-35분 | 주차 매핑 | Week2~5 연결 문장을 작성한다. | technology map |
-| 35-45분 | 남은 위험 작성 | 제출 전 residual risk를 직접 적는다. | risk note |
-| 45-50분 | 발표 준비 연결 | 발표에서 보여줄 확인 기록을 고른다. | 발표 확인 기록 |
+## 시각 자료
+![삭제해도 남는 것들](./assets/lesson-05-uninstall-leftovers.png)
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| 평가 기준 | Week1 산출물은 실행 가능한 기록으로 평가된다. | 앱 화면만 있고 실행 방법, 상태 코드, 위험이 빠진다. | 체크리스트 complete/partial/missing |
-| 5주 기술 매핑 | Week1 산출물이 이후 Docker, MSA, Kubernetes, AWS/Terraform으로 확장된다. | 이전 커리큘럼 흔적이 남아 학습 순서를 오해한다. | Week2~5 매핑 표 |
-| 남은 위험 | 제출 전 부족한 점을 숨기지 않고 다음 행동으로 바꾼다. | 막힌 부분이 발표와 다음 주차에서 다시 장애가 된다. | residual risk note |
-| 발표 확인 기록 | 발표는 기능 자랑이 아니라 실행과 검증을 보여주는 시간이다. | 무엇을 만들었는지보다 왜 동작한다고 판단하는지 설명하지 못한다. | 발표에 사용할 확인 기록 2개 |
+## 도입 시나리오
+강사가 학생들이 공감할 만한 장면으로 시작한다.
 
-### 챌린저 복구 기준
-- 체크리스트가 비어 있으면 기능을 더 만들지 말고 실행 명령, URL, 상태 코드, README부터 채운다.
-- Week2~5 매핑은 도구 이름 암기가 아니라 "내 산출물의 어떤 한계를 다음 기술이 해결하는가"로 쓴다.
-- 남은 위험은 감점 회피용으로 숨기지 말고 `증상`, `현재 상태`, `다음 행동`으로 짧게 남긴다.
+```text
+수업을 따라오려고 이것저것 설치했다.
+Node.js, Python, DB, IDE, extension, cache, sample project...
 
-## 0-10분 평가 기준 설명
-
-- 진행: 평가 기준 설명
-
-- 초점: 점수 기준을 확인 기록과 연결한다.
-
-- 학생 산출: 평가 기준 이해
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 핵심 설명
-평가는 "열심히 했다"가 아니라 관찰 가능한 확인 기록으로 판단한다. Week1의 확인 기록은 실행 명령, HTTP 확인, 화면 결과, 위험 분류, RCA, handoff 문서다.
-
-
-
-### 시각 자료 1: 확인 기록 Coverage Map
-![Week1 service 확인 기록 flow](../assets/week1-service-evidence-flow.png)
-
-평가자는 앱 자체보다 "실행했다", "확인했다", "위험을 알고 있다"는 증거 묶음을 본다.
-
-## 10-25분 자기 체크
-
-- 진행: 자기 체크
-
-- 초점: 체크리스트 status를 채운다.
-
-- 학생 산출: self assessment
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 평가 기준 체크리스트
-| 확인 기록 | Required | Status |
-|---|---|---|
-| App runs locally | start command and URL | |
-| HTTP check | status code or browser 확인 기록 | |
-| Data rendering | dummy JSON visible | |
-| Error handling | empty/error state note | |
-| README | start/check/stop/troubleshoot | |
-| Risk table | cost/security/reproducibility | |
-| RCA | one failure lifecycle | |
-| Spine map | file/process/port/data/확인 기록 | |
-| Handoff | summary, risks, gaps, next step | |
-
-
-
-### 2~5주차 기술 매핑
-| Week | 기술 | Week1에서 이어지는 문제 |
-|---|---|---|
-| Week2 | Docker | 로컬 실행 조건을 컨테이너로 고정한다. |
-| Week3 | MSA와 서비스 분리 | 하나의 정적 앱을 여러 서비스, API, DB, worker 관점으로 확장할 때 경계와 실행 순서를 다룬다. |
-| Week4 | Kubernetes | 컨테이너 실행 조건을 Pod, Deployment, Service, ConfigMap, Secret으로 표준화한다. |
-| Week5 | AWS/Terraform/FinOps/Observability | 로컬/클러스터 실행을 클라우드 서비스, 비용, 관찰 기록, IaC 변경 기록으로 확장한다. |
-
-
-
-### 시각 자료 2: 확인 기록 판정 흐름
-```mermaid
-flowchart LR
-    A[Checklist item] --> B{관찰 가능한가?}
-    B -- 예 --> C{재현 가능한가?}
-    B -- 아니오 --> M[missing]
-    C -- 예 --> OK[complete]
-    C -- 일부만 --> P[partial]
-    C -- 아니오 --> P
-    P --> R[residual risk note]
-    M --> R
+몇 주 뒤 디스크가 꽉 찼다.
+무엇을 지워야 할지 모르겠다.
 ```
 
-## 25-35분 주차 매핑
+이 장면은 Docker의 중요성을 말하기 전에 반드시 짚어야 한다. 초보자는 설치보다 삭제가 더 무섭다.
 
-- 진행: 주차 매핑
+## 핵심 개념
+프로그램은 여러 흔적을 남긴다.
 
-- 초점: Week2~5 연결 문장을 작성한다.
-
-- 학생 산출: technology map
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 시각 자료 3: 발표 확인 기록 선택표
-| 확인 기록 후보 | 보여주면 답하는 질문 | 발표 사용 여부 |
-|---|---|---|
-| README run/check section | 다음 사람이 실행할 수 있는가? | |
-| Browser result | 앱이 실제로 보이는가? | |
-| Data rendering | dummy JSON이 연결되었는가? | |
-| Risk table | 남은 위험을 알고 있는가? | |
-| RCA note | 실패를 숨기지 않고 학습했는가? | |
-
-
-
-### 활동 절차
-1. 체크리스트의 각 항목에 complete/partial/missing을 표시한다.
-2. missing 항목은 보완 가능 여부와 이유를 적는다.
-3. Week2~5 기술 매핑을 자신의 앱 기준으로 다시 쓴다.
-4. 남은 위험을 숨기지 않고 제출 문서에 남긴다.
-5. 발표에서 보여줄 확인 기록 2개를 고른다.
-
-## 35-45분 남은 위험 작성
-
-- 진행: 남은 위험 작성
-
-- 초점: 제출 전 residual risk를 직접 적는다.
-
-- 학생 산출: risk note
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 흔한 오해
-| 오해 | 교정 |
+| 흔적 | 설명 |
 |---|---|
-| 산출물이 있으면 확인 기록은 나중에 채워도 된다. | 확인 기록은 산출물의 일부다. command, path, status, log, note가 함께 있어야 평가 가능하다. |
-| Week1에서 모든 기술을 깊게 익혀야 한다. | Week1은 컴퓨팅 spine과 운영 증거를 만드는 주차이며, 깊은 hands-on은 각 기술 주차에서 진행한다. |
-| 막힌 내용을 숨기는 것이 좋다. | blocker를 증상, 시도한 일, 다음 조치로 기록하는 것이 현업식 진행 관리다. |
+| 실행 파일 | 실제 프로그램 binary |
+| package cache | 설치 속도를 위해 남겨 둔 파일 |
+| service 등록 | 백그라운드 자동 실행 항목 |
+| data folder | DB 데이터, 업로드 파일 |
+| config file | 설정값, 계정 정보, 경로 |
+| log file | 실행 기록과 에러 기록 |
+| plugin/extension | IDE나 tool에 붙은 추가 기능 |
 
-## 45-50분 발표 준비 연결
+삭제가 어려운 이유는 "지워도 되는 것"과 "지우면 복구가 어려운 것"이 섞여 있기 때문이다.
 
-- 진행: 발표 준비 연결
+## 강의 진행 흐름
+### 1. 삭제의 두 종류
+삭제에는 최소 두 종류가 있다.
 
-- 초점: 발표에서 보여줄 확인 기록을 고른다.
+```text
+프로그램 삭제: 실행 파일과 등록 정보 제거
+데이터 삭제: 내가 만든 데이터와 상태 제거
+```
 
-- 학생 산출: 발표 확인 기록
+DB를 예로 들면 프로그램을 지워도 데이터 폴더는 남을 수 있다. 반대로 데이터 폴더를 지우면 프로그램은 남아 있어도 이전 데이터는 사라진다.
 
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+### 2. "정리"가 위험한 이유
+학생들이 흔히 하는 실수:
 
+```text
+용량이 큰 폴더를 검색해서 그냥 삭제한다.
+캐시인지 데이터인지 구분하지 않는다.
+프로젝트 폴더 안의 generated file과 source file을 구분하지 않는다.
+DB data folder를 백업 없이 지운다.
+환경변수나 service 등록은 남겨 둔다.
+```
 
+강사는 "지우지 마라"가 아니라 "무엇인지 알고 지우라"로 안내한다.
 
-### 산출물
-- final evaluation checklist
-- Week2~5 mapping
-- residual risk note
-- presentation 확인 기록 selection
+### 3. 디스크 용량 문제를 DevOps 관점으로 본다
+로컬 디스크가 꽉 차는 문제도 운영 문제의 작은 버전이다.
 
-
-
-### 평가 기준
-| 기준 | 충족 |
+| 로컬 문제 | 운영 환경의 대응 개념 |
 |---|---|
-| 평가 항목이 확인 기록 중심으로 채워졌다. | |
-| Week2~5 연결이 도구 이름 나열에 그치지 않는다. | |
-| 남은 위험이 구체적이다. | |
-| 발표에서 보여줄 증거가 선택되었다. | |
+| 로그가 계속 쌓임 | log rotation |
+| 캐시가 커짐 | cache eviction |
+| 빌드 산출물이 쌓임 | artifact retention |
+| DB 데이터가 커짐 | backup, archive, retention |
+| 쓰지 않는 프로그램이 남음 | lifecycle management |
 
+학생들이 "내 컴퓨터 정리"를 운영 관리의 첫 경험으로 이해하게 한다.
 
+### 4. AI 엔지니어링과 연결한다
+AI 개발은 특히 디스크를 많이 쓴다.
 
-### 현업 DevOps insight
-좋은 팀은 위험을 숨기지 않는다. 남은 위험을 명시하면 다음 sprint, 다음 배포, 다음 담당자가 우선순위를 잡을 수 있다.
+- 모델 파일
+- embedding cache
+- vector index
+- dataset
+- experiment output
+- log와 trace
+- 이미지/음성 생성 결과
 
+실험을 많이 할수록 "어떤 결과물이 남았는가"를 관리하지 않으면 금방 공간이 부족해진다.
 
+## 학생 활동
+다음 목록을 보고 지워도 되는지, 확인이 필요한지 분류한다.
 
-### 학술 근거
-- Rubric-based assessment: 학생이 평가 기준을 알고 자기 산출물을 점검한다.
-- Transfer: 한 주의 산출물을 다음 주 기술 학습의 출발점으로 사용한다.
-- Reflective practice: 남은 위험과 보완 계획을 명시한다.
+```text
+node_modules
+.venv
+dist
+build
+logs
+uploads
+db-data
+.cache
+.env
+generated-images
+```
 
+질문:
 
+```text
+1. 다시 만들 수 있는 것은 무엇인가?
+2. 지우기 전에 백업해야 할 것은 무엇인가?
+3. secret이 들어 있을 수 있는 것은 무엇인가?
+4. README에 정리 방법을 적는다면 어떤 순서가 좋을까?
+```
 
-### 다음 주차 연결
-Week2 첫 과제는 이 체크리스트에서 `App runs locally`와 `How to run`을 Docker 기준으로 다시 증명하는 것이다.
+## Docker 연결
+Docker에서도 정리가 필요하다. 다만 정리 대상이 더 명확해진다.
 
+| 로컬 설치 방식 | Docker 방식 |
+|---|---|
+| 어디에 깔렸는지 찾기 어려움 | image/container/volume으로 구분 |
+| 서비스가 OS에 남을 수 있음 | container stop/remove |
+| 데이터 폴더 위치가 흩어짐 | volume 이름으로 관리 |
+| 캐시와 산출물이 섞임 | build cache, image layer로 관리 |
 
+오늘 기억할 문장:
 
-### 다음 연결
-다음 교시는 Day3 챌린지와 Day4 운영 기록 발표로 산출물과 확인 기록을 설명한다.
+```text
+Docker는 정리를 자동으로 대신해 주는 마법이 아니라, 무엇을 정리해야 하는지 경계를 더 분명하게 만드는 도구다.
+```
 
+## 마무리 체크
+학생이 말할 수 있어야 하는 문장:
 
-
-### 공식/학술 근거 링크
-- GitHub Docs: About READMEs, https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes - 최종 README가 실행, 설명, 도움 경로를 제공해야 하는 기준이다.
-- OWASP Secrets Management Cheat Sheet, https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html - 제출 전 secret과 민감정보를 점검하는 기준이다.
-- NIST AI Risk Management Framework, https://www.nist.gov/itl/ai-risk-management-framework - AI 도움을 받은 산출물도 사람이 위험과 검증 기준을 확인해야 하는 근거다.
+```text
+프로그램 삭제는 실행 파일 삭제만이 아니라 service, config, data, cache, log를 구분해서 보는 문제다.
+```

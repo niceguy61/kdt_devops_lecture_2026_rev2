@@ -1,190 +1,135 @@
-# 3교시: 현업 DevOps handoff
+# 3교시: 포트 번호와 localhost 충돌
 
 ## 수업 목표
-- 다음 작업자가 실행, 확인, 위험 판단을 할 수 있는 handoff package를 만든다.
-- 코드, 문서, 증거, 위험, 미해결 항목을 한 묶음으로 전달한다.
-- 좋은 handoff와 나쁜 handoff의 차이를 설명한다.
+- `localhost`와 port의 관계를 설명할 수 있다.
+- port 충돌이 발생했을 때 단순히 번호만 바꾸면 끝나지 않는 이유를 이해한다.
+- Docker의 port binding 개념을 받아들일 준비를 한다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| Handoff | 다음 사람이 실행, 확인, 문제 대응을 할 수 있어야 한다. | 만든 사람만 아는 프로젝트가 된다. | handoff package |
-| 실행 계약 | start/check/stop/troubleshoot를 명확히 둔다. | 실행 실패가 생겨도 확인 순서가 없다. | README/runbook |
-| 위험과 제외 항목 | 하지 않은 일을 명확히 말해야 오해가 줄어든다. | backend/API/DB가 없는 이유를 설명하지 못한다. | risk/exclusion note |
-| 교차 검토 | 내 문서를 다른 사람이 읽어보고 빈틈을 찾는다. | 제출 후 누락을 발견한다. | review note |
+## 시각 자료
+![포트 번호와 localhost 충돌](./assets/lesson-03-port-conflict.png)
 
-### 챌린저 복구 기준
-- Handoff가 막히면 '다음 사람이 처음 칠 명령'부터 적는다.
-- 제외 항목은 숨기지 말고 범위 통제와 위험 관리 이유로 설명한다.
-- 교차 검토에서 나온 질문은 README 문장으로 되돌려 넣는다.
+## 도입 시나리오
+강사가 다음 에피소드를 말한다.
 
-## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
-|---|---|---|---|
-| 0-10분 | handoff 예시 비교 | 모호한 문서와 실행 가능한 문서를 비교한다. | 차이점 메모 |
-| 10-25분 | package 작성 | README에 필요한 섹션을 채우게 한다. | handoff draft |
-| 25-35분 | 위험/제외 항목 정리 | "안 한 것"을 정리한다. | known gaps |
-| 35-45분 | 교차 검토 | 짝이 handoff만 보고 실행 가능성을 판단한다. | peer feedback |
-| 45-50분 | 수정 | 누락된 command/확인 기록을 보완한다. | final handoff |
+```text
+백엔드 서버를 켜려고 했더니 이런 메시지가 나온다.
 
-## 0-10분 handoff 예시 비교
-
-- 진행: handoff 예시 비교
-
-- 초점: 모호한 문서와 실행 가능한 문서를 비교한다.
-
-- 학생 산출: 차이점 메모
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 핵심 설명
-Handoff는 "제가 만들었습니다"가 아니라 "당신이 이어서 할 수 있습니다"라는 문서다. 현업에서는 사람이 바뀌거나 시간이 지나도 실행 조건과 위험을 알 수 있어야 한다.
-
-
-
-### 시각 자료 1: Handoff 확인 기록 Flow
-![Week1 service 확인 기록 flow](../assets/week1-service-evidence-flow.png)
-
-handoff 문서는 실행 증거, 확인 증거, 위험 증거를 한 묶음으로 전달하는 화면이다.
-
-## 10-25분 package 작성
-
-- 진행: package 작성
-
-- 초점: README에 필요한 섹션을 채우게 한다.
-
-- 학생 산출: handoff draft
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### Handoff Package 구성
-| Section | 내용 |
-|---|---|
-| Summary | 앱 목적과 사용자 흐름 1개 |
-| How to run | path, command, port, URL |
-| How to verify | expected screen, curl status, console check |
-| Known risks | cost/security/reproducibility |
-| Known gaps | 아직 못 한 것, 의도적으로 제외한 것 |
-| Next step | Week2 Docker로 옮길 항목 |
-
-
-
-### 시각 자료 2: 다음 작업자 관점
-```mermaid
-flowchart LR
-    R[README 읽기] --> S[Start 조건 확인]
-    S --> V[Verify 방법 확인]
-    V --> K[Known risks/gaps 확인]
-    K --> N[Next step 결정]
-    S -. 모호함 .-> Q[질문 발생]
-    V -. 증거 없음 .-> Q
-    K -. 숨겨짐 .-> Q
+address already in use
+port 8080 is already allocated
 ```
 
-## 25-35분 위험/제외 항목 정리
+학생에게 묻는다.
 
-- 진행: 위험/제외 항목 정리
+```text
+이때 문제는 코드일까, 컴퓨터 환경일까?
+```
 
-- 초점: "안 한 것"을 정리한다.
+정답은 둘 중 하나로 단정하지 않는다. 먼저 "이미 같은 입구를 누군가 쓰고 있다"는 현상으로 이해시킨다.
 
-- 학생 산출: known gaps
+## 핵심 개념
+`localhost`는 내 컴퓨터를 가리키는 이름이다. port는 그 컴퓨터 안에서 프로그램을 찾아가는 번호다.
 
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+```text
+localhost:3000  -> 프론트엔드 개발 서버
+localhost:8080  -> 백엔드 API 서버
+localhost:3306  -> DB 서버
+localhost:6379  -> cache 서버
+```
 
+같은 컴퓨터에서 같은 port를 두 프로그램이 동시에 쓸 수 없다. 그래서 충돌이 난다.
 
+## 강의 진행 흐름
+### 1. port를 주소가 아니라 "입구 번호"로 설명한다
+학생들이 IP, DNS, socket 같은 용어에 익숙하지 않다면 이렇게 말한다.
 
-### 시각 자료 3: Handoff 품질 비교
-| 나쁜 handoff | 좋은 handoff |
+```text
+건물 이름이 localhost라면, port는 방 번호다.
+같은 방 번호를 두 사람이 동시에 쓰겠다고 하면 충돌이 난다.
+```
+
+단, 비유에 머물지 않고 실제 표현으로 다시 돌아온다.
+
+```text
+프로세스는 네트워크 요청을 받기 위해 특정 port를 listen한다.
+이미 listen 중인 port는 다른 프로세스가 같은 방식으로 사용할 수 없다.
+```
+
+### 2. port 번호만 바꾸면 생기는 연쇄 수정
+예를 들어 DB port를 3306에서 3307로 바꾸면 다음도 함께 바뀐다.
+
+| 바뀌는 것 | 예시 |
 |---|---|
-| "서버 실행하면 됩니다." | path, command, port, URL이 있다. |
-| "정상 작동합니다." | 정상 화면, HTTP 확인, 데이터 표시 기준이 있다. |
-| "아직 미완성입니다." | known gaps와 의도적 제외가 분리되어 있다. |
-| "다음에 Docker 합니다." | Week2로 옮길 app folder와 run step이 지정되어 있다. |
+| backend `.env` | `DB_PORT=3307` |
+| DB client 접속 정보 | Host, port |
+| README 실행 설명 | 접속 명령 수정 |
+| 테스트 설정 | integration test config |
+| 스크린샷/문서 | 예전 port 정보 정리 |
 
+즉 port 변경은 한 줄 수정이 아니라 연결된 설정 전체의 수정이다.
 
+### 3. 충돌 원인 찾기
+학생에게 원인 후보를 말하게 한다.
 
-### 활동 절차
-1. 앱 summary를 3문장 이하로 쓴다.
-2. 실행 명령과 확인 절차를 순서대로 쓴다.
-3. known risks와 known gaps를 분리한다.
-4. Day4에서 제외한 backend, DB, API, auth를 다시 명시한다.
-5. 짝이 README만 읽고 질문 없이 실행 가능한지 확인한다.
+```text
+1. 이전에 켠 서버가 아직 살아 있다.
+2. OS 서비스로 등록된 프로그램이 자동 실행 중이다.
+3. 다른 프로젝트가 같은 port를 사용 중이다.
+4. IDE나 개발 도구가 내부 서버를 켜 두었다.
+5. Docker, VM, WSL 같은 다른 실행 환경이 port를 잡고 있다.
+```
 
-## 35-45분 교차 검토
+오늘은 명령어 암기보다 관점이 중요하다. "누가 이 port를 쓰고 있는가"를 확인해야 한다는 점만 잡는다.
 
-- 진행: 교차 검토
+### 4. AI 엔지니어링과 연결한다
+AI 앱에서도 port가 늘어난다.
 
-- 초점: 짝이 handoff만 보고 실행 가능성을 판단한다.
+- web UI
+- API server
+- vector DB
+- model serving endpoint
+- monitoring dashboard
+- prompt playground
 
-- 학생 산출: peer feedback
+실험을 여러 개 동시에 띄우면 port 충돌은 흔하다. 특히 모델 서빙, vector DB, observability 도구를 같이 띄우면 port 설계가 필요해진다.
 
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+## 학생 활동
+다음 상황을 주고 충돌 지도를 그리게 한다.
 
+```text
+프론트엔드: localhost:3000
+백엔드 A: localhost:8080
+백엔드 B: localhost:8080
+DB A: localhost:3306
+DB B: localhost:3306
+Cache: localhost:6379
+AI 실험 서버: localhost:8000
+```
 
+질문:
 
-### 흔한 오해
-| 오해 | 교정 |
-|---|---|
-| 산출물이 있으면 확인 기록은 나중에 채워도 된다. | 확인 기록은 산출물의 일부다. command, path, status, log, note가 함께 있어야 평가 가능하다. |
-| Week1에서 모든 기술을 깊게 익혀야 한다. | Week1은 컴퓨팅 spine과 운영 증거를 만드는 주차이며, 깊은 hands-on은 각 기술 주차에서 진행한다. |
-| 막힌 내용을 숨기는 것이 좋다. | blocker를 증상, 시도한 일, 다음 조치로 기록하는 것이 현업식 진행 관리다. |
+```text
+1. 동시에 실행할 수 없는 것은 무엇인가?
+2. port를 바꾸면 어느 설정을 같이 바꿔야 하는가?
+3. 다른 사람이 이 환경을 재현하려면 어떤 표가 필요할까?
+```
 
-## 45-50분 수정
+## Docker 연결
+Docker에서는 container 안쪽 port와 내 컴퓨터에서 접속하는 port를 나누어 생각한다.
 
-- 진행: 수정
+```text
+host port -> container port
+3307      -> 3306
+```
 
-- 초점: 누락된 command/확인 기록을 보완한다.
+오늘은 명령어를 외우지 않는다. 대신 다음 문장을 기억한다.
 
-- 학생 산출: final handoff
+```text
+Docker의 port binding은 내 컴퓨터의 입구 번호와 container 내부의 입구 번호를 연결하는 약속이다.
+```
 
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+## 마무리 체크
+학생이 말할 수 있어야 하는 문장:
 
-
-
-### 산출물
-- handoff package section
-- peer feedback note
-- 수정된 README
-
-
-
-### 평가 기준
-| 기준 | 충족 |
-|---|---|
-| handoff에 실행 경로와 확인 경로가 모두 있다. | |
-| known risks와 known gaps가 구분된다. | |
-| 범위 밖 기능을 다시 추가하지 않았다. | |
-| 짝 검토 후 모호한 표현을 수정했다. | |
-
-
-
-### 현업 DevOps insight
-좋은 handoff는 다음 사람의 질문 수를 줄인다. 운영 인수인계에서 "어디서 실행하나요", "정상인지 어떻게 아나요", "무엇이 위험한가요"가 바로 답해야 할 핵심 질문이다.
-
-
-
-### 학술 근거
-- Authentic workplace writing: 실제 팀 인수인계 문서 형식으로 작성한다.
-- Peer review: 독자가 직접 문서 품질을 검증한다.
-- ABET communication outcome: 기술 내용을 이해 가능한 문서로 전달한다.
-
-
-
-### 다음 주차 연결
-Week2에서는 handoff의 `How to run`이 Docker build/run 절차로 확장된다. 오늘의 문서가 Docker runbook의 초안이 된다.
-
-
-
-### 다음 연결
-다음 교시는 샘플앱 운영 기록 보완으로 성공/실패/오류 관찰과 문서 누락을 닫는다.
-
-
-
-### 공식/학술 근거 링크
-- RFC 9110: HTTP Semantics, https://datatracker.ietf.org/doc/html/rfc9110 - 실행 확인에서 status code와 resource를 확인 기록로 쓰는 기준이다.
-- MDN HTTP Overview, https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview - browser 확인과 request/response 흐름을 연결하는 기준이다.
-- Google SRE Book: Introduction, https://sre.google/sre-book/introduction/ - 상태 확인, monitoring, emergency response가 운영 readiness에 포함되는 근거다.
+```text
+port 충돌은 실행 중인 프로그램들이 같은 네트워크 입구를 쓰려고 할 때 생기며, port 변경은 관련 설정 전체에 영향을 준다.
+```

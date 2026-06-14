@@ -1,35 +1,55 @@
-# Week 1 Day 5 학술 근거와 교육 설계 기준
+# 1주차 5일차 학술 근거와 교육 설계 기준
 
 ## 교육 설계 의도
-Day5는 Week1의 분산 산출물을 통합하고, 실행 가능한 handoff package로 바꾸는 마감일이다. 학생은 Day3 AI 챌린지 결과와 Day4 샘플앱 운영 기록을 발표하면서 확인 기록, risk, spine mapping, next step을 짧게 전달한다. Docker는 Week2 학습의 advance organizer로만 preview한다.
+Day5는 초보자가 Docker를 배우기 전에 반드시 겪는 로컬 실행 환경 문제를 구조화하는 수업이다. 학생이 아직 Docker 명령어를 실행하지 않아도, 왜 Docker가 필요한지 자신의 언어로 설명할 수 있어야 한다.
+
+이 날의 핵심은 다음 순서다.
+
+```text
+불편함 경험 -> 원인 분류 -> 실행 환경 개념화 -> Docker 필요성 예고
+```
 
 ## Crosswalk
-| Standard / Theory | Observable Action | 확인 기록 |
+| 기준 / 이론 | Day5 적용 | 확인 가능한 증거 |
 |---|---|---|
-| ABET-style communication | 산출물을 발표하고 handoff한다. | presentation card, handoff package |
-| ABET-style computing practice | 실행 가능한 앱과 문서를 제출한다. | final repo, README |
-| CS2023 competency | 시스템 구성요소를 다음 기술과 매핑한다. | spine mapping |
-| NIST NICE-style skill | 운영 위험과 secret/API 위험을 식별한다. | risk table |
-| Bloom evaluate | 산출물 readiness를 기준으로 평가한다. | evaluation checklist |
-| Portfolio assessment | Day1~4 산출물을 하나의 증거 묶음으로 통합한다. | integration inventory |
-| Concept mapping | file/process/port/data/확인 기록 관계를 설명한다. | final spine map |
-| Advance organizer | Docker 개념을 Week1 실행 문제와 연결한다. | Docker readiness note |
+| Cognitive load management | Docker 명령어를 바로 투입하지 않고 로컬 설치, port, 설정, 삭제 시나리오로 나누어 제시한다. | 시나리오별 메모 |
+| Bloom understand | runtime, dependency, port, config, data path를 자기 말로 설명한다. | 개념 문장 |
+| Bloom analyze | DB 중복 설치, port 충돌, 설정 drift, 삭제 잔여물을 원인별로 나눈다. | 문제 분류표 |
+| CS2023 systems perspective | 애플리케이션 실행 조건을 compute, network, storage, configuration 관점으로 본다. | 실행 조건 지도 |
+| DevOps practitioner lens | 재현 가능한 환경과 cleanup을 개발 단계의 운영 역량으로 연결한다. | README 실행 체크리스트 |
+| Mastery learning | 8교시에서 부담 없는 공유로 이해 상태와 질문을 확인한다. | 미니 공유 메모 |
 
-## 평가 설계
-| 평가 영역 | 관찰 가능한 증거 |
+## 이해 확인 기준
+Day5의 확인은 산출물 완성보다 개념 언어화에 둔다.
+
+| 확인 영역 | 관찰 가능한 증거 |
 |---|---|
-| 통합 | inventory, gap list, final README |
-| 시스템 이해 | spine map with path/command/URL |
-| 인수인계 | handoff package, known risks, known gaps |
-| 완성도 | fresh run 확인 기록, data rendering |
-| 발표 | 3-minute presentation card, peer feedback |
-| 다음 주차 준비 | Docker readiness note |
+| 실행 조건 이해 | 코드 외 실행 조건 4개 이상을 말한다. |
+| 충돌 시나리오 이해 | 버전, port, 설정, 데이터 중 2개 이상을 원인으로 설명한다. |
+| cleanup 이해 | 삭제해도 남을 수 있는 흔적 2개 이상을 말한다. |
+| 재현성 이해 | 새 컴퓨터에서 다시 맞춰야 할 항목을 5개 이상 적는다. |
+| Docker preview | Docker가 줄여 줄 불편함 1개와 대신 해결하지 못하는 것 1개를 말한다. |
 
-## DevOps Practitioner Lens
-현업에서 첫 주 산출물의 목표는 완성도 높은 제품이 아니라, 다음 작업자가 실행 조건과 위험을 빠르게 판단할 수 있는 handoff package다. Week1의 좋은 산출물은 다음 질문에 답한다.
-- 어디에서 어떤 명령을 실행하는가?
-- 정상 상태는 어떻게 확인하는가?
-- 어떤 위험과 제외 항목이 남아 있는가?
-- 다음 주차 Docker가 무엇을 더 안정적으로 만들 것인가?
+## 산업 DevOps 연결
+실무에서 환경 문제는 실력 부족이 아니라 재현성과 관리의 문제로 다룬다. 좋은 개발 환경은 다음 질문에 답할 수 있어야 한다.
 
-Week1에는 DORA와 Well-Architected를 독립 수업으로 배치하지 않는다. 해당 프레임워크는 이후 주차에서 필요할 때 더 체계적으로 연결한다.
+- 어떤 runtime과 version이 필요한가?
+- 어떤 외부 프로그램이 필요한가?
+- 어떤 port를 사용하는가?
+- 설정값은 어디에서 주입되는가?
+- 데이터는 어디에 남는가?
+- 새 컴퓨터에서도 같은 환경을 만들 수 있는가?
+- 필요 없을 때 깔끔하게 정리할 수 있는가?
+
+Day5는 이 질문을 학생의 로컬 컴퓨터 수준에서 이해시키고, Week2에서 Docker 명령어와 Compose로 옮긴다.
+
+## AI 엔지니어링 연결
+최근 AI 기능이 들어간 애플리케이션은 실행 환경이 더 복잡하다.
+
+- LLM API key와 model 설정이 필요하다.
+- vector DB나 embedding cache가 필요할 수 있다.
+- prompt, retrieval 설정, temperature가 결과에 영향을 준다.
+- GPU, driver, library version이 맞아야 하는 경우가 있다.
+- 실험 결과와 로그가 빠르게 쌓인다.
+
+따라서 AI 엔지니어링에서는 코드 작성 능력뿐 아니라 실행 환경을 기록하고 재현하고 정리하는 능력이 중요하다.

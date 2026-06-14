@@ -25,11 +25,15 @@
 | `week1/day3/assets/lesson-04-readme-runbook.png` | README를 실행 가능한 runbook 단계로 설명함 | Pass |
 | `week1/day3/assets/lesson-05-rca-flow.png` | RCA에서 증상, 영향, timeline, recheck, prevention의 절차를 설명함 | Pass |
 | `week1/day3/assets/lesson-07-ai-risk-check.png` | AI 제안을 공식 문서, 보안, 비용, 재현성 기준으로 검토하게 함 | Pass |
+| `week1/day4/assets/lesson-01-day4-direction-lanes.png` | Day4를 새 앱 개발이나 상태 코드 반복이 아닌 기본/복구/선택 lane으로 분기하는 수업으로 설명함 | Pass |
 | `week1/day4/assets/lesson-02-file-skeleton.png` | 미니 앱 파일을 HTML/CSS/JS/JSON/README 책임으로 구분함 | Pass |
 | `week1/day4/assets/lesson-03-html-css-js-json.png` | 브라우저 렌더링 결과가 구조, 표현, 동작, 데이터의 결합임을 설명함 | Pass |
 | `week1/day4/assets/lesson-04-empty-error-state.png` | 정상, 빈 데이터, 오류 상태를 비교하고 상태별 evidence 캡처 필요성을 설명함 | Pass |
+| `week1/day4/assets/lesson-04-ai-debug-prompt.png` | 모호한 오류 보고를 OS, 경로, 명령, URL/상태, 확인한 것으로 나누어 AI 디버깅 질문으로 바꾸는 흐름을 설명함 | Pass |
+| `week1/day4/assets/lesson-05-small-change-recovery.png` | 작은 변경, 관찰, 작은 오류, 복구 후 재확인의 안전한 루프를 설명함 | Pass |
 | `week1/day4/assets/lesson-06-risk-runbook.png` | 비용, 보안, 재현성, 운영 위험을 대응 행동과 evidence로 연결함 | Pass |
 | `week1/day4/assets/lesson-07-interview-recovery.png` | Day4 7교시를 새 진도가 아닌 blocker 분류와 회복 lane으로 설명함 | Pass |
+| `week1/day4/assets/lesson-08-waiting-choice-activities.png` | 면담 대기 시간을 앱 소개, 증상 정리, Docker 질문, README 빈칸 채우기 선택 활동으로 연결함 | Pass |
 | `week1/day5/assets/lesson-07-feedback-recheck.png` | 질문을 개념, 실행, 문서 문제로 분류하고 수정 후 recheck evidence로 닫는 흐름을 설명함 | Pass |
 | `week1/assets/week1-computing-spine.png` | compute, storage, network, configuration, identity/access, observability, cost boundary의 spine을 설명함 | Pass |
 | `week1/assets/week1-service-evidence-flow.png` | local evidence가 handoff/runbook/operation으로 이어지는 흐름을 설명함 | Pass |

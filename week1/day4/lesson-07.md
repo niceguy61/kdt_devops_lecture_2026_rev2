@@ -1,69 +1,71 @@
-# 7교시: 최초 1:1 개인 면담 1 - 학습 배경과 환경 상태 확인
+# 7교시: 여기어때 - 폭주 트래픽, 쿠폰, Redis, Kafka
 
 ## 수업 목표
-- 학생별 학습 배경, IT 경험, 관심사, 불안 요소를 기본 수준으로 파악한다.
-- Git, CLI, 로컬 서버, 브라우저 확인에서 막힌 지점을 확인한다.
-- 샘플앱 진행 상태를 평가가 아니라 멘토링 자료로 사용한다.
+- burst traffic이 평소 traffic과 왜 다른지 설명한다.
+- cache, queue, rate control, dashboard가 사용자 경험을 보호하는 방식을 이해한다.
+- 이벤트성 트래픽 테스트에는 반복 가능하고 지울 수 있는 환경이 필요함을 Docker와 연결한다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| 최초 1:1 면담 | 학생마다 출발점과 불안 요소가 다르다. | 같은 설명을 해도 누구는 따라오고 누구는 계속 밀린다. | interview note |
-| 학습 배경 | IT 첫 경험인지, CLI/Git 경험이 있는지 알아야 지원이 가능하다. | 막힘을 의지 문제로 오해한다. | background note |
-| 환경 상태 | Git, Python, VS Code, 브라우저 확인 상태를 본다. | 개념 문제가 아니라 환경 문제로 계속 막힌다. | environment checklist |
-| 멘토링 방향 | 지금 당장 필요한 다음 행동을 작게 정한다. | 막연한 조언만 남고 행동이 없다. | mentoring action |
-
-### 챌린저 복구 기준
-- 면담은 평가나 압박이 아니라 현재 위치를 확인하는 시간이다.
-- 개인정보를 자세히 기록하지 않는다. 학습 지원에 필요한 기술 상태와 선호만 남긴다.
-- 샘플앱이 완벽하지 않아도 괜찮다. 어디서 막혔는지를 찾는 것이 목적이다.
+## 참고 자료
+- 여기어때 기술블로그: https://techblog.gccompany.co.kr/
+- Redis & Kafka를 활용한 선착순 쿠폰 이벤트 개발기: https://techblog.gccompany.co.kr/redis-kafka%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%84%A0%EC%B0%A9%EC%88%9C-%EC%BF%A0%ED%8F%B0-%EC%9D%B4%EB%B2%A4%ED%8A%B8-%EA%B0%9C%EB%B0%9C%EA%B8%B0-feat-%EB%84%A4%EA%B3%A0%EC%99%95-ec6682e39731
+- 유저를 위한 시스템 개선기: https://techblog.gccompany.co.kr/%EC%9C%A0%EC%A0%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%EC%8B%9C%EC%8A%A4%ED%85%9C-%EA%B0%9C%EC%84%A0%EA%B8%B0-2588880fbf12
 
 ## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
+| 시간 | 활동 | 강사 초점 | 학생 산출 |
 |---|---|---|---|
-| 0-5분 | 면담 방식 안내 | 면담 목적과 기록 범위를 설명한다. | 면담 동의/안내 |
-| 5-35분 | 1:1 또는 소그룹 순환 면담 | 학습 배경과 환경 상태를 확인한다. | interview note |
-| 35-45분 | 대기 학생 자기 점검 | 샘플앱 확인 기록을 정리한다. | self check |
-| 45-50분 | 8교시 면담 우선순위 | 추가 멘토링이 필요한 학생을 정한다. | priority list |
+| 0-5분 | 선착순 이벤트 hook | 모두가 경험해 본 스트레스 상황으로 시작한다. | event note |
+| 5-15분 | 평시 traffic vs burst traffic | 평균 traffic은 피크 위험을 숨긴다. | traffic comparison |
+| 15-25분 | 사례 읽기 | Redis와 Kafka가 쿠폰 발급 흐름을 보호한다. | source note |
+| 25-35분 | 시스템 스케치 | request, limit check, queue, issue, dashboard | burst diagram |
+| 35-45분 | 로컬 테스트 매핑 | disposable Redis/queue/test data가 필요하다. | test plan |
+| 45-50분 | Docker 연결 | 테스트 환경을 반복 생성/정리할 수 있어야 한다. | Docker 필요성 |
 
-## 0-5분 면담 방식 안내
-7교시는 최초 개인 면담 시간이다. 새 진도나 샘플앱 추가 과제를 진행하지 않는다. 강사는 학생의 학습 배경, 환경 상태, 관심사, 불안 요소를 확인하고 이후 멘토링 방향을 잡는다.
+## 핵심 설명
+평균 traffic만 보면 이벤트 실패를 예측하기 어렵다. 하루 종일 안정적인 서비스도 쿠폰 오픈 1분 동안 무너질 수 있다. 폭주 traffic은 API 서버, DB write, cache consistency, queue lag, dashboard에 동시에 압력을 준다.
 
-## 면담 질문 카드
-| 질문 | 확인하려는 것 |
-|---|---|
-| 이전에 CLI나 Git을 써 본 적이 있는가? | 출발점 |
-| 오늘 샘플앱에서 가장 막힌 순간은 어디였는가? | blocker 위치 |
-| 서버 실행, 브라우저 확인, `curl` 중 가장 낯선 것은 무엇인가? | 보충 설명 필요 영역 |
-| 앞으로 어떤 분야나 결과물에 관심이 있는가? | 동기와 멘토링 방향 |
-| 혼자 복습할 때 가장 걱정되는 부분은 무엇인가? | 학습 위험 |
+## 시각 자료
+![폭주 트래픽과 AI 이상 탐지](./assets/lesson-07-burst-traffic-ai-detect.png)
 
-## 환경 상태 체크
-| 항목 | 상태 |
-|---|---|
-| Git/GitHub 사용 가능 | |
-| Python 3 실행 가능 | |
-| VS Code/터미널 사용 가능 | |
-| `python3 -m http.server` 실행 가능 | |
-| 브라우저에서 localhost 접속 가능 | |
-| `curl -I` 결과 이해 가능 | |
+![폭주 트래픽 아키텍처 모델](./assets/lesson-07-burst-architecture.png)
 
-## 대기 학생 자기 점검
-면담 대기 중인 학생은 아래 항목을 조용히 채운다.
+![폭주 트래픽 최적화 포인트](./assets/lesson-07-burst-optimization.png)
 
-| 항목 | 내 상태 |
-|---|---|
-| 샘플앱 정상 실행 | complete/partial/missing |
-| 404 관찰 | complete/partial/missing |
-| data/JSON 오류 관찰 | complete/partial/missing |
-| README/runbook | complete/partial/missing |
-| 면담에서 묻고 싶은 것 | |
+## 서비스 특장점과 채용 동기 연결
+- 여기어때형 예약/이벤트 서비스의 강점은 짧은 시간 안에 많은 사용자가 몰리는 이벤트를 상품 경험으로 바꾸는 것이다.
+- 학생 입장에서는 "사용자 이벤트"가 곧 트래픽 피크, 공정성, 데이터 정합성, 장애 대응 문제로 바뀐다는 것을 볼 수 있다.
+- 선착순, 쿠폰, 예약은 단순 기능이 아니라 시스템 안정성과 비즈니스 신뢰가 걸린 기능이다.
 
-## 산출물
-- interview note
-- environment checklist
-- mentoring priority
-- 학생별 next action 1개
+## AI 엔지니어링 연결
+- AI는 비정상 트래픽 탐지, 이벤트 성공률 예측, 장애 알림 우선순위화, 사용자 행동 분석에 붙을 수 있다.
+- 폭주 상황에서는 AI 판단보다 먼저 rate limit, queue, cache counter 같은 deterministic control이 필요하다.
+- AI 이상 탐지는 운영자를 돕는 보조 장치이며, 실제 방어선은 명시적인 제한과 재처리 구조다.
+
+## traffic 비교
+| traffic 유형 | 주요 위험 | 시스템 대응 |
+|---|---|---|
+| 평시 traffic | 완만한 증가 | 점진적 scale |
+| 캠페인 traffic | 짧은 spike | rate control, queue |
+| 선착순 traffic | 공정성, oversell | atomic count, lock |
+| 예약 traffic | 중복 action | idempotency, validation |
+| 결제 traffic | 데이터 손실 | transaction, retry |
+
+## Burst event 설계
+```text
+Event:
+Open time:
+Maximum winners:
+User action:
+Fast check:
+Queue message:
+Final write:
+Dashboard metric:
+Failure to prevent:
+```
+
+## 체크포인트
+- peak traffic이 average traffic과 다른 이유를 설명한다.
+- 선착순 이벤트에서 cache와 queue 위치를 말한다.
+- disposable environment가 필요한 이유 1개를 쓴다.
 
 ## 다음 연결
-8교시는 1:1 면담을 이어가며 기본 멘토링과 Day5 통합 이월 메모를 정리한다.
+8교시는 AI/GPU 고성능 컴퓨팅으로 마무리한다.

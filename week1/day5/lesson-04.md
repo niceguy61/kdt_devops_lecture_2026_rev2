@@ -1,77 +1,125 @@
-# 4교시: 샘플앱 운영 기록 보완
+# 4교시: 환경변수와 설정 파일 지옥
 
 ## 수업 목표
-- Day4 샘플앱의 성공, 404, data/JSON 오류 관찰 기록을 보완한다.
-- 새 기능 추가보다 실행 확인 기록과 runbook 완성을 우선한다.
-- Week2 Docker preview의 입력이 될 실행 조건을 정리한다.
+- 코드와 설정을 분리하는 이유를 이해한다.
+- 환경변수, `.env`, config file이 꼬일 때 생기는 문제를 설명한다.
+- AI 기능에서 secret, endpoint, model 설정이 왜 더 민감해지는지 이해한다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| 운영 기록 보완 | 성공/실패/오류 관찰이 모두 있어야 Day4 실습이 완성된다. | 정상 실행만 있고 실패 대응이 없다. | success/404/error notes |
-| Fresh run | 서버를 새로 시작해 현재 상태를 다시 확인한다. | 예전 성공 기록만 믿고 제출한다. | fresh run command/status |
-| Runbook 일치 | README의 절차가 실제 실행과 맞아야 한다. | 문서대로 따라 하면 실패한다. | start/check/stop 검증 |
-| Docker 입력 | Week2는 이 실행 조건을 container로 옮기는 데서 시작한다. | Docker 문제가 아니라 기존 실행 조건 누락으로 막힌다. | readiness note |
+## 시각 자료
+![환경변수와 설정 파일 지옥](./assets/lesson-04-env-config-drift.png)
 
-### 챌린저 복구 기준
-- 기능을 더 만들지 않는다. 성공, 404, data/JSON 오류 기록 중 빈칸을 먼저 채운다.
-- fresh run은 새 터미널에서 서버를 다시 시작하는 기준으로 확인한다.
-- runbook을 고치면 같은 명령으로 다시 확인한다.
+## 도입 시나리오
+강사가 다음 장면을 말한다.
 
-## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
-|---|---|---|---|
-| 0-5분 | 보완 기준 확인 | 새 기능 금지와 확인 기록 우선 원칙을 확인한다. | 기준 확인 |
-| 5-20분 | Day4 기록 gap 보완 | 성공/404/data error 중 빈칸을 채운다. | completed notes |
-| 20-30분 | fresh run | 서버 재시작 후 URL과 status를 확인한다. | fresh run note |
-| 30-40분 | README/runbook 보완 | 문서와 실제 실행을 맞춘다. | final runbook |
-| 40-50분 | Docker readiness 연결 | Week2로 넘길 실행 조건을 적는다. | readiness note |
+```text
+내 컴퓨터에서는 로그인 기능이 된다.
+친구 컴퓨터에서는 DB 연결이 안 된다.
+배포 환경에서는 AI API 호출이 실패한다.
 
-## 0-5분 보완 기준 확인
-Day4의 목표는 샘플앱을 새로 만드는 것이 아니라 공통 샘플앱을 운영 관점으로 다뤄보는 것이다. Day5 4교시에는 새 기능을 추가하지 않고 관찰 기록과 runbook을 닫는다.
-
-## 5-20분 Day4 기록 gap 보완
-| 기록 항목 | complete/partial/missing | 보완 행동 |
-|---|---|---|
-| 성공 상태: browser, `curl -I`, server log | | |
-| 404 상태: wrong URL, status, server log | | |
-| data/JSON 오류: console 또는 Network | | |
-| runbook: start/check/stop/troubleshoot | | |
-| risk: cost/security/reproducibility/handoff | | |
-
-## 20-30분 fresh run
-```bash
-cd week1/day4/sample-app
-python3 -m http.server 8000
+코드는 같은데 왜 결과가 다를까?
 ```
 
-새 터미널:
-```bash
-curl -I http://localhost:8000
-curl -I http://localhost:8000/data.json
+핵심은 "코드는 같아도 설정이 다르면 다른 프로그램처럼 동작한다"는 점이다.
+
+## 핵심 개념
+설정은 코드 밖에서 실행 동작을 바꾸는 값이다.
+
+| 설정 | 예시 |
+|---|---|
+| DB 접속 정보 | `DB_HOST`, `DB_PORT`, `DB_NAME` |
+| 외부 API | `API_URL`, `OPENAI_API_KEY` |
+| 실행 모드 | `NODE_ENV`, `APP_ENV` |
+| 보안 값 | secret key, token |
+| 기능 플래그 | `ENABLE_AI_SEARCH=true` |
+| 파일 경로 | upload directory, log directory |
+
+설정을 코드에 직접 박아 넣으면 빠르게 만들 수는 있지만 환경을 바꿀 때 위험해진다.
+
+## 강의 진행 흐름
+### 1. 설정이 필요한 이유
+같은 코드라도 환경마다 값이 달라진다.
+
+```text
+개발 환경: localhost DB 사용
+테스트 환경: 테스트 DB 사용
+운영 환경: 실제 DB 사용
 ```
 
-브라우저에서 정상 메시지를 확인한다.
+이때 코드가 매번 바뀌면 안 된다. 그래서 설정을 밖으로 빼야 한다.
 
-## 30-40분 README/runbook 보완
-| README/runbook 항목 | 실제 값 |
+### 2. 설정이 꼬이는 대표 상황
+학생들에게 실제로 자주 생기는 상황을 보여준다.
+
+```text
+.env 파일이 없다.
+.env.example은 있는데 실제 값이 다르다.
+README의 port와 .env의 port가 다르다.
+변수 이름이 DB_HOST인지 DATABASE_HOST인지 헷갈린다.
+secret을 GitHub에 올릴 뻔했다.
+이전 프로젝트의 환경변수가 남아 있다.
+터미널을 다시 열지 않아 변경값이 반영되지 않았다.
+```
+
+여기서 "환경변수는 보이지 않는 설정"이라 디버깅이 어렵다는 점을 강조한다.
+
+### 3. 설정 drift
+drift는 시간이 지나며 문서, 코드, 실제 환경이 서로 달라지는 현상이다.
+
+| 위치 | 값 |
 |---|---|
-| Start command | |
-| Check command | |
-| Browser URL | |
-| Stop instruction | |
-| 404 troubleshoot | |
-| data/JSON troubleshoot | |
+| README | `DB_PORT=3306` |
+| `.env.example` | `DB_PORT=3307` |
+| 내 컴퓨터 실제 환경변수 | `DB_PORT=3310` |
+| backend 코드 기본값 | `DB_PORT=3306` |
 
-## 40-50분 Docker readiness 연결
-| Week2로 넘길 항목 | Day4 샘플앱 값 |
-|---|---|
-| build context 후보 | `week1/day4/sample-app` |
-| 실행 명령 | `python3 -m http.server 8000` |
-| 포트 | 8000 |
-| 확인 명령 | `curl -I http://localhost:8000` |
-| 필요한 파일 | `index.html`, `style.css`, `app.js`, `data.json` |
-| 남은 위험 | |
+이 상태에서는 "왜 내 컴퓨터만 안 되지?"가 반복된다.
 
-## 다음 연결
-다음 교시는 평가 체크리스트와 2~5주차 기술 매핑을 정리한다. Day4 샘플앱 기록은 Week2 Docker readiness의 기준이 된다.
+### 4. AI 엔지니어링과 연결한다
+AI 앱에서는 설정이 더 많고 비싸다.
+
+- 어떤 모델을 쓸 것인가?
+- temperature, max token, timeout은 얼마인가?
+- embedding model은 무엇인가?
+- vector index 이름은 무엇인가?
+- API key는 어디서 주입되는가?
+- 무료 한도나 비용 제한은 어떻게 걸 것인가?
+
+특히 API key를 코드나 화면에 노출하면 안 된다. 학생들에게 "작동하는 것"과 "안전하게 작동하는 것"은 다르다고 말한다.
+
+## 학생 활동
+다음 `.env` 예시를 보고 위험 요소를 찾게 한다.
+
+```text
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=app
+API_URL=http://localhost:8080
+AI_MODEL=gpt-example
+OPENAI_API_KEY=sk-실제키를여기에쓰면안됨
+ENABLE_AI_SEARCH=true
+```
+
+질문:
+
+```text
+1. README에 적어도 되는 값은 무엇인가?
+2. GitHub에 올리면 안 되는 값은 무엇인가?
+3. 친구 컴퓨터에서 바뀔 가능성이 큰 값은 무엇인가?
+4. `.env.example`에는 어떤 형태로 적어야 하는가?
+```
+
+## Docker 연결
+Docker에서는 실행할 때 환경변수를 주입할 수 있다. 나중에는 Compose 파일로 여러 프로그램의 설정을 한곳에서 관리한다.
+
+오늘 기억할 문장:
+
+```text
+Docker는 설정을 없애는 도구가 아니라, 설정을 실행 단위와 함께 명시적으로 다루게 만드는 도구다.
+```
+
+## 마무리 체크
+학생이 말할 수 있어야 하는 문장:
+
+```text
+코드가 같아도 환경변수와 설정 파일이 다르면 앱의 동작은 달라질 수 있다.
+```

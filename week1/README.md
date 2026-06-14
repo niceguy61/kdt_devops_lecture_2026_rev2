@@ -17,7 +17,7 @@
 - VS Code는 `code --version`이 실패해도 VS Code 안의 terminal에서 `pwd`와 `git --version`이 되면 진행 가능하다.
 - password, token, MFA code, verification code는 README와 스크린샷에 남기지 않는다.
 
-## Learning Goals
+## 학습 목표
 - Cloud Native와 DevOps를 도구 목록이 아니라 운영 가능한 서비스를 만드는 관점으로 설명한다.
 - compute, memory, storage, network, process lifecycle, configuration, identity/access, observability, cost/resource boundary를 구분한다.
 - 로컬 웹 서비스를 실행하고 command, port, HTTP status, log, file path로 증거를 남긴다.
@@ -29,8 +29,9 @@
 - Day 1: 과정별 OT, 5주 로드맵, Cloud Native/DevOps 마인드셋, 아이스브레이킹, 학습 준비
 - Day 2: 컴퓨팅 구성요소 spine, Linux/CLI, process, filesystem, network, HTTP, log/config/secret
 - Day 3: 로컬 정적 서버 실행 조건, 재현성, 관찰 가능성, RCA, AI 보조 개발 검증, AI 정적 웹사이트 챌린지
-- Day 4: 미니 앱 scope, skeleton, 구현, 실행 증거, 운영 위험 분류, README/runbook, 7~8교시 개인 면담
-- Day 5: 산출물 통합, 컴퓨팅 spine 최종 매핑, handoff, AI 웹사이트 챌린지 발표, Docker preview
+- 4일차: 국내 IT 기업 사례로 현대 애플리케이션 구성요소, 비즈니스 증가 압력, 운영 challenge, Docker 필요성 이해
+- 5일차: 로컬 환경 설치/버전/포트/설정/삭제 시나리오로 Docker 필요성 빌드업, 비공식 미니 공유
+- 6일차: 첫 1:1 멘토링, 환경 회복, 용어 회복, 작은 성공 경험, Week2 Docker 준비도 점검
 
 ## Computing Component Spine
 ![Week 1 computing component spine](./assets/week1-computing-spine.png)
@@ -74,7 +75,7 @@
 - AI verification note
 - One RCA record
 - Risk classification table
-- Docker readiness note for Week 2
+- Week2 Docker 준비 note
 
 ## Assessments
 - [Week 1 객관식 문제 세트](./assessments/week1-multiple-choice-questions.md)
@@ -94,7 +95,7 @@
 | Asset | Use | Source |
 |---|---|---|
 | ![Local service evidence flow](./assets/week1-service-evidence-flow.png) | Day 2~3 command, process, port, HTTP, log, README, RCA evidence flow | imagegen generated asset |
-| ![Week 1 to Docker preview mapping](./assets/week1-docker-preview-mapping.png) | Day 5 Docker preview mapping from local problems to Docker components | imagegen generated asset |
+| ![Week 1 to Docker preview mapping](./assets/week1-docker-preview-mapping.png) | Day5 Docker preview mapping - 로컬 실행 문제가 Docker 구성요소로 확장되는 흐름 | imagegen generated asset |
 | `assets/week1-computing-spine.png` | Week 1 component spine mapped to later platforms | imagegen generated asset |
 
 Official diagrams may be linked with attribution when a later week introduces Docker, Kubernetes, AWS, or Terraform in depth.

@@ -1,86 +1,82 @@
-# 1교시: 공통 샘플앱 구조 읽기
+# 1교시: 쿠팡 - 현대 애플리케이션 전체 구성 지도
 
 ## 수업 목표
-- Day4가 새 앱 개발 시간이 아니라 공통 샘플앱 운영 실습임을 이해한다.
-- `index.html`, `style.css`, `app.js`, `data.json`, `README.md`의 역할을 구분한다.
-- 파일 구조를 실행 조건 관점으로 읽는다.
+- 커머스 서비스가 하나의 프로그램이 아니라 여러 시스템의 조합임을 설명한다.
+- frontend, backend, data, cache, queue, network, config, observability, compute를 한 화면에서 구분한다.
+- 비즈니스가 커질수록 어떤 운영 부담이 늘어나는지 연결한다.
+- Docker가 필요한 첫 질문을 만든다: "모든 의존성을 각자 직접 설치하면 무엇이 고통스러울까?"
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| 공통 샘플앱 | 모두 같은 앱으로 실습해야 성공/실패를 비교할 수 있다. | 학생마다 다른 앱 오류를 디버깅하느라 운영 개념이 흐려진다. | sample-app 경로 |
-| 파일 역할 | HTML, CSS, JS, JSON, README가 맡는 일이 다르다. | 화면 문제와 데이터 문제를 구분하지 못한다. | file role map |
-| 실행 조건 | 샘플앱도 source, runtime, command, port, data를 가진다. | "파일만 있으면 된다"고 오해한다. | 실행 조건 표 |
-| 제외 범위 | backend, DB, login, paid API는 오늘 하지 않는다. | 개발 수업처럼 범위가 커진다. | 제외 항목 note |
-
-### 챌린저 복구 기준
-- 파일을 모두 이해하려 하지 말고 "어느 파일이 어떤 역할인가"부터 표시한다.
-- 코드를 외우지 않는다. 파일이 실행 흐름에서 어디에 쓰이는지만 읽는다.
-- 모르는 단어는 README의 start/check/stop 위치와 연결해 본다.
+## 참고 자료
+- Coupang Engineering Blog: https://medium.com/coupang-engineering
+- Coupang Engineering microservice architecture challenge: https://medium.com/coupang-engineering/%ED%96%89%EB%B3%B5%EC%9D%84-%EC%B0%BE%EA%B8%B0-%EC%9C%84%ED%95%9C-%EC%9A%B0%EB%A6%AC%EC%9D%98-%EC%97%AC%EC%A0%95-a31fc2d5a572
+- Coupang Engineering data platform growth: https://medium.com/coupang-engineering/data-platform-2022-global-expansion-in-petabytes-3dbbbf27f6fe
 
 ## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
+| 시간 | 활동 | 강사 초점 | 학생 산출 |
 |---|---|---|---|
-| 0-5분 | Day4 방향 확인 | 개발이 아니라 운영 관찰 실습임을 고정한다. | 방향 note |
-| 5-15분 | 샘플앱 폴더 열기 | 파일 목록과 역할을 읽는다. | file list |
-| 15-30분 | 파일 역할 매핑 | HTML/CSS/JS/JSON/README 책임을 나눈다. | role map |
-| 30-40분 | 실행 조건 표 작성 | runtime, command, port, data를 연결한다. | execution contract |
-| 40-50분 | 제외 범위 확인 | 구현하지 않을 것을 명확히 한다. | exclusion note |
+| 0-5분 | 취업 동기 hook | 익숙한 회사의 시스템을 해부한다고 안내한다. | motivation note |
+| 5-15분 | 상품 페이지 분해 | 상품, 가격, 재고, 이미지, 배송, 리뷰, 추천을 나눈다. | component list |
+| 15-25분 | 비즈니스 증가 요인 | 사용자, 상품, 판매자, 지역, 배송 약속 증가를 설명한다. | growth-pressure table |
+| 25-35분 | 운영 challenge | 데이터 소유권, 지연시간, 피크 트래픽, 배포 조율 | challenge note |
+| 35-45분 | 로컬 실행 조건으로 축소 | 작은 쇼핑 앱이면 무엇이 필요한지 적는다. | local condition map |
+| 45-50분 | Docker 연결 | 수동 설치의 고통을 한 문장으로 만든다. | Docker 필요성 문장 |
 
-## 0-5분 Day4 방향 확인
-Day4는 "내 앱을 새로 만드는 날"이 아니다. 이미 준비된 샘플앱을 사용해 서버 실행, 성공 확인, 실패 관찰, runbook 작성을 체험한다. IT를 처음 접하는 챌린저도 같은 출발점에서 시작하도록 앱을 통일한다.
+## 핵심 설명
+사용자에게 상품 페이지는 하나의 화면처럼 보인다. 하지만 뒤에서는 상품 카탈로그, 가격, 재고, 이미지 저장소, 배송 약속, 리뷰, 추천 같은 여러 책임이 만난다. 회사가 커질수록 상품 수와 사용자 수만 늘어나는 것이 아니라, 데이터 소유권, 읽기 속도, 캐시, 배포 조율, 장애 영향 범위가 함께 커진다.
 
-## 5-15분 샘플앱 폴더 열기
-```bash
-cd week1/day4/sample-app
-ls -la
-```
+Docker는 이 비즈니스 문제를 해결하는 도구가 아니다. 하지만 이런 서비스가 실행되기 위한 조건을 포장하고 재현하기 위한 첫 번째 도구가 된다.
 
-### 파일 역할 표
-| 파일 | 역할 | 오늘 볼 관점 |
+## 시각 자료
+![커머스 앱 구성요소](./assets/lesson-01-commerce-component-map.png)
+
+![커머스 서비스 아키텍처 모델](./assets/lesson-01-commerce-architecture.png)
+
+![커머스 최적화 포인트](./assets/lesson-01-commerce-optimization.png)
+
+## 서비스 특장점과 채용 동기 연결
+- 쿠팡형 커머스 서비스의 강점은 사용자가 상품 탐색, 가격 확인, 재고 확인, 주문, 배송 기대를 한 화면에서 빠르게 끝낸다는 점이다.
+- 학생 관점에서는 "대규모 트래픽을 버티는 백엔드", "상품/주문/배송 데이터 처리", "추천과 검색"을 모두 볼 수 있는 도메인이다.
+- 비즈니스가 커질수록 빠른 화면보다 더 어려운 문제는 정확한 재고, 주문 정합성, 배송 약속, 장애 시 복구다.
+
+## AI 엔지니어링 연결
+- 커머스에서는 추천, 검색 랭킹, 리뷰 요약, 상품 이미지 검수, 수요 예측에 AI가 들어갈 수 있다.
+- AI 기능이 붙으면 모델 서버, feature data, batch job, GPU/CPU 비용, 실험 추적이 추가 실행 조건이 된다.
+- Docker 관점에서는 "추천 API를 어떤 runtime으로 띄우는가", "모델 파일은 어디에 두는가", "실험용 데이터를 어떻게 초기화하는가"가 Week2 이후 질문이 된다.
+
+## 비즈니스 증가와 시스템 노력
+| 비즈니스 증가 | 함께 늘어나는 시스템 노력 |
+|---|---|
+| 상품 수 증가 | catalog storage, image storage, search indexing |
+| 사용자 수 증가 | API 처리량, cache hit rate, monitoring |
+| 판매자 수 증가 | 데이터 소유권, 검증, 권한 규칙 |
+| 주문 수 증가 | 재고 정합성, queue 처리, retry |
+| 지역 증가 | network latency, 배송 로직, traffic routing |
+
+## 로컬 매핑 실습
+| 구성요소 | 작은 로컬 버전 | 실제 회사 버전 |
 |---|---|---|
-| `index.html` | 화면 구조와 script/css 연결 | 브라우저가 처음 읽는 파일 |
-| `style.css` | 화면 스타일 | 실행 성공의 핵심은 아니지만 화면 확인에 도움 |
-| `app.js` | `data.json`을 읽고 화면 갱신 | 오류가 나면 console에 흔적이 남음 |
-| `data.json` | 화면에 표시할 더미 데이터 | 경로/문법 오류 관찰 대상 |
-| `README.md` | 실행과 확인 절차 | runbook의 시작점 |
+| Frontend | `index.html` 상품 화면 | web/mobile product page |
+| Backend | 간단한 API process | 여러 domain service |
+| Data | `products.json` | database, data platform |
+| Cache | browser cache | distributed cache |
+| Queue | 아직 없음 | order/event pipeline |
+| Network | `localhost:8000` | CDN, load balancer, internal network |
+| Config | `.env` 또는 hard-coded value | environment config, secret |
 
-## 15-30분 파일 역할 매핑
-```mermaid
-flowchart LR
-  Html[index.html] --> Css[style.css]
-  Html --> Js[app.js]
-  Js --> Data[data.json]
-  Readme[README.md] --> Run[python3 -m http.server 8000]
-  Run --> Browser[브라우저 확인]
-  Run --> Curl[curl -I 확인]
+## 학생 산출물
+```text
+회사: 쿠팡
+구성요소 초점:
+비즈니스 증가:
+운영 부담:
+로컬 앱으로 줄이면:
+Docker가 필요해지는 지점:
 ```
 
-## 30-40분 실행 조건 표 작성
-| 실행 조건 | 샘플앱 값 |
-|---|---|
-| Source | `week1/day4/sample-app` |
-| Runtime | Python 3 |
-| Command | `python3 -m http.server 8000` |
-| Port | 8000 |
-| Data | `data.json` |
-| Dependency | 외부 서비스 없음 |
-
-## 40-50분 제외 범위 확인
-| 제외 항목 | 오늘 제외하는 이유 |
-|---|---|
-| backend server | 정적 서버 실행 관찰에 집중한다. |
-| database | 데이터 저장보다 JSON 파일 요청을 관찰한다. |
-| login/auth | 권한과 session은 Week1 범위를 넘는다. |
-| paid API | 비용과 key 관리 위험을 만들지 않는다. |
-| cloud deploy | 로컬 실행과 확인 기록을 먼저 안정화한다. |
-
-## 평가 기준
-| 기준 | 충족 |
-|---|---|
-| 샘플앱 파일 5개의 역할을 설명했다. | |
-| 실행 조건 표를 작성했다. | |
-| 제외 범위를 개발 포기가 아니라 운영 범위 통제로 설명했다. | |
+## 체크포인트
+- 상품 페이지 뒤의 구성요소 5개 이상을 말할 수 있다.
+- 비즈니스 증가 요인 1개와 운영 부담 1개를 연결한다.
+- Docker 명령 없이 Docker가 필요한 이유를 한 문장으로 쓴다.
 
 ## 다음 연결
-다음 교시는 이 샘플앱을 실제로 로컬 서버에서 실행하고 브라우저, `curl`, 서버 로그로 성공 기준을 확인한다.
+2교시는 전체 시스템에서 프론트엔드로 좁힌다. 질문은 "화면 하나 바꾸는 일이 왜 플랫폼 문제가 되는가?"이다.

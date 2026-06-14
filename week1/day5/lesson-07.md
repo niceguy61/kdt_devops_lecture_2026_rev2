@@ -1,196 +1,121 @@
-# 7교시: 발표 피드백 및 live Q&A
+# 7교시: Docker가 등장하는 자리
 
 ## 수업 목표
-- 발표 중 드러난 공통 누락을 즉시 보완한다.
-- 학생 질문을 실행, 문서, 위험, 다음 주차 연결로 분류한다.
-- Week1 제출 전 마지막 수정 우선순위를 정한다.
+- 앞선 1~6교시 시나리오를 Docker의 핵심 개념과 연결한다.
+- Docker를 "중요하니까 배운다"가 아니라 "반복되는 로컬 환경 문제를 줄이기 위해 배운다"로 이해한다.
+- Week2에서 배울 명령어의 의미를 미리 준비한다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| Q&A 분류 | 질문을 개념, 실행, 문서, 위험으로 나눈다. | 모든 질문이 흩어져 수정으로 이어지지 않는다. | Q&A board |
-| 즉시 보완 | 답변은 README, risk, 확인 기록 수정으로 닫는다. | 말로는 답했지만 제출물은 그대로다. | patched package |
-| Recheck | 수정 후 다시 실행 또는 확인한다. | 수정이 실제로 도움이 됐는지 모른다. | recheck note |
-| Docker 질문 저장 | 다음 주차로 넘길 질문을 명확히 한다. | Week2 시작 질문이 흐려진다. | Docker preview question |
+## 시각 자료
+![Docker가 등장하는 자리](./assets/lesson-07-docker-appears.png)
 
-### 챌린저 복구 기준
-- 질문을 받으면 먼저 어느 분류인지 표시하고 답한다.
-- 즉시 고칠 수 없는 내용은 residual risk나 Week2 question으로 남긴다.
-- 수정 후 recheck가 없으면 아직 완료가 아니다.
+## 도입 시나리오
+강사는 1~6교시의 문제를 다시 모은다.
 
-## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
-|---|---|---|---|
-| 0-10분 | 발표 피드백 요약 | 공통 누락을 3~5개로 묶는다. | issue list |
-| 10-25분 | live Q&A | 질문을 유형별로 분류한다. | answer notes |
-| 25-40분 | 즉시 보완 | README, risk, 확인 기록을 수정한다. | patched package |
-| 40-47분 | 재확인 | 수정 후 실행 또는 문서 확인을 한다. | recheck note |
-| 47-50분 | Docker preview 연결 | 다음 교시 질문을 정리한다. | Docker question |
+```text
+앱 실행에는 코드 외 조건이 많다.
+DB를 여러 버전으로 설치해야 할 수 있다.
+port가 충돌한다.
+환경변수와 설정이 꼬인다.
+삭제해도 흔적이 남는다.
+새 컴퓨터에서 같은 환경을 다시 만들기 어렵다.
 
-## 0-10분 발표 피드백 요약
-
-- 진행: 발표 피드백 요약
-
-- 초점: 공통 누락을 3~5개로 묶는다.
-
-- 학생 산출: issue list
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 핵심 설명
-Q&A는 새 강의가 아니라 제출물 품질을 높이는 피드백 시간이다. 질문은 가능한 한 README 또는 확인 기록 개선으로 연결한다.
-
-
-
-### 시각 자료 1: 질문에서 수정까지
-![질문, 수정, 재확인 흐름](./assets/lesson-07-feedback-recheck.png)
-
-이 이미지는 질문을 많이 받기 위한 장치가 아니라 들어온 질문을 개념, 실행, 문서 문제로 분류하고 수정 후 재확인 기록을 남기는 절차다. 발표 후 변경 사항은 반드시 recheck note로 닫는다.
-
-```mermaid
-flowchart TD
-    Q[발표 질문] --> C[질문 유형 분류]
-    C --> R[README/확인 기록/risk 위치 찾기]
-    R --> P[작은 수정]
-    P --> V[recheck note]
-    V --> D[Docker preview question]
+이 문제들을 매번 손으로 해결할 것인가?
 ```
 
-## 10-25분 live Q&A
+여기서 Docker를 소개한다. 단, 명령어부터 시작하지 않는다.
 
-- 진행: live Q&A
+## 핵심 개념
+Docker는 실행 환경을 다루는 도구다. 오늘은 네 가지 동사로만 설명한다.
 
-- 초점: 질문을 유형별로 분류한다.
-
-- 학생 산출: answer notes
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 시각 자료 2: Q&A 보드
-| 질문 유형 | board에 적을 형식 | 즉시 보완 위치 |
-|---|---|---|
-| Execution | 실행 위치 또는 port가 모호함 | README start |
-| Verification | 정상 기준이 보이지 않음 | 확인 기록 table |
-| Risk | secret, API, 비용 질문 | risk note |
-| Scope | backend/auth/DB 추가 요구 | known gaps |
-| Next week | Docker로 무엇이 바뀌는가 | readiness question |
-
-## 25-40분 즉시 보완
-
-- 진행: 즉시 보완
-
-- 초점: README, risk, 확인 기록을 수정한다.
-
-- 학생 산출: patched package
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 시각 자료 3: 수정 후 Recheck Capture
-| 수정한 항목 | 다시 확인할 증거 | 기록 문장 |
-|---|---|---|
-| README command | 실제 실행 절차와 일치 | `README start updated and rechecked` |
-| 확인 기록 table | status 또는 화면 기준 있음 | `verification 확인 기록 added` |
-| Risk note | 위험과 제외가 분리됨 | `scope gap documented` |
-| Docker question | Week2 preview로 연결됨 | `question saved for Week2` |
-
-
-
-### 질문 분류
-| Type | 예시 | 연결 산출물 |
-|---|---|---|
-| Execution | 어디서 명령을 실행하나요? | README start |
-| Verification | 정상인지 어떻게 확인하나요? | 확인 기록 table |
-| Risk | API key를 써도 되나요? | risk/exclusion note |
-| Scope | 로그인 기능을 넣어도 되나요? | known gaps |
-| Next week | Docker가 왜 필요한가요? | Docker readiness note |
-
-
-
-### 활동 절차
-1. 발표에서 반복된 문제를 칠판 또는 공유 문서에 모은다.
-2. 각 질문을 유형으로 분류한다.
-3. 학생은 자기 README에서 같은 문제가 있는지 찾는다.
-4. 수정 후 짧은 recheck note를 남긴다.
-5. Docker preview에서 다룰 질문을 1개 적는다.
-
-## 40-47분 재확인
-
-- 진행: 재확인
-
-- 초점: 수정 후 실행 또는 문서 확인을 한다.
-
-- 학생 산출: recheck note
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 흔한 오해
-| 오해 | 교정 |
+| 동사 | 의미 |
 |---|---|
-| 산출물이 있으면 확인 기록은 나중에 채워도 된다. | 확인 기록은 산출물의 일부다. command, path, status, log, note가 함께 있어야 평가 가능하다. |
-| Week1에서 모든 기술을 깊게 익혀야 한다. | Week1은 컴퓨팅 spine과 운영 증거를 만드는 주차이며, 깊은 hands-on은 각 기술 주차에서 진행한다. |
-| 막힌 내용을 숨기는 것이 좋다. | blocker를 증상, 시도한 일, 다음 조치로 기록하는 것이 현업식 진행 관리다. |
+| 포장한다 | 필요한 실행 조건을 image로 묶는다 |
+| 격리한다 | 내 OS 전체에 섞지 않고 container로 실행한다 |
+| 연결한다 | port, volume, env를 명시적으로 연결한다 |
+| 재현한다 | 같은 image와 설정으로 다시 실행한다 |
 
-## 47-50분 Docker preview 연결
+학생들이 Docker를 "가상머신 같은 것"으로만 이해하지 않도록 한다. 핵심은 로컬 OS에 직접 설치하던 부담을 실행 단위로 옮기는 것이다.
 
-- 진행: Docker preview 연결
+## 강의 진행 흐름
+### 1. 오늘의 문제를 Docker 단어로 바꾼다
+판서:
 
-- 초점: 다음 교시 질문을 정리한다.
-
-- 학생 산출: Docker question
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 산출물
-- feedback issue list
-- Q&A answer notes
-- 수정된 README 또는 risk note
-- Docker preview question
-
-
-
-### 평가 기준
-| 기준 | 충족 |
+| Day5 문제 | Docker 단어 |
 |---|---|
-| 질문이 산출물 개선으로 이어졌다. | |
-| 수정 후 recheck 확인 기록이 있다. | |
-| 공통 누락을 개인 제출물에 반영했다. | |
-| Docker preview 질문이 준비되었다. | |
+| 프로그램 설치가 번거롭다 | image |
+| 실행 중인 프로그램을 구분하고 싶다 | container |
+| port가 겹친다 | port binding |
+| 데이터는 남겨야 한다 | volume |
+| 설정값이 필요하다 | environment variable |
+| 여러 프로그램을 함께 켜야 한다 | compose |
+| 정리하고 싶다 | stop, remove, prune |
 
+이 표가 Week2의 목차가 된다.
 
+### 2. Docker가 해결하지 않는 것도 말한다
+과장하지 않는다.
 
-### 현업 DevOps insight
-리뷰의 가치는 지적 자체가 아니라 수정된 artifact에 있다. 질문을 문서, 증거, 위험 표로 되돌려 놓으면 다음 사람이 같은 질문을 반복하지 않는다.
+```text
+Docker가 코드를 고쳐 주지는 않는다.
+Docker가 DB 설계를 대신하지 않는다.
+Docker가 secret 관리를 자동으로 안전하게 해 주지는 않는다.
+Docker를 잘못 쓰면 image와 volume이 쌓여 디스크를 많이 쓸 수 있다.
+Docker도 network, storage, permission 문제를 만든다.
+```
 
+이 말을 해 두면 학생들이 Docker를 마법처럼 기대하지 않는다.
 
+### 3. 로컬 설치 방식과 Docker 방식 비교
+| 관점 | 로컬 직접 설치 | Docker 방식 |
+|---|---|---|
+| 설치 | OS에 프로그램을 등록 | image를 받아 실행 |
+| 실행 단위 | service/process | container |
+| 버전 변경 | 재설치 또는 별도 설치 | image tag 변경 |
+| port | OS port 직접 사용 | host와 container port 연결 |
+| data | 임의의 로컬 폴더 | volume으로 명시 |
+| 삭제 | 흔적 확인 필요 | container/image/volume 구분 |
+| 재현 | 문서 의존 | Dockerfile/Compose로 절차화 |
 
-### 학술 근거
-- Feedback loop: 피드백을 받은 뒤 즉시 산출물을 수정한다.
-- Collaborative learning: 공통 질문을 공유해 개인별 누락을 줄인다.
-- Assessment for learning: 평가는 제출 전 개선을 돕는 과정이다.
+### 4. AI 엔지니어링과 연결한다
+최근 AI 엔지니어링에서도 Docker는 자주 등장한다.
 
+- vector DB를 빠르게 띄워 RAG 실험을 한다.
+- model serving 서버를 격리된 환경에서 실행한다.
+- GPU driver와 library version 문제를 줄인다.
+- prompt evaluation 도구, monitoring 도구를 함께 실행한다.
+- 실험 환경을 다른 사람에게 전달한다.
 
+AI 기능은 dependency와 설정이 많기 때문에 Docker의 장점이 더 빨리 체감된다.
 
-### 다음 주차 연결
-학생 질문 중 "왜 Docker가 필요한가"는 다음 교시 preview와 Week2 시작 질문으로 이어진다.
+## 학생 활동
+다음 표를 개인별로 채운다.
 
+```text
+내가 불편했던 로컬 환경 문제:
+그 문제가 속한 범주: 설치 / 버전 / port / 설정 / 데이터 / 삭제 / 재현
+Docker가 줄여 줄 것 같은 부분:
+Docker가 대신 해결하지 못할 것 같은 부분:
+Week2에서 가장 확인하고 싶은 명령:
+```
 
+공유는 짧게 진행한다. 공식 산출물을 만들기보다 "내가 겪은 문제를 Docker 용어로 바꾸는 것"이 목표다.
 
-### 다음 연결
-다음 교시는 2주차 Docker preview를 통해 Week1 앱을 container 관점으로 바라본다.
+## Week2 예고
+Week2에서는 오늘의 문제를 실제 명령으로 바꾼다.
 
+```text
+image 받기
+container 실행하기
+port 연결하기
+volume 붙이기
+environment variable 주입하기
+여러 service를 compose로 함께 실행하기
+사용한 자원 정리하기
+```
 
+## 마무리 체크
+학생이 말할 수 있어야 하는 문장:
 
-### 공식/학술 근거 링크
-- Monash Constructive Alignment, https://www.monash.edu/learning-teaching/teachhq/Teaching-practices/learning-outcomes/how-to/constructive-alignment - feedback을 목표, 활동, 평가 확인 기록와 맞추는 기준이다.
-- Google SRE Book: Postmortem Culture, https://sre.google/sre-book/postmortem-culture/ - feedback을 개인 비판이 아니라 개선 가능한 artifact로 바꾸는 기준이다.
-- CMU Eberly Center: Bloom's Taxonomy, https://www.cmu.edu/teaching/designteach/design/bloomsTaxonomy.html - feedback을 이해/적용/평가 수준으로 구분하는 근거다.
+```text
+Docker는 로컬 실행 환경의 설치, 격리, 연결, 재현, 정리 문제를 다루기 위해 등장한다.
+```

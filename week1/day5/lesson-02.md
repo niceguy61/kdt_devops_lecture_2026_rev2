@@ -1,191 +1,122 @@
-# 2교시: 컴퓨팅 spine 최종 매핑
+# 2교시: DB를 두 개 설치해야 한다면
 
 ## 수업 목표
-- Week1 활동을 computing spine의 핵심 개념과 연결한다.
-- 파일, 프로세스, 네트워크, 데이터, 증거의 관계를 설명한다.
-- Week2~5 기술이 어떤 문제를 해결하는지 예고한다.
+- 같은 종류의 프로그램도 버전이 다르면 다른 실행 환경이 된다는 점을 이해한다.
+- DB를 중복 설치할 때 생기는 충돌 지점을 설명한다.
+- Docker의 격리 개념이 등장할 수밖에 없는 이유를 시나리오로 이해한다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| 컴퓨팅 spine | file, process, port, data, 확인 기록을 Day3 챌린지와 Day4 샘플앱에 연결한다. | 용어는 외우지만 실제 산출물과 연결하지 못한다. | final spine map |
-| 실제 값 매핑 | 추상어를 내 파일명, 명령, URL로 바꾼다. | 설명이 모호해서 handoff가 어렵다. | path/command/URL |
-| Week2~5 연결 | 다음 기술이 어떤 한계를 해결하는지 말한다. | 도구 이름만 나열한다. | technology map |
-| 짝 설명 | 다른 사람에게 설명하며 빈칸을 찾는다. | 혼자만 이해한 문서로 남는다. | peer feedback |
+## 시각 자료
+![DB를 두 개 설치해야 한다면](./assets/lesson-02-db-version-conflict.png)
 
-### 챌린저 복구 기준
-- spine map이 어렵다면 Day4 샘플앱의 `index.html`, 서버 명령, URL, data.json부터 채운다.
-- Week2~5 연결은 '무엇을 배운다'가 아니라 '무슨 문제를 해결한다'로 쓴다.
-- 설명 중 막히는 단어는 실제 확인 기록으로 바꿔 적는다.
+## 도입 시나리오
+강사가 다음 상황을 제시한다.
 
-## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
-|---|---|---|---|
-| 0-10분 | spine 개념 회상 | Day1~4 활동을 질문으로 끌어낸다. | 개념 목록 |
-| 10-25분 | 개인 매핑 작성 | Day3 챌린지/Day4 샘플앱 확인 기록과 spine을 연결한다. | mapping table |
-| 25-35분 | Week2~5 연결 | Docker/CI/CD/cloud/security를 문제 해결 관점으로 예고한다. | 기술 연결 |
-| 35-45분 | 짝 설명 | 상대에게 2분 설명한다. | 설명 피드백 |
-| 45-50분 | 최종 수정 | 모호한 용어를 확인 기록로 바꾼다. | final map |
+```text
+프로젝트 A는 DB 5.7에서만 정상 동작한다.
+프로젝트 B는 DB 8.0 기능을 사용한다.
 
-## 0-10분 spine 개념 회상
-
-- 진행: spine 개념 회상
-
-- 초점: Day1~4 활동을 질문으로 끌어낸다.
-
-- 학생 산출: 개념 목록
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 핵심 설명
-Spine 매핑은 용어 암기가 아니다. Day3 챌린지와 Day4 샘플앱을 기준으로 "파일이 프로세스로 서비스되고, port와 HTTP를 통해 보이며, 확인 기록으로 검증된다"는 흐름을 설명하는 것이다.
-
-
-
-### 시각 자료 1: Computing Spine
-![Week1 computing spine](../assets/week1-computing-spine.png)
-
-이미지의 순서를 따라가며 path, process, port, data, 확인 기록을 실제 값으로 바꿔 적는다.
-
-## 10-25분 개인 매핑 작성
-
-- 진행: 개인 매핑 작성
-
-- 초점: Day3 챌린지/Day4 샘플앱 확인 기록과 spine을 연결한다.
-
-- 학생 산출: mapping table
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 시각 자료 2: Week1 산출물 spine 연결
-```mermaid
-flowchart TD
-    F[File/path<br/>index.html, app.js, data.json] --> P[Process<br/>local server]
-    P --> N[Port/HTTP<br/>localhost URL]
-    D[Data<br/>dummy JSON] --> B[Browser rendering]
-    N --> B
-    B --> E[확인 기록<br/>screen, status, README]
-    E --> W[Week2 Docker preview]
+둘 다 이번 주에 확인해야 한다.
+내 컴퓨터에는 DB를 어떻게 설치해야 할까?
 ```
 
-## 25-35분 Week2~5 연결
+학생들은 보통 "하나를 지우고 다른 걸 설치한다", "포트를 다르게 한다", "다른 컴퓨터를 쓴다" 정도를 말한다. 이 답을 모두 살리고, 각각의 비용을 따져 본다.
 
-- 진행: Week2~5 연결
+## 문제를 구체화한다
+DB는 단순 실행 파일이 아니다. 보통 다음 요소를 함께 가진다.
 
-- 초점: Docker/CI/CD/cloud/security를 문제 해결 관점으로 예고한다.
-
-- 학생 산출: 기술 연결
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 시각 자료 3: 설명 카드
-| Spine 질문 | 학생이 넣을 실제 값 |
-|---|---|
-| 어떤 파일이 앱의 입구인가? | |
-| 어떤 프로세스가 파일을 서비스하는가? | |
-| 어떤 URL 또는 port로 확인했는가? | |
-| 데이터는 어디에서 와서 어디에 보이는가? | |
-| 정상임을 보여주는 확인 기록은 무엇인가? | |
-
-
-
-### Spine Map
-| Spine Element | Week1 확인 기록 | 다음 기술 연결 |
+| 요소 | 설명 | 중복 설치 시 문제 |
 |---|---|---|
-| File/path | `index.html`, `app.js`, `data.json` | Docker build context |
-| Process | `python3 -m http.server` | container process |
-| Port/HTTP | `localhost:8000`, HTTP 200 | port mapping, service exposure |
-| Data | dummy JSON | volume, config, API boundary |
-| Config/secret | no secret, local config only | env var, secret management |
-| 확인 기록 | curl/browser/README | CI logs, deploy record |
-| Failure/RCA | one failure record | container logs, rollback note |
+| 실행 파일 | DB 서버 프로그램 | 버전별 path 혼동 |
+| 서비스 | 부팅 시 자동 실행되는 백그라운드 프로세스 | 둘 중 무엇이 켜졌는지 모름 |
+| port | 클라이언트가 접속하는 번호 | 기본 port 충돌 |
+| 데이터 폴더 | 실제 데이터 저장 위치 | 프로젝트 데이터 혼합 위험 |
+| 설정 파일 | 인증, 문자셋, port, 경로 | 수정 위치 혼동 |
+| 계정/비밀번호 | 접속 인증 정보 | 기억하기 어렵고 문서화 누락 |
 
+강사는 여기서 "DB를 설치했다"라는 말이 사실은 "실행 파일, 서비스, 설정, 데이터 위치, 접속 정보를 한꺼번에 내 컴퓨터에 등록했다"는 뜻임을 강조한다.
 
+## 강의 진행 흐름
+### 1. 버전 차이가 왜 문제가 되는가
+버전 차이는 단순히 숫자가 아니다. 다음이 달라질 수 있다.
 
-### 활동 절차
-1. Day3 챌린지와 Day4 샘플앱에서 실제 파일 경로를 적는다.
-2. 실행 중인 process와 command를 적는다.
-3. port와 URL, HTTP 확인 결과를 적는다.
-4. 데이터가 어디에서 와서 어디에 보이는지 적는다.
-5. 각 항목을 Week2 이후 기술과 연결한다.
+- SQL 문법 지원 범위
+- 기본 인증 방식
+- 문자셋과 collation 기본값
+- index 동작 방식
+- 백업/복구 파일 호환성
+- driver가 기대하는 protocol
 
-## 35-45분 짝 설명
+학생들에게 질문한다.
 
-- 진행: 짝 설명
+```text
+프로젝트 A에서 쓰던 DB 파일을 프로젝트 B DB로 열었더니 자동 업그레이드가 됐다.
+다시 A로 돌아갈 수 있을까?
+```
 
-- 초점: 상대에게 2분 설명한다.
+정답은 "상황에 따라 어렵거나 불가능할 수 있다"다. 그래서 실무에서는 버전 비교 테스트를 조심스럽게 한다.
 
-- 학생 산출: 설명 피드백
+### 2. "그냥 하나 더 설치하면 되지"의 비용
+로컬에 DB를 여러 개 설치하면 당장은 해결되는 것처럼 보인다. 하지만 시간이 지나면 다음 문제가 생긴다.
 
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+```text
+어떤 DB가 지금 켜져 있지?
+내가 접속한 3306은 어느 프로젝트 DB지?
+이 데이터 폴더는 지워도 되는 건가?
+서비스 목록에 남은 이 항목은 뭔가?
+업그레이드하다가 기존 프로젝트가 깨지면 어떻게 복구하지?
+```
 
+여기서 학생들이 "귀찮다"라고 느끼는 것이 중요하다. Docker는 바로 이 귀찮음을 줄이기 위해 등장한다.
 
+### 3. AI 엔지니어링과 연결한다
+AI 기능을 붙이면 DB 종류도 늘어난다.
 
-### 흔한 오해
-| 오해 | 교정 |
+- 사용자 계정과 결제 정보는 relational DB에 저장한다.
+- 검색용 문서 임베딩은 vector DB에 저장한다.
+- 응답 속도를 위해 cache를 둔다.
+- 작업 대기열을 위해 queue를 둔다.
+- 실험 결과를 비교하려고 DB 버전을 바꿔 본다.
+
+이때 모든 프로그램을 로컬 OS에 직접 설치하면 충돌과 정리가 어려워진다. AI 앱일수록 "여러 저장소를 빠르게 띄우고 버리고 다시 띄우는 능력"이 필요하다.
+
+## 학생 활동
+두 프로젝트를 비교하게 한다.
+
+```text
+프로젝트 A: 오래된 게시판
+- DB 5.7 필요
+- port 3306 사용
+- 데이터 폴더 A 필요
+
+프로젝트 B: 최신 AI 검색 앱
+- DB 8.0 필요
+- vector 저장소 필요
+- port 3306 또는 3307 사용
+```
+
+학생들은 다음 질문에 답한다.
+
+```text
+1. 충돌 가능성이 있는 지점은 어디인가?
+2. 지우면 안 되는 데이터는 무엇인가?
+3. 새 컴퓨터에서 다시 만들 때 가장 귀찮은 부분은 무엇인가?
+4. 버전 비교 테스트를 빨리 하려면 무엇이 자동화되어야 하는가?
+```
+
+## Docker 연결
+2교시의 핵심 연결:
+
+| 불편함 | Docker에서의 해결 방향 |
 |---|---|
-| 산출물이 있으면 확인 기록은 나중에 채워도 된다. | 확인 기록은 산출물의 일부다. command, path, status, log, note가 함께 있어야 평가 가능하다. |
-| Week1에서 모든 기술을 깊게 익혀야 한다. | Week1은 컴퓨팅 spine과 운영 증거를 만드는 주차이며, 깊은 hands-on은 각 기술 주차에서 진행한다. |
-| 막힌 내용을 숨기는 것이 좋다. | blocker를 증상, 시도한 일, 다음 조치로 기록하는 것이 현업식 진행 관리다. |
+| 버전별 설치가 번거로움 | version tag가 붙은 image 사용 |
+| 서비스가 OS에 남음 | container 단위로 실행/중지 |
+| 데이터 폴더가 섞임 | volume을 명시적으로 분리 |
+| port가 겹침 | host port를 다르게 binding |
+| 삭제가 불안함 | container/image/volume을 구분해서 정리 |
 
-## 45-50분 최종 수정
+## 마무리 체크
+학생이 말할 수 있어야 하는 문장:
 
-- 진행: 최종 수정
-
-- 초점: 모호한 용어를 확인 기록으로 바꾼다.
-
-- 학생 산출: final map
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 산출물
-- computing spine final mapping
-- 2분 구두 설명 메모
-- Week2 Docker 연결 문장 1개
-
-
-
-### 평가 기준
-| 기준 | 충족 |
-|---|---|
-| spine 요소가 실제 확인 기록과 연결된다. | |
-| 추상 용어만 쓰지 않고 path/command/URL을 포함한다. | |
-| Week2 Docker가 해결할 문제를 설명한다. | |
-| 짝에게 2분 안에 설명할 수 있다. | |
-
-
-
-### 현업 DevOps insight
-좋은 엔지니어는 도구 이름보다 시스템 경계를 먼저 본다. Docker, CI, cloud는 각각 파일, 프로세스, 네트워크, 증거의 문제를 더 안정적으로 다루기 위한 수단이다.
-
-
-
-### 학술 근거
-- Concept mapping: 개념 간 관계를 시각화하거나 표로 정리해 전이를 돕는다.
-- Transfer of learning: Week1 로컬 실행 경험을 Week2 컨테이너 개념으로 옮긴다.
-- CS2023 systems perspective: software artifact와 execution environment를 연결한다.
-
-
-
-### 다음 주차 연결
-Week2 첫 Docker 실습은 `python3 -m http.server`를 container process로 바꾸는 활동이다. Spine map은 그 변환의 기준표가 된다.
-
-
-
-### 다음 연결
-다음 교시는 DevOps handoff package를 작성한다.
-
-
-
-### 공식/학술 근거 링크
-- MIT Missing Semester, https://missing.csail.mit.edu/ - shell/Git/debugging 산출물을 학습 확인 기록로 정리하는 기준이다.
-- GitHub Docs: About READMEs, https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes - README checklist가 실행 가능성과 도움 경로를 담아야 하는 기준이다.
-- Google SRE Book: Introduction, https://sre.google/sre-book/introduction/ - monitoring과 change management를 산출물 검토에 연결하는 근거다.
+```text
+DB 중복 설치 문제는 DB 프로그램 하나의 문제가 아니라 버전, port, service, data path, config가 함께 얽힌 문제다.
+```

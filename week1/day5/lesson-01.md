@@ -1,199 +1,121 @@
-# 1교시: 1주차 산출물 통합
+# 1교시: 애플리케이션 실행 환경은 코드만이 아니다
 
 ## 수업 목표
-- Day1~4 산출물을 하나의 repository 기준으로 정리한다.
-- 누락된 확인 기록을 찾아 보완한다.
-- 제출물이 다음 작업자에게 전달 가능한지 판단한다.
+- 애플리케이션이 실행되기 위해 코드 외에 필요한 조건을 말할 수 있다.
+- 실행 실패를 "코드가 틀렸다"로만 보지 않고 runtime, dependency, port, config, data path 관점으로 나누어 본다.
+- Week2 Docker 수업에서 다룰 image, container, volume, port, env 개념이 왜 필요한지 감을 잡는다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| 통합 inventory | 흩어진 산출물을 한 목록으로 모은다. | 제출물이 있는데도 어디 있는지 설명하지 못한다. | file/path/status 표 |
-| 확인 기록 gap | 누락된 실행, URL, 상태 코드, 스크린샷을 찾는다. | 앱은 있지만 평가 가능한 근거가 없다. | gap list |
-| README 통합 | 실행, 확인, 중지, 문제 해결을 한 곳에 둔다. | 다음 사람이 실행 흐름을 따라가지 못한다. | final README checklist |
-| 제출 상태 | complete, partial, missing을 숨기지 않는다. | 부족한 부분이 Day5 후반에 다시 드러난다. | 제출 상태 표 |
+## 시각 자료
+![앱 실행 환경은 코드만이 아니다](./assets/lesson-01-runtime-environment.png)
 
-### 챌린저 복구 기준
-- 파일을 찾는 데 시간이 걸리면 먼저 저장소 루트 기준 경로를 표로 만든다.
-- 확인 기록이 없으면 기능 수정이 아니라 실행 명령과 결과 캡처부터 한다.
-- partial은 실패가 아니라 보완할 위치를 명확히 표시한 상태다.
+## 도입 시나리오
+강사가 이렇게 시작한다.
 
-## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
-|---|---|---|---|
-| 0-5분 | Day5 목표 소개 | 통합과 handoff 중심으로 기준을 고정한다. | 목표 확인 |
-| 5-15분 | 파일 inventory | 누락 파일과 중복 파일을 찾게 한다. | inventory table |
-| 15-30분 | 확인 기록 gap 찾기 | command, URL, status, screenshot/notes를 확인한다. | gap list |
-| 30-40분 | README 통합 | Day별 기록을 하나의 흐름으로 정리한다. | README 수정 |
-| 40-50분 | 제출 상태 표시 | complete/partial/missing으로 표시한다. | readiness note |
+```text
+어제까지는 "내가 만든 페이지가 브라우저에서 뜨는가"를 봤다.
+그런데 회사에서 일하면 보통 이런 말을 듣는다.
 
-## 0-5분 Day5 목표 소개
+"이 서비스 로컬에서 한번 띄워 보세요."
 
-- 진행: Day5 목표 소개
-
-- 초점: 통합과 handoff 중심으로 기준을 고정한다.
-
-- 학생 산출: 목표 확인
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 핵심 설명
-Day5는 새 기능을 많이 추가하는 날이 아니라 1주차 산출물을 묶어 "실행 가능한 handoff package"로 만드는 날이다. 통합의 기준은 파일이 많아 보이는 것이 아니라, 다른 사람이 README를 읽고 앱을 실행하고 위험을 이해할 수 있는가다.
-
-
-
-### 시각 자료 1: 확인 기록 흐름
-![Week1 service 확인 기록 flow](../assets/week1-service-evidence-flow.png)
-
-이 이미지는 앱 실행, 확인, 문서화가 따로 떨어진 일이 아니라 하나의 확인 기록 흐름이라는 점을 보여준다.
-
-## 5-15분 파일 inventory
-
-- 진행: 파일 inventory
-
-- 초점: 누락 파일과 중복 파일을 찾게 한다.
-
-- 학생 산출: inventory table
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 통합 항목
-| Artifact | Required 확인 기록 |
-|---|---|
-| README | start/check/stop/troubleshoot |
-| Day3 AI website challenge | static files and local URL |
-| Day4 sample app operation note | success, 404, data/JSON error |
-| RCA | one failure record |
-| mapping | computing spine |
-| risk | cost/security/reproducibility |
-| interview | Day4 1:1 interview and mentoring note |
-
-
-
-### Week 1 Integration Inventory
-| Item | Path | Status | 확인 기록 |
-|---|---|---|---|
-| Day3 challenge | | complete/partial/missing | |
-| Day4 sample app operation note | | complete/partial/missing | |
-| README | | complete/partial/missing | |
-| RCA | | complete/partial/missing | |
-| risk table | | complete/partial/missing | |
-| spine mapping | | complete/partial/missing | |
-
-
-
-### 시각 자료 2: 통합 판단 흐름
-```mermaid
-flowchart LR
-    A[Day1~4 산출물] --> B[파일 inventory]
-    B --> C{확인 기록 있음?}
-    C -- 있음 --> D[README에 연결]
-    C -- 없음 --> E[gap list에 기록]
-    E --> F[보완 또는 residual risk]
-    D --> G[handoff package]
-    F --> G
+코드를 받았다. 그런데 실행이 안 된다.
+이때 무엇부터 확인해야 할까?
 ```
 
-## 15-30분 확인 기록 gap 찾기
+학생들이 흔히 떠올리는 답은 "코드 오류", "설치가 안 됨", "버전 문제" 정도다. 이 답을 인정한 뒤 더 넓게 펼친다. 실제 실행 환경은 다음 조건들의 조합이다.
 
-- 진행: 확인 기록 gap 찾기
-
-- 초점: command, URL, status, screenshot/notes를 확인한다.
-
-- 학생 산출: gap list
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 시각 자료 3: 빠른 캡처 가이드
-| 캡처 대상 | 확인 질문 | 제출 기록 예시 |
+| 조건 | 질문 | 예시 |
 |---|---|---|
-| Repository tree | 핵심 파일이 한 위치에 모였는가? | `Path: mini-app/` |
-| Browser screen | 앱 화면이 정상적으로 보이는가? | `URL checked, data visible` |
-| README section | 실행/확인/중지 절차가 있는가? | `How to run complete` |
-| Risk note | 남은 위험이 숨겨지지 않았는가? | `partial: no backend by scope` |
+| 코드 | 무엇을 실행하는가? | frontend, backend, script |
+| Runtime | 어떤 실행기가 필요한가? | Node.js, Python, Java |
+| Dependency | 어떤 라이브러리가 필요한가? | npm package, pip package |
+| Program | 외부 프로그램이 필요한가? | DB, cache, message broker |
+| Network | 어디로 접속하는가? | localhost, port, API URL |
+| Configuration | 설정은 어디서 오는가? | `.env`, config file |
+| Data | 데이터는 어디에 저장되는가? | database folder, upload folder |
+| Command | 어떤 명령으로 시작하는가? | `npm run dev`, `python app.py` |
 
+## 강의 진행 흐름
+### 1. "실행된다"의 의미를 분해한다
+학생들에게 질문한다.
 
+```text
+여러분이 만든 앱이 실행됐다고 말하려면 무엇을 봐야 할까?
+```
 
-### 활동 절차
-1. repository root와 Day3 챌린지/Day4 샘플앱 폴더 위치를 확인한다.
-2. Day1~4에서 만든 산출물을 목록화한다.
-3. 각 산출물에 확인 기록이 붙어 있는지 확인한다.
-4. 중복되거나 범위 밖인 내용을 제거한다.
-5. README에 최종 실행 경로와 확인 절차를 통합한다.
+판서 예시:
 
-## 30-40분 README 통합
+```text
+명령 실행 성공
+브라우저 접속 성공
+로그에 에러 없음
+DB 연결 성공
+데이터 읽기 성공
+다른 사람 컴퓨터에서도 재현 가능
+```
 
-- 진행: README 통합
+여기서 핵심은 "내 컴퓨터에서 한 번 켜짐"과 "운영 가능한 실행 환경"은 다르다는 점이다. 개발 수업에서는 전자가 먼저 필요하지만, DevOps와 Cloud Native에서는 후자를 계속 묻는다.
 
-- 초점: Day별 기록을 하나의 흐름으로 정리한다.
+### 2. 실행 조건을 하나씩 제거해 본다
+짧은 사고 실험으로 진행한다.
 
-- 학생 산출: README 수정
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 흔한 오해
-| 오해 | 교정 |
+| 제거한 조건 | 예상 증상 |
 |---|---|
-| 산출물이 있으면 확인 기록은 나중에 채워도 된다. | 확인 기록은 산출물의 일부다. command, path, status, log, note가 함께 있어야 평가 가능하다. |
-| Week1에서 모든 기술을 깊게 익혀야 한다. | Week1은 컴퓨팅 spine과 운영 증거를 만드는 주차이며, 깊은 hands-on은 각 기술 주차에서 진행한다. |
-| 막힌 내용을 숨기는 것이 좋다. | blocker를 증상, 시도한 일, 다음 조치로 기록하는 것이 현업식 진행 관리다. |
+| Node.js 버전이 다름 | 명령 자체가 실패하거나 문법 오류 발생 |
+| 라이브러리 설치가 안 됨 | module not found |
+| DB가 꺼져 있음 | connection refused |
+| port가 겹침 | already in use |
+| `.env` 값이 없음 | undefined config, login failure |
+| 데이터 폴더가 없음 | file not found, empty result |
 
-## 40-50분 제출 상태 표시
+학생들이 따라오기 어렵다면 용어를 줄이고 "앱이 살기 위한 주변 조건"이라고 표현한다.
 
-- 진행: 제출 상태 표시
+### 3. AI 엔지니어링과 연결한다
+최근 AI 기능이 들어간 앱은 실행 조건이 더 늘어난다.
 
-- 초점: complete/partial/missing으로 표시한다.
+- LLM API key가 필요하다.
+- vector database나 embedding 저장소가 필요할 수 있다.
+- 모델 버전, tokenizer, GPU driver가 맞아야 할 수 있다.
+- 요청 비용을 줄이기 위한 cache가 필요할 수 있다.
+- prompt와 retrieval 설정이 바뀌면 결과가 달라진다.
 
-- 학생 산출: readiness note
+즉 AI 앱은 "코드만 받으면 실행된다"에서 더 멀어진다. 그래서 환경을 기록하고 재현하는 능력이 더 중요해진다.
 
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+## 학생 활동
+각자 최근에 실행했던 프로그램 하나를 떠올리고 다음 표를 채운다. 꼭 정답일 필요는 없다.
 
+```text
+프로그램 이름:
+실행 명령:
+필요한 runtime:
+필요한 외부 프로그램:
+사용한 port:
+필요한 설정값:
+데이터가 저장되는 위치:
+실패했을 때 봐야 할 화면이나 로그:
+```
 
+3분 작성, 5분 공유로 운영한다. 공유할 때 강사는 "그건 Docker로 해결됩니다"라고 먼저 말하지 않는다. 대신 "이 조건을 매번 손으로 맞추는 게 힘들다"는 결론까지 데려간다.
 
-### 산출물
-아래 양식 또는 표를 사용해 이 시간 블록의 산출물을 작성한다.
+## Docker 연결
+오늘 1교시의 결론은 다음 한 문장이다.
 
-### 평가 기준
-| 기준 | 충족 |
+```text
+Docker는 코드를 대신 짜 주는 도구가 아니라, 실행 조건을 포장하고 격리하고 재현하려는 도구다.
+```
+
+Week2에서 배울 Docker 용어를 미리 연결한다.
+
+| 오늘의 말 | Week2 표현 |
 |---|---|
-| Day1~4 산출물이 하나의 목록으로 정리되었다. | |
-| 확인 기록 누락이 명시되었다. | |
-| README가 최종 실행 기준을 제공한다. | |
-| 삭제하거나 제외할 범위 초과 항목을 식별했다. | |
+| 실행에 필요한 프로그램 묶음 | image |
+| 실제로 켜진 실행 단위 | container |
+| 밖에서 접속할 입구 | port binding |
+| 데이터가 남는 위치 | volume |
+| 실행 시 주입하는 설정 | environment variable |
 
+## 마무리 체크
+학생이 말할 수 있어야 하는 문장:
 
-
-### 현업 DevOps insight
-통합은 "마지막에 예쁘게 정리"가 아니라 운영 리스크를 줄이는 작업이다. 산출물이 흩어져 있으면 장애 대응, 리뷰, 배포 준비가 모두 느려진다.
-
-
-
-### 학술 근거
-- Portfolio assessment: 여러 활동 산출물을 하나의 증거 묶음으로 평가한다.
-- Cognitive organization: 분산된 정보를 구조화해 문제 해결 부담을 낮춘다.
-- ABET-style communication: 기술 산출물을 실행 가능한 문서로 전달한다.
-
-
-
-### 다음 주차 연결
-Week2 Docker에서는 통합된 앱 폴더가 container build 대상이 된다. 오늘 통합이 되어야 어떤 파일을 이미지에 넣을지 판단할 수 있다.
-
-
-
-### 다음 연결
-다음 교시는 computing spine 최종 매핑을 작성한다.
-
-
-
-### 공식/학술 근거 링크
-- GitHub Docs: About READMEs, https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes - 통합 산출물이 실행과 도움 경로를 제공해야 하는 기준이다.
-- Pro Git: About Version Control, https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control - 통합 과정에서 변경 이력과 협업 증거를 남기는 이유다.
-- Monash Constructive Alignment, https://www.monash.edu/learning-teaching/teachhq/Teaching-practices/learning-outcomes/how-to/constructive-alignment - 목표, 활동, 평가 확인 기록을 하나의 artifact로 맞추는 기준이다.
+```text
+앱 실행은 코드만의 문제가 아니라 runtime, dependency, network, config, data가 함께 맞아야 하는 문제다.
+```

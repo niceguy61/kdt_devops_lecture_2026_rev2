@@ -1,79 +1,139 @@
-# 6교시: Day3 AI 챌린지와 Day4 운영 기록 발표
+# 6교시: 빠르게 같은 환경을 만들고 싶다면
 
 ## 수업 목표
-- Day3 AI 웹사이트 챌린지 결과를 3분 안에 발표한다.
-- Day4 샘플앱 운영 기록에서 성공/실패/오류 관찰을 함께 설명한다.
-- 기능 자랑보다 실행 확인, 위험 제외, handoff, Docker readiness를 중심으로 말한다.
+- "내 컴퓨터에서는 된다"가 충분한 설명이 아님을 이해한다.
+- 재현 가능한 실행 환경을 만들기 위해 기록해야 할 항목을 정리한다.
+- Dockerfile과 Compose가 등장하기 전, 왜 환경 문서화가 필요한지 이해한다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
-|---|---|---|---|
-| Day3 챌린지 발표 | AI로 만든 정적 웹사이트 초안을 검증 과정과 함께 설명한다. | 결과물만 보여주고 AI 검증 기준을 놓친다. | prompt, static files, run check |
-| Day4 운영 기록 발표 | 공통 샘플앱의 성공/실패/오류 관찰을 말한다. | DevOps 과정이 개발 결과 발표처럼 보인다. | success/404/error notes |
-| 3분 구조 | 짧은 시간 안에 실행 방법, 확인 기록, 위험을 말한다. | 설명이 길어져 핵심 검증을 놓친다. | presentation card |
-| Docker readiness | 다음 주차 질문을 자기 산출물 기준으로 남긴다. | Week2가 갑자기 새로운 과목처럼 느껴진다. | Docker question |
+## 시각 자료
+![빠르게 같은 환경 만들기](./assets/lesson-06-reproducible-environment.png)
 
-### 챌린저 복구 기준
-- 발표가 길어지면 디자인 설명을 줄이고 실행 방법과 확인 기록을 먼저 말한다.
-- Day3 결과가 미완성이어도 괜찮다. 무엇을 제외했고 어떻게 확인했는지를 말한다.
-- Day4 기록은 성공만 말하지 말고 404 또는 data/JSON 오류 관찰 하나를 포함한다.
+## 도입 시나리오
+강사가 다음 상황을 제시한다.
 
-## 50분 운영
-| 시간 | 활동 | 학습 초점 | 학생 산출 |
-|---|---|---|---|
-| 0-5분 | 발표 기준 안내 | 기능 자랑보다 확인 기록 중심을 강조한다. | 발표 기준 |
-| 5-10분 | 발표 카드 작성 | Day3 결과와 Day4 기록을 5개 항목으로 제한한다. | presentation card |
-| 10-40분 | 학생 발표 | 시간 관리와 질문을 진행한다. | 발표 |
-| 40-48분 | 동료 평가 | 실행 가능성과 handoff 기준으로 피드백한다. | feedback note |
-| 48-50분 | 다음 교시 연결 | Q&A에서 다룰 공통 이슈를 모은다. | issue list |
+```text
+새 컴퓨터를 받았다.
+어제 만든 앱을 다시 실행해야 한다.
 
-## 0-5분 발표 기준 안내
-발표는 데모 쇼가 아니라 technical handoff 연습이다. Day3 챌린지는 "AI가 만든 것을 어떻게 검증했는가"를 보여주고, Day4 샘플앱은 "서버 실행과 오류 관찰을 어떻게 기록했는가"를 보여준다.
-
-## 5-10분 발표 카드 작성
-| 순서 | 내용 | 시간 |
-|---|---|---|
-| 1 | Day3 챌린지 결과와 제외한 범위 | 40초 |
-| 2 | Day3 실행 확인 기록 | 40초 |
-| 3 | Day4 샘플앱 성공 확인 | 40초 |
-| 4 | Day4 실패/오류 관찰 하나 | 40초 |
-| 5 | Week2 Docker readiness 질문 | 20초 |
-
-## 10-40분 학생 발표
-```mermaid
-flowchart LR
-    A[Day3 AI challenge] --> B[Run check]
-    B --> C[Day4 sample app success]
-    C --> D[404 or data error observation]
-    D --> E[Risk and exclusion]
-    E --> F[Week2 Docker readiness]
+그런데 기억나는 것은 "npm install 했던 것 같은데..." 정도다.
 ```
 
-### 보여줄 자료 선택
-| 자료 | 보여주면 답하는 질문 |
-|---|---|
-| Day3 챌린지 화면 | AI 결과가 정적 웹사이트로 열리는가? |
-| Day3 prompt 기록 | 무엇을 요청했고 무엇을 제외했는가? |
-| Day4 runbook | 다음 사람이 샘플앱을 실행할 수 있는가? |
-| Day4 404/data error note | 실패를 관찰하고 구분했는가? |
-| Docker readiness note | Week2로 넘길 실행 조건이 명확한가? |
+학생들에게 묻는다.
 
-## 40-48분 동료 평가
-| 질문 | 피드백 |
-|---|---|
-| 발표자가 실행 방법을 설명했는가? | |
-| 확인 기록을 보여주거나 말했는가? | |
-| 오류 관찰이 성공 상태와 구분되는가? | |
-| 제외한 범위와 남은 위험이 명확한가? | |
-| Week2 질문이 자기 산출물과 연결되는가? | |
+```text
+어제의 내 컴퓨터 환경을 오늘 새 컴퓨터에 다시 만들려면 무엇이 필요할까?
+```
 
-## 48-50분 다음 교시 연결
-발표에서 반복해서 나온 질문은 7교시 live Q&A에서 다룬다. Q&A는 새 강의가 아니라 README, runbook, risk, Docker readiness note를 보완하는 시간이다.
+## 핵심 개념
+재현 가능성은 같은 입력과 절차로 같은 결과를 다시 만들 수 있는 능력이다. 개발 환경에서는 다음을 뜻한다.
 
-## 평가 기준
-| 기준 | 충족 |
+| 항목 | 필요한 기록 |
 |---|---|
-| Day3 챌린지 결과와 검증 과정을 설명했다. | |
-| Day4 샘플앱 성공/실패/오류 관찰 중 최소 2개를 설명했다. | |
-| 실행 확인 기록을 보여주거나 말했다. | |
-| Week2 Docker readiness 질문을 남겼다. | |
+| OS | Windows, macOS, Linux, WSL 여부 |
+| runtime | Node.js/Python/Java 버전 |
+| package manager | npm, pnpm, pip, poetry |
+| dependency | lock file, requirements |
+| external program | DB, cache, queue |
+| port | 접속 번호 목록 |
+| environment variable | `.env.example` |
+| initial data | seed data, migration |
+| start command | 실행 순서 |
+| check command | 정상 확인 방법 |
+| stop command | 종료 방법 |
+
+## 강의 진행 흐름
+### 1. 설치 가이드와 실행 가이드는 다르다
+설치 가이드는 필요한 것을 컴퓨터에 넣는 절차다. 실행 가이드는 그것을 어떤 순서로 켜고 확인하는 절차다.
+
+```text
+설치: Node.js 설치, DB 설치, package 설치
+실행: DB 켜기, backend 켜기, frontend 켜기, 브라우저 확인
+검증: health check, sample login, log 확인
+종료: 서버 중지, DB 중지
+```
+
+초보 수업에서는 설치까지만 말하면 부족하다. 실행과 종료까지 있어야 다음 사람이 따라올 수 있다.
+
+### 2. 같은 환경을 만들기 어렵게 하는 것
+학생들이 직접 겪는 장애를 나열한다.
+
+```text
+설치 링크가 바뀐다.
+버전이 자동으로 최신 버전으로 설치된다.
+내가 중간에 클릭한 옵션을 기억하지 못한다.
+터미널 경로가 다르다.
+이미 설치된 프로그램 때문에 결과가 달라진다.
+DB 초기 데이터가 다르다.
+환경변수 값이 빠진다.
+```
+
+여기서 "설명 가능한 절차"와 "자동화 가능한 절차"의 차이를 설명한다. Docker는 나중에 이 절차를 더 많이 자동화하게 해 준다.
+
+### 3. README를 실행 계약으로 본다
+README는 소개 문서가 아니라 실행 계약이어야 한다.
+
+```text
+1. prerequisites
+2. install
+3. configure
+4. start
+5. check
+6. stop
+7. troubleshoot
+```
+
+학생들이 만든 README가 이 순서를 갖추면 Week2 Docker 수업에서 Dockerfile/Compose로 옮기기 쉽다.
+
+### 4. AI 엔지니어링과 연결한다
+AI 실험은 재현성이 특히 어렵다.
+
+- 모델 버전이 바뀐다.
+- prompt가 바뀐다.
+- temperature가 다르면 결과가 달라진다.
+- embedding model이 바뀌면 검색 결과가 달라진다.
+- 외부 API 응답이 시점에 따라 달라질 수 있다.
+
+그래서 AI 앱에서는 코드뿐 아니라 model, prompt, config, sample input, expected behavior를 함께 기록해야 한다.
+
+## 학생 활동
+수업에서 사용한 앱을 기준으로 "새 컴퓨터 실행 체크리스트"를 작성한다.
+
+```text
+필요한 프로그램:
+필요한 버전:
+필요한 port:
+필요한 환경변수:
+초기 데이터:
+실행 순서:
+정상 확인 방법:
+중지 방법:
+자주 나는 오류:
+```
+
+공유할 때는 완벽한 답보다 빠진 항목을 찾는 데 집중한다.
+
+## Docker 연결
+오늘의 내용을 Docker 용어로 옮기면 다음과 같다.
+
+| 오늘의 문서 항목 | Docker에서 이어질 항목 |
+|---|---|
+| 필요한 프로그램과 버전 | base image, image tag |
+| 설치 명령 | Dockerfile layer |
+| 실행 명령 | CMD, ENTRYPOINT |
+| 환경변수 | env, `.env` |
+| port 목록 | ports |
+| DB와 backend 동시 실행 | compose services |
+| 초기 데이터 | volume, init script |
+
+오늘 기억할 문장:
+
+```text
+Docker를 배우기 전에 먼저 "내 환경을 설명할 수 있어야" Docker가 무엇을 줄여 주는지 보인다.
+```
+
+## 마무리 체크
+학생이 말할 수 있어야 하는 문장:
+
+```text
+재현 가능한 환경은 설치, 설정, 실행, 확인, 종료 절차가 문서로 남아 있어야 한다.
+```
