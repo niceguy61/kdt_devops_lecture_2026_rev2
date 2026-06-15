@@ -1,135 +1,125 @@
-# 5교시: 삭제해도 남는 것들
+# 4교시: 환경변수와 설정 파일 지옥
 
 ## 수업 목표
-- 프로그램 삭제가 실행 파일 삭제만으로 끝나지 않는 이유를 이해한다.
-- 로컬 디스크가 복잡해지는 원인을 service, data, cache, log 관점으로 설명한다.
-- Docker cleanup 개념이 왜 필요한지 이해한다.
+- 코드와 설정을 분리하는 이유를 이해한다.
+- 환경변수, `.env`, config file이 꼬일 때 생기는 문제를 설명한다.
+- AI 기능에서 secret, endpoint, model 설정이 왜 더 민감해지는지 이해한다.
 
 ## 시각 자료
-![삭제해도 남는 것들](https://raw.githubusercontent.com/niceguy61/kdt_devops_lecture_2026_rev2/main/week1/day5/assets/lesson-05-uninstall-leftovers.png)
+![환경변수와 설정 파일 지옥](https://raw.githubusercontent.com/niceguy61/kdt_devops_lecture_2026_rev2/main/week1/day5/assets/lesson-04-env-config-drift.png)
 
 ## 도입 시나리오
-강사가 학생들이 공감할 만한 장면으로 시작한다.
+강사가 다음 장면을 말한다.
 
 ```text
-수업을 따라오려고 이것저것 설치했다.
-Node.js, Python, DB, IDE, extension, cache, sample project...
+내 컴퓨터에서는 로그인 기능이 된다.
+친구 컴퓨터에서는 DB 연결이 안 된다.
+배포 환경에서는 AI API 호출이 실패한다.
 
-몇 주 뒤 디스크가 꽉 찼다.
-무엇을 지워야 할지 모르겠다.
+코드는 같은데 왜 결과가 다를까?
 ```
 
-이 장면은 Docker의 중요성을 말하기 전에 반드시 짚어야 한다. 초보자는 설치보다 삭제가 더 무섭다.
+핵심은 "코드는 같아도 설정이 다르면 다른 프로그램처럼 동작한다"는 점이다.
 
 ## 핵심 개념
-프로그램은 여러 흔적을 남긴다.
+설정은 코드 밖에서 실행 동작을 바꾸는 값이다.
 
-| 흔적 | 설명 |
+| 설정 | 예시 |
 |---|---|
-| 실행 파일 | 실제 프로그램 binary |
-| package cache | 설치 속도를 위해 남겨 둔 파일 |
-| service 등록 | 백그라운드 자동 실행 항목 |
-| data folder | DB 데이터, 업로드 파일 |
-| config file | 설정값, 계정 정보, 경로 |
-| log file | 실행 기록과 에러 기록 |
-| plugin/extension | IDE나 tool에 붙은 추가 기능 |
+| DB 접속 정보 | `DB_HOST`, `DB_PORT`, `DB_NAME` |
+| 외부 API | `API_URL`, `OPENAI_API_KEY` |
+| 실행 모드 | `NODE_ENV`, `APP_ENV` |
+| 보안 값 | secret key, token |
+| 기능 플래그 | `ENABLE_AI_SEARCH=true` |
+| 파일 경로 | upload directory, log directory |
 
-삭제가 어려운 이유는 "지워도 되는 것"과 "지우면 복구가 어려운 것"이 섞여 있기 때문이다.
+설정을 코드에 직접 박아 넣으면 빠르게 만들 수는 있지만 환경을 바꿀 때 위험해진다.
 
 ## 강의 진행 흐름
-### 1. 삭제의 두 종류
-삭제에는 최소 두 종류가 있다.
+### 1. 설정이 필요한 이유
+같은 코드라도 환경마다 값이 달라진다.
 
 ```text
-프로그램 삭제: 실행 파일과 등록 정보 제거
-데이터 삭제: 내가 만든 데이터와 상태 제거
+개발 환경: localhost DB 사용
+테스트 환경: 테스트 DB 사용
+운영 환경: 실제 DB 사용
 ```
 
-DB를 예로 들면 프로그램을 지워도 데이터 폴더는 남을 수 있다. 반대로 데이터 폴더를 지우면 프로그램은 남아 있어도 이전 데이터는 사라진다.
+이때 코드가 매번 바뀌면 안 된다. 그래서 설정을 밖으로 빼야 한다.
 
-### 2. "정리"가 위험한 이유
-학생들이 흔히 하는 실수:
+### 2. 설정이 꼬이는 대표 상황
+학생들에게 실제로 자주 생기는 상황을 보여준다.
 
 ```text
-용량이 큰 폴더를 검색해서 그냥 삭제한다.
-캐시인지 데이터인지 구분하지 않는다.
-프로젝트 폴더 안의 generated file과 source file을 구분하지 않는다.
-DB data folder를 백업 없이 지운다.
-환경변수나 service 등록은 남겨 둔다.
+.env 파일이 없다.
+.env.example은 있는데 실제 값이 다르다.
+README의 port와 .env의 port가 다르다.
+변수 이름이 DB_HOST인지 DATABASE_HOST인지 헷갈린다.
+secret을 GitHub에 올릴 뻔했다.
+이전 프로젝트의 환경변수가 남아 있다.
+터미널을 다시 열지 않아 변경값이 반영되지 않았다.
 ```
 
-강사는 "지우지 마라"가 아니라 "무엇인지 알고 지우라"로 안내한다.
+여기서 "환경변수는 보이지 않는 설정"이라 디버깅이 어렵다는 점을 강조한다.
 
-### 3. 디스크 용량 문제를 DevOps 관점으로 본다
-로컬 디스크가 꽉 차는 문제도 운영 문제의 작은 버전이다.
+### 3. 설정 drift
+drift는 시간이 지나며 문서, 코드, 실제 환경이 서로 달라지는 현상이다.
 
-| 로컬 문제 | 운영 환경의 대응 개념 |
+| 위치 | 값 |
 |---|---|
-| 로그가 계속 쌓임 | log rotation |
-| 캐시가 커짐 | cache eviction |
-| 빌드 산출물이 쌓임 | artifact retention |
-| DB 데이터가 커짐 | backup, archive, retention |
-| 쓰지 않는 프로그램이 남음 | lifecycle management |
+| README | `DB_PORT=3306` |
+| `.env.example` | `DB_PORT=3307` |
+| 내 컴퓨터 실제 환경변수 | `DB_PORT=3310` |
+| backend 코드 기본값 | `DB_PORT=3306` |
 
-학생들이 "내 컴퓨터 정리"를 운영 관리의 첫 경험으로 이해하게 한다.
+이 상태에서는 "왜 내 컴퓨터만 안 되지?"가 반복된다.
 
 ### 4. AI 엔지니어링과 연결한다
-AI 개발은 특히 디스크를 많이 쓴다.
+AI 앱에서는 설정이 더 많고 비싸다.
 
-- 모델 파일
-- embedding cache
-- vector index
-- dataset
-- experiment output
-- log와 trace
-- 이미지/음성 생성 결과
+- 어떤 모델을 쓸 것인가?
+- temperature, max token, timeout은 얼마인가?
+- embedding model은 무엇인가?
+- vector index 이름은 무엇인가?
+- API key는 어디서 주입되는가?
+- 무료 한도나 비용 제한은 어떻게 걸 것인가?
 
-실험을 많이 할수록 "어떤 결과물이 남았는가"를 관리하지 않으면 금방 공간이 부족해진다.
+특히 API key를 코드나 화면에 노출하면 안 된다. 학생들에게 "작동하는 것"과 "안전하게 작동하는 것"은 다르다고 말한다.
 
 ## 학생 활동
-다음 목록을 보고 지워도 되는지, 확인이 필요한지 분류한다.
+다음 `.env` 예시를 보고 위험 요소를 찾게 한다.
 
 ```text
-node_modules
-.venv
-dist
-build
-logs
-uploads
-db-data
-.cache
-.env
-generated-images
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=app
+API_URL=http://localhost:8080
+AI_MODEL=gpt-example
+OPENAI_API_KEY=sk-실제키를여기에쓰면안됨
+ENABLE_AI_SEARCH=true
 ```
 
 질문:
 
 ```text
-1. 다시 만들 수 있는 것은 무엇인가?
-2. 지우기 전에 백업해야 할 것은 무엇인가?
-3. secret이 들어 있을 수 있는 것은 무엇인가?
-4. README에 정리 방법을 적는다면 어떤 순서가 좋을까?
+1. README에 적어도 되는 값은 무엇인가?
+2. GitHub에 올리면 안 되는 값은 무엇인가?
+3. 친구 컴퓨터에서 바뀔 가능성이 큰 값은 무엇인가?
+4. `.env.example`에는 어떤 형태로 적어야 하는가?
 ```
 
 ## Docker 연결
-Docker에서도 정리가 필요하다. 다만 정리 대상이 더 명확해진다.
-
-| 로컬 설치 방식 | Docker 방식 |
-|---|---|
-| 어디에 깔렸는지 찾기 어려움 | image/container/volume으로 구분 |
-| 서비스가 OS에 남을 수 있음 | container stop/remove |
-| 데이터 폴더 위치가 흩어짐 | volume 이름으로 관리 |
-| 캐시와 산출물이 섞임 | build cache, image layer로 관리 |
+Docker에서는 실행할 때 환경변수를 주입할 수 있다. 나중에는 Compose 파일로 여러 프로그램의 설정을 한곳에서 관리한다.
 
 오늘 기억할 문장:
 
 ```text
-Docker는 정리를 자동으로 대신해 주는 마법이 아니라, 무엇을 정리해야 하는지 경계를 더 분명하게 만드는 도구다.
+Docker는 설정을 없애는 도구가 아니라, 설정을 실행 단위와 함께 명시적으로 다루게 만드는 도구다.
 ```
 
 ## 마무리 체크
 학생이 말할 수 있어야 하는 문장:
 
 ```text
-프로그램 삭제는 실행 파일 삭제만이 아니라 service, config, data, cache, log를 구분해서 보는 문제다.
+코드가 같아도 환경변수와 설정 파일이 다르면 앱의 동작은 달라질 수 있다.
 ```

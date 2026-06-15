@@ -1,121 +1,139 @@
-# 7교시: Docker가 등장하는 자리
+# 6교시: 빠르게 같은 환경을 만들고 싶다면
 
 ## 수업 목표
-- 앞선 1~6교시 시나리오를 Docker의 핵심 개념과 연결한다.
-- Docker를 "중요하니까 배운다"가 아니라 "반복되는 로컬 환경 문제를 줄이기 위해 배운다"로 이해한다.
-- Week2에서 배울 명령어의 의미를 미리 준비한다.
+- "내 컴퓨터에서는 된다"가 충분한 설명이 아님을 이해한다.
+- 재현 가능한 실행 환경을 만들기 위해 기록해야 할 항목을 정리한다.
+- Dockerfile과 Compose가 등장하기 전, 왜 환경 문서화가 필요한지 이해한다.
 
 ## 시각 자료
-![Docker가 등장하는 자리](./assets/lesson-07-docker-appears.png)
+![빠르게 같은 환경 만들기](./assets/lesson-06-reproducible-environment.png)
 
 ## 도입 시나리오
-강사는 1~6교시의 문제를 다시 모은다.
+강사가 다음 상황을 제시한다.
 
 ```text
-앱 실행에는 코드 외 조건이 많다.
-DB를 여러 버전으로 설치해야 할 수 있다.
-port가 충돌한다.
-환경변수와 설정이 꼬인다.
-삭제해도 흔적이 남는다.
-새 컴퓨터에서 같은 환경을 다시 만들기 어렵다.
+새 컴퓨터를 받았다.
+어제 만든 앱을 다시 실행해야 한다.
 
-이 문제들을 매번 손으로 해결할 것인가?
+그런데 기억나는 것은 "npm install 했던 것 같은데..." 정도다.
 ```
 
-여기서 Docker를 소개한다. 단, 명령어부터 시작하지 않는다.
+학생들에게 묻는다.
+
+```text
+어제의 내 컴퓨터 환경을 오늘 새 컴퓨터에 다시 만들려면 무엇이 필요할까?
+```
 
 ## 핵심 개념
-Docker는 실행 환경을 다루는 도구다. 오늘은 네 가지 동사로만 설명한다.
+재현 가능성은 같은 입력과 절차로 같은 결과를 다시 만들 수 있는 능력이다. 개발 환경에서는 다음을 뜻한다.
 
-| 동사 | 의미 |
+| 항목 | 필요한 기록 |
 |---|---|
-| 포장한다 | 필요한 실행 조건을 image로 묶는다 |
-| 격리한다 | 내 OS 전체에 섞지 않고 container로 실행한다 |
-| 연결한다 | port, volume, env를 명시적으로 연결한다 |
-| 재현한다 | 같은 image와 설정으로 다시 실행한다 |
-
-학생들이 Docker를 "가상머신 같은 것"으로만 이해하지 않도록 한다. 핵심은 로컬 OS에 직접 설치하던 부담을 실행 단위로 옮기는 것이다.
+| OS | Windows, macOS, Linux, WSL 여부 |
+| runtime | Node.js/Python/Java 버전 |
+| package manager | npm, pnpm, pip, poetry |
+| dependency | lock file, requirements |
+| external program | DB, cache, queue |
+| port | 접속 번호 목록 |
+| environment variable | `.env.example` |
+| initial data | seed data, migration |
+| start command | 실행 순서 |
+| check command | 정상 확인 방법 |
+| stop command | 종료 방법 |
 
 ## 강의 진행 흐름
-### 1. 오늘의 문제를 Docker 단어로 바꾼다
-판서:
-
-| Day5 문제 | Docker 단어 |
-|---|---|
-| 프로그램 설치가 번거롭다 | image |
-| 실행 중인 프로그램을 구분하고 싶다 | container |
-| port가 겹친다 | port binding |
-| 데이터는 남겨야 한다 | volume |
-| 설정값이 필요하다 | environment variable |
-| 여러 프로그램을 함께 켜야 한다 | compose |
-| 정리하고 싶다 | stop, remove, prune |
-
-이 표가 Week2의 목차가 된다.
-
-### 2. Docker가 해결하지 않는 것도 말한다
-과장하지 않는다.
+### 1. 설치 가이드와 실행 가이드는 다르다
+설치 가이드는 필요한 것을 컴퓨터에 넣는 절차다. 실행 가이드는 그것을 어떤 순서로 켜고 확인하는 절차다.
 
 ```text
-Docker가 코드를 고쳐 주지는 않는다.
-Docker가 DB 설계를 대신하지 않는다.
-Docker가 secret 관리를 자동으로 안전하게 해 주지는 않는다.
-Docker를 잘못 쓰면 image와 volume이 쌓여 디스크를 많이 쓸 수 있다.
-Docker도 network, storage, permission 문제를 만든다.
+설치: Node.js 설치, DB 설치, package 설치
+실행: DB 켜기, backend 켜기, frontend 켜기, 브라우저 확인
+검증: health check, sample login, log 확인
+종료: 서버 중지, DB 중지
 ```
 
-이 말을 해 두면 학생들이 Docker를 마법처럼 기대하지 않는다.
+초보 수업에서는 설치까지만 말하면 부족하다. 실행과 종료까지 있어야 다음 사람이 따라올 수 있다.
 
-### 3. 로컬 설치 방식과 Docker 방식 비교
-| 관점 | 로컬 직접 설치 | Docker 방식 |
-|---|---|---|
-| 설치 | OS에 프로그램을 등록 | image를 받아 실행 |
-| 실행 단위 | service/process | container |
-| 버전 변경 | 재설치 또는 별도 설치 | image tag 변경 |
-| port | OS port 직접 사용 | host와 container port 연결 |
-| data | 임의의 로컬 폴더 | volume으로 명시 |
-| 삭제 | 흔적 확인 필요 | container/image/volume 구분 |
-| 재현 | 문서 의존 | Dockerfile/Compose로 절차화 |
+### 2. 같은 환경을 만들기 어렵게 하는 것
+학생들이 직접 겪는 장애를 나열한다.
+
+```text
+설치 링크가 바뀐다.
+버전이 자동으로 최신 버전으로 설치된다.
+내가 중간에 클릭한 옵션을 기억하지 못한다.
+터미널 경로가 다르다.
+이미 설치된 프로그램 때문에 결과가 달라진다.
+DB 초기 데이터가 다르다.
+환경변수 값이 빠진다.
+```
+
+여기서 "설명 가능한 절차"와 "자동화 가능한 절차"의 차이를 설명한다. Docker는 나중에 이 절차를 더 많이 자동화하게 해 준다.
+
+### 3. README를 실행 계약으로 본다
+README는 소개 문서가 아니라 실행 계약이어야 한다.
+
+```text
+1. prerequisites
+2. install
+3. configure
+4. start
+5. check
+6. stop
+7. troubleshoot
+```
+
+학생들이 만든 README가 이 순서를 갖추면 Week2 Docker 수업에서 Dockerfile/Compose로 옮기기 쉽다.
 
 ### 4. AI 엔지니어링과 연결한다
-최근 AI 엔지니어링에서도 Docker는 자주 등장한다.
+AI 실험은 재현성이 특히 어렵다.
 
-- vector DB를 빠르게 띄워 RAG 실험을 한다.
-- model serving 서버를 격리된 환경에서 실행한다.
-- GPU driver와 library version 문제를 줄인다.
-- prompt evaluation 도구, monitoring 도구를 함께 실행한다.
-- 실험 환경을 다른 사람에게 전달한다.
+- 모델 버전이 바뀐다.
+- prompt가 바뀐다.
+- temperature가 다르면 결과가 달라진다.
+- embedding model이 바뀌면 검색 결과가 달라진다.
+- 외부 API 응답이 시점에 따라 달라질 수 있다.
 
-AI 기능은 dependency와 설정이 많기 때문에 Docker의 장점이 더 빨리 체감된다.
+그래서 AI 앱에서는 코드뿐 아니라 model, prompt, config, sample input, expected behavior를 함께 기록해야 한다.
 
 ## 학생 활동
-다음 표를 개인별로 채운다.
+수업에서 사용한 앱을 기준으로 "새 컴퓨터 실행 체크리스트"를 작성한다.
 
 ```text
-내가 불편했던 로컬 환경 문제:
-그 문제가 속한 범주: 설치 / 버전 / port / 설정 / 데이터 / 삭제 / 재현
-Docker가 줄여 줄 것 같은 부분:
-Docker가 대신 해결하지 못할 것 같은 부분:
-Week2에서 가장 확인하고 싶은 명령:
+필요한 프로그램:
+필요한 버전:
+필요한 port:
+필요한 환경변수:
+초기 데이터:
+실행 순서:
+정상 확인 방법:
+중지 방법:
+자주 나는 오류:
 ```
 
-공유는 짧게 진행한다. 공식 산출물을 만들기보다 "내가 겪은 문제를 Docker 용어로 바꾸는 것"이 목표다.
+공유할 때는 완벽한 답보다 빠진 항목을 찾는 데 집중한다.
 
-## Week2 예고
-Week2에서는 오늘의 문제를 실제 명령으로 바꾼다.
+## Docker 연결
+오늘의 내용을 Docker 용어로 옮기면 다음과 같다.
+
+| 오늘의 문서 항목 | Docker에서 이어질 항목 |
+|---|---|
+| 필요한 프로그램과 버전 | base image, image tag |
+| 설치 명령 | Dockerfile layer |
+| 실행 명령 | CMD, ENTRYPOINT |
+| 환경변수 | env, `.env` |
+| port 목록 | ports |
+| DB와 backend 동시 실행 | compose services |
+| 초기 데이터 | volume, init script |
+
+오늘 기억할 문장:
 
 ```text
-image 받기
-container 실행하기
-port 연결하기
-volume 붙이기
-environment variable 주입하기
-여러 service를 compose로 함께 실행하기
-사용한 자원 정리하기
+Docker를 배우기 전에 먼저 "내 환경을 설명할 수 있어야" Docker가 무엇을 줄여 주는지 보인다.
 ```
 
 ## 마무리 체크
 학생이 말할 수 있어야 하는 문장:
 
 ```text
-Docker는 로컬 실행 환경의 설치, 격리, 연결, 재현, 정리 문제를 다루기 위해 등장한다.
+재현 가능한 환경은 설치, 설정, 실행, 확인, 종료 절차가 문서로 남아 있어야 한다.
 ```

@@ -1,125 +1,135 @@
-# 4교시: 환경변수와 설정 파일 지옥
+# 3교시: 포트 번호와 localhost 충돌
 
 ## 수업 목표
-- 코드와 설정을 분리하는 이유를 이해한다.
-- 환경변수, `.env`, config file이 꼬일 때 생기는 문제를 설명한다.
-- AI 기능에서 secret, endpoint, model 설정이 왜 더 민감해지는지 이해한다.
+- `localhost`와 port의 관계를 설명할 수 있다.
+- port 충돌이 발생했을 때 단순히 번호만 바꾸면 끝나지 않는 이유를 이해한다.
+- Docker의 port binding 개념을 받아들일 준비를 한다.
 
 ## 시각 자료
-![환경변수와 설정 파일 지옥](./assets/lesson-04-env-config-drift.png)
+![포트 번호와 localhost 충돌](./assets/lesson-03-port-conflict.png)
 
 ## 도입 시나리오
-강사가 다음 장면을 말한다.
+강사가 다음 에피소드를 말한다.
 
 ```text
-내 컴퓨터에서는 로그인 기능이 된다.
-친구 컴퓨터에서는 DB 연결이 안 된다.
-배포 환경에서는 AI API 호출이 실패한다.
+백엔드 서버를 켜려고 했더니 이런 메시지가 나온다.
 
-코드는 같은데 왜 결과가 다를까?
+address already in use
+port 8080 is already allocated
 ```
 
-핵심은 "코드는 같아도 설정이 다르면 다른 프로그램처럼 동작한다"는 점이다.
+학생에게 묻는다.
+
+```text
+이때 문제는 코드일까, 컴퓨터 환경일까?
+```
+
+정답은 둘 중 하나로 단정하지 않는다. 먼저 "이미 같은 입구를 누군가 쓰고 있다"는 현상으로 이해시킨다.
 
 ## 핵심 개념
-설정은 코드 밖에서 실행 동작을 바꾸는 값이다.
+`localhost`는 내 컴퓨터를 가리키는 이름이다. port는 그 컴퓨터 안에서 프로그램을 찾아가는 번호다.
 
-| 설정 | 예시 |
-|---|---|
-| DB 접속 정보 | `DB_HOST`, `DB_PORT`, `DB_NAME` |
-| 외부 API | `API_URL`, `OPENAI_API_KEY` |
-| 실행 모드 | `NODE_ENV`, `APP_ENV` |
-| 보안 값 | secret key, token |
-| 기능 플래그 | `ENABLE_AI_SEARCH=true` |
-| 파일 경로 | upload directory, log directory |
+```text
+localhost:3000  -> 프론트엔드 개발 서버
+localhost:8080  -> 백엔드 API 서버
+localhost:3306  -> DB 서버
+localhost:6379  -> cache 서버
+```
 
-설정을 코드에 직접 박아 넣으면 빠르게 만들 수는 있지만 환경을 바꿀 때 위험해진다.
+같은 컴퓨터에서 같은 port를 두 프로그램이 동시에 쓸 수 없다. 그래서 충돌이 난다.
 
 ## 강의 진행 흐름
-### 1. 설정이 필요한 이유
-같은 코드라도 환경마다 값이 달라진다.
+### 1. port를 주소가 아니라 "입구 번호"로 설명한다
+학생들이 IP, DNS, socket 같은 용어에 익숙하지 않다면 이렇게 말한다.
 
 ```text
-개발 환경: localhost DB 사용
-테스트 환경: 테스트 DB 사용
-운영 환경: 실제 DB 사용
+건물 이름이 localhost라면, port는 방 번호다.
+같은 방 번호를 두 사람이 동시에 쓰겠다고 하면 충돌이 난다.
 ```
 
-이때 코드가 매번 바뀌면 안 된다. 그래서 설정을 밖으로 빼야 한다.
-
-### 2. 설정이 꼬이는 대표 상황
-학생들에게 실제로 자주 생기는 상황을 보여준다.
+단, 비유에 머물지 않고 실제 표현으로 다시 돌아온다.
 
 ```text
-.env 파일이 없다.
-.env.example은 있는데 실제 값이 다르다.
-README의 port와 .env의 port가 다르다.
-변수 이름이 DB_HOST인지 DATABASE_HOST인지 헷갈린다.
-secret을 GitHub에 올릴 뻔했다.
-이전 프로젝트의 환경변수가 남아 있다.
-터미널을 다시 열지 않아 변경값이 반영되지 않았다.
+프로세스는 네트워크 요청을 받기 위해 특정 port를 listen한다.
+이미 listen 중인 port는 다른 프로세스가 같은 방식으로 사용할 수 없다.
 ```
 
-여기서 "환경변수는 보이지 않는 설정"이라 디버깅이 어렵다는 점을 강조한다.
+### 2. port 번호만 바꾸면 생기는 연쇄 수정
+예를 들어 DB port를 3306에서 3307로 바꾸면 다음도 함께 바뀐다.
 
-### 3. 설정 drift
-drift는 시간이 지나며 문서, 코드, 실제 환경이 서로 달라지는 현상이다.
-
-| 위치 | 값 |
+| 바뀌는 것 | 예시 |
 |---|---|
-| README | `DB_PORT=3306` |
-| `.env.example` | `DB_PORT=3307` |
-| 내 컴퓨터 실제 환경변수 | `DB_PORT=3310` |
-| backend 코드 기본값 | `DB_PORT=3306` |
+| backend `.env` | `DB_PORT=3307` |
+| DB client 접속 정보 | Host, port |
+| README 실행 설명 | 접속 명령 수정 |
+| 테스트 설정 | integration test config |
+| 스크린샷/문서 | 예전 port 정보 정리 |
 
-이 상태에서는 "왜 내 컴퓨터만 안 되지?"가 반복된다.
+즉 port 변경은 한 줄 수정이 아니라 연결된 설정 전체의 수정이다.
+
+### 3. 충돌 원인 찾기
+학생에게 원인 후보를 말하게 한다.
+
+```text
+1. 이전에 켠 서버가 아직 살아 있다.
+2. OS 서비스로 등록된 프로그램이 자동 실행 중이다.
+3. 다른 프로젝트가 같은 port를 사용 중이다.
+4. IDE나 개발 도구가 내부 서버를 켜 두었다.
+5. Docker, VM, WSL 같은 다른 실행 환경이 port를 잡고 있다.
+```
+
+오늘은 명령어 암기보다 관점이 중요하다. "누가 이 port를 쓰고 있는가"를 확인해야 한다는 점만 잡는다.
 
 ### 4. AI 엔지니어링과 연결한다
-AI 앱에서는 설정이 더 많고 비싸다.
+AI 앱에서도 port가 늘어난다.
 
-- 어떤 모델을 쓸 것인가?
-- temperature, max token, timeout은 얼마인가?
-- embedding model은 무엇인가?
-- vector index 이름은 무엇인가?
-- API key는 어디서 주입되는가?
-- 무료 한도나 비용 제한은 어떻게 걸 것인가?
+- web UI
+- API server
+- vector DB
+- model serving endpoint
+- monitoring dashboard
+- prompt playground
 
-특히 API key를 코드나 화면에 노출하면 안 된다. 학생들에게 "작동하는 것"과 "안전하게 작동하는 것"은 다르다고 말한다.
+실험을 여러 개 동시에 띄우면 port 충돌은 흔하다. 특히 모델 서빙, vector DB, observability 도구를 같이 띄우면 port 설계가 필요해진다.
 
 ## 학생 활동
-다음 `.env` 예시를 보고 위험 요소를 찾게 한다.
+다음 상황을 주고 충돌 지도를 그리게 한다.
 
 ```text
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=app
-API_URL=http://localhost:8080
-AI_MODEL=gpt-example
-OPENAI_API_KEY=sk-실제키를여기에쓰면안됨
-ENABLE_AI_SEARCH=true
+프론트엔드: localhost:3000
+백엔드 A: localhost:8080
+백엔드 B: localhost:8080
+DB A: localhost:3306
+DB B: localhost:3306
+Cache: localhost:6379
+AI 실험 서버: localhost:8000
 ```
 
 질문:
 
 ```text
-1. README에 적어도 되는 값은 무엇인가?
-2. GitHub에 올리면 안 되는 값은 무엇인가?
-3. 친구 컴퓨터에서 바뀔 가능성이 큰 값은 무엇인가?
-4. `.env.example`에는 어떤 형태로 적어야 하는가?
+1. 동시에 실행할 수 없는 것은 무엇인가?
+2. port를 바꾸면 어느 설정을 같이 바꿔야 하는가?
+3. 다른 사람이 이 환경을 재현하려면 어떤 표가 필요할까?
 ```
 
 ## Docker 연결
-Docker에서는 실행할 때 환경변수를 주입할 수 있다. 나중에는 Compose 파일로 여러 프로그램의 설정을 한곳에서 관리한다.
-
-오늘 기억할 문장:
+Docker에서는 container 안쪽 port와 내 컴퓨터에서 접속하는 port를 나누어 생각한다.
 
 ```text
-Docker는 설정을 없애는 도구가 아니라, 설정을 실행 단위와 함께 명시적으로 다루게 만드는 도구다.
+host port -> container port
+3307      -> 3306
+```
+
+오늘은 명령어를 외우지 않는다. 대신 다음 문장을 기억한다.
+
+```text
+Docker의 port binding은 내 컴퓨터의 입구 번호와 container 내부의 입구 번호를 연결하는 약속이다.
 ```
 
 ## 마무리 체크
 학생이 말할 수 있어야 하는 문장:
 
 ```text
-코드가 같아도 환경변수와 설정 파일이 다르면 앱의 동작은 달라질 수 있다.
+port 충돌은 실행 중인 프로그램들이 같은 네트워크 입구를 쓰려고 할 때 생기며, port 변경은 관련 설정 전체에 영향을 준다.
 ```

@@ -3,16 +3,18 @@
 ## 교육 설계 의도
 Day5는 초보자가 Docker를 배우기 전에 반드시 겪는 로컬 실행 환경 문제를 구조화하는 수업이다. 학생이 아직 Docker 명령어를 실행하지 않아도, 왜 Docker가 필요한지 자신의 언어로 설명할 수 있어야 한다.
 
+Day5 1교시 분량을 Day4 마지막 시간에 선행 진행한 경우, Day5는 기존 DB 시나리오를 `2-1 DB 직접 설치 관찰`과 `2-2 DB 버전 충돌 관찰`로 나누어 보강한다. 이때 설치 성공 자체보다 service, port, data path, config처럼 OS에 남는 실행 조건을 관찰하는 데 목표를 둔다.
+
 이 날의 핵심은 다음 순서다.
 
 ```text
-불편함 경험 -> 원인 분류 -> 실행 환경 개념화 -> Docker 필요성 예고
+직접 설치 관찰 -> 불편함 경험 -> 원인 분류 -> 실행 환경 개념화 -> Docker 필요성 예고
 ```
 
 ## Crosswalk
 | 기준 / 이론 | Day5 적용 | 확인 가능한 증거 |
 |---|---|---|
-| Cognitive load management | Docker 명령어를 바로 투입하지 않고 로컬 설치, port, 설정, 삭제 시나리오로 나누어 제시한다. | 시나리오별 메모 |
+| Cognitive load management | Docker 명령어를 바로 투입하지 않고 로컬 DB 직접 설치, port, 설정, 삭제 시나리오로 나누어 제시한다. | 시나리오별 메모 |
 | Bloom understand | runtime, dependency, port, config, data path를 자기 말로 설명한다. | 개념 문장 |
 | Bloom analyze | DB 중복 설치, port 충돌, 설정 drift, 삭제 잔여물을 원인별로 나눈다. | 문제 분류표 |
 | CS2023 systems perspective | 애플리케이션 실행 조건을 compute, network, storage, configuration 관점으로 본다. | 실행 조건 지도 |
@@ -25,6 +27,7 @@ Day5의 확인은 산출물 완성보다 개념 언어화에 둔다.
 | 확인 영역 | 관찰 가능한 증거 |
 |---|---|
 | 실행 조건 이해 | 코드 외 실행 조건 4개 이상을 말한다. |
+| 직접 설치 관찰 | DB 설치 후 service, port, data path, config 중 3개 이상을 찾는다. |
 | 충돌 시나리오 이해 | 버전, port, 설정, 데이터 중 2개 이상을 원인으로 설명한다. |
 | cleanup 이해 | 삭제해도 남을 수 있는 흔적 2개 이상을 말한다. |
 | 재현성 이해 | 새 컴퓨터에서 다시 맞춰야 할 항목을 5개 이상 적는다. |
