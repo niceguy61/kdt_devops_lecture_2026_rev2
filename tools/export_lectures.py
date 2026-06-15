@@ -17,17 +17,25 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 
 IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 LINK_RE = re.compile(r"(?<!!)\[([^\]]+)\]\(([^)]+)\)")
 HTML_IMG_RE = re.compile(r"(<img\b[^>]*\bsrc=[\"'])([^\"']+)([\"'][^>]*>)", re.IGNORECASE)
 MERMAID_RE = re.compile(r"(^```mermaid[^\n]*\n)(.*?)(^```[ \t]*$)", re.MULTILINE | re.DOTALL)
+INLINE_CODE_RE = re.compile(r"`([^`]+)`")
 
 
 def run(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=False)
+
+
+def run_checked(args: list[str], cwd: Path | None = None) -> None:
+    result = run(args, cwd=cwd)
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"Command failed: {' '.join(args)}\n{detail}")
 
 
 def git_value(args: list[str], default: str = "") -> str:
@@ -61,6 +69,239 @@ def is_external(url: str) -> bool:
         or stripped.startswith("#")
         or stripped.startswith("//")
     )
+
+
+def file_uri(path: Path) -> str:
+    return path.resolve().as_uri()
+
+
+def find_chrome(explicit: str | None = None) -> str:
+    candidates = [explicit] if explicit else []
+    candidates.extend(["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"])
+    for candidate in candidates:
+        if not candidate:
+            continue
+        resolved = shutil.which(candidate) if os.sep not in candidate else candidate
+        if resolved and Path(resolved).exists():
+            return resolved
+    raise SystemExit("Chrome/Chromium was not found. Install Chrome or pass --chrome /path/to/chrome.")
+
+
+def localize_pdf_target(target: str, markdown_file: Path, repo_root: Path, base: str) -> str:
+    url, suffix = split_link_target(target)
+    if url.startswith(base):
+        rel = unquote(url.removeprefix(base))
+        local = repo_root / rel
+        if local.exists():
+            return file_uri(local) + suffix
+    if not is_external(url):
+        local = (markdown_file.parent / url).resolve()
+        if local.exists():
+            return file_uri(local) + suffix
+    return target
+
+
+def inline_markdown(text: str, markdown_file: Path, repo_root: Path, base: str) -> str:
+    escaped = html.escape(text, quote=False)
+    escaped = escaped.replace("&lt;br&gt;", "<br>").replace("&lt;br/&gt;", "<br>").replace("&lt;br /&gt;", "<br>")
+    escaped = INLINE_CODE_RE.sub(r"<code>\1</code>", escaped)
+
+    def image_sub(match: re.Match[str]) -> str:
+        alt, target = match.groups()
+        src = html.escape(localize_pdf_target(target, markdown_file, repo_root, base), quote=True)
+        return f'<img alt="{html.escape(alt, quote=True)}" src="{src}">'
+
+    def link_sub(match: re.Match[str]) -> str:
+        label, target = match.groups()
+        href = html.escape(localize_pdf_target(target, markdown_file, repo_root, base), quote=True)
+        return f'<a href="{href}">{label}</a>'
+
+    escaped = IMAGE_RE.sub(image_sub, escaped)
+    escaped = LINK_RE.sub(link_sub, escaped)
+    return escaped
+
+
+def table_html(lines: list[str], markdown_file: Path, repo_root: Path, base: str) -> str:
+    rows = []
+    for index, line in enumerate(lines):
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        tag = "th" if index == 0 else "td"
+        row = "".join(f"<{tag}>{inline_markdown(cell, markdown_file, repo_root, base)}</{tag}>" for cell in cells)
+        rows.append(f"<tr>{row}</tr>")
+    return "<table>" + "".join(rows) + "</table>"
+
+
+def markdown_to_html(markdown_file: Path, repo_root: Path, base: str) -> str:
+    lines = markdown_file.read_text(encoding="utf-8").splitlines()
+    parts: list[str] = []
+    paragraph: list[str] = []
+    list_items: list[str] = []
+    blockquote: list[str] = []
+    code_lines: list[str] = []
+    in_code = False
+    table_lines: list[str] = []
+
+    def flush_paragraph() -> None:
+        if paragraph:
+            text = " ".join(line.strip() for line in paragraph)
+            parts.append(f"<p>{inline_markdown(text, markdown_file, repo_root, base)}</p>")
+            paragraph.clear()
+
+    def flush_list() -> None:
+        if list_items:
+            items = "".join(f"<li>{inline_markdown(item, markdown_file, repo_root, base)}</li>" for item in list_items)
+            parts.append(f"<ul>{items}</ul>")
+            list_items.clear()
+
+    def flush_quote() -> None:
+        if blockquote:
+            text = "<br>".join(inline_markdown(line, markdown_file, repo_root, base) for line in blockquote)
+            parts.append(f"<blockquote>{text}</blockquote>")
+            blockquote.clear()
+
+    def flush_table() -> None:
+        if table_lines:
+            if len(table_lines) >= 2 and re.fullmatch(r"\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*", table_lines[1]):
+                parts.append(table_html([table_lines[0], *table_lines[2:]], markdown_file, repo_root, base))
+            else:
+                flush_paragraph()
+                paragraph.extend(table_lines)
+            table_lines.clear()
+
+    def flush_blocks() -> None:
+        flush_table()
+        flush_paragraph()
+        flush_list()
+        flush_quote()
+
+    for line in lines:
+        if line.startswith("```"):
+            if in_code:
+                parts.append("<pre><code>" + html.escape("\n".join(code_lines)) + "</code></pre>")
+                code_lines.clear()
+                in_code = False
+            else:
+                flush_blocks()
+                in_code = True
+            continue
+        if in_code:
+            code_lines.append(line)
+            continue
+
+        if not line.strip():
+            flush_blocks()
+            continue
+
+        if line.lstrip().startswith("|") and "|" in line.strip()[1:]:
+            flush_paragraph()
+            flush_list()
+            flush_quote()
+            table_lines.append(line)
+            continue
+
+        flush_table()
+        heading = re.match(r"^(#{1,6})\s+(.+)$", line)
+        if heading:
+            flush_blocks()
+            level = len(heading.group(1))
+            parts.append(f"<h{level}>{inline_markdown(heading.group(2), markdown_file, repo_root, base)}</h{level}>")
+            continue
+
+        list_match = re.match(r"^\s*[-*]\s+(.+)$", line)
+        if list_match:
+            flush_paragraph()
+            flush_quote()
+            list_items.append(list_match.group(1))
+            continue
+
+        quote_match = re.match(r"^\s*>\s?(.*)$", line)
+        if quote_match:
+            flush_paragraph()
+            flush_list()
+            blockquote.append(quote_match.group(1))
+            continue
+
+        flush_list()
+        flush_quote()
+        paragraph.append(line)
+
+    flush_blocks()
+    if in_code:
+        parts.append("<pre><code>" + html.escape("\n".join(code_lines)) + "</code></pre>")
+
+    title = markdown_file.stem.replace("-", " ").title()
+    body = "\n".join(parts)
+    return f"""<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>{html.escape(title)}</title>
+<style>
+@page {{ size: A4; margin: 18mm 16mm; }}
+body {{
+  color: #111827;
+  font-family: "Noto Sans CJK KR", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+}}
+h1, h2, h3, h4 {{ line-height: 1.28; margin: 1.1em 0 0.45em; page-break-after: avoid; }}
+h1 {{ font-size: 22pt; border-bottom: 2px solid #111827; padding-bottom: 0.25em; }}
+h2 {{ font-size: 17pt; border-bottom: 1px solid #d1d5db; padding-bottom: 0.2em; }}
+h3 {{ font-size: 13.5pt; }}
+p, ul, table, blockquote, pre {{ margin: 0.7em 0; }}
+ul {{ padding-left: 1.35em; }}
+blockquote {{ border-left: 4px solid #9ca3af; color: #374151; padding-left: 0.9em; }}
+table {{ border-collapse: collapse; width: 100%; font-size: 9.5pt; page-break-inside: avoid; }}
+th, td {{ border: 1px solid #d1d5db; padding: 5px 7px; vertical-align: top; }}
+th {{ background: #f3f4f6; font-weight: 700; }}
+pre {{ background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }}
+code {{ font-family: "D2Coding", "Consolas", monospace; font-size: 0.92em; }}
+img {{ display: block; max-width: 100%; max-height: 210mm; margin: 0.8em auto; page-break-inside: avoid; }}
+a {{ color: #1d4ed8; text-decoration: none; }}
+</style>
+</head>
+<body>
+{body}
+</body>
+</html>
+"""
+
+
+def render_pdf(markdown_file: Path, output_file: Path, repo_root: Path, base: str, chrome: str) -> None:
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="lecture-pdf-") as tmp:
+        html_file = Path(tmp) / "index.html"
+        html_file.write_text(markdown_to_html(markdown_file, repo_root, base), encoding="utf-8")
+        run_checked(
+            [
+                chrome,
+                "--headless=new",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-breakpad",
+                "--disable-crashpad",
+                "--disable-crash-reporter",
+                "--disable-dev-shm-usage",
+                "--disable-features=Crashpad",
+                "--noerrdialogs",
+                "--allow-file-access-from-files",
+                f"--user-data-dir={Path(tmp) / 'chrome-profile'}",
+                f"--print-to-pdf={output_file}",
+                str(html_file),
+            ]
+        )
+
+
+def pdf_sources(out_root: Path) -> list[Path]:
+    return sorted(path for path in out_root.rglob("*.md") if path.is_file())
+
+
+def render_pdfs(markdown_files: list[Path], repo_root: Path, base: str, chrome: str) -> int:
+    count = 0
+    for markdown_file in markdown_files:
+        render_pdf(markdown_file, markdown_file.with_suffix(".pdf"), repo_root, base, chrome)
+        count += 1
+    return count
 
 
 def split_link_target(target: str) -> tuple[str, str]:
@@ -233,6 +474,9 @@ def main() -> int:
     parser.add_argument("--mmdc", default=os.environ.get("MMDC", "npx -y @mermaid-js/mermaid-cli"))
     parser.add_argument("--theme", default="default")
     parser.add_argument("--link-mode", choices=["raw", "relative"], default="raw")
+    parser.add_argument("--pdf", action="store_true", help="Also generate a PDF next to every exported markdown file.")
+    parser.add_argument("--pdf-only", action="store_true", help="Generate PDFs from the current --out directory without rebuilding markdown.")
+    parser.add_argument("--chrome", help="Chrome/Chromium executable used for PDF generation.")
     parser.add_argument(
         "--mermaid-assets",
         default="lecture_mermaid_assets",
@@ -248,6 +492,24 @@ def main() -> int:
     if args.link_mode == "relative":
         mermaid_root = out_root / "mermaid-assets"
     base = raw_base(repo_root, args.branch, args.remote)
+
+    if args.pdf_only:
+        if not out_root.exists():
+            raise SystemExit(f"Output directory does not exist: {out_root}")
+        markdown_files = pdf_sources(out_root)
+        if not markdown_files:
+            raise SystemExit(f"No markdown files found in {out_root}")
+        chrome = find_chrome(args.chrome)
+        pdf_count = render_pdfs(markdown_files, repo_root, base, chrome)
+        print(f"exported_markdown=0")
+        print(f"generated_pdfs={pdf_count}")
+        try:
+            out_label = out_root.relative_to(repo_root)
+        except ValueError:
+            out_label = out_root
+        print(f"out={out_label}")
+        return 0
+
     sources = markdown_sources(repo_root, args.roots)
     if not sources:
         raise SystemExit("No markdown files found.")
@@ -294,6 +556,10 @@ def main() -> int:
         except ValueError:
             mermaid_label = mermaid_root
         print(f"mermaid_assets={mermaid_label}")
+    if args.pdf:
+        chrome = find_chrome(args.chrome)
+        pdf_count = render_pdfs(pdf_sources(out_root), repo_root, base, chrome)
+        print(f"generated_pdfs={pdf_count}")
     try:
         out_label = out_root.relative_to(repo_root)
     except ValueError:

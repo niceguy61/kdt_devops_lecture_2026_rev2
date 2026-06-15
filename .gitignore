@@ -5,7 +5,6 @@ __pycache__
 .env
 assessments
 session_test_scripts/
-out_lecture/
 output_lecture/
 out_lecture_pdf/
 docs/w1feedback.md
