@@ -13,7 +13,7 @@
 
 그 다음 port mapping을 천천히 읽는다. PostgreSQL process는 container 내부에서 계속 `5432`를 사용한다. host에서는 PostgreSQL 16을 `localhost:15432`, PostgreSQL 18을 `localhost:15433`으로 접근한다. 이때 `15432:5432`의 왼쪽은 host port, 오른쪽은 container port다. 이 한 줄을 거꾸로 이해하면 이후 모든 DB 접속 문제가 꼬인다.
 
-version 확인은 실행 성공보다 강한 evidence다. container가 running 상태여도 DB가 아직 초기화 중이면 query가 실패할 수 있다. 그래서 `docker logs`에서 readiness message를 보고, `psql` 또는 `docker exec`로 `SELECT version();`을 실행한다. 최종 evidence는 "container가 있다"가 아니라 "15432는 16 계열, 15433은 18 계열을 반환했다"가 되어야 한다.
+version 확인은 실행 성공보다 강한 확인 지점이다. container가 running 상태여도 DB가 아직 초기화 중이면 query가 실패할 수 있다. 그래서 `docker logs`에서 readiness message를 보고, `psql` 또는 `docker exec`로 `SELECT version();`을 실행한다. 최종 확인 지점은 "container가 있다"가 아니라 "15432는 16 계열, 15433은 18 계열을 반환했다"가 되어야 한다.
 
 마지막에는 실패 경로를 같은 언어로 분류한다. pull이 느린 문제, password 누락, port 충돌, readiness 대기 부족, volume path 혼동, local `psql` client 부재는 서로 다른 문제다. host에 `psql`이 없어도 container 내부 `psql`로 확인할 수 있게 해 두면 실습 참여율이 높아진다.
 
@@ -106,20 +106,12 @@ docker exec paperclip-pg18 psql -U postgres -d paperclip -c "SELECT version();"
 | 둘 다 성공 | 같은 container port라도 host port가 다르면 병렬 실행 가능 |
 | 하나만 실패 | 해당 container log, port mapping, password, readiness 확인 |
 
-## Evidence 기록 양식
+## PostgreSQL 16/18 container 주의점
 
-```markdown
-## PostgreSQL 16/18 Container Evidence
-- pg16 run command:
-- pg16 docker ps PORTS:
-- pg16 version query result:
-- pg18 run command:
-- pg18 docker ps PORTS:
-- pg18 version query result:
-- Same container port:
-- Different host ports:
-- Blocker:
-```
+- 두 container가 모두 내부 port `5432`를 써도 된다. 서로 다른 container namespace 안에서 실행되기 때문이다.
+- host에서 동시에 접근하려면 host port는 달라야 한다. 예: `15432:5432`, `15433:5432`.
+- 접속 실패가 password 문제인지, port mapping 문제인지, readiness 문제인지 분리해서 본다. 먼저 `docker ps`의 `PORTS`와 `docker logs`를 확인한다.
+- 같은 container name을 재사용하면 실행이 실패한다. 이전 실습 container가 남아 있으면 삭제하거나 다른 name을 사용한다.
 
 ## 흔한 오해
 | 오해 | 바로잡기 |
@@ -135,4 +127,4 @@ docker exec paperclip-pg18 psql -U postgres -d paperclip -c "SELECT version();"
 - Docker Docs: docker container logs, https://docs.docker.com/reference/cli/docker/container/logs/
 
 ### 다음 연결
-다음 교시는 일부러 port 충돌을 만들고, 왜 같은 host port를 두 container가 동시에 사용할 수 없는지 확인한 뒤 정리와 evidence 제출로 마감한다.
+다음 교시는 일부러 port 충돌을 만들고, 왜 같은 host port를 두 container가 동시에 사용할 수 없는지 확인한 뒤 정리와 주의할 점 확인로 마감한다.

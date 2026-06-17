@@ -67,3 +67,10 @@ docker rm paperclip-day3-static || true
 # 필요 시 image 삭제
 # docker image rm paperclip-static-site:day3 paperclip-static-site:day3-v2 paperclip-static-site:day3-reviewed
 ```
+
+## 주의할 점
+- `docker build`의 마지막 `.`은 build context다. 명령을 어느 directory에서 실행하는지 먼저 확인한다.
+- `.dockerignore` 없이 `.env`, log, dependency directory가 context에 들어가면 image에 포함될 수 있다.
+- `EXPOSE 80`은 host `localhost:18083`을 열어주지 않는다. host 접근에는 `-p 18083:80`이 필요하다.
+- tag는 image 이름표다. `docker tag`는 새 build가 아니라 기존 image에 reference를 추가하는 명령이다.
+- Docker Hub push는 선택이다. public repository, credential, secret 포함 여부를 확인하지 못하면 push하지 않는다.

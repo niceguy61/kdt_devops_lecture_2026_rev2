@@ -25,7 +25,7 @@ docker compose logs db
 docker compose run --rm db-client
 ```
 
-## Expected Evidence
+## 예상 확인 지점
 ```text
 web-1   running
 db-1    healthy
@@ -273,7 +273,7 @@ docker compose down -v
 ```
 ````
 
-## Evidence Checklist
+## 주의할 점 체크리스트
 - [ ] `docker compose config` succeeded.
 - [ ] `docker compose ps` shows web running.
 - [ ] `docker compose ps` shows db running or healthy.
@@ -289,7 +289,7 @@ docker compose down -v
 |---|---|---|---|
 | Config | not run | run only | output interpreted |
 | Web | no check | status only | HTTP and body marker |
-| DB | no check | healthy only | query evidence |
+| DB | no check | healthy only | query 확인 지점 |
 | Network | no explanation | network name only | service name `db` explained |
 | Volume | no note | volume listed | data lifecycle explained |
 | Security | secret exposed | warning only | `.env.example` and no secret exposure |
@@ -297,5 +297,5 @@ docker compose down -v
 
 ## Completion Statement
 ```text
-This Compose app is complete when another student can clone the files, create `.env`, run `docker compose up -d`, verify web and DB evidence, and clean up without accidentally deleting data they intended to keep.
+This Compose app is complete when another student can clone the files, create `.env`, run `docker compose up -d`, verify web and DB 확인 지점, and clean up without accidentally deleting data they intended to keep.
 ```

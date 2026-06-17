@@ -39,7 +39,7 @@
 docker version
 ```
 
-기록할 것은 전체 출력 복사가 아니라 상태 요약이다. `Client visible`, `Server visible`, `Error summary` 세 가지로 충분하다.
+확인할 것은 전체 출력 복사가 아니라 상태 요약이다. `Client visible`, `Server visible`, `Error summary` 세 가지로 충분하다.
 
 ### Visual 1: Docker 공식 Architecture diagram
 ![Docker 공식 Architecture diagram](./assets/official-docker-architecture.webp)
@@ -192,10 +192,10 @@ sequenceDiagram
 | macOS에서 Docker를 쓰면 WSL 2가 필요하다. | macOS는 WSL 2를 쓰지 않는다. Docker Desktop이 내부 Linux VM 계층을 관리한다. |
 | Windows에서 Linux container를 바로 실행한다. | Windows 사용자는 Docker Desktop의 WSL 2 backend 또는 관련 가상화 조건을 공식 문서로 확인해야 한다. |
 | Docker Hub의 모든 image는 안전하다. | 출처, 공식 이미지 여부, tag, update 상태를 확인해야 한다. |
-| Docker Desktop만 배우면 Docker를 이해한 것이다. | Desktop은 도구 표면이고, 운영 판단은 image/container/network/volume evidence에서 나온다. |
+| Docker Desktop만 배우면 Docker를 이해한 것이다. | Desktop은 도구 표면이고, 운영 판단은 image/container/network/volume 확인 지점에서 나온다. |
 
-### 평가 기준
-| 기준 | 2점 evidence |
+### 확인 기준
+| 기준 | 확인 지점 |
 |---|---|
 | 개념 구분 | image와 container를 실행 전 package와 실행 상태로 구분했다. |
 | PC 부품 매핑 | CPU/RAM/disk/network/kernel을 container/image/volume/port binding과 연결했다. |

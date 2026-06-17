@@ -10,7 +10,7 @@ Day 2는 Docker container의 실행 상태가 어디에 남고, container들이 
 | Docker networking docs | bridge network, user-defined network, container DNS 구분 |
 | Docker run reference | `-v`, `--mount`, `--network`, `-p` 실행 옵션의 공식 기준 |
 | PostgreSQL official image | data directory, initialization, password env 기준 |
-| SRE/DevOps evidence culture | 데이터 생존 여부와 연결 경로를 query/log로 증명 |
+| SRE/DevOps 운영 점검 culture | 데이터 생존 여부와 연결 경로를 query/log로 확인 |
 
 ## Conceptual Rationale
 
@@ -37,14 +37,12 @@ Network도 같은 방식으로 다룬다. host에서 `localhost:15432`로 붙는
 | Bloom apply/analyze | volume 없는 DB와 named volume DB의 데이터 생존 결과를 비교 |
 | ABET-style problem solving | 접속 실패를 port, network, DNS, container 상태로 분류 |
 | Professional responsibility | `docker volume rm`과 `down -v`류 삭제 위험을 설명 |
-| SRE/DevOps evidence | query 결과, `docker volume ls`, `docker network inspect`를 evidence로 남김 |
+| SRE/DevOps 운영 점검 | query, `docker volume ls`, `docker network inspect`로 상태 확인 |
 
-## Completion Evidence
+## 완료 전 주의할 점
 
-학생은 Day 2 종료 시점에 다음을 제출할 수 있어야 한다.
-
-- volume 없는 PostgreSQL container에서 데이터가 사라진 증거
-- named volume을 붙인 PostgreSQL container에서 데이터가 유지된 증거
-- bind mount로 host file이 container에 보이는 증거
-- user-defined network에서 container name DNS로 DB에 접속한 증거
-- host port publish와 Docker internal network의 차이를 설명한 README
+- Volume 없이 만든 DB data는 container 삭제와 함께 사라질 수 있다. 이를 PostgreSQL 문제나 Docker 오류로 해석하지 않는다.
+- Named volume은 container보다 오래 남는다. cleanup에서 container 삭제와 volume 삭제를 같은 의미로 다루면 안 된다.
+- bind mount는 host filesystem을 직접 노출한다. host 경로, 권한, read-only 여부가 바뀌면 container 동작도 달라진다.
+- User-defined network에서는 container name이 service discovery 역할을 한다. 같은 network에 붙어 있지 않으면 이름이 맞아도 통신되지 않는다.
+- Host port publish는 host에서 들어오는 경로이고, container DNS는 container끼리 통신하는 경로다. `localhost`, published port, container port를 섞지 않는다.

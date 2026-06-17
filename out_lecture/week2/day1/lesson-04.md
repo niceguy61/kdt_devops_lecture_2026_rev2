@@ -26,7 +26,7 @@
 
 하지만 같은 비중으로 단점을 다룬다. image가 커지면 pull/build가 느려지고, container와 volume을 방치하면 disk와 port가 지저분해진다. secret을 build context나 image layer에 넣으면 지우기 어렵다. container 내부에서만 보이는 실패는 local보다 debugging이 어려울 수 있다. Docker 도입은 운영 책임을 없애는 것이 아니라 책임의 경계를 바꾸는 일이다.
 
-수업 후반의 판단 활동에서는 "Docker를 써야 한다"가 정답이 아니다. 학생이 자기 Week 1 앱을 기준으로 실행 반복성, 의존성 복잡도, port 명확성, data persistence, secret 필요 여부를 평가하게 한다. Docker가 맞는 상황과 보류해야 하는 상황을 모두 말할 수 있어야 도구를 제대로 이해한 것이다.
+수업 후반의 판단 활동에서는 "Docker를 써야 한다"가 정답이 아니다. 학생이 자기 Week 1 앱을 기준으로 실행 반복성, 의존성 복잡도, port 명확성, data persistence, secret 필요 여부를 확인하게 한다. Docker가 맞는 상황과 보류해야 하는 상황을 모두 말할 수 있어야 도구를 제대로 이해한 것이다.
 
 ## local 실행 경험 복기
 
@@ -59,7 +59,7 @@ Docker의 장점은 "편하다"보다 구체적으로 말해야 한다. 첫째, 
 ### Visual 3: Docker benefit map
 ![Mermaid diagram 1](https://raw.githubusercontent.com/niceguy61/kdt_devops_lecture_2026_rev2/main/lecture_mermaid_assets/week2__day1__lesson-04--diagram-01.png)
 
-읽는 순서: Docker의 장점은 명시성에서 시작해 재현성, 협업, 운영 evidence로 이어진다.
+읽는 순서: Docker의 장점은 명시성에서 시작해 재현성, 협업, 운영 확인 지점으로 이어진다.
 
 ## Docker가 나빠질 수 있는 점
 
@@ -120,7 +120,7 @@ Docker를 쓰면 책임도 늘어난다. image가 커지면 build/pull 시간이
 | `docker images` | local에 어떤 image가 있는지 |
 | `docker run` | image에서 container를 시작할 수 있는지 |
 | `docker ps` | 현재 실행 중인 container가 무엇인지 |
-| `docker logs` | process가 남긴 stdout/stderr evidence |
+| `docker logs` | process가 남긴 stdout/stderr 확인 지점 |
 | `docker stop` | 실행 중인 container를 멈출 수 있는지 |
 | `docker rm` | 종료된 container를 정리했는지 |
 
@@ -131,14 +131,14 @@ Docker를 쓰면 책임도 늘어난다. image가 커지면 build/pull 시간이
 | Docker container는 OS 전체를 들고 다니는 작은 VM이다. | container는 app/library 중심의 실행 환경이며 host kernel을 공유하는 격리된 process로 이해해야 한다. |
 | Docker는 항상 성능과 비용을 줄인다. | image 크기, build 시간, disk 사용량, 실행 container 수를 관리해야 한다. |
 | container 삭제는 항상 안전하다. | volume과 data lifecycle을 구분하지 않으면 필요한 데이터를 잃을 수 있다. |
-| local 실행은 이제 배울 필요 없다. | Docker 문제도 process, file, network, config evidence로 분석한다. |
+| local 실행은 이제 배울 필요 없다. | Docker 문제도 process, file, network, config 확인 지점으로 분석한다. |
 
-### 평가 기준
-| 기준 | 2점 evidence |
+### 확인 기준
+| 기준 | 확인 지점 |
 |---|---|
 | 비교 관점 | compute/storage/network/config/observability 중 3개 이상으로 local과 Docker를 비교했다. |
 | 장점 설명 | 재현성, dependency isolation, handoff 중 2개 이상을 구체적으로 설명했다. |
-| 위험 설명 | secret, disk, port, volume, debugging 중 2개 이상을 위험으로 기록했다. |
+| 위험 설명 | secret, disk, port, volume, debugging 중 2개 이상을 위험으로 확인했다. |
 | 도구 선택 | Docker 사용/보류 판단을 상황 기준으로 설명했다. |
 | 다음 실습 준비 | 기본 명령어를 상태 확인 목적과 연결했다. |
 
@@ -148,4 +148,4 @@ Docker를 쓰면 책임도 늘어난다. image가 커지면 build/pull 시간이
 - OWASP Secrets Management Cheat Sheet, https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html - secret을 image, repository, screenshot에 남기지 않는 보안 판단 기준이다.
 
 ### 다음 연결
-다음 교시는 Docker 기본 명령어 첫 실습이다. 각 명령은 "무엇을 확인하는가"라는 질문과 함께 실행하고, 실행 후에는 반드시 중지와 정리까지 기록한다.
+다음 교시는 Docker 기본 명령어 첫 실습이다. 각 명령은 "무엇을 확인하는가"라는 질문과 함께 실행하고, 실행 후에는 반드시 중지와 정리까지 확인한다.

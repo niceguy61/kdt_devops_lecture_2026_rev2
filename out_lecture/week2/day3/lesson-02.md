@@ -1,74 +1,99 @@
 # 2교시: Dockerfile 기본 문법
 
 ## 수업 목표
-- image/build/registry 개념을 실행 evidence로 확인한다.
-- 명령, 검증, cleanup을 분리해 기록한다.
-- 실패를 RCA 형식으로 정리한다.
+- `FROM`, `WORKDIR`, `COPY`, `RUN`, `CMD`, `EXPOSE`의 역할을 구분한다.
+- Dockerfile instruction이 image layer와 runtime default에 미치는 영향을 설명한다.
+- `EXPOSE`와 `docker run -p`를 혼동하지 않는다.
 
 ## 강의 전개
-FROM/WORKDIR/COPY/RUN/CMD/EXPOSE를 실행 계약으로 읽는다.
+Dockerfile은 image를 만드는 규칙이다. shell script처럼 위에서 아래로 실행되는 느낌이 있지만, 결과는 container가 아니라 image다. `FROM`은 출발 image를 고르고, `WORKDIR`은 이후 명령의 기준 directory를 잡고, `COPY`는 build context의 파일을 image 안으로 넣는다. `RUN`은 build 시점에 실행되어 layer를 만들고, `CMD`는 container 실행 시 기본 명령이 된다. `EXPOSE`는 image가 어떤 port를 사용한다는 문서화 정보에 가깝고 host port를 열어주지는 않는다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 기록한다. 실패도 수업 산출물이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 남긴다.
+이 교시는 Dockerfile 한 줄마다 "언제 실행되는가"와 "image에 무엇을 남기는가"를 묻는다. build 시점과 run 시점을 구분하지 못하면 `RUN`, `CMD`, `EXPOSE`, `-p`가 계속 섞인다.
+
+## Imagegen 인포그래픽: Dockerfile instruction map
+![Dockerfile instruction map infographic](https://raw.githubusercontent.com/niceguy61/kdt_devops_lecture_2026_rev2/main/week2/day3/assets/lesson-02-dockerfile-instruction-map.png)
+
+이 이미지는 Dockerfile의 각 instruction이 image 생성 규칙인지, runtime default인지, port 문서화인지 구분하게 한다. 특히 `CMD`와 `EXPOSE`는 build 결과에 포함되지만 host 접속을 직접 열지는 않는다.
+
+## 시각 자료 1: build 시점과 run 시점
+```mermaid
+flowchart LR
+  Dockerfile --> Build[docker build]
+  Build --> Image[image]
+  Image --> Run[docker run]
+  Run --> Container[container]
+  Dockerfile --> From[FROM/COPY/RUN]
+  Dockerfile --> Cmd[CMD/EXPOSE]
+```
+
+Dockerfile은 build input이다. `docker build`가 image를 만들고, `docker run`이 그 image로 container를 만든다.
+
+## 시각 자료 2: instruction 역할
+```mermaid
+flowchart TD
+  FROM --> Base[base image 선택]
+  WORKDIR --> Dir[작업 directory 기준]
+  COPY --> Files[파일 포함]
+  RUN --> Layer[build 시점 layer]
+  CMD --> Default[runtime 기본 명령]
+  EXPOSE --> Doc[container port 문서화]
+```
+
+이 표식은 "어떤 instruction이 언제 의미를 갖는가"를 빠르게 확인하는 지도다.
 
 ## 실습 명령
 ```bash
 mkdir -p week2/day3/labs/static-site
 printf "<h1>day3 static app</h1>" > week2/day3/labs/static-site/index.html
-printf "FROM nginx:1.27-alpine\nCOPY index.html /usr/share/nginx/html/index.html\nEXPOSE 80\n" > week2/day3/labs/static-site/Dockerfile
+cat > week2/day3/labs/static-site/Dockerfile <<'EOF'
+FROM nginx:1.27-alpine
+WORKDIR /usr/share/nginx/html
+COPY index.html ./index.html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+EOF
 ```
 
 ## 검증 명령
 ```bash
-sed -n "1,80p" week2/day3/labs/static-site/Dockerfile
+sed -n '1,120p' week2/day3/labs/static-site/Dockerfile
 ```
+
+## 실습 확장 흐름
+| 단계 | 할 일 | 기대되는 관찰 |
+|---|---|---|
+| 준비 | 표준 static app directory를 만든다. | build context가 생긴다. |
+| 실행 | Dockerfile을 읽는다. | instruction 순서를 볼 수 있다. |
+| 관찰 | `FROM`, `COPY`, `CMD`, `EXPOSE`를 분리한다. | build 시점과 run 시점이 나뉜다. |
+| 실패 재현 | `COPY missing.html`처럼 없는 파일을 가정한다. | build가 COPY 단계에서 실패한다. |
+| 복구 | 실제 존재하는 `index.html`을 COPY한다. | build 가능한 Dockerfile이 된다. |
+| 확인 | `EXPOSE 80`만으로 host port가 열리지 않음을 말한다. | 다음 run 실습에서 `-p`가 필요함을 연결한다. |
 
 ## 실패 드릴과 오해 교정
 | 상황 | 해석 |
 |---|---|
-| build 실패 | Dockerfile path, build context, COPY source를 확인한다. |
-| run 성공 후 접속 실패 | EXPOSE와 host -p mapping을 구분한다. |
-| push 요구 | credential과 public repository gate를 먼저 확인한다. |
+| `RUN`과 `CMD` 혼동 | `RUN`은 build 시점, `CMD`는 container 실행 기본값이다. |
+| `EXPOSE` 후 브라우저 접속 기대 | host port publish가 없으면 host에서 접근할 수 없다. |
+| `COPY` 실패 | source path가 build context 안에 있는지 확인한다. |
 
 ## Cleanup
 ```bash
-docker stop paperclip-day3-static || true
-docker rm paperclip-day3-static || true
-# 필요할 때만 실습 image 삭제
-# docker image rm paperclip-static-site:day3 paperclip-static-site:day3-reviewed
+# 이 교시에서는 파일을 다음 build 실습에서 사용하므로 삭제하지 않는다.
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+## 주의할 점
+- `COPY . .`는 편하지만 위험하다. 불필요한 파일과 secret이 image에 들어갈 수 있다.
+- `WORKDIR`이 바뀌면 상대 경로 기준도 바뀐다. 이후 `COPY`, `RUN`, `CMD`의 경로를 같이 본다.
+- `CMD`는 하나만 최종 기본 명령으로 남는다. 여러 개를 쓰면 마지막 의미만 남는다고 이해한다.
+- `EXPOSE`는 문서화 성격이다. host에서 접속하려면 `docker run -p host:container`가 필요하다.
 
-## Evidence
-| 항목 | 제출 기준 |
-|---|---|
-| Command evidence | 실행한 build/run/inspect 명령 |
-| Verification | HTTP/history/inspect 결과 |
-| RCA | 실패 drill 원인과 재검증 |
+## 핵심 포인트
+Dockerfile은 "container를 지금 실행하는 명령 묶음"이 아니라 "image를 만드는 규칙"이다. 그래서 같은 Dockerfile로 같은 source를 build하면 다른 사람이 같은 실행 재료를 만들 수 있다.
 
-## 강의자 설명 포인트
-Day 3의 중심은 "내가 실행한 것은 어떤 artifact인가"라는 질문이다. Day 1과 Day 2에서는 이미 존재하는 official image를 가져와 실행했다. Day 3에서는 source file과 Dockerfile을 image로 포장한다. 학생은 Dockerfile을 단순 설치 스크립트처럼 읽기 쉽지만, 실제로는 build context를 입력으로 받아 image layer를 만드는 build recipe다.
+초급자는 Dockerfile을 길게 쓰는 데 집중하기 쉽지만, 운영에서는 어떤 파일이 들어갔는지, 어떤 명령이 build 시점에 실행됐는지, runtime 기본 명령이 무엇인지가 더 중요하다.
 
-`COPY` 한 줄은 작아 보이지만 운영적으로는 중요하다. 어떤 파일이 image 안에 들어가고 어떤 파일이 제외되는지에 따라 image size, secret risk, rebuild cache가 달라진다. `.dockerignore`는 예쁘게 정리하는 파일이 아니라 Docker daemon으로 보내는 build input boundary를 줄이는 장치다. 이 점을 반복해서 강조한다.
-
-## 운영 해석
-tag는 이름표고 digest는 content identity에 가깝다. `latest`는 편하지만 재현성에는 약하다. 같은 tag가 시간이 지나 다른 내용을 가리킬 수 있기 때문이다. 교육 단계에서는 tag를 쉽게 쓰되, 운영 판단에서는 명시적 version tag와 digest 확인이 왜 필요한지 연결한다.
-
-Docker Hub push는 학습자가 하고 싶어할 수 있지만 기본 요구로 두지 않는다. public repository에 secret이나 불필요한 파일이 들어간 image를 올리는 사고를 막아야 한다. push 전에 image 안에 무엇이 들어갔는지, tag가 무엇인지, 공개 범위가 무엇인지 확인하게 한다.
-
-## README 기록 예시
-```markdown
-## Image Build Evidence
-- Dockerfile path:
-- Build command:
-- Image tag:
-- Base image:
-- Build context note:
-- .dockerignore excludes:
-- HTTP check:
-- history/inspect summary:
-- Failure drill:
-```
+## 혼자 다시 따라오기
+최소 성공 경로는 `index.html`과 Dockerfile을 만들고 instruction을 한 줄씩 설명하는 것이다. `COPY`가 실패할 것 같으면 build를 하기 전에 source file이 build context 안에 있는지 먼저 확인한다.
 
 ## 다음 연결
-Day 4는 이 image를 여러 runtime config와 failure 조건으로 실행해 관찰한다.
+다음 교시는 build context와 `.dockerignore`를 다룬다. Dockerfile의 `COPY`가 어디까지 볼 수 있는지 확인한다.

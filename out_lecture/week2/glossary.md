@@ -45,7 +45,7 @@
 | `compose.yaml` | Compose application model을 담는 YAML 파일 | services, ports, environment, volumes, networks가 설명 가능한가 |
 | `depends_on` | Compose service 시작 순서를 표현하는 설정 | 시작 순서와 실제 readiness를 혼동하지 않는가 |
 | Healthcheck | container 내부 상태를 주기적으로 확인하는 설정 | process running과 service ready를 구분했는가 |
-| Restart policy | container 종료 후 재시작 방식을 정하는 설정 | 실습에서는 예기치 않은 재시작이 evidence를 흐리지 않는가 |
+| Restart policy | container 종료 후 재시작 방식을 정하는 설정 | 실습에서는 예기치 않은 재시작이 확인 지점을 흐리지 않는가 |
 | `docker logs` | container의 stdout/stderr를 확인하는 명령 | 장애 증거가 log에 남아 있는가 |
 | `docker exec` | 실행 중인 container 안에서 명령을 실행하는 방법 | 내부 상태를 확인해야 하는 이유가 있는가 |
 | `docker inspect` | container/image/network/volume의 상세 JSON 상태를 보는 명령 | 추측 대신 실제 설정을 확인했는가 |
@@ -84,5 +84,5 @@
 | HTTP status | `curl`로 container 응답 확인 |
 | Configuration | `-e`, `.env`, Compose `environment` |
 | Secret | `.dockerignore`, runtime injection, screenshot masking |
-| README evidence | build/run/check/stop/cleanup 절차 |
+| README 확인 지점 | build/run/check/stop/cleanup 절차 |
 | RCA | port conflict, env missing, volume persistence 분석 |

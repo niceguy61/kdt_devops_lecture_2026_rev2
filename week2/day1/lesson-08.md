@@ -1,21 +1,21 @@
-# 8교시: 포트 충돌, 정리, 증거 제출
+# 8교시: 포트 충돌, 정리, 주의할 점 확인
 
 ## 수업 목표
 - 같은 host port를 두 PostgreSQL container가 동시에 사용할 수 없음을 실험으로 확인한다.
 - port mapping을 바꾸면 같은 container port `5432`를 가진 DB가 동시에 실행될 수 있음을 설명한다.
-- container와 volume 정리 기준을 구분하고 Day 2 준비 note를 작성한다.
+- container와 volume 정리 기준을 구분하고 Day 2 준비 상태를 확인한다.
 
 ## 강의 전개
 
-이 교시는 의도적으로 실패를 만든 뒤 그 실패를 evidence로 읽는 시간이다. 앞 교시에서 PostgreSQL 16과 18은 서로 다른 host port를 사용했기 때문에 동시에 실행됐다. 이제 같은 host port를 두 container에 publish하려고 하면 왜 실패하는지 직접 확인한다.
+이 교시는 의도적으로 실패를 만든 뒤 그 실패를 확인 지점으로 읽는 시간이다. 앞 교시에서 PostgreSQL 16과 18은 서로 다른 host port를 사용했기 때문에 동시에 실행됐다. 이제 같은 host port를 두 container에 publish하려고 하면 왜 실패하는지 직접 확인한다.
 
 핵심은 container 내부 port와 host port를 분리하는 것이다. container 내부에서는 PostgreSQL 16도 `5432`, PostgreSQL 18도 `5432`를 사용할 수 있다. 두 process가 서로 다른 container namespace 안에 있기 때문이다. 하지만 host machine의 `localhost:15432`는 하나의 network endpoint다. 이미 `paperclip-pg16`이 그 endpoint를 사용 중이면 두 번째 container가 같은 host port를 잡을 수 없다.
 
-실패 메시지는 수업의 정답 일부다. `port is already allocated`, `Bind for ... failed`, `address already in use` 같은 표현은 Docker version과 OS에 따라 조금씩 다를 수 있다. 학생은 문구를 그대로 외우는 대신 "같은 host IP/port 조합을 이미 사용 중이다"라는 원인을 적어야 한다.
+실패 메시지는 수업의 정답 일부다. `port is already allocated`, `Bind for ... failed`, `address already in use` 같은 표현은 Docker version과 OS에 따라 조금씩 다를 수 있다. 학생은 문구를 그대로 외우는 대신 "같은 host IP/port 조합을 이미 사용 중이다"라는 원인을 구분한다.
 
 정리 단계에서는 container와 volume을 구분한다. container를 삭제하면 process와 container writable layer는 사라지지만 named volume은 남을 수 있다. 실습 DB 데이터를 유지하고 싶다면 volume을 남긴다. 완전히 초기화하고 싶다면 volume까지 삭제한다. 이 구분은 Day 2 이후 Dockerfile과 Compose를 배울 때도 계속 이어진다.
 
-마지막 제출 evidence는 Day 1 전체를 닫는 운영 기록이다. Docker 설치 경로, version 확인, Docker 개념 요약, 로컬 PostgreSQL 처리 결정, PostgreSQL 16/18 port와 version 결과, 의도적 port conflict error, cleanup 결과가 모두 들어가야 한다. 이 기록이 있으면 Day 2에서 build와 Dockerfile로 넘어갈 때 남은 blocker를 빠르게 분리할 수 있다.
+마지막 확인 지점은 Day 1 전체를 닫는 운영 확인이다. Docker 설치 경로, version 확인, Docker 개념 요약, 로컬 PostgreSQL 처리 결정, PostgreSQL 16/18 port와 version 결과, 의도적 port conflict error, cleanup 결과가 모두 들어가야 한다. 이 확인이 있으면 Day 2에서 build와 Dockerfile로 넘어갈 때 남은 blocker를 빠르게 분리할 수 있다.
 
 ## Hands-on 1: 같은 host port 충돌 만들기
 
@@ -71,7 +71,7 @@ docker exec paperclip-pg16 psql -U postgres -d paperclip -c "SELECT version();"
 docker exec paperclip-pg18 psql -U postgres -d paperclip -c "SELECT version();"
 ```
 
-host `psql` client가 있는 학생은 `localhost:15432`, `localhost:15433` 접속도 함께 기록한다.
+host `psql` client가 있는 학생은 `localhost:15432`, `localhost:15433` 접속도 함께 확인한다.
 
 ```bash
 PGPASSWORD=postgres psql -h localhost -p 15432 -U postgres -d paperclip -c "SELECT current_setting('server_version');"
@@ -97,31 +97,21 @@ docker ps -a --filter name=paperclip-pg
 docker volume ls | grep paperclip-pg
 ```
 
-`docker volume rm`은 데이터를 삭제한다. 개인 DB나 다른 수업 산출물이 연결된 volume에는 사용하지 않는다.
+`docker volume rm`은 데이터를 삭제한다. 개인 DB나 중요한 데이터가 연결된 volume에는 사용하지 않는다.
 
-## Day 1 제출 정리
+## Day 1 주의할 점 정리
 
-```markdown
-## Week 2 Day 1 Final Evidence
-- Docker install path: macOS Desktop / Linux Engine / Linux Desktop exception / blocker
-- docker version summary:
-- docker compose version summary:
-- hello-world result:
-- Docker concept one-liner:
-- Local PostgreSQL cleanup decision:
-- pg16 host port and version:
-- pg18 host port and version:
-- port conflict error summary:
-- cleanup result:
-- remaining blocker:
-```
+- 같은 host port를 두 container가 동시에 사용할 수 없다. `port is already allocated` 계열 오류는 정상적인 충돌 신호다.
+- Docker 설치, PostgreSQL container 실행, port conflict, cleanup은 서로 다른 문제다. 하나가 실패했다고 나머지 개념까지 실패한 것은 아니다.
+- Cleanup할 때 container와 volume을 구분한다. container 삭제는 process 정리이고, volume 삭제는 data 삭제다.
+- Day 2로 넘어가기 전에 남아 있는 blocker가 설치 문제인지, port 문제인지, DB 접속 문제인지 구분한다.
 
-## 평가 기준
-| 기준 | 2점 evidence |
+## 확인 기준
+| 기준 | 확인 지점 |
 |---|---|
 | port 충돌 이해 | 같은 host port를 두 container가 동시에 사용할 수 없음을 error로 확인했다. |
 | 병렬 실행 이해 | `15432:5432`, `15433:5432` mapping을 설명했다. |
-| version 확인 | 16/18 query 결과를 분리해 기록했다. |
+| version 확인 | 16/18 query 결과를 분리해 확인했다. |
 | cleanup | container와 volume cleanup 범위를 구분했다. |
 | 안전 | 기존 로컬 PostgreSQL data 삭제 위험을 확인했다. |
 

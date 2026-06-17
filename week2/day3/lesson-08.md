@@ -1,74 +1,113 @@
-# 8교시: image build failure drill
+# 8교시: image build failure drill과 구름 EXP 배움일기
 
 ## 수업 목표
-- image/build/registry 개념을 실행 evidence로 확인한다.
-- 명령, 검증, cleanup을 분리해 기록한다.
-- 실패를 RCA 형식으로 정리한다.
+- missing file, wrong CMD, wrong port, bloated context를 구분한다.
+- 실패를 build 단계, run 단계, HTTP 접근 단계로 나누어 좁힌다.
+- 수업 후 구름 EXP 배움일기에 Day 3 핵심을 남긴다.
 
 ## 강의 전개
-missing file, wrong CMD, wrong port, bloated context 중 하나를 RCA로 기록한다.
+Day 3 마지막 교시는 일부러 실패를 만든다. Docker build/run에서 실패가 나면 초급자는 Docker 전체가 어렵다고 느끼기 쉽다. 하지만 실패 위치를 나누면 복구할 수 있다. build 실패는 Dockerfile과 context를 보고, run 실패는 image tag와 container 이름을 보고, HTTP 실패는 port publish와 service 상태를 본다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 기록한다. 실패도 수업 산출물이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 남긴다.
+이 교시의 목적은 모든 에러 메시지를 외우는 것이 아니라, 어떤 명령 다음에 어떤 문제가 생겼는지 좁히는 것이다. 같은 static app으로 missing file, wrong CMD, wrong port, bloated context를 짧게 비교한다.
+
+## Imagegen 인포그래픽: build failure RCA
+![Docker image build failure RCA infographic](./assets/lesson-08-build-failure-rca.png)
+
+이 이미지는 build 실패를 네 가지 흔한 원인으로 나누어 보여준다. missing file, wrong CMD, wrong port, bloated context를 한꺼번에 의심하지 않고 첫 확인 위치를 분리한다.
+
+## 시각 자료 1: 실패 위치 분리
+```mermaid
+flowchart TD
+  Fail[문제 발생] --> Build{docker build 단계인가}
+  Fail --> Run{docker run 단계인가}
+  Fail --> HTTP{curl 단계인가}
+  Build --> Context[Dockerfile, COPY, context]
+  Run --> ImageTag[image tag, container name]
+  HTTP --> Port[host port, container port, service]
+```
+
+실패 위치를 먼저 나누면 확인할 명령이 줄어든다.
+
+## 시각 자료 2: RCA 흐름
+```mermaid
+flowchart LR
+  Symptom[증상] --> Hypothesis[가설]
+  Hypothesis --> Command[확인 명령]
+  Command --> Fix[수정]
+  Fix --> Retry[다시 build/run]
+```
+
+RCA는 긴 문서가 아니라 증상, 가설, 확인 명령, 수정, 재시도 순서다.
 
 ## 실습 명령
 ```bash
 cp -r week2/day3/labs/static-site week2/day3/labs/static-site-broken
 rm -f week2/day3/labs/static-site-broken/index.html
-cd week2/day3/labs/static-site-broken && docker build -t paperclip-static-site:broken . || true
+cd week2/day3/labs/static-site-broken
+docker build -t paperclip-static-site:broken . || true
+```
+
+```bash
+cd /mnt/d/paperclip
+docker run -d --name paperclip-day3-static-wrong -p 18084:8080 paperclip-static-site:day3 || true
+curl -I http://localhost:18084 || true
 ```
 
 ## 검증 명령
 ```bash
-docker images paperclip-static-site
+docker ps -a --filter name=paperclip-day3-static
+docker logs paperclip-day3-static-wrong --tail 30 || true
+du -sh week2/day3/labs/static-site
 ```
+
+## 실습 확장 흐름
+| 단계 | 할 일 | 기대되는 관찰 |
+|---|---|---|
+| 준비 | 정상 build/run 경로를 떠올린다. | 비교 기준이 있다. |
+| 실행 | missing file build 실패를 만든다. | COPY source 관련 실패가 나온다. |
+| 관찰 | 실패가 build 단계인지 확인한다. | container 실행 전 문제다. |
+| 실패 재현 | wrong port mapping으로 curl 실패를 만든다. | container와 host 연결 문제로 분리된다. |
+| 복구 | 파일을 되돌리고 `-p 18083:80`으로 실행한다. | 정상 HTTP 응답으로 돌아온다. |
+| 확인 | 실패 유형별 첫 확인 명령을 말한다. | build/run/HTTP 문제를 구분한다. |
 
 ## 실패 드릴과 오해 교정
 | 상황 | 해석 |
 |---|---|
-| build 실패 | Dockerfile path, build context, COPY source를 확인한다. |
-| run 성공 후 접속 실패 | EXPOSE와 host -p mapping을 구분한다. |
-| push 요구 | credential과 public repository gate를 먼저 확인한다. |
+| missing file | Dockerfile `COPY` source와 build context를 본다. |
+| wrong CMD | container logs와 image CMD를 본다. |
+| wrong port | `EXPOSE`, container port, host `-p`를 나누어 본다. |
+| bloated context | `.dockerignore`와 context directory 크기를 본다. |
 
 ## Cleanup
 ```bash
-docker stop paperclip-day3-static || true
-docker rm paperclip-day3-static || true
-# 필요할 때만 실습 image 삭제
-# docker image rm paperclip-static-site:day3 paperclip-static-site:day3-reviewed
+docker stop paperclip-day3-static paperclip-day3-static-wrong || true
+docker rm paperclip-day3-static paperclip-day3-static-wrong || true
+rm -rf week2/day3/labs/static-site-broken
+# 필요할 때만 image 삭제
+# docker image rm paperclip-static-site:day3 paperclip-static-site:day3-v2 paperclip-static-site:day3-reviewed paperclip-static-site:broken
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+## 주의할 점
+- build 실패와 runtime 실패를 섞지 않는다.
+- `COPY` 실패는 Dockerfile 문법보다 context와 source path 문제일 때가 많다.
+- wrong port는 app 문제가 아니라 host/container port mapping 문제일 수 있다.
+- bloated context는 당장 실패하지 않아도 build 시간, image size, secret risk를 키운다.
 
-## Evidence
-| 항목 | 제출 기준 |
-|---|---|
-| Command evidence | 실행한 build/run/inspect 명령 |
-| Verification | HTTP/history/inspect 결과 |
-| RCA | 실패 drill 원인과 재검증 |
+## 핵심 포인트
+Day 3의 마무리는 image를 만들 수 있다는 자신감보다, 실패를 좁힐 수 있는 기준이다. Dockerfile, build context, image tag, container name, port mapping을 분리해서 보면 대부분의 초급 build/run 문제는 복구 가능하다.
 
-## 강의자 설명 포인트
-Day 3의 중심은 "내가 실행한 것은 어떤 artifact인가"라는 질문이다. Day 1과 Day 2에서는 이미 존재하는 official image를 가져와 실행했다. Day 3에서는 source file과 Dockerfile을 image로 포장한다. 학생은 Dockerfile을 단순 설치 스크립트처럼 읽기 쉽지만, 실제로는 build context를 입력으로 받아 image layer를 만드는 build recipe다.
+이 기준은 Day 4의 logs/inspect/exec/stats로 이어진다. Day 4에서는 같은 image를 다양한 runtime config와 장애 조건으로 실행하면서 관찰 도구를 더 깊게 사용한다.
 
-`COPY` 한 줄은 작아 보이지만 운영적으로는 중요하다. 어떤 파일이 image 안에 들어가고 어떤 파일이 제외되는지에 따라 image size, secret risk, rebuild cache가 달라진다. `.dockerignore`는 예쁘게 정리하는 파일이 아니라 Docker daemon으로 보내는 build input boundary를 줄이는 장치다. 이 점을 반복해서 강조한다.
+## 구름 EXP 배움일기
+수업 후 구름 EXP 배움일기에 오늘 공부한 내용을 남긴다. 간단한 메모 형태로 남겨도 되고, 블로그 형태로 정리해도 좋다.
 
-## 운영 해석
-tag는 이름표고 digest는 content identity에 가깝다. `latest`는 편하지만 재현성에는 약하다. 같은 tag가 시간이 지나 다른 내용을 가리킬 수 있기 때문이다. 교육 단계에서는 tag를 쉽게 쓰되, 운영 판단에서는 명시적 version tag와 digest 확인이 왜 필요한지 연결한다.
+- image, layer, tag, digest의 차이
+- Dockerfile instruction 중 가장 헷갈린 것
+- build context와 `.dockerignore`에서 주의할 점
+- build 실패 시 먼저 볼 위치
 
-Docker Hub push는 학습자가 하고 싶어할 수 있지만 기본 요구로 두지 않는다. public repository에 secret이나 불필요한 파일이 들어간 image를 올리는 사고를 막아야 한다. push 전에 image 안에 무엇이 들어갔는지, tag가 무엇인지, 공개 범위가 무엇인지 확인하게 한다.
-
-## README 기록 예시
-```markdown
-## Image Build Evidence
-- Dockerfile path:
-- Build command:
-- Image tag:
-- Base image:
-- Build context note:
-- .dockerignore excludes:
-- HTTP check:
-- history/inspect summary:
-- Failure drill:
-```
+## 혼자 다시 따라오기
+최소 성공 경로는 정상 static app build/run, missing file 실패 재현, 올바른 파일 복구, port mapping 복구다. 실패가 나면 마지막으로 성공한 단계가 build인지 run인지 HTTP인지 먼저 나눈다.
 
 ## 다음 연결
-Day 4는 이 image를 여러 runtime config와 failure 조건으로 실행해 관찰한다.
+Day 4는 Day 3에서 만든 image를 여러 runtime config와 failure 조건으로 실행하면서 logs, inspect, exec, stats를 사용한다.

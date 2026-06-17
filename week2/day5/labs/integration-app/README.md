@@ -86,11 +86,11 @@ docker image rm paperclip/week2-day5-integration:v1
 ## Security Notes
 - Do not copy `.env`, credentials, tokens, SSH keys, or personal files into the image.
 - Keep `.dockerignore` small but meaningful.
-- Use explicit image tags for evidence.
-- Do not treat `latest` as enough evidence for a class submission.
+- Use explicit image tags for 확인 지점.
+- Do not treat `latest` as enough 확인 지점 for a class submission.
 - Do not publish an image before checking its contents and README.
 
-## Evidence Checklist
+## 주의할 점 체크리스트
 - [ ] `docker build` completed.
 - [ ] local image tag exists.
 - [ ] `docker run` served HTTP 200.

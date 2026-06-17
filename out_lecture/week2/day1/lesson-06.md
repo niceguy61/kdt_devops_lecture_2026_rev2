@@ -2,14 +2,14 @@
 
 ## 수업 목표
 - Week 1에서 설치했던 로컬 PostgreSQL이 Docker DB 실습과 충돌할 수 있음을 이해한다.
-- 기존 PostgreSQL을 삭제, 중지, 또는 보류 중 하나로 안전하게 처리하고 evidence를 남긴다.
+- 기존 PostgreSQL을 삭제, 중지, 또는 보류 중 하나로 안전하게 처리하고 확인 지점을 남긴다.
 - PostgreSQL 공식 Docker image 문서를 읽고 `POSTGRES_PASSWORD`, tag, volume, port의 의미를 확인한다.
 
 ## 강의 전개
 
 이 교시는 PostgreSQL을 지우는 수업이 아니라, 데이터와 port를 안전하게 다루는 수업이다. Week 1에서 로컬 PostgreSQL을 설치했다면 host port `5432`를 이미 사용 중일 수 있다. Docker PostgreSQL container도 내부에서는 기본적으로 `5432`를 사용한다. 이 사실을 모르면 "Docker가 안 된다"가 아니라 host port 충돌인 상황을 잘못 진단하게 된다.
 
-먼저 현재 상태를 확인한다. `psql --version`은 client가 있는지 보여줄 수 있지만 server가 실행 중이라는 뜻은 아니다. `pg_isready`, `lsof`, `ss` 같은 확인을 통해 실제 listener가 있는지 봐야 한다. 학생에게 "설치 여부"와 "실행 여부"와 "port 점유 여부"를 분리해서 기록하게 한다.
+먼저 현재 상태를 확인한다. `psql --version`은 client가 있는지 보여줄 수 있지만 server가 실행 중이라는 뜻은 아니다. `pg_isready`, `lsof`, `ss` 같은 확인을 통해 실제 listener가 있는지 봐야 한다. 학생에게 "설치 여부"와 "실행 여부"와 "port 점유 여부"를 분리해서 확인하게 한다.
 
 그 다음 선택지를 나눈다. 삭제, 중지, 보류는 모두 가능한 선택이다. 수업용 데이터만 있고 확실히 필요 없다면 삭제할 수 있다. 데이터는 보존하고 port만 비우고 싶다면 중지가 맞다. 회사 장비, 개인 프로젝트 DB, 권한 부족, 백업 불확실성이 있으면 보류하고 Docker host port를 `15432`, `15433`처럼 다르게 잡으면 된다. 무조건 삭제를 정답으로 두면 데이터 안전 원칙을 해친다.
 
@@ -47,7 +47,7 @@ ss -ltnp | grep ':5432'
 
 삭제는 되돌리기 어렵다. 개인 장비에 중요한 데이터가 있으면 삭제하지 말고 중지하거나 보류한다. 수업의 핵심은 "무조건 삭제"가 아니라 Docker container로 DB version과 port를 격리해 실행할 수 있음을 확인하는 것이다.
 
-| 선택 | 언제 선택하는가 | evidence |
+| 선택 | 언제 선택하는가 | 확인 지점 |
 |---|---|---|
 | 삭제 | Week 1 실습용이고 데이터가 필요 없음 | 삭제 명령, `psql --version` 또는 service 확인 결과 |
 | 중지 | 데이터는 보존하되 오늘 port 충돌을 피하고 싶음 | service stop 명령, `pg_isready` 실패 또는 port free |
@@ -121,18 +121,11 @@ host localhost:15432 -> postgres:16 container port 5432
 host localhost:15433 -> postgres:18 container port 5432
 ```
 
-### Evidence 기록 양식
-```markdown
-## Local PostgreSQL Cleanup Evidence
-- OS:
-- Existing PostgreSQL version:
-- Port 5432 status before:
-- Decision: delete / stop / keep
-- Command run:
-- Port 5432 status after:
-- Data deletion risk checked: yes/no
-- Next DB container ports: 15432, 15433
-```
+### Local PostgreSQL cleanup 주의점
+- 로컬 PostgreSQL을 삭제하기 전에 기존 데이터가 필요한지 먼저 확인한다. 수업 실습 때문에 개인 DB를 지우면 복구가 어렵다.
+- 삭제가 위험하면 중지 또는 보류를 선택하고, Docker PostgreSQL은 다른 host port를 사용한다.
+- `5432`가 이미 사용 중이면 Docker 문제가 아니라 host port 충돌일 수 있다. 먼저 어떤 process가 port를 쓰는지 확인한다.
+- PostgreSQL 16과 18을 같은 volume에 연결하지 않는다. major version이 다른 DB data directory를 섞으면 초기화 오류나 데이터 손상이 날 수 있다.
 
 ### 공식 근거 링크
 - PostgreSQL official image README: https://github.com/docker-library/docs/blob/master/postgres/README.md

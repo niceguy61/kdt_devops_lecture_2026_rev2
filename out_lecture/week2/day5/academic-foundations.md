@@ -32,17 +32,17 @@ Compose는 `docker run` 명령을 길게 적는 편의 도구가 아니다. appl
 
 | 기준 | 학생 행동 |
 |---|---|
-| Bloom create/evaluate | architecture별 Compose file을 실행하고 적합성을 평가 |
+| Bloom create/evaluate | architecture별 Compose file을 실행하고 적합성을 확인 |
 | ABET-style solution design | service, network, volume, port, env를 하나의 model로 구성 |
 | Professional responsibility | `.env.example`, secret 비노출, `down -v` 위험을 문서화 |
-| SRE/DevOps evidence | `docker compose config`, `up`, `ps`, `logs`, HTTP/DB query 결과 제출 |
+| SRE/DevOps 확인 지점 | `docker compose config`, `up`, `ps`, `logs`, HTTP/DB query 결과 확인 |
 
-## Completion Evidence
+## 완료 전 주의할 점
 
-학생은 Day 5 종료 시점에 다음을 제출할 수 있어야 한다.
+학생은 Day 5 종료 시점에 다음을 설명할 수 있어야 한다.
 
-- 최소 2개 이상 Compose architecture 실행 evidence
-- `docker compose config --quiet` 통과 기록
+- 최소 2개 이상 Compose architecture 실행 확인 지점
+- `docker compose config --quiet` 통과 확인
 - web endpoint, DB query, reverse proxy route, cache 또는 worker log 중 architecture별 검증 결과
-- `docker compose down`과 `down -v`의 차이를 설명한 cleanup 기록
+- `docker compose down`과 `down -v`의 차이를 설명한 cleanup 확인
 - Week 3 MSA로 넘어갈 때 남는 질문: service discovery, readiness, config, scaling, deployment

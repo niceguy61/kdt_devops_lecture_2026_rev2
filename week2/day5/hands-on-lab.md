@@ -73,9 +73,9 @@ docker compose exec db psql -U postgres -d jobs -c "SELECT current_database();"
 docker compose down
 ```
 
-## Evidence
+## 주의할 점
 - at least two architecture folders executed
-- config/up/ps/logs/check evidence
+- config/up/ps/logs/check 확인 지점
 - one failure drill
 - down vs down -v decision
 - Week 3 service boundary note

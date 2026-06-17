@@ -1,14 +1,43 @@
-# 7교시: tag/push/pull 흐름
+# 7교시: tag/push/pull 흐름과 보안 gate
 
 ## 수업 목표
-- image/build/registry 개념을 실행 evidence로 확인한다.
-- 명령, 검증, cleanup을 분리해 기록한다.
-- 실패를 RCA 형식으로 정리한다.
+- local image에 repository tag를 붙이는 흐름을 이해한다.
+- Docker Hub push는 선택이며 credential과 public repository 위험을 먼저 확인한다.
+- push/pull을 artifact 공유 흐름으로 설명한다.
 
 ## 강의 전개
-local tag와 push gate를 설명한다. push는 선택이며 secret gate 이후에만 수행한다.
+`docker tag`는 image를 새로 build하는 명령이 아니라 기존 image에 다른 이름을 붙이는 명령이다. local tag는 협업과 registry push를 위한 이름 규칙이다. 하지만 push는 기본 요구가 아니다. public registry에 image를 올리면 누구나 접근할 수 있는 범위가 될 수 있고, image 안에 secret이나 불필요한 파일이 들어가면 되돌리기 어렵다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 기록한다. 실패도 수업 산출물이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 남긴다.
+따라서 이 교시는 push를 실습 성공 조건으로 삼지 않는다. local tag와 push gate를 먼저 이해하고, 실제 push는 필요와 credential이 있는 경우에만 선택한다.
+
+## Imagegen 인포그래픽: tag/push/pull 보안 gate
+![Docker tag push pull security gate infographic](./assets/lesson-07-tag-push-pull-gate.png)
+
+이 이미지는 local image에 tag를 붙이고, credential/public repo/secret 포함 여부를 확인한 뒤 선택적으로 push하는 흐름을 보여준다. push는 편의 기능이 아니라 공개 범위가 생기는 행동으로 다룬다.
+
+## 시각 자료 1: tag는 이름 추가
+```mermaid
+flowchart LR
+  Image[paperclip-static-site:day3] --> Tag[docker tag]
+  Tag --> Local[username/paperclip-static-site:day3]
+  Local --> Images[docker images]
+```
+
+tag는 image content를 복사하는 것이 아니라 다른 reference를 추가하는 동작으로 이해한다.
+
+## 시각 자료 2: push gate
+```mermaid
+flowchart TD
+  Push[docker push] --> Cred{credential 있는가}
+  Cred -->|no| Stop[push 하지 않음]
+  Cred -->|yes| Public{공개 범위 괜찮은가}
+  Public -->|no| Stop
+  Public -->|yes| Secret{secret 포함 없는가}
+  Secret -->|no| Stop
+  Secret -->|yes| Registry[registry push 선택]
+```
+
+push 전 gate는 수업 절차가 아니라 운영 안전 기준이다.
 
 ## 실습 명령
 ```bash
@@ -16,58 +45,53 @@ docker tag paperclip-static-site:day3 paperclip-static-site:day3-reviewed
 docker images paperclip-static-site
 ```
 
+```bash
+# Docker Hub push는 선택이다. 실제 계정과 repository가 있을 때만 사용한다.
+# docker tag paperclip-static-site:day3 <dockerhub-username>/paperclip-static-site:day3
+# docker push <dockerhub-username>/paperclip-static-site:day3
+```
+
 ## 검증 명령
 ```bash
-docker image inspect paperclip-static-site:day3-reviewed --format "{{.Id}}"
+docker image inspect paperclip-static-site:day3-reviewed --format "{{json .RepoTags}} {{.Id}}"
 ```
+
+## 실습 확장 흐름
+| 단계 | 할 일 | 기대되는 관찰 |
+|---|---|---|
+| 준비 | local image가 있는지 본다. | tag 대상 image가 있어야 한다. |
+| 실행 | `docker tag`로 reviewed tag를 붙인다. | 같은 image ID에 tag가 추가된다. |
+| 관찰 | `docker images`로 tag 목록을 본다. | tag가 이름표라는 점이 보인다. |
+| 실패 재현 | 없는 image에 tag를 붙인다고 가정한다. | source image reference 오류가 난다. |
+| 복구 | 정확한 local image tag를 사용한다. | 새 tag가 붙는다. |
+| 확인 | push gate 세 가지를 말한다. | credential, 공개 범위, secret 포함 여부를 구분한다. |
 
 ## 실패 드릴과 오해 교정
 | 상황 | 해석 |
 |---|---|
-| build 실패 | Dockerfile path, build context, COPY source를 확인한다. |
-| run 성공 후 접속 실패 | EXPOSE와 host -p mapping을 구분한다. |
-| push 요구 | credential과 public repository gate를 먼저 확인한다. |
+| tag를 build로 오해 | tag는 기존 image reference를 추가하는 명령이다. |
+| push를 필수로 오해 | push는 공유가 필요할 때만 선택한다. |
+| credential을 문서에 남김 | token/password는 교안, README, screenshot에 남기지 않는다. |
 
 ## Cleanup
 ```bash
-docker stop paperclip-day3-static || true
-docker rm paperclip-day3-static || true
-# 필요할 때만 실습 image 삭제
-# docker image rm paperclip-static-site:day3 paperclip-static-site:day3-reviewed
+# reviewed tag만 지우고 원본 image는 남길 수 있다.
+# docker image rm paperclip-static-site:day3-reviewed
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+## 주의할 점
+- Docker Hub push는 기본 실습 요구가 아니다.
+- public repository에 올린 image는 공개 범위와 삭제 정책을 먼저 생각해야 한다.
+- image 안에 `.env`, token, 개인 경로, 불필요한 파일이 있으면 push하지 않는다.
+- tag 이름에는 repository owner와 image name, version 의미가 드러나야 한다.
 
-## Evidence
-| 항목 | 제출 기준 |
-|---|---|
-| Command evidence | 실행한 build/run/inspect 명령 |
-| Verification | HTTP/history/inspect 결과 |
-| RCA | 실패 drill 원인과 재검증 |
+## 핵심 포인트
+tag/push/pull은 "내 image를 다른 환경에서 실행 가능하게 전달하는 흐름"이다. local machine 안에서만 쓰는 image와 registry에 올리는 image는 책임 범위가 다르다.
 
-## 강의자 설명 포인트
-Day 3의 중심은 "내가 실행한 것은 어떤 artifact인가"라는 질문이다. Day 1과 Day 2에서는 이미 존재하는 official image를 가져와 실행했다. Day 3에서는 source file과 Dockerfile을 image로 포장한다. 학생은 Dockerfile을 단순 설치 스크립트처럼 읽기 쉽지만, 실제로는 build context를 입력으로 받아 image layer를 만드는 build recipe다.
+보안 gate를 통과하지 않은 push는 실습 성공이 아니라 운영 사고가 될 수 있다. 그래서 Day 3에서는 push보다 push 전 판단을 더 중요하게 다룬다.
 
-`COPY` 한 줄은 작아 보이지만 운영적으로는 중요하다. 어떤 파일이 image 안에 들어가고 어떤 파일이 제외되는지에 따라 image size, secret risk, rebuild cache가 달라진다. `.dockerignore`는 예쁘게 정리하는 파일이 아니라 Docker daemon으로 보내는 build input boundary를 줄이는 장치다. 이 점을 반복해서 강조한다.
-
-## 운영 해석
-tag는 이름표고 digest는 content identity에 가깝다. `latest`는 편하지만 재현성에는 약하다. 같은 tag가 시간이 지나 다른 내용을 가리킬 수 있기 때문이다. 교육 단계에서는 tag를 쉽게 쓰되, 운영 판단에서는 명시적 version tag와 digest 확인이 왜 필요한지 연결한다.
-
-Docker Hub push는 학습자가 하고 싶어할 수 있지만 기본 요구로 두지 않는다. public repository에 secret이나 불필요한 파일이 들어간 image를 올리는 사고를 막아야 한다. push 전에 image 안에 무엇이 들어갔는지, tag가 무엇인지, 공개 범위가 무엇인지 확인하게 한다.
-
-## README 기록 예시
-```markdown
-## Image Build Evidence
-- Dockerfile path:
-- Build command:
-- Image tag:
-- Base image:
-- Build context note:
-- .dockerignore excludes:
-- HTTP check:
-- history/inspect summary:
-- Failure drill:
-```
+## 혼자 다시 따라오기
+최소 성공 경로는 local image에 새 tag를 붙이고 `docker images`와 `inspect`로 같은 image ID인지 확인하는 것이다. 실제 push는 계정, repository 공개 범위, secret 포함 여부를 확인할 수 있을 때만 선택한다.
 
 ## 다음 연결
-Day 4는 이 image를 여러 runtime config와 failure 조건으로 실행해 관찰한다.
+다음 교시는 build/run/push 이전 단계에서 흔히 나는 실패를 RCA 흐름으로 좁힌다.

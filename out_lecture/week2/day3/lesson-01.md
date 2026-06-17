@@ -1,16 +1,50 @@
-# 1교시: image와 layer, tag, digest
+# 1교시: Day 2 요약과 image, layer, tag, digest
 
 ![Day 3 Image Build Registry overview](https://raw.githubusercontent.com/niceguy61/kdt_devops_lecture_2026_rev2/main/week2/day3/assets/day3-image-build-registry-overview.png)
 
 ## 수업 목표
-- image/build/registry 개념을 실행 evidence로 확인한다.
-- 명령, 검증, cleanup을 분리해 기록한다.
-- 실패를 RCA 형식으로 정리한다.
+- Day 2의 storage/network 핵심을 10분 정도 다시 연결한다.
+- pull한 image를 `images`, `history`, `inspect`로 읽는다.
+- tag와 digest의 차이를 재현성 관점으로 구분한다.
 
 ## 강의 전개
-pull한 image를 images/history/inspect로 읽고 tag와 digest 차이를 설명한다.
+Day 2에서는 container가 data와 network를 직접 소유하지 않도록 volume과 custom network를 분리했다. Day 3는 그 container의 출발점인 image를 다룬다. 지금까지는 official image를 가져와 실행했다면, 오늘은 image를 읽고, 직접 만들고, tag와 registry로 전달 가능한 artifact로 다룬다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 기록한다. 실패도 수업 산출물이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 남긴다.
+image는 여러 layer가 쌓인 읽기 전용 실행 재료다. tag는 사람이 붙인 이름표이고, digest는 image content에 가까운 식별자다. `nginx:1.27-alpine` 같은 tag는 기억하기 쉽지만 tag 자체가 영원히 같은 content를 보장하는 것은 아니다. 그래서 image를 운영 재료로 다룰 때는 `docker history`, `docker image inspect`, digest 확인이 필요하다.
+
+이 교시는 명령을 실행하고 바로 관찰한다. 출력 전체를 외우지 않고 image ID, architecture, size, repo tag, repo digest처럼 의미 있는 항목을 구분한다. 실패는 원인을 좁히는 단서다. pull 실패, tag 오해, digest 누락을 각각 다른 문제로 본다.
+
+## Imagegen 인포그래픽: image, layer, tag, digest
+![Docker image layer tag digest infographic](https://raw.githubusercontent.com/niceguy61/kdt_devops_lecture_2026_rev2/main/week2/day3/assets/lesson-01-image-layer-tag-digest.png)
+
+이 이미지는 image를 layer stack으로 보고 tag와 digest를 분리해 읽는 법을 보여준다. 오른쪽의 `docker history`와 `docker inspect`는 image를 실행하기 전에도 artifact의 구조와 식별자를 확인할 수 있음을 설명한다.
+
+## 시각 자료 1: image 식별 흐름
+```mermaid
+flowchart LR
+  Pull["docker pull nginx:1.27-alpine"] --> Local[local image store]
+  Local --> Images["docker images nginx"]
+  Local --> History["docker history"]
+  Local --> Inspect["docker image inspect"]
+  Inspect --> Tag[RepoTags]
+  Inspect --> Digest[RepoDigests]
+  History --> Layers[layer stack]
+```
+
+이 도식은 image를 container 실행 전에도 분석할 수 있다는 점을 보여준다. `images`는 목록, `history`는 layer 생성 흔적, `inspect`는 세부 metadata를 본다.
+
+## 시각 자료 2: tag와 digest 판단
+```mermaid
+flowchart TD
+  Ref[image reference] --> Tag[tag]
+  Ref --> Digest[digest]
+  Tag --> Human[사람이 읽기 쉬움]
+  Tag --> Mutable[바뀔 수 있음]
+  Digest --> Content[content identity]
+  Digest --> Repro[재현성 판단]
+```
+
+tag는 수업과 협업에서 편리하고, digest는 같은 image를 다시 가져와야 할 때 중요하다. 둘 중 하나만 외우는 것이 아니라 목적에 따라 같이 읽는다.
 
 ## 실습 명령
 ```bash
@@ -22,55 +56,45 @@ docker history nginx:1.27-alpine
 ## 검증 명령
 ```bash
 docker image inspect nginx:1.27-alpine --format "{{.Id}} {{.Architecture}} {{.Size}}"
+docker image inspect nginx:1.27-alpine --format "{{json .RepoTags}} {{json .RepoDigests}}"
 ```
+
+## 실습 확장 흐름
+| 단계 | 할 일 | 기대되는 관찰 |
+|---|---|---|
+| 준비 | Day 2 volume/network와 Day 3 image의 역할을 구분한다. | image는 실행 재료이고 volume/network는 실행 조건이다. |
+| 실행 | `nginx:1.27-alpine`을 pull한다. | local image 목록에 nginx가 보인다. |
+| 관찰 | `history`와 `inspect`를 실행한다. | layer, architecture, size, tag, digest가 보인다. |
+| 실패 재현 | 존재하지 않는 tag를 pull해 본다. | manifest 관련 실패가 나온다. |
+| 복구 | 공식 tag 목록 기준으로 다시 pull한다. | 올바른 tag로 image가 내려온다. |
+| 확인 | tag와 digest를 분리해 말한다. | 이름표와 content 식별자를 구분한다. |
 
 ## 실패 드릴과 오해 교정
 | 상황 | 해석 |
 |---|---|
-| build 실패 | Dockerfile path, build context, COPY source를 확인한다. |
-| run 성공 후 접속 실패 | EXPOSE와 host -p mapping을 구분한다. |
-| push 요구 | credential과 public repository gate를 먼저 확인한다. |
+| pull 실패 | tag 오타, network, registry 접근 문제를 나누어 본다. |
+| history에 `<missing>`이 보임 | layer 표시 방식일 수 있으며 곧바로 오류로 보지 않는다. |
+| digest가 비어 보임 | pull 방식과 platform, local metadata 표시를 다시 본다. |
 
 ## Cleanup
 ```bash
-docker stop paperclip-day3-static || true
-docker rm paperclip-day3-static || true
-# 필요할 때만 실습 image 삭제
-# docker image rm paperclip-static-site:day3 paperclip-static-site:day3-reviewed
+# nginx image는 뒤 실습에서도 비교용으로 쓸 수 있으므로 기본적으로 남긴다.
+# docker image rm nginx:1.27-alpine
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+## 주의할 점
+- `latest`는 고정 version이 아니다. 재현이 필요한 수업/운영에서는 명시적 version tag나 digest를 함께 본다.
+- `docker history`의 layer 목록은 image 내부 구조를 이해하는 단서지만, 모든 세부 파일을 보여주는 명령은 아니다.
+- image를 지우는 명령은 container를 지우는 명령과 다르다. 실행 중인 container가 쓰는 image는 바로 삭제되지 않을 수 있다.
+- digest는 길고 불편하지만 같은 content를 다시 가져오기 위한 중요한 식별자다.
 
-## Evidence
-| 항목 | 제출 기준 |
-|---|---|
-| Command evidence | 실행한 build/run/inspect 명령 |
-| Verification | HTTP/history/inspect 결과 |
-| RCA | 실패 drill 원인과 재검증 |
+## 핵심 포인트
+Day 3의 첫 질문은 "내가 실행한 것은 정확히 어떤 artifact인가"다. Docker image는 압축 파일 하나처럼 보이지만 실제로는 layer가 쌓인 실행 재료이며, tag와 digest는 그 image를 가리키는 서로 다른 방식이다.
 
-## 강의자 설명 포인트
-Day 3의 중심은 "내가 실행한 것은 어떤 artifact인가"라는 질문이다. Day 1과 Day 2에서는 이미 존재하는 official image를 가져와 실행했다. Day 3에서는 source file과 Dockerfile을 image로 포장한다. 학생은 Dockerfile을 단순 설치 스크립트처럼 읽기 쉽지만, 실제로는 build context를 입력으로 받아 image layer를 만드는 build recipe다.
+Day 2에서 container의 data와 network 경계를 분리했다면, Day 3에서는 container의 출발점인 image를 분해해서 읽는다. 이 흐름을 이해해야 Dockerfile build, cache, registry, push/pull이 단순 명령어가 아니라 artifact 관리 과정으로 보인다.
 
-`COPY` 한 줄은 작아 보이지만 운영적으로는 중요하다. 어떤 파일이 image 안에 들어가고 어떤 파일이 제외되는지에 따라 image size, secret risk, rebuild cache가 달라진다. `.dockerignore`는 예쁘게 정리하는 파일이 아니라 Docker daemon으로 보내는 build input boundary를 줄이는 장치다. 이 점을 반복해서 강조한다.
-
-## 운영 해석
-tag는 이름표고 digest는 content identity에 가깝다. `latest`는 편하지만 재현성에는 약하다. 같은 tag가 시간이 지나 다른 내용을 가리킬 수 있기 때문이다. 교육 단계에서는 tag를 쉽게 쓰되, 운영 판단에서는 명시적 version tag와 digest 확인이 왜 필요한지 연결한다.
-
-Docker Hub push는 학습자가 하고 싶어할 수 있지만 기본 요구로 두지 않는다. public repository에 secret이나 불필요한 파일이 들어간 image를 올리는 사고를 막아야 한다. push 전에 image 안에 무엇이 들어갔는지, tag가 무엇인지, 공개 범위가 무엇인지 확인하게 한다.
-
-## README 기록 예시
-```markdown
-## Image Build Evidence
-- Dockerfile path:
-- Build command:
-- Image tag:
-- Base image:
-- Build context note:
-- .dockerignore excludes:
-- HTTP check:
-- history/inspect summary:
-- Failure drill:
-```
+## 혼자 다시 따라오기
+최소 성공 경로는 `docker pull`, `docker images`, `docker history`, `docker image inspect`다. pull이 실패하면 tag 철자와 공식 image tag를 먼저 확인한다. inspect 출력이 길면 `.Id`, `.Architecture`, `.Size`, `.RepoTags`, `.RepoDigests`만 먼저 본다.
 
 ## 다음 연결
-Day 4는 이 image를 여러 runtime config와 failure 조건으로 실행해 관찰한다.
+다음 교시는 Dockerfile을 읽는다. image가 어떤 layer로 구성되는지 봤으니, 이제 그 layer를 만드는 규칙을 확인한다.
