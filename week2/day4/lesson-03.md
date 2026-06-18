@@ -1,58 +1,57 @@
-# 3교시: logs 기반 정상/장애 확인
+# 3교시: Logs와 HTTP 정상 확인
 
 ## 수업 목표
-- runtime config와 관찰 명령을 구분한다.
-- 정상/장애 확인 지점을 선별한다.
-- cleanup과 secret 비노출을 적용한다.
+- `docker ps`의 `Up`과 서비스 정상 응답을 구분한다.
+- `docker logs`에서 startup/access/error 신호를 확인한다.
+- HTTP 응답으로 사용자가 접근 가능한 상태를 확인한다.
 
-## 강의 전개
-docker logs로 startup/readiness/error를 구분한다.
+## 개념 설명
+container가 `Up`이면 process가 살아 있다는 뜻이다. 하지만 사용자가 접속 가능한지, 올바른 port로 열렸는지, app이 정상 응답하는지는 별도 확인이 필요하다. 그래서 logs와 HTTP 확인을 같이 본다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 실수를 줄이는 좋은 확인 지점이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 확인한다.
+nginx는 좋은 예시다. process가 떠 있고 port publish가 맞으면 `curl -I`에서 `HTTP/1.1 200 OK`가 나온다. 반대로 port를 잘못 보면 container는 `Up`인데 host에서는 접속이 실패한다.
+
+logs를 볼 때도 환경 설정과 secret 기준을 같이 본다. 예를 들어 `APP_ENV=staging`으로 실행한 서비스가 startup log에 `mode=staging` 정도를 남기는 것은 도움이 된다. 하지만 `DB_PASSWORD=...` 같은 실제 secret을 log에 찍으면 실패다. 로그는 장애 분석을 위한 증거이면서 동시에 유출 경로가 될 수 있다.
 
 ## 실습 명령
 ```bash
-docker run -d --name paperclip-day4-nginx -p 18084:80 nginx:alpine
-```
-
-## 검증 명령
-```bash
-docker logs paperclip-day4-nginx --tail 50
+cd /mnt/d/paperclip
+docker rm -f paperclip-day4-nginx || true
+docker run -d --name paperclip-day4-nginx -p 18084:80 nginx:1.27-alpine
+docker ps --filter name=paperclip-day4-nginx
+docker logs paperclip-day4-nginx --tail 30
 curl -I http://localhost:18084
+docker logs paperclip-day4-nginx --tail 30
 ```
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
+Expected:
+
+```text
+STATUS Up
+0.0.0.0:18084->80/tcp
+HTTP/1.1 200 OK
+```
+
+## 확인 지점
+| 증거 | 의미 |
 |---|---|
-| secret 노출 | README/screenshot/history에 값이 남지 않도록 masking한다. |
-| logs만 붙임 | inspect/exec/stats와 함께 원인을 좁힌다. |
-| cleanup 과잉 | volume/image/network 삭제 범위를 구분한다. |
+| `STATUS Up` | container process가 실행 중 |
+| `0.0.0.0:18084->80/tcp` | host 18084가 container 80으로 연결 |
+| `HTTP/1.1 200 OK` | host에서 서비스 접근 성공 |
+| access log | HTTP 요청이 container까지 도달 |
 
-## Cleanup
-```bash
-docker stop paperclip-day4-nginx paperclip-day4-bad || true
-docker rm paperclip-day4-nginx paperclip-day4-bad || true
-# 생성한 env 파일에는 실제 비밀번호를 남기지 않는다.
-```
+## log에 남겨도 되는 것과 안 되는 것
+| 로그 예시 | 판단 |
+|---|---|
+| `APP_ENV=staging` | 환경 이름 정도는 가능 |
+| `HTTP/1.1 200 OK` | 정상 확인 증거 |
+| `GET /` | 접근 확인 증거 |
+| `DB_PASSWORD=my-real-password` | 실패, secret 노출 |
+| `AWS_SECRET_ACCESS_KEY=...` | 실패, credential 노출 |
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+## 오해 교정
+`docker logs`가 비어 있다고 항상 장애는 아니다. 요청을 아직 보내지 않았거나, image가 startup log를 적게 남길 수 있다. 이때는 `curl`을 먼저 보내고 logs를 다시 본다.
 
-## 주의할 점
-- Container가 `Up` 상태여도 애플리케이션이 정상이라는 뜻은 아니다. `logs`, HTTP 응답, DB 연결처럼 서비스 관점의 확인을 함께 봐야 한다.
-- 환경변수는 runtime 설정이지 image에 굳힐 값이 아니다. password, token, API key는 README, screenshot, terminal history에 남기지 않는다.
-- `docker inspect` 출력은 길다. 전체를 복사하기보다 env, mount, network, restart policy처럼 문제와 관련된 영역을 좁혀서 본다.
-- `docker exec`는 container 내부 관찰 도구다. host에서 되는 명령이 container 안에서도 된다고 가정하지 않는다.
-- 장애 드릴 후에는 실패 container, stale volume, 잘못 만든 network, 오래된 image tag가 다음 실습을 방해할 수 있으므로 cleanup 대상을 구분한다.
-
-## 핵심 포인트
-Day 4는 "container가 떠 있다"와 "서비스가 정상이다"를 분리하는 날이다. `docker ps`에서 Up이라고 보여도 application은 설정 누락으로 의미 없는 상태일 수 있다. 반대로 container가 exit된 경우에도 logs를 보면 원인이 명확히 남아 있을 수 있다. 그래서 logs, inspect, exec, stats를 서로 다른 관찰 도구로 가르친다.
-
-환경변수는 편하지만 secret 관리와 연결된다. 수업용 password라도 README나 screenshot에 그대로 남기는 습관은 위험하다. 학생에게 공개해도 되는 것은 env var 이름과 주입 방식이지 실제 credential 값이 아니라는 점을 강조한다. `.env.example`은 형식을 공유하는 파일이고, 실제 `.env`는 로컬 전용이다.
-
-## 운영 해석
-장애 분석은 감으로 하는 것이 아니라 관찰 위치를 바꾸며 좁혀가는 일이다. logs는 application이 말한 내용, inspect는 Docker metadata, exec는 container 내부 관찰, stats는 resource 관찰이다. 어떤 문제에는 logs만으로 충분하고, 어떤 문제는 inspect의 network/mount/env를 봐야 한다. 학생이 명령을 많이 아는 것보다 언제 무엇을 볼지 말할 수 있어야 한다.
-
-Cleanup도 Day 4에서 다시 다룬다. 장애 드릴 중에는 실패 container, 잘못 붙은 network, 오래된 volume, 잘못 만든 image tag가 남는다. 남은 자원은 다음 실습의 원인이 되므로, cleanup audit을 주의할 점으로 다룬다.
+환경별 파일을 쓰는 서비스라면 logs에는 `어느 환경으로 떴는지`를 확인할 힌트가 남을 수 있다. 다만 password 자체를 확인하려고 logs에 찍는 방식은 금지한다. 값 확인은 masking된 script, `inspect`, application health endpoint 등으로 제한한다.
 
 ## 다음 연결
-Day 5는 Day 2~4의 옵션을 compose.yaml로 옮겨 유명 아키텍처를 실행한다.
+다음 교시는 `inspect`와 `exec`로 Docker metadata와 container 내부 상태를 나눠 본다.

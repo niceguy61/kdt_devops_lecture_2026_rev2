@@ -1,59 +1,75 @@
-# 2교시: secret 비노출과 설정 파일 위험
+# 2교시: `.env.example`과 secret 비노출
 
 ## 수업 목표
-- runtime config와 관찰 명령을 구분한다.
-- 정상/장애 확인 지점을 선별한다.
-- cleanup과 secret 비노출을 적용한다.
+- `.env.example`과 실제 `.env`의 역할을 구분한다.
+- 문서에 남겨도 되는 정보와 남기면 안 되는 값을 분리한다.
+- secret masking 기준을 출력 예시로 확인한다.
 
-## 강의 전개
-.env.example과 실제 .env를 구분하고 값은 마스킹한다.
+## 개념 설명
+`.env.example`은 팀원에게 필요한 key 이름과 형식을 알려주는 파일이다. 실제 password, token, cloud key를 담는 파일이 아니다. 반대로 `.env`는 로컬 실행을 위한 실제 값이 들어갈 수 있으므로 공개 repository, README, screenshot, 질문 게시글에 그대로 올리면 안 된다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 실수를 줄이는 좋은 확인 지점이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 확인한다.
+초보자는 `실습용이니까 괜찮다`고 생각하기 쉽다. 하지만 습관이 중요하다. 수업용 password라도 그대로 캡처해 공유하는 방식에 익숙해지면, 이후 Docker Hub token, AWS access key, database password도 같은 방식으로 노출될 수 있다.
+
+실행할 때는 `.env`를 자동으로 읽는다고 가정하지 않는다. `docker run`에서는 명시적으로 `--env-file week2/day4/labs/env-report/.env`를 붙여야 한다.
+
+`-e DB_PASSWORD=value`처럼 명령줄에 값을 직접 넣으면 빠르지만 shell history와 화면 공유에 남기 쉽다. 여러 설정을 반복해서 쓸 때는 `.env`에 기록하고 `--env-file`로 로드하는 편이 낫다. 단, `.env` 자체를 공유하면 안 되고, 공유용으로는 `.env.example`만 둔다.
+
+환경별 파일을 나눌 때도 같은 원칙이 적용된다. `.env.dev`, `.env.staging`, `.env.prod`처럼 파일을 나누는 것은 가능하지만, 운영 secret을 repository에 넣어도 된다는 뜻은 아니다. 수업에서는 구조를 이해하기 위해 값을 넣어 보지만, 실제 회사에서는 production password, API key, cloud credential은 Secret Manager, CI/CD secret, Kubernetes Secret 같은 별도 경로로 주입하는 것이 일반적이다.
+
+공유할 수 있는 파일은 보통 값이 비어 있거나 placeholder만 있는 예시 파일이다.
+
+```dotenv
+# .env.prod.example
+APP_ENV=prod
+FEATURE_FLAG=off
+API_BASE_URL=https://api.example.com
+DB_PASSWORD=replace-me-securely
+```
+
+이 파일은 `prod에는 어떤 key가 필요한가`를 알려주는 문서 역할을 한다. 실제 `.env.prod`는 로컬 또는 배포 시스템 안에서만 관리한다.
 
 ## 실습 명령
 ```bash
-mkdir -p week2/day4/labs/env-report
-printf "APP_ENV=practice\nDB_PASSWORD=change-me-locally\n" > week2/day4/labs/env-report/.env.example
+cd /mnt/d/paperclip
+sed -n '1,120p' week2/day4/labs/env-report/.env.example
 cp week2/day4/labs/env-report/.env.example week2/day4/labs/env-report/.env
+chmod +x week2/day4/labs/env-report/report.sh
+docker run --rm --env-file week2/day4/labs/env-report/.env -v "$PWD/week2/day4/labs/env-report:/work:ro" alpine:3.20 /work/report.sh
 ```
 
-## 검증 명령
-```bash
-sed -n "1,20p" week2/day4/labs/env-report/.env.example
+Expected:
+
+```text
+APP_ENV=practice
+FEATURE_FLAG=on
+DB_PASSWORD=***masked***
 ```
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
+## 문서화 기준
+| 문서에 남겨도 되는 것 | 문서에 남기면 안 되는 것 |
 |---|---|
-| secret 노출 | README/screenshot/history에 값이 남지 않도록 masking한다. |
-| logs만 붙임 | inspect/exec/stats와 함께 원인을 좁힌다. |
-| cleanup 과잉 | volume/image/network 삭제 범위를 구분한다. |
+| `DB_PASSWORD`라는 key 이름 | 실제 password 값 |
+| `--env-file .env` 사용 방식 | `.env` 전체 내용 |
+| `DB_PASSWORD=***masked***` | terminal에 찍힌 실제 token |
+| `.env.example` | 개인 `.env` |
+| `.env.prod.example` | 실제 `.env.prod` |
 
-## Cleanup
-```bash
-docker stop paperclip-day4-nginx paperclip-day4-bad || true
-docker rm paperclip-day4-nginx paperclip-day4-bad || true
-# 생성한 env 파일에는 실제 비밀번호를 남기지 않는다.
+## 환경별 secret 판단
+| 파일 | 공유 여부 | 이유 |
+|---|---|---|
+| `.env.example` | 가능 | key 이름과 placeholder만 포함 |
+| `.env.dev` | 보통 로컬 전용 | 개인 개발값이 들어갈 수 있음 |
+| `.env.staging` | 제한 공유 | staging credential 포함 가능 |
+| `.env.prod` | 공유 금지 | 운영 secret 포함 가능 |
+
+## 실패 예시
+```text
+DB_PASSWORD=my-real-password
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+이 출력이 README나 screenshot에 남으면 실패다. Day 4의 목표는 secret manager를 깊게 다루는 것이 아니라, 로컬 Docker 실습에서도 값을 그대로 남기지 않는 습관을 만드는 것이다.
 
-## 주의할 점
-- Container가 `Up` 상태여도 애플리케이션이 정상이라는 뜻은 아니다. `logs`, HTTP 응답, DB 연결처럼 서비스 관점의 확인을 함께 봐야 한다.
-- 환경변수는 runtime 설정이지 image에 굳힐 값이 아니다. password, token, API key는 README, screenshot, terminal history에 남기지 않는다.
-- `docker inspect` 출력은 길다. 전체를 복사하기보다 env, mount, network, restart policy처럼 문제와 관련된 영역을 좁혀서 본다.
-- `docker exec`는 container 내부 관찰 도구다. host에서 되는 명령이 container 안에서도 된다고 가정하지 않는다.
-- 장애 드릴 후에는 실패 container, stale volume, 잘못 만든 network, 오래된 image tag가 다음 실습을 방해할 수 있으므로 cleanup 대상을 구분한다.
-
-## 핵심 포인트
-Day 4는 "container가 떠 있다"와 "서비스가 정상이다"를 분리하는 날이다. `docker ps`에서 Up이라고 보여도 application은 설정 누락으로 의미 없는 상태일 수 있다. 반대로 container가 exit된 경우에도 logs를 보면 원인이 명확히 남아 있을 수 있다. 그래서 logs, inspect, exec, stats를 서로 다른 관찰 도구로 가르친다.
-
-환경변수는 편하지만 secret 관리와 연결된다. 수업용 password라도 README나 screenshot에 그대로 남기는 습관은 위험하다. 학생에게 공개해도 되는 것은 env var 이름과 주입 방식이지 실제 credential 값이 아니라는 점을 강조한다. `.env.example`은 형식을 공유하는 파일이고, 실제 `.env`는 로컬 전용이다.
-
-## 운영 해석
-장애 분석은 감으로 하는 것이 아니라 관찰 위치를 바꾸며 좁혀가는 일이다. logs는 application이 말한 내용, inspect는 Docker metadata, exec는 container 내부 관찰, stats는 resource 관찰이다. 어떤 문제에는 logs만으로 충분하고, 어떤 문제는 inspect의 network/mount/env를 봐야 한다. 학생이 명령을 많이 아는 것보다 언제 무엇을 볼지 말할 수 있어야 한다.
-
-Cleanup도 Day 4에서 다시 다룬다. 장애 드릴 중에는 실패 container, 잘못 붙은 network, 오래된 volume, 잘못 만든 image tag가 남는다. 남은 자원은 다음 실습의 원인이 되므로, cleanup audit을 주의할 점으로 다룬다.
+Kubernetes와 Terraform에서도 같은 습관이 이어진다. Kubernetes manifest에는 ConfigMap으로 공개 가능한 설정을 두고, password/token은 Secret으로 분리한다. Terraform에서는 `*.tfvars`에 환경별 값을 나눌 수 있지만, 민감한 값은 state와 repository 노출 위험까지 함께 판단해야 한다.
 
 ## 다음 연결
-Day 5는 Day 2~4의 옵션을 compose.yaml로 옮겨 유명 아키텍처를 실행한다.
+다음 교시는 container를 실행하고 logs와 HTTP 응답을 분리해 정상 여부를 판단한다.

@@ -1,59 +1,67 @@
-# 7교시: cleanup/security audit
+# 7교시: Cleanup과 security audit
 
 ## 수업 목표
-- runtime config와 관찰 명령을 구분한다.
-- 정상/장애 확인 지점을 선별한다.
-- cleanup과 secret 비노출을 적용한다.
+- container, image, network, volume cleanup의 차이를 구분한다.
+- 삭제하면 안 되는 data와 지워도 되는 실습 자원을 나눈다.
+- secret/context 흔적이 남았는지 점검한다.
 
-## 강의 전개
-container/image/network/volume을 구분해 정리하고 data 삭제 위험을 확인한다.
+## 개념 설명
+cleanup은 `다 지우기`가 아니다. container 삭제는 실행 중인 process와 그 writable layer를 없애는 일이고, image 삭제는 다음 실행 때 다시 pull/build가 필요하게 만드는 일이다. network 삭제는 연결 공간을 없애는 일이고, volume 삭제는 data 삭제일 수 있다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 실수를 줄이는 좋은 확인 지점이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 확인한다.
+Day 4 장애 드릴 뒤에는 실패 container와 임시 network가 남는다. 이것을 정리하지 않으면 다음 수업에서 같은 이름 충돌, port 충돌, stale volume 혼동이 생긴다.
 
-## 실습 명령
+환경별 env file도 cleanup 대상이다. `.env.dev`, `.env.staging`, `.env.prod`를 실습 중 만들었다면 실제 secret이 없더라도 로컬 실습 산출물인지 확인하고 정리한다. 반대로 `.env.example`은 공유용 형식 문서이므로 남겨도 된다.
+
+## Audit 명령
 ```bash
-docker ps -a
-docker network ls
-docker volume ls
-```
-
-## 검증 명령
-```bash
+docker ps -a --filter name=paperclip-day4
+docker network ls | grep paperclip-day4 || true
+docker volume ls | grep paperclip-day4 || true
 docker system df
 ```
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
-|---|---|
-| secret 노출 | README/screenshot/history에 값이 남지 않도록 masking한다. |
-| logs만 붙임 | inspect/exec/stats와 함께 원인을 좁힌다. |
-| cleanup 과잉 | volume/image/network 삭제 범위를 구분한다. |
+Expected:
 
-## Cleanup
-```bash
-docker stop paperclip-day4-nginx paperclip-day4-bad || true
-docker rm paperclip-day4-nginx paperclip-day4-bad || true
-# 생성한 env 파일에는 실제 비밀번호를 남기지 않는다.
+```text
+paperclip-day4-nginx
+paperclip-day4-pg-ok
+paperclip-day4-net-a
+paperclip-day4-net-b
+paperclip-day4-pgdata
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+## Cleanup 명령
+```bash
+docker rm -f paperclip-day4-nginx paperclip-day4-pg-ok paperclip-day4-pg-missing-env paperclip-day4-net-web paperclip-day4-crash paperclip-day4-restart-missing-env paperclip-day4-pg-volume || true
+docker network rm paperclip-day4-net-a paperclip-day4-net-b || true
+rm -f /mnt/d/paperclip/week2/day4/labs/env-report/.env /mnt/d/paperclip/week2/day4/labs/env-report/.env.dev /mnt/d/paperclip/week2/day4/labs/env-report/.env.staging /mnt/d/paperclip/week2/day4/labs/env-report/.env.prod
+```
 
-## 주의할 점
-- Container가 `Up` 상태여도 애플리케이션이 정상이라는 뜻은 아니다. `logs`, HTTP 응답, DB 연결처럼 서비스 관점의 확인을 함께 봐야 한다.
-- 환경변수는 runtime 설정이지 image에 굳힐 값이 아니다. password, token, API key는 README, screenshot, terminal history에 남기지 않는다.
-- `docker inspect` 출력은 길다. 전체를 복사하기보다 env, mount, network, restart policy처럼 문제와 관련된 영역을 좁혀서 본다.
-- `docker exec`는 container 내부 관찰 도구다. host에서 되는 명령이 container 안에서도 된다고 가정하지 않는다.
-- 장애 드릴 후에는 실패 container, stale volume, 잘못 만든 network, 오래된 image tag가 다음 실습을 방해할 수 있으므로 cleanup 대상을 구분한다.
+## 삭제 판단 표
+| 대상 | 기본 판단 | 이유 |
+|---|---|---|
+| 실패 container | 삭제 | 다음 실습 이름 충돌 방지 |
+| 임시 network | 삭제 | 실습 전용 연결 공간 |
+| `.env` | 삭제 또는 local 보관 | 실제 값 노출 방지 |
+| `.env.dev/staging/prod` | 실습 파일이면 삭제 | 환경별 secret 혼동 방지 |
+| `.env.example` | 유지 | 공유용 형식 문서 |
+| image | 보통 유지 | 다음 실습에서 재사용 가능 |
+| named volume | 신중히 판단 | DB data 삭제 가능 |
 
-## 핵심 포인트
-Day 4는 "container가 떠 있다"와 "서비스가 정상이다"를 분리하는 날이다. `docker ps`에서 Up이라고 보여도 application은 설정 누락으로 의미 없는 상태일 수 있다. 반대로 container가 exit된 경우에도 logs를 보면 원인이 명확히 남아 있을 수 있다. 그래서 logs, inspect, exec, stats를 서로 다른 관찰 도구로 가르친다.
+## 위험한 명령
+```bash
+docker system prune --volumes
+```
 
-환경변수는 편하지만 secret 관리와 연결된다. 수업용 password라도 README나 screenshot에 그대로 남기는 습관은 위험하다. 학생에게 공개해도 되는 것은 env var 이름과 주입 방식이지 실제 credential 값이 아니라는 점을 강조한다. `.env.example`은 형식을 공유하는 파일이고, 실제 `.env`는 로컬 전용이다.
+이 명령은 사용하지 않는다. volume까지 포함한 prune은 실습 DB data나 다른 프로젝트 data를 삭제할 수 있다.
 
-## 운영 해석
-장애 분석은 감으로 하는 것이 아니라 관찰 위치를 바꾸며 좁혀가는 일이다. logs는 application이 말한 내용, inspect는 Docker metadata, exec는 container 내부 관찰, stats는 resource 관찰이다. 어떤 문제에는 logs만으로 충분하고, 어떤 문제는 inspect의 network/mount/env를 봐야 한다. 학생이 명령을 많이 아는 것보다 언제 무엇을 볼지 말할 수 있어야 한다.
+실습 reset이 필요해 `paperclip-day4-pgdata`를 지우려면 명시적으로 판단한 뒤 실행한다.
 
-Cleanup도 Day 4에서 다시 다룬다. 장애 드릴 중에는 실패 container, 잘못 붙은 network, 오래된 volume, 잘못 만든 image tag가 남는다. 남은 자원은 다음 실습의 원인이 되므로, cleanup audit을 주의할 점으로 다룬다.
+```bash
+docker volume rm paperclip-day4-pgdata
+```
+
+이 명령은 PostgreSQL data를 삭제한다. `stale volume`을 해결할 때는 유용하지만, 보존해야 하는 data라면 실행하면 안 된다.
 
 ## 다음 연결
-Day 5는 Day 2~4의 옵션을 compose.yaml로 옮겨 유명 아키텍처를 실행한다.
+마지막 교시는 Day 5 Compose로 옮길 option mapping을 표로 정리한다.

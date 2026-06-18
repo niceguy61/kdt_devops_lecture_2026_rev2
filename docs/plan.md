@@ -12,9 +12,9 @@
 |---|---|---|
 | 1주차 | 컴퓨팅 펀더멘털, DevOps 마인드셋, 로컬 서비스 실행 | 미니 웹앱, README/runbook, RCA, 컴퓨팅 spine 매핑 |
 | 2주차 | Docker, 이미지/컨테이너, Dockerfile, Compose | Dockerfile, compose.yaml, 이미지 실행 흐름, 컨테이너 장애 분석 |
-| 3주차 | MSA, 서비스 경계, API/데이터 의존성, 다중 서비스 운영 | MSA 실습 앱, 서비스 계약, 의존성/장애 전파 분석 |
-| 4주차 | Kubernetes, manifest, rollout, service discovery, 운영 플러그인 | Kubernetes manifest, Helm/plugin 흐름, rollout/rollback, 클러스터 장애 분석 |
-| 5주차 | AWS 서비스 매핑, FinOps, Observability, Terraform/IaC 기초 | AWS 아키텍처 다이어그램, 비용/관찰 흐름, Terraform 코드/plan/destroy 흐름 |
+| 3주차 | MSA 2일, GitHub/Actions 1일, Kubernetes 진입 2일 | MSA 장애 리포트, CI workflow, Pod/Deployment/Service 첫 배포 |
+| 4주차 | Kubernetes 마무리 3일, AWS 계정/네트워크/EC2 진입 2일 | Kubernetes runbook, AWS 계정/비용 안전장치, VPC/EC2 실습 |
+| 5주차 | AWS 마무리 3일, Terraform/IaC 2일 | AWS 운영 runbook, 비용/관찰 흐름, Terraform 코드/plan/destroy 흐름 |
 
 ## 일차 운영 리듬
 | 일차 | 공통 흐름 |
@@ -31,6 +31,9 @@
 - 8교시는 구름 EXP 배움일기를 안내한다. 당일 공부한 내용을 간단한 메모 형태로 남겨도 되고, 블로그 형태로 정리해도 좋다.
 - 구름 EXP 배움일기에는 그날 이해한 개념, 막힌 지점, 다시 해볼 실습, 다음 수업 전 질문을 남긴다.
 - 수업 계획에는 학습 내용과 배움일기 안내만 둔다.
+- 강의 자료에서 같은 핵심 포인트, 주의사항, cleanup 원칙, 운영 해석을 교시마다 반복하지 않는다. 공통 원칙은 README나 hands-on lab 앞부분에 한 번만 두고, 각 lesson에는 그 교시 고유의 판단 기준과 위험만 남긴다.
+- "핵심 포인트"와 "주의할 점"은 분량 채우기용 문단이 아니다. 이전 교시와 의미가 같은 문장은 삭제하고, 실제 시나리오 판단에 필요한 새 정보만 남긴다.
+- 수업은 도구 나열보다 시나리오 해결 중심으로 구성한다. 학생이 "명령을 배웠다"가 아니라 "사건을 증거로 분석하고 복구했다"라고 느끼도록 범위와 실습 밀도를 높인다.
 
 # 1주차
 
@@ -189,7 +192,8 @@
 - Day 1의 PostgreSQL 실습은 설치 검증, 로컬 PostgreSQL 충돌 확인, version별 port binding, SQL 기본 조작까지 다룬다.
 - Day 2는 Day 1 DB container의 데이터가 사라지는 현상을 출발점으로 삼아 storage와 network를 깊게 다룬다.
 - Day 3는 image, Dockerfile, layer/cache, tag/digest, registry를 깊게 다룬다.
-- Day 4는 environment/config, logs/inspect/exec/stats, failure drill, cleanup/security를 깊게 다룬다.
+- Day 4는 environment/config, logs/inspect/exec/stats, failure drill, cleanup/security를 도구별 소개가 아니라 운영 시나리오 기반 장애 대응으로 깊게 다룬다. 예: 환경변수 누락, 컨테이너는 Up인데 접속 실패, stale volume/data 혼동, container network DNS 오해, restart loop/resource 관찰, cleanup/data 삭제 위험.
+- Day 4 자료는 강박적으로 반복되는 핵심 포인트와 주의사항을 삭제한다. 공통 보안/cleanup/관찰 원칙은 한 번만 선언하고, 각 교시는 해당 시나리오에서 새로 판단해야 하는 증거, 명령, 실패 원인, 복구 기준만 담는다.
 - Day 5는 Docker Compose 섹션으로 확정하고, 표준 코드와 compose.yaml로 유명한 로컬 아키텍처 패턴을 직접 실행/검증한다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
 
@@ -279,303 +283,307 @@
 # 3주차
 ## Keyword
 - msa
-- monolith
+- service boundary
 - api
-- multi-service
-- service communication
 - database
 - message queue
 - failure
-- docker-compose
-
-## 3주차 목표
-- Monolith와 MSA의 차이를 인프라 운영 관점에서 설명한다.
-- 여러 서비스로 나뉜 시스템의 실행 단위, 배포 단위, 네트워크 경계, 데이터 의존성을 파악한다.
-- 개발자가 만든 서비스를 인프라에서 실행하기 위해 필요한 정보와 요청사항을 파악할 수 있다.
-- 서비스 간 HTTP 통신, DB 연결, 환경변수, 포트, 네트워크 구성을 운영 관점에서 해석한다.
-- 여러 컨테이너가 함께 실행될 때 발생하는 실행 순서, 장애 전파, 로그 분산 문제를 체감한다.
-- health check, timeout, retry, graceful degradation 같은 안정성 개념이 인프라 구성에 왜 필요한지 이해한다.
-- "왜 Kubernetes 같은 오케스트레이션 도구가 필요한가"를 운영 사례 기반으로 설명할 수 있다.
-
-## 3주차 운영 원칙
-- 2주차 표준 실습 앱을 확장한 MSA 실습 애플리케이션을 사용한다.
-- 실습 애플리케이션은 frontend, api, worker, database 구조를 기본으로 하고, 선택적으로 redis 또는 queue를 추가한다.
-- MSA를 개발 방법론이 아니라 인프라가 운영해야 하는 서비스 토폴로지로 다룬다.
-- 개발자 내부 구현보다 실행 조건, 네트워크 연결, 설정, 로그, 헬스체크, 배포 순서, 장애 영향 범위에 집중한다.
-- MSA를 정답으로 가르치지 않고, 운영 복잡도를 감당할 이유가 있을 때 선택하는 아키텍처로 다룬다.
-- 매 실습은 "인프라 관점에서 좋아진 점"과 "운영 관점에서 어려워진 점"을 함께 다룬다.
-- 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
-
-## 1일차
-- 1교시 : Week2 강의 10분 요약 + 3주차 학습 목표 - 단일 컨테이너 앱에서 여러 서비스 앱으로 확장되는 흐름
-- 2교시 : Monolith vs MSA - 배포 단위, 장애 영향 범위, 네트워크 의존성, 운영 복잡도 비교
-- 3교시 : 인프라 엔지니어가 MSA에서 알아야 할 것 - 서비스 목록, 포트, 프로토콜, 의존성, 설정, 헬스체크, 로그 위치
-- 4교시 : 표준 MSA 실습 앱 토폴로지 소개 - frontend, api, worker, database 역할과 요청 흐름
-- 5교시 : 실습 앱 다운로드 및 실행 준비 - GitHub clone 또는 압축 파일 다운로드, 운영 문서와 폴더 구조 확인
-- 6교시 : Docker Compose로 전체 서비스 실행 - compose up, ps, logs, 브라우저 접속, 서비스 상태 확인
-- 7교시 : 개인 면담 및 환경 점검 - Compose 실행, 포트 충돌, 이미지 pull/build 문제 해결
-- 8교시 : 구름 EXP 배움일기 - Monolith와 MSA 차이, 표준 MSA 앱 토폴로지, Compose 실행에서 막힌 지점
-
-## 2일차
-- 1교시 : Day1 강의 10분 요약 + 서비스 간 통신을 보는 법 - endpoint, protocol, status code, latency, dependency map
-- 2교시 : frontend와 api 연결 운영 관점 - API URL, CORS 이슈를 개발팀과 협업해 확인하는 방법
-- 3교시 : 컨테이너 네트워크 복습 - localhost 오해, service name DNS, 내부 포트와 외부 포트
-- 4교시 : api와 database 연결 운영 관점 - connection string, credential, migration, 초기 데이터, 접근 권한
-- 5교시 : 서비스 실행 순서 문제 - depends_on의 의미와 한계, DB readiness, 재시도 필요성
-- 6교시 : health check 기본 - /health endpoint, liveness/readiness 차이, 장애 감지 기준
-- 7교시 : 연결 실패 장애 분석 - 잘못된 API URL, DB host 오류, 포트 오류, 환경변수 누락 찾기
-- 8교시 : 구름 EXP 배움일기 - 서비스 간 통신, API/DB 연결, health check, 연결 실패에서 먼저 볼 지점
-
-## 3일차
-- 1교시 : Day2 강의 10분 요약 + 서비스 분리와 데이터 의존성 - DB 공유의 위험, 서비스별 데이터 책임, 장애 영향 범위
-- 2교시 : worker 서비스 운영 관점 - 비동기 처리, 배치 작업, 오래 걸리는 작업이 인프라에 주는 영향
-- 3교시 : queue 또는 redis 운영 개념 - 동기 호출과 비동기 처리의 차이, 병목과 적체를 관찰하는 방법
-- 4교시 : worker/queue 실습 - 요청 생성, 작업 처리, 로그와 상태로 처리 흐름 확인
-- 5교시 : 장애 전파와 부분 장애 - api 장애, DB 장애, worker 장애가 사용자 경험과 운영 대응에 미치는 영향
-- 6교시 : timeout과 retry 기본 - 무한 대기 방지, 재시도의 위험, 중복 처리 문제, 개발팀과 합의할 값
-- 7교시 : 로그 분산 문제 - 여러 서비스 로그 보기, correlation id 또는 request id를 개발팀에 요구해야 하는 이유
-- 8교시 : 구름 EXP 배움일기 - worker/queue가 필요한 상황, 장애 전파, timeout/retry, 로그 분산 문제
-
-## 4일차
-- 1교시 : Day3 강의 10분 요약 + MSA 설정 관리 - 환경변수, .env, config 분리, secret을 코드에 넣지 않는 이유
-- 2교시 : MSA 로컬 개발 환경 - hot reload, bind mount, dev/prod compose 분리 개념
-- 3교시 : API 계약과 운영 문서 - OpenAPI/Swagger 개념, 인프라가 알아야 할 endpoint, health, dependency 정보
-- 4교시 : 버전 관리와 배포 협업 - 이미지 태그, 하위 호환, 배포 순서, rollback 가능성
-- 5교시 : MSA 운영 비용 - 배포 단위 증가, 로그 증가, 네트워크 장애, 모니터링/알림 복잡도
-- 6교시 : Kubernetes가 필요한 이유 - 여러 컨테이너를 수동으로 관리할 때의 한계, 선언적 운영의 필요성
-- 7교시 : 개인 면담 및 환경 점검 - MSA 실습 앱 실행 상태, Compose 설정, 로그 분석 흐름 확인
-- 8교시 : 구름 EXP 배움일기 - MSA 설정 관리, API 계약, 배포 협업, Kubernetes가 필요해지는 이유
-
-## 5일차
-- 1교시 : Day4 강의 10분 요약 + 3주차 통합 실습 - MSA 실습 앱을 인프라 운영 관점으로 점검
-- 2교시 : 배포 설정 변경 실습 - 이미지 태그, 환경변수, 포트, 서비스 개수 조정을 Compose 수준에서 확인
-- 3교시 : 이미지 재빌드와 Compose 재실행 - 변경된 서비스만 build, up, logs로 확인
-- 4교시 : 장애 주입 실습 - 일부 서비스 중지, 잘못된 환경변수 설정, DB 연결 실패 상황 만들기
-- 5교시 : 장애 복구 실습 - 원인 분석, 설정 복구, 서비스 재시작, 개발팀 협업 지점
-- 6교시 : Kubernetes가 필요해지는 지점 - 서비스 토폴로지, 실행 조건, 장애 대응, 선언적 운영
-- 7교시 : 4주차 Kubernetes Preview - Pod, Deployment, Service, ConfigMap, Secret이 등장하는 이유
-- 8교시 : 구름 EXP 배움일기 - MSA 통합 실습에서 이해한 운영 복잡도, Kubernetes로 넘겨 볼 질문
-
-## 3주차 학습 결과
-- MSA 실습 애플리케이션 실행 가능한 compose.yaml
-- frontend, api, worker, database 요청 흐름과 의존성 설명 문서 또는 다이어그램
-- 서비스별 실행 조건 - 이미지, 포트, 환경변수, 의존 서비스, health check
-- 배포 설정 또는 환경 설정 변경 내역
-- 장애 주입 및 복구 흐름 1개
-- 개발팀에 전달할 장애 리포트 또는 운영 개선 요청 흐름 1개
-- 인프라 관점에서 본 MSA의 장점과 운영 비용 회고
-- 4주차 Kubernetes 학습 전 체크리스트
-
-## 3주차 환경 준비 체크리스트
-- MSA 실습 앱 소스코드 다운로드 가능
-- `docker compose up`으로 전체 서비스 실행 가능
-- frontend에서 api 요청 성공
-- api에서 database 연결 성공
-- worker 또는 queue 처리 로그 확인
-- 서비스별 로그 확인 가능
-- 일부 서비스 중지 후 장애 상황 재현 가능
-
-# 4주차
-## Keyword
+- github
+- branch strategy
+- pull request
+- github actions
+- runner
+- ci gate
 - kubernetes
-- orchestration
 - pod
 - deployment
 - service
-- configmap
-- secret
-- ingress
-- namespace
-- rollout
-- helm
-- istio
-- autoscaler
-- grafana stack
-- known plugins
 
-## 4주차 목표
-- 3주차 MSA 운영 문제를 Kubernetes가 어떤 방식으로 해결하려고 하는지 설명한다.
-- Pod, Deployment, Service, ConfigMap, Secret, Ingress의 역할을 인프라 운영 관점에서 이해한다.
-- Docker Compose 기반 MSA 실습 앱을 Kubernetes manifest로 옮겨 실행한다.
-- 로컬 Kubernetes에서도 multi-node 클러스터를 구성해 여러 서버에 분산 실행되는 환경을 축소 실습한다.
-- Helm을 이용해 Kubernetes 확장 컴포넌트를 설치하고 관리하는 기본 흐름을 이해한다.
-- Istio, Ingress Controller, autoscaler, Grafana stack 같은 Kubernetes known plugin이 필요한 이유를 운영 관점에서 설명한다.
-- kubectl로 리소스 상태, 로그, 이벤트, 네트워크 연결 문제를 확인한다.
-- rollout, rollback, scaling, self-healing을 실습하고 운영 관점의 장단점을 이해한다.
-- 5주차 AWS 서비스, 비용 관리, 관찰 가능성 수업으로 이어질 수 있도록 Kubernetes와 클라우드 서비스의 연결 지점을 이해한다.
+## 3주차 목표
+- MSA를 개발 방법론이 아니라 인프라가 운영해야 하는 서비스 토폴로지로 해석한다.
+- frontend, api, worker, database, queue/cache 구조의 실행 조건과 장애 전파를 설명한다.
+- 서비스 간 HTTP 통신, DB 연결, 환경변수, 포트, 네트워크, 로그, health check를 운영 증거로 확인한다.
+- branch 전략, pull request, review, protected branch가 배포 사고를 줄이는 이유를 이해한다.
+- GitHub Actions workflow, job, step, runner, secret, artifact/cache의 기본 역할을 설명한다.
+- push 또는 pull request 시 lint/test/build/Docker image build가 자동 실행되는 CI gate를 구성한다.
+- Kubernetes가 MSA와 CI 이후 왜 필요한지 설명하고, Pod/Deployment/Service의 첫 실행 흐름으로 진입한다.
 
-## 4주차 운영 원칙
-- Kubernetes를 YAML 암기 수업으로 만들지 않고, MSA 운영 문제를 해결하는 선언적 운영 모델로 다룬다.
-- 실습 환경은 multi-node 구성이 가능한 kind 또는 minikube를 우선 표준으로 정하고, Docker Desktop Kubernetes는 fallback으로 둔다.
-- 처음에는 managed Kubernetes가 아니라 로컬 Kubernetes로 개념과 kubectl 사용법을 익힌다.
-- 로컬 multi-node 클러스터가 실제 여러 서버 운영 환경을 완전히 대체하지는 않지만, Pod 배치, 노드 상태, 장애 영향 범위를 테스트할 수 있음을 명확히 설명한다.
-- Kubernetes known plugin은 깊은 튜닝보다 설치 이유, 핵심 리소스, 운영 효과, 장애 확인 방법을 중심으로 다룬다.
-- Helm은 플러그인 설치를 쉽게 하기 위한 패키지 매니저로 도입하고, chart 구조를 깊게 작성하는 것은 후순위로 둔다.
-- 매 실습마다 manifest 작성, apply, 상태 확인, 로그 확인, 삭제 또는 복구까지 한 사이클로 진행한다.
+## 3주차 운영 원칙
+- MSA는 2일로 압축한다. 개념 설명을 오래 끌지 않고 운영 시나리오와 장애 분석 중심으로 진행한다.
+- GitHub는 1일로 압축하되 branch 전략, PR 흐름, GitHub Actions, hosted/self-hosted runner 개념, secret 사용 기준을 한 번에 연결한다.
+- GitHub Actions는 배포 자동화 전체가 아니라 릴리스 전 검문소(CI gate)로 다룬다.
+- 3주차 후반부터 Kubernetes를 시작해 4주차 중반까지 총 5일을 확보한다.
+- 각 lesson에는 중복 주의사항을 반복하지 않고, 해당 시나리오에서 새로 판단해야 하는 증거와 실패 기준만 둔다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
 
 ## 1일차
-- 1교시 : Week3 강의 10분 요약 + Kubernetes가 필요한 이유 - 여러 컨테이너 운영, 장애 복구, 배포 자동화, 선언적 상태 관리
-- 2교시 : Kubernetes 전체 그림 - cluster, node, control plane, worker node, kubelet, container runtime
-- 3교시 : 로컬 Kubernetes 환경 준비 - kind 또는 minikube 설치, kubectl 연결, 단일 노드 클러스터 확인
-- 4교시 : 로컬 multi-node 클러스터 구성 - control-plane/worker node 구성, `kubectl get nodes`로 여러 노드 확인
-- 5교시 : kubectl 기본 - context, namespace, get, describe, logs, exec, apply, delete
-- 6교시 : Helm 설치 및 기본 사용 - helm repo, search, install, upgrade, uninstall, release 개념
-- 7교시 : 개인 면담 및 환경 점검 - Kubernetes 실행, kubectl context, Helm, multi-node 구성, 이미지 pull 문제 해결
-- 8교시 : 구름 EXP 배움일기 - Kubernetes가 필요한 이유, cluster/node/control plane, kubectl/Helm에서 막힌 지점
+- 1교시 : Week2 강의 10분 요약 + MSA를 운영 토폴로지로 보기 - 단일 컨테이너 앱에서 frontend/api/worker/database 구조로 확장되는 흐름
+- 2교시 : Monolith vs MSA - 배포 단위, 장애 영향 범위, 네트워크 의존성, 운영 복잡도 비교
+- 3교시 : 인프라 엔지니어가 MSA에서 알아야 할 것 - 서비스 목록, 포트, 프로토콜, 의존성, 설정, 헬스체크, 로그 위치
+- 4교시 : 표준 MSA 실습 앱 토폴로지 - frontend, api, worker, database, queue/cache 역할과 요청 흐름
+- 5교시 : Compose로 전체 서비스 실행 - compose up, ps, logs, 브라우저 접속, 서비스 상태 확인
+- 6교시 : 서비스 간 통신 확인 - frontend to api, api to database, worker to queue 흐름을 로그와 상태로 추적
+- 7교시 : 장애 시나리오 1 - API URL 오류, DB host 오류, 환경변수 누락을 logs/inspect/exec로 분리
+- 8교시 : 구름 EXP 배움일기 - MSA 토폴로지, 서비스별 실행 조건, 연결 실패에서 먼저 볼 증거
 
 ## 2일차
-- 1교시 : Day1 강의 10분 요약 + Deployment가 필요한 이유 - Pod 직접 실행의 한계, desired state, replica, self-healing
+- 1교시 : Day1 강의 10분 요약 + 장애 전파와 부분 장애 - api 장애, DB 장애, worker 장애가 사용자 경험에 미치는 영향
+- 2교시 : health check와 readiness - /health endpoint, DB readiness, depends_on의 한계, 재시도 필요성
+- 3교시 : timeout과 retry - 무한 대기 방지, 재시도의 위험, 중복 처리 문제, 개발팀과 합의할 값
+- 4교시 : queue/worker 운영 시나리오 - 작업 적체, worker 중지, 재처리 로그, 비동기 장애 확인
+- 5교시 : 로그 분산과 correlation id - 여러 서비스 로그를 이어서 보는 방법과 개발팀에 요구할 정보
+- 6교시 : 배포 설정 변경 - 이미지 태그, 환경변수, replica 수, 포트 변경이 장애로 이어지는 사례
+- 7교시 : MSA 운영 리포트 작성 - 증상, 영향 범위, 원인 후보, 복구, 예방, 개발팀 전달사항
+- 8교시 : 구름 EXP 배움일기 - 장애 전파, health check, timeout/retry, MSA 운영 비용과 Kubernetes 필요성
+
+## 3일차
+- 1교시 : Day2 강의 10분 요약 + GitHub 협업 흐름 - branch, commit, push, pull request, review, merge
+- 2교시 : branch 전략 - main/dev/feature, short-lived branch, protected branch, hotfix 흐름
+- 3교시 : Pull Request 운영 기준 - reviewer, status check, merge 조건, revert와 rollback의 차이
+- 4교시 : GitHub Actions 구조 - workflow, event, job, step, action, runner, hosted runner와 self-hosted runner 개념
+- 5교시 : CI workflow 작성 - checkout, setup, lint/test, Docker build, 실패 시 PR merge 차단
+- 6교시 : Secrets와 권한 - GitHub Secrets, GITHUB_TOKEN, Docker Hub token, secret masking, log 노출 방지
+- 7교시 : Runner와 artifact/cache - runner 실행 위치, job log 읽기, build artifact, dependency cache, 실패 재실행
+- 8교시 : 구름 EXP 배움일기 - branch 전략, PR gate, GitHub Actions 실패 로그, runner와 secret에서 주의할 점
+
+## 4일차
+- 1교시 : Day3 강의 10분 요약 + Kubernetes가 필요한 이유 - 여러 컨테이너 운영, 장애 복구, 배포 자동화, 선언적 상태 관리
+- 2교시 : Kubernetes 전체 그림 - cluster, node, control plane, worker node, kubelet, container runtime
+- 3교시 : 로컬 Kubernetes 환경 준비 - kind 또는 minikube 설치, kubectl 연결, context 확인
+- 4교시 : 로컬 multi-node 클러스터 구성 - control-plane/worker node 구성, `kubectl get nodes` 확인
+- 5교시 : kubectl 기본 - context, namespace, get, describe, logs, exec, apply, delete
+- 6교시 : 첫 Pod 실행 - image, command, port, logs, exec, delete 흐름
+- 7교시 : Pod 장애 확인 - ImagePullBackOff, CrashLoopBackOff, pending 상태를 describe/events/logs로 확인
+- 8교시 : 구름 EXP 배움일기 - Kubernetes가 필요한 이유, cluster/node/control plane, kubectl에서 막힌 지점
+
+## 5일차
+- 1교시 : Day4 강의 10분 요약 + Deployment가 필요한 이유 - Pod 직접 실행의 한계, desired state, replica, self-healing
 - 2교시 : Deployment manifest 구조 - apiVersion, kind, metadata, spec, selector, template
 - 3교시 : 표준 MSA 앱의 api Deployment 배포 - 이미지 지정, replicas, labels, selector 확인
 - 4교시 : Service가 필요한 이유 - Pod IP 변화, 안정적인 접근 주소, ClusterIP 개념
 - 5교시 : Service manifest 구조와 연결 확인 - api Service 생성, exec/curl로 내부 통신 확인
 - 6교시 : frontend와 api 연결 - service name DNS, container port, service port, targetPort 구분
-- 7교시 : multi-node 배치 확인 - replica가 어떤 node에 배치되는지 확인, node 단위 장애 영향 범위 관찰
-- 8교시 : 구름 EXP 배움일기 - Deployment/Service 역할, service name DNS, multi-node 배치, rollout/rollback 질문
+- 7교시 : multi-node 배치 확인 - replica가 어떤 node에 배치되는지 확인, node 단위 장애 영향 관찰
+- 8교시 : 구름 EXP 배움일기 - Deployment/Service 역할, service name DNS, multi-node 배치, rollout 질문
 
-## 3일차
-- 1교시 : Day2 강의 10분 요약 + ConfigMap과 Secret이 필요한 이유 - 설정과 민감정보를 이미지에서 분리하는 운영 원칙
+## 3주차 학습 결과
+- MSA 실습 애플리케이션 실행 가능한 compose.yaml
+- frontend, api, worker, database 요청 흐름과 의존성 설명 문서 또는 다이어그램
+- MSA 장애 주입 및 복구 리포트 1개
+- GitHub branch 전략과 PR gate 운영 기준
+- GitHub Actions CI workflow 1개
+- GitHub Actions runner, secret, artifact/cache 확인 흐름
+- 로컬 Kubernetes 클러스터와 kubectl 기본 확인 결과
+- Pod, Deployment, Service 첫 배포 흐름
+
+## 3주차 환경 준비 체크리스트
+- MSA 실습 앱 소스코드 다운로드 가능
+- `docker compose up`으로 전체 서비스 실행 가능
+- frontend/api/database/worker 또는 queue 로그 확인 가능
+- GitHub repository push와 pull request 생성 가능
+- GitHub Actions workflow 실행 가능
+- GitHub Secrets 등록 가능
+- kind 또는 minikube 설치 가능
+- `kubectl config current-context` 확인 가능
+- Pod, Deployment, Service 생성 가능
+
+# 4주차
+## Keyword
+- kubernetes
+- orchestration
+- configmap
+- secret
+- ingress
+- namespace
+- rollout
+- rollback
+- probes
+- resources
+- helm
+- observability
+- aws
+- iam
+- vpc
+- billing
+- finops
+
+## 4주차 목표
+- Kubernetes에서 ConfigMap, Secret, volume, Ingress, probe, rollout/rollback, resource limit을 운영 시나리오로 실습한다.
+- Docker Compose 기반 MSA 실습 앱을 Kubernetes manifest로 옮겨 namespace 안에 배포한다.
+- kubectl로 리소스 상태, 로그, 이벤트, 네트워크 연결 문제를 확인한다.
+- Helm을 이용해 Ingress Controller 또는 관찰 컴포넌트를 설치하고 release 상태를 관리한다.
+- AWS 계정, MFA, region, IAM, Billing, Budget, Cost Explorer를 안전하게 점검한다.
+- VPC, subnet, route table, internet gateway, security group의 기본 역할을 Kubernetes network 경험과 연결한다.
+
+## 4주차 운영 원칙
+- 4주차 1~3일차는 3주차에서 시작한 Kubernetes 5일 흐름을 완성한다.
+- 4주차 4~5일차는 AWS 5일 흐름의 시작으로 사용한다.
+- Kubernetes를 YAML 암기 수업으로 만들지 않고, MSA 운영 문제를 해결하는 선언적 운영 모델로 다룬다.
+- AWS는 서비스 이름 암기가 아니라 계정 안전장치, 네트워크 경계, 비용 발생 지점, 관찰 가능성으로 시작한다.
+- Kubernetes known plugin은 깊은 튜닝보다 설치 이유, 핵심 리소스, 운영 효과, 장애 확인 방법을 중심으로 다룬다.
+- 모든 클라우드 리소스는 정해진 리전과 공통 태그를 사용하고, 실습 종료 시 삭제 또는 중지 절차를 확인한다.
+- 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
+
+## 1일차
+- 1교시 : Week3 강의 10분 요약 + ConfigMap과 Secret이 필요한 이유 - 설정과 민감정보를 이미지에서 분리하는 운영 원칙
 - 2교시 : ConfigMap 실습 - 환경변수 주입, 설정 변경, Pod 재시작 필요성 확인
 - 3교시 : Secret 실습 - DB credential 주입, base64 오해, 저장소에 올리면 안 되는 정보
 - 4교시 : Database를 Kubernetes에서 다루는 기본 관점 - Stateful workload의 어려움, local 실습과 운영 환경의 차이
 - 5교시 : volume 기본 - emptyDir, hostPath 또는 local volume 개념, 데이터 보존과 삭제의 관계
 - 6교시 : MSA 앱 전체 배포 - frontend, api, worker, database를 namespace 안에 배포
-- 7교시 : Ingress Controller와 로드밸런싱 - Helm으로 ingress-nginx 설치, 외부 트래픽 진입점 구성
-- 8교시 : 구름 EXP 배움일기 - ConfigMap/Secret 차이, Kubernetes에서 database를 다룰 때의 어려움, Ingress와 장애 분석 질문
+- 7교시 : 연결 장애 분석 - service name, selector, env, secret, pod log, event를 증거로 확인
+- 8교시 : 구름 EXP 배움일기 - ConfigMap/Secret 차이, Kubernetes database, selector/env 장애에서 먼저 볼 지점
+
+## 2일차
+- 1교시 : Day1 강의 10분 요약 + Ingress Controller와 외부 진입점 - Service와 Ingress의 역할 구분
+- 2교시 : Helm 기본 사용 - repo, search, install, upgrade, uninstall, release 개념
+- 3교시 : Ingress Controller 설치 - Helm으로 ingress-nginx 설치, controller pod와 service 확인
+- 4교시 : Ingress rule 작성 - host/path routing, frontend/API routing, curl/browser 확인
+- 5교시 : rollout과 rollback - image tag 변경, rollout status, history, undo
+- 6교시 : health probe - livenessProbe, readinessProbe, 잘못된 probe가 장애를 만드는 사례
+- 7교시 : 장애 주입 - 잘못된 이미지 태그, readiness 실패, service selector 오류를 logs/events로 확인
+- 8교시 : 구름 EXP 배움일기 - Ingress/Helm/rollout/probe가 필요한 상황과 장애 확인 순서
+
+## 3일차
+- 1교시 : Day2 강의 10분 요약 + 리소스 요청과 제한 - requests, limits, CPU/Memory 압박, OOMKilled 개념
+- 2교시 : autoscaler 개념 - HPA, metrics-server, replicas 자동 조정, 부하와 비용의 관계
+- 3교시 : Observability 기본 - metrics-server, logs, events, 간단한 dashboard 또는 top 명령 확인
+- 4교시 : Kubernetes 운영 Runbook - 배포 방법, 확인 명령, 장애 확인 명령, rollback 절차
+- 5교시 : MSA on Kubernetes 통합 점검 - namespace, deployment, service, configmap, secret, ingress를 한 흐름으로 확인
+- 6교시 : Kubernetes 운영 비용과 복잡도 - 직접 운영 vs managed Kubernetes, 노드 비용, 플러그인 운영 부담
+- 7교시 : AWS 연결 Preview - Kubernetes와 cloud network, managed service, IAM, billing이 연결되는 지점
+- 8교시 : 구름 EXP 배움일기 - Kubernetes 5일 요약, 운영 runbook, AWS로 넘겨 볼 질문
 
 ## 4일차
-- 1교시 : Day3 강의 10분 요약 + health probe와 서비스 안정성 - livenessProbe, readinessProbe, 잘못된 probe가 장애를 만드는 사례
-- 2교시 : 리소스 요청과 제한 - requests, limits, CPU/Memory 압박, OOMKilled 개념
-- 3교시 : autoscaler 개념과 실습 - HPA, metrics-server, replicas 자동 조정, 부하와 비용의 관계
-- 4교시 : Istio와 Service Mesh 개념 - mTLS, traffic routing, retry/timeout, sidecar, 보안/트래픽 제어가 필요한 이유
-- 5교시 : Istio 기본 실습 - Helm 또는 공식 설치 도구로 설치, sidecar injection, 트래픽 흐름 확인
-- 6교시 : Kubernetes 운영 비용과 복잡도 - 직접 운영 vs managed Kubernetes, 클러스터 비용, 노드 비용, 플러그인 운영 부담
-- 7교시 : 개인 면담 및 환경 점검 - Helm, Ingress Controller, HPA, Istio, manifest 문제 확인
-- 8교시 : 구름 EXP 배움일기 - probe/resource/autoscaler/service mesh가 필요한 상황, plugin 설치에서 막힌 지점
+- 1교시 : Kubernetes 강의 10분 요약 + AWS 학습 목표 - 로컬 클러스터/컨테이너 운영 모델을 클라우드 서비스로 확장
+- 2교시 : AWS 계정 및 리전 운영 점검 - 로그인, MFA, region, IAM 사용자/권한, Billing 접근 확인
+- 3교시 : 컴퓨팅 구성요소와 AWS 서비스 매핑 - EC2, VPC, EBS, S3, RDS, ECS/EKS, CloudWatch 큰 그림
+- 4교시 : FinOps 사전 안전장치 - Free Tier, Pricing Calculator, Budget, Cost Explorer, 태그 정책
+- 5교시 : IAM 기본 - root account, IAM user/role/policy, access key 위험, least privilege
+- 6교시 : CloudShell/CLI 확인 - AWS CLI 또는 CloudShell로 identity, region, 기본 조회 명령 확인
+- 7교시 : 개인 면담 및 환경 점검 - AWS 계정, MFA, Billing, Budget, 리전 설정 문제 해결
+- 8교시 : 구름 EXP 배움일기 - AWS 계정/리전/IAM/Billing, 비용 안전장치에서 막힌 지점
 
 ## 5일차
-- 1교시 : Day4 강의 10분 요약 + 4주차 통합 실습 - 3주차 MSA 앱을 Kubernetes 리소스로 배포하고 상태를 확인
-- 2교시 : Grafana stack 설치 - Helm으로 kube-prometheus-stack 또는 Grafana/Prometheus 설치, 대시보드 접속
-- 3교시 : Observability 기본 실습 - Pod/Node 메트릭, 서비스 상태, 리소스 사용량, 알림 개념 확인
-- 4교시 : 장애 주입과 관찰 - 잘못된 이미지 태그, readiness 실패, 부하 증가를 metrics/logs/events로 확인
-- 5교시 : 운영 Runbook 관점 - 배포 방법, Helm release, 확인 명령, 장애 확인 명령, rollback 절차
-- 6교시 : Kubernetes 리소스 구조 - 플러그인 역할, 트래픽/보안/관찰 흐름, 장애 분석
-- 7교시 : 5주차 AWS/Terraform Preview - 컴퓨팅 구성요소를 AWS 서비스로 확장하고 FinOps, Observability, IaC와 연결
-- 8교시 : 구름 EXP 배움일기 - Kubernetes 리소스 구조, 플러그인 역할, AWS/Terraform으로 이어질 질문
+- 1교시 : Day4 강의 10분 요약 + VPC와 네트워크 기본 - VPC, subnet, route table, internet gateway, security group, NACL 개념
+- 2교시 : Console 기반 네트워크 실습 - 기본 VPC 확인 또는 실습 VPC 생성, subnet/security group 구성
+- 3교시 : Security Group 시나리오 - SSH/HTTP/DB 포트 노출 기준, public/private 경계
+- 4교시 : Compute 서비스 선택 기준 - EC2, ECS, EKS, Lambda의 역할과 운영 부담 비교
+- 5교시 : EC2 Console 실습 - AMI, instance type, key pair, security group, user data, public IP
+- 6교시 : EC2에 간단한 웹 서비스 실행 - 접속 확인, security group 포트, 로그 확인
+- 7교시 : 비용/삭제 확인 - running instance, EBS volume, elastic IP, security group 잔여 리소스 점검
+- 8교시 : 구름 EXP 배움일기 - VPC/security group/EC2 구성 흐름과 비용 삭제 체크포인트
 
 ## 4주차 학습 결과
 - MSA 실습 앱을 배포할 Kubernetes manifest 세트
 - namespace, deployment, service, configmap, secret, ingress 역할 설명 문서
 - 로컬 multi-node 클러스터 구성과 node/pod 배치 확인 결과
-- Helm으로 설치한 known plugin 목록과 release 상태
-- Ingress Controller, autoscaler, Istio, Grafana stack 중 실습한 컴포넌트별 역할
+- Helm으로 설치한 Ingress Controller 또는 관찰 컴포넌트 release 상태
 - kubectl 기반 상태 확인 및 장애 분석 명령 모음
 - rollout 또는 rollback 실습 흐름 1개
-- Kubernetes 장애 주입, 관찰, 복구 흐름 1개
-- 5주차 클라우드 서비스 매핑 학습 전 체크리스트
+- Kubernetes 운영 runbook 초안
+- AWS 계정/MFA/Billing/Budget 점검 결과
+- AWS 서비스 매핑 표 초안
+- VPC/security group/EC2 실습 흐름
 
 ## 4주차 환경 준비 체크리스트
 - 로컬 Kubernetes 클러스터 실행 가능
-- kind 또는 minikube 기반 multi-node 클러스터 구성 가능
-- `kubectl config current-context` 확인
-- `kubectl get nodes`에서 여러 node 확인
+- `kubectl get nodes`에서 node 확인 가능
 - Helm 설치 및 chart install/uninstall 가능
-- namespace 생성 가능
-- Pod, Deployment, Service 생성 가능
-- Pod가 어느 node에 배치됐는지 확인 가능
-- `kubectl logs`, `kubectl describe`, `kubectl exec` 사용 가능
 - MSA 실습 앱을 Kubernetes에서 실행 가능
 - Service 또는 Ingress를 통해 frontend 접속 가능
-- Ingress Controller 설치 및 라우팅 확인 가능
-- metrics-server 또는 HPA 실습 가능
-- Grafana/Prometheus 대시보드 접속 가능
+- `kubectl logs`, `kubectl describe`, `kubectl exec` 사용 가능
+- AWS Console 로그인 가능
+- MFA 설정 확인
+- 실습 리전 확정
+- Billing, Budget, Cost Explorer 접근 가능
+- 공통 태그 규칙 확인
+- VPC, security group, EC2 리소스 생성/삭제 가능
 
 # 5주차
 ## Keyword
 - aws
-- cloud service mapping
-- compute
-- network
-- storage
-- database
+- load balancer
+- ecr
+- ecs
+- s3
+- rds
+- cloudwatch
 - finops
 - observability
 - managed service
-- console
-- cloudwatch
-- cost explorer
 - terraform
 - iac
 - state
 - drift
+- plan
+- destroy
 
 ## 5주차 목표
-- 1주차에 배운 컴퓨팅 구성요소를 AWS 클라우드 서비스 이름과 역할로 확장한다.
-- Compute, Network, Storage, Database, IAM, Observability, Billing 서비스를 인프라 관점에서 매핑한다.
-- AWS Console을 이용해 직접 리소스를 만들고 연결하면서 수작업 구성의 흐름과 불편함을 체감한다.
+- AWS compute, network, storage, database, container, observability, billing 서비스를 운영 관점에서 연결한다.
+- EC2/ALB, ECR/ECS 또는 컨테이너 실행 서비스, S3, RDS, CloudWatch를 실습 시나리오로 확인한다.
 - 비용이 발생하는 지점을 예측하고 Budget, Cost Explorer, 태그 기반 비용 관리의 필요성을 이해한다.
-- CloudWatch Logs, Metrics, Alarm, Dashboard를 이용해 기본적인 관찰 가능성 실습을 수행한다.
 - Terraform의 provider, resource, variable, output, state, plan/apply/destroy 흐름을 이해한다.
 - AWS Console 구성 일부를 Terraform 코드로 재현하고, 변경 검토와 cleanup 절차를 이해한다.
+- 수작업 콘솔 구성의 반복성, 누락 위험, 리뷰 불가능성을 IaC와 연결한다.
 
 ## 5주차 운영 원칙
-- 5주차 전반은 AWS Console 기준으로 진행하고, 후반은 동일한 구성을 Terraform/IaC 관점으로 전환한다.
-- 모든 리소스는 정해진 리전과 공통 태그를 사용하고, 실습 종료 시 삭제 또는 중지 절차를 반드시 확인한다.
+- 5주차 1~3일차는 4주차에서 시작한 AWS 5일 흐름을 완성한다.
+- 5주차 4~5일차는 남은 시간을 Terraform/IaC에 집중한다.
+- AWS 실습은 비용 통제가 가능한 리소스를 우선 사용하고, RDS/ECS/EKS는 계정/비용 상태에 따라 생성 또는 시뮬레이션 경로를 둔다.
 - FinOps와 Observability는 별도 이론으로 분리하지 않고, 리소스 선택과 운영 판단 안에 함께 다룬다.
-- 복잡한 프로덕션 구성이 아니라 "AWS 서비스가 어떤 컴퓨팅 구성요소를 대체하거나 확장하는가"에 집중한다.
-- 콘솔 수작업의 반복성, 누락 위험, 재현 어려움을 Terraform plan/state/drift 개념과 연결한다.
+- Terraform은 거대한 모듈 작성보다 plan을 읽고 변경/비용/보안/cleanup을 검토하는 능력에 집중한다.
 - 모든 Terraform apply 전 plan을 읽고, 실습 후 destroy 또는 잔여 리소스 확인을 수행한다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
 
 ## 1일차
-- 1교시 : Week4 강의 10분 요약 + AWS 학습 목표 - 로컬 클러스터/컨테이너 운영 모델을 클라우드 서비스로 확장
-- 2교시 : AWS 계정 및 리전 운영 점검 - 로그인, MFA, region, IAM 사용자/권한, Billing 접근 확인
-- 3교시 : 컴퓨팅 구성요소와 AWS 서비스 매핑 - EC2, VPC, EBS, S3, RDS, ECS/EKS, CloudWatch 큰 그림
-- 4교시 : FinOps 사전 안전장치 - Free Tier, Pricing Calculator, Budget, Cost Explorer, 태그 정책
-- 5교시 : VPC와 네트워크 기본 - VPC, subnet, route table, internet gateway, security group, NACL 개념
-- 6교시 : Console 기반 네트워크 실습 - 기본 VPC 확인 또는 실습 VPC 생성, subnet/security group 구성
-- 7교시 : 개인 면담 및 환경 점검 - AWS 계정, 권한, Billing, Budget, 리전 설정 문제 해결
-- 8교시 : 구름 EXP 배움일기 - AWS 서비스 매핑, 계정/리전/IAM/Billing, VPC와 security group 질문
+- 1교시 : Week4 강의 10분 요약 + Load Balancing 개념 - ALB, target group, health check, listener, public/private 경계
+- 2교시 : ALB Console 실습 - target group 생성, health check 확인, ALB로 웹 서비스 접속
+- 3교시 : 컨테이너 실행 서비스 매핑 - Docker/Kubernetes 관점에서 ECR, ECS, EKS가 해결하는 문제 비교
+- 4교시 : ECR 실습 - repository 생성, image tag 규칙, push/pull 흐름, credential 주의
+- 5교시 : ECS 또는 App Runner 맛보기 - task/service 개념, image 실행, logs와 health 확인
+- 6교시 : CloudWatch Logs 기본 - 로그 그룹, 로그 스트림, EC2/ECS/app 로그 수집 개념
+- 7교시 : CloudWatch Metrics와 Alarm - CPU, network, ALB target health, threshold, notification 개념
+- 8교시 : 구름 EXP 배움일기 - ALB/ECR/ECS/CloudWatch 연결 흐름과 장애 확인 지점
 
 ## 2일차
-- 1교시 : Day1 강의 10분 요약 + Compute 서비스 선택 기준 - EC2, ECS, EKS, Lambda의 역할과 운영 부담 비교
-- 2교시 : EC2 Console 실습 - AMI, instance type, key pair, security group, user data, public IP
-- 3교시 : EC2에 간단한 웹 서비스 실행 - 접속 확인, security group 포트, 로그 확인
-- 4교시 : Load Balancing 개념 - ALB, target group, health check, listener, public/private 경계
-- 5교시 : ALB Console 실습 - target group 생성, health check 확인, ALB로 웹 서비스 접속
-- 6교시 : 컨테이너 실행 서비스 매핑 - Docker/Kubernetes 관점에서 ECS와 EKS가 해결하는 문제 비교
-- 7교시 : ECS 또는 ECR 맛보기 - ECR repository, 이미지 push/pull 흐름 또는 ECS task/service 개념 확인
-- 8교시 : 구름 EXP 배움일기 - EC2/ALB 구성 흐름, security group과 health check, ECS/ECR에서 다시 볼 질문
+- 1교시 : Day1 강의 10분 요약 + Storage와 Database 서비스 선택 기준 - EBS, EFS, S3, RDS의 용도와 운영 책임 비교
+- 2교시 : S3 Console 실습 - bucket 생성, 객체 업로드, public access block, 정적 파일 호스팅 개념
+- 3교시 : S3 보안/비용 시나리오 - public access, lifecycle, storage class, 삭제 확인
+- 4교시 : RDS 개념과 비용 주의사항 - subnet group, security group, backup, Multi-AZ, storage 비용
+- 5교시 : RDS Console 실습 또는 시뮬레이션 - DB 생성 흐름, 연결 정보, 보안 그룹, 삭제 보호 옵션 확인
+- 6교시 : 애플리케이션 연결 관점 - connection string, secret 관리, private subnet, 접근 경로
+- 7교시 : 장애/보안 점검 - DB port 노출, credential 노출, backup/delete protection, 비용 잔여 리소스
+- 8교시 : 구름 EXP 배움일기 - S3/RDS 선택 기준, connection string과 secret, 비용 위험 질문
 
 ## 3일차
-- 1교시 : Day2 강의 10분 요약 + Storage와 Database 서비스 선택 기준 - EBS, EFS, S3, RDS의 용도와 운영 책임 비교
-- 2교시 : S3 Console 실습 - bucket 생성, 객체 업로드, public access block, 정적 파일 호스팅 개념
-- 3교시 : RDS 개념과 비용 주의사항 - subnet group, security group, backup, Multi-AZ, storage 비용
-- 4교시 : RDS Console 실습 또는 시뮬레이션 - DB 생성 흐름, 연결 정보, 보안 그룹, 삭제 보호 옵션 확인
-- 5교시 : 애플리케이션 연결 관점 - connection string, secret 관리, private subnet, 접근 경로
-- 6교시 : CloudWatch Logs 기본 - 로그 그룹, 로그 스트림, EC2/app 로그 수집 개념
-- 7교시 : CloudWatch Metrics와 Alarm - CPU, network, ALB target health, threshold, notification 개념
-- 8교시 : 구름 EXP 배움일기 - S3/RDS 선택 기준, connection string과 secret, CloudWatch 로그/지표 질문
-
-## 4일차
-- 1교시 : Day3 강의 10분 요약 + 운영 대시보드 기본 - CloudWatch Dashboard, 서비스별 핵심 지표, 장애 확인 순서
+- 1교시 : Day2 강의 10분 요약 + 운영 대시보드 기본 - CloudWatch Dashboard, 서비스별 핵심 지표, 장애 확인 순서
 - 2교시 : FinOps 실습 - Cost Explorer, Budget 알림, 태그별 비용 추적, 리소스별 비용 발생 지점 확인
 - 3교시 : 보안 운영 기본 - IAM 최소 권한, security group 검토, secret 노출 위험, public resource 점검
-- 4교시 : 콘솔 작업의 한계 - 클릭 순서 누락, 설정값 불일치, 재현 어려움, 리뷰 불가능성
-- 5교시 : Terraform 기본 개념 - provider, resource, variable, output, state, plan/apply/destroy
-- 6교시 : Terraform 설치 및 인증 준비 - terraform version, AWS 인증, provider init, fmt, validate
-- 7교시 : 개인 면담 및 환경 점검 - AWS 리소스 상태, 비용 알림, CloudWatch, Terraform init 문제 확인
-- 8교시 : 구름 EXP 배움일기 - Dashboard/FinOps/IAM/Terraform 기본 개념, provider 인증에서 막힌 지점
+- 4교시 : AWS 통합 장애 시나리오 - EC2/ALB/S3/RDS/CloudWatch 중 하나의 실패를 증거로 분석
+- 5교시 : AWS 운영 Runbook - 배포, 확인, 로그/지표, 비용, cleanup 절차 정리
+- 6교시 : 콘솔 작업의 한계 - 클릭 순서 누락, 설정값 불일치, 재현 어려움, 리뷰 불가능성
+- 7교시 : Terraform 전환 Preview - 어떤 설정을 코드로 옮길지, 변수화/민감정보/상태 관리 기준
+- 8교시 : 구름 EXP 배움일기 - AWS 5일 요약, 운영 runbook, Terraform으로 옮길 후보
+
+## 4일차
+- 1교시 : Day3 강의 10분 요약 + Terraform 기본 개념 - provider, resource, variable, output, state, plan/apply/destroy
+- 2교시 : Terraform 설치 및 인증 준비 - terraform version, AWS 인증, provider init, fmt, validate
+- 3교시 : 작은 AWS 구성 코드화 - region, tag, security group, EC2 또는 S3 등 비용 통제 가능한 리소스
+- 4교시 : variable/output/sensitive - 반복 설정 제거, output 확인, secret을 코드와 state에 남기는 위험
+- 5교시 : Terraform plan 검토 - 변경 전 미리보기, 비용/보안/태그/관찰 가능성 누락 확인
+- 6교시 : Terraform apply 및 검증 - Console, curl, CloudWatch, terraform state 비교
+- 7교시 : 개인 면담 및 환경 점검 - Terraform init/provider 인증/state/backend 문제 확인
+- 8교시 : 구름 EXP 배움일기 - Terraform plan을 읽는 법, provider 인증, sensitive/state에서 주의할 점
 
 ## 5일차
-- 1교시 : Day4 강의 10분 요약 + Terraform 전환 범위 결정 - 콘솔 설정값 목록화, 리소스 의존성, 변수화할 값, 민감정보 분리
-- 2교시 : 작은 AWS 구성 코드화 - region, tag, security group, EC2 또는 S3 등 비용 통제 가능한 리소스
-- 3교시 : Terraform plan 검토 - 변경 전 미리보기, 비용/보안/태그/관찰 가능성 누락 확인
-- 4교시 : Terraform apply 및 검증 - Console, curl, CloudWatch, terraform state 비교
-- 5교시 : 변경/drift/cleanup 실습 - tag 또는 rule 변경, plan 차이 확인, destroy 후 잔여 리소스 점검
-- 6교시 : AWS 서비스 매핑 - 구성 절차, 비용/관찰 지점, Console vs Terraform 비교
-- 7교시 : 전체 과정 연결 - Docker, MSA, Kubernetes, AWS, Terraform이 하나의 운영 흐름으로 연결되는 방식
+- 1교시 : Day4 강의 10분 요약 + 변경/drift 실습 - Console에서 tag 또는 rule 변경 후 plan 차이 확인
+- 2교시 : Terraform import 개념과 한계 - 이미 만든 리소스와 코드의 관계, state 관리 위험
+- 3교시 : 모듈화 맛보기 - 반복 리소스 정리, module input/output, 과한 추상화의 위험
+- 4교시 : destroy와 cleanup audit - destroy 전 plan 확인, 잔여 리소스, 비용 알림, state 파일 처리
+- 5교시 : 최종 통합 정리 - Docker, MSA, GitHub Actions, Kubernetes, AWS, Terraform이 하나의 운영 흐름으로 연결되는 방식
+- 6교시 : 운영 포트폴리오 패킷 - 아키텍처 다이어그램, runbook, CI workflow, manifest, Terraform plan, cleanup evidence
+- 7교시 : 다음 학습 로드맵 - EKS/ECS 심화, Observability, Security, Terraform module/backend, GitOps
 - 8교시 : 구름 EXP 배움일기 - 전체 과정에서 연결된 개념, Terraform으로 이해한 재현성, 이후 더 공부할 질문
 
 ## 5주차 학습 결과
@@ -583,12 +591,12 @@
 - AWS 서비스 매핑 표 - compute, network, storage, database, observability, billing
 - Budget 또는 비용 알림 설정 흐름
 - CloudWatch Logs/Metrics/Alarm/Dashboard 실습 흐름
-- 장애 주입 및 관찰 흐름 1개
-- 콘솔 구성 절차와 설정값 목록
+- EC2/ALB, ECR/ECS 또는 App Runner, S3/RDS 중 선택 실습 결과
+- AWS 운영 runbook과 cleanup 체크리스트
 - Terraform 전환 대상 리소스 목록과 최소 Terraform 코드
 - `terraform init/fmt/validate/plan/apply/destroy` 실행 흐름
 - state, drift, secret, 비용 위험에 대한 운영 note
-- 비용 발생 리소스 cleanup 체크리스트
+- 전체 과정 포트폴리오 패킷 초안
 
 ## 5주차 환경 준비 체크리스트
 - AWS Console 로그인 가능
@@ -596,7 +604,8 @@
 - 실습 리전 확정
 - Billing, Budget, Cost Explorer 접근 가능
 - 공통 태그 규칙 확인
-- VPC, security group, EC2 또는 ECS 리소스 생성 가능
+- VPC, security group, EC2, ALB 또는 컨테이너 실행 서비스 생성 가능
+- S3, RDS 생성 또는 시뮬레이션 흐름 확인 가능
 - CloudWatch Logs/Metrics/Alarm 접근 가능
 - Terraform 설치 및 `terraform version` 확인
 - AWS 인증을 Terraform provider에서 사용할 수 있음

@@ -1,57 +1,76 @@
-# 8교시: Compose 준비 handoff
+# 8교시: Compose mapping handoff와 구름 EXP 배움일기
 
 ## 수업 목표
-- runtime config와 관찰 명령을 구분한다.
-- 정상/장애 확인 지점을 선별한다.
-- cleanup과 secret 비노출을 적용한다.
+- Day 4에서 사용한 긴 `docker run` option을 Compose 항목으로 매핑한다.
+- runtime config, 관찰 명령, cleanup 기준을 표로 정리한다.
+- Day 5 Compose 수업에 가져갈 질문을 남긴다.
 
-## 강의 전개
-긴 docker run option을 compose 항목으로 mapping한다.
+## 개념 설명
+Day 4는 Compose를 배우는 날이 아니라 Compose가 왜 필요한지 몸으로 느끼는 날이다. `docker run` 명령에 port, env, env file, volume, network, restart option이 계속 붙으면 길고 실수하기 쉬워진다. Day 5에서는 이 조건을 `compose.yaml`에 남긴다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 실수를 줄이는 좋은 확인 지점이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 확인한다.
+오늘의 mapping은 Week 2에서 끝나지 않는다. Compose의 `environment`, `env_file`, `volumes`, `networks`는 Kubernetes의 ConfigMap/Secret, Volume, Service/NetworkPolicy를 이해하는 다리가 된다. Terraform에서는 같은 환경 분리 사고가 `dev.tfvars`, `staging.tfvars`, `prod.tfvars` 같은 variable 파일과 workspace/환경별 state 판단으로 이어진다.
 
-## 실습 명령
+## Mapping 표
+| Day 4에서 사용한 것 | 의미 | Day 5 Compose 위치 |
+|---|---|---|
+| `docker run -d --name ...` | service process 시작 | `services.<name>` |
+| `-p 18084:80` | host/container port publish | `services.<name>.ports` |
+| `-e KEY=value` | runtime env 직접 주입 | `services.<name>.environment` |
+| `--env-file .env` | env file 사용 | `env_file` 또는 `${VARIABLE}` |
+| `.env.dev/.env.staging/.env.prod` | 환경별 설정 파일 | 환경별 Compose project 또는 env file |
+| `-v source:target` | mount/volume 연결 | `services.<name>.volumes` |
+| `--network name` | network 연결 | `networks` |
+| `docker logs` | log 확인 | `docker compose logs` |
+| `docker exec` | 내부 명령 실행 | `docker compose exec` |
+| cleanup 명령 | 종료/삭제 | `docker compose down`, 필요 시 `down -v` |
+
+## 다음 기술로 이어지는 표
+| Day 4 개념 | Compose | Kubernetes | Terraform |
+|---|---|---|---|
+| `-e KEY=value` | `environment` | ConfigMap/Secret env | variable |
+| `--env-file .env.dev` | `env_file` | 환경별 ConfigMap/Secret | `dev.tfvars` |
+| `-p host:container` | `ports` | Service/Ingress | load balancer/security group |
+| `-v volume:/path` | `volumes` | Volume/PVC | storage resource |
+| `--network` | `networks` | Service DNS/network policy | VPC/subnet/security group |
+| cleanup 판단 | `down` vs `down -v` | delete resource vs preserve PVC | destroy/retain state |
+
+## 제출 표
+학생은 다음 표를 채운다.
+
+| 구분 | 내가 확인한 내용 | 증거 명령 | Day 5로 넘길 질문 |
+|---|---|---|---|
+| env/config |  |  |  |
+| secret 비노출 |  |  |  |
+| logs |  |  |  |
+| inspect |  |  |  |
+| exec |  |  |  |
+| stats/restart |  |  |  |
+| failure RCA |  |  |  |
+| cleanup |  |  |  |
+| Compose mapping |  |  |  |
+| K8s/Terraform 연결 |  |  |  |
+
+## 최종 확인 명령
 ```bash
-docker inspect paperclip-day4-nginx --format "Image={{.Config.Image}} Ports={{json .NetworkSettings.Ports}}"
+docker ps -a --filter name=paperclip-day4
+docker network ls | grep paperclip-day4 || true
+docker volume ls | grep paperclip-day4 || true
 ```
 
-## 검증 명령
-```bash
-printf "ports -> services.web.ports\nenv -> services.*.environment\nvolume -> services.*.volumes\nnetwork -> networks\n"
+Expected:
+
+```text
+cleanup 후 실습 container/network가 남지 않는다.
+volume은 삭제 여부를 의식적으로 판단한다.
 ```
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
-|---|---|
-| secret 노출 | README/screenshot/history에 값이 남지 않도록 masking한다. |
-| logs만 붙임 | inspect/exec/stats와 함께 원인을 좁힌다. |
-| cleanup 과잉 | volume/image/network 삭제 범위를 구분한다. |
-
-## Cleanup
-```bash
-docker stop paperclip-day4-nginx paperclip-day4-bad || true
-docker rm paperclip-day4-nginx paperclip-day4-bad || true
-# 생성한 env 파일에는 실제 비밀번호를 남기지 않는다.
-```
-
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
-
-## 주의할 점
-- Container가 `Up` 상태여도 애플리케이션이 정상이라는 뜻은 아니다. `logs`, HTTP 응답, DB 연결처럼 서비스 관점의 확인을 함께 봐야 한다.
-- 환경변수는 runtime 설정이지 image에 굳힐 값이 아니다. password, token, API key는 README, screenshot, terminal history에 남기지 않는다.
-- `docker inspect` 출력은 길다. 전체를 복사하기보다 env, mount, network, restart policy처럼 문제와 관련된 영역을 좁혀서 본다.
-- `docker exec`는 container 내부 관찰 도구다. host에서 되는 명령이 container 안에서도 된다고 가정하지 않는다.
-- 장애 드릴 후에는 실패 container, stale volume, 잘못 만든 network, 오래된 image tag가 다음 실습을 방해할 수 있으므로 cleanup 대상을 구분한다.
+## 구름 EXP 배움일기
+- `Up`과 정상 응답을 구분한 순간
+- logs/inspect/exec/stats 중 가장 유용했던 명령
+- 내가 재현한 실패와 첫 확인 명령
+- cleanup에서 지우면 안 된다고 판단한 것
+- Day 5 Compose로 옮기면 편해질 option
+- Kubernetes/Terraform에서 다시 만날 것 같은 설정 분리 질문
 
 ## 핵심 포인트
-Day 4는 "container가 떠 있다"와 "서비스가 정상이다"를 분리하는 날이다. `docker ps`에서 Up이라고 보여도 application은 설정 누락으로 의미 없는 상태일 수 있다. 반대로 container가 exit된 경우에도 logs를 보면 원인이 명확히 남아 있을 수 있다. 그래서 logs, inspect, exec, stats를 서로 다른 관찰 도구로 가르친다.
-
-환경변수는 편하지만 secret 관리와 연결된다. 수업용 password라도 README나 screenshot에 그대로 남기는 습관은 위험하다. 학생에게 공개해도 되는 것은 env var 이름과 주입 방식이지 실제 credential 값이 아니라는 점을 강조한다. `.env.example`은 형식을 공유하는 파일이고, 실제 `.env`는 로컬 전용이다.
-
-## 운영 해석
-장애 분석은 감으로 하는 것이 아니라 관찰 위치를 바꾸며 좁혀가는 일이다. logs는 application이 말한 내용, inspect는 Docker metadata, exec는 container 내부 관찰, stats는 resource 관찰이다. 어떤 문제에는 logs만으로 충분하고, 어떤 문제는 inspect의 network/mount/env를 봐야 한다. 학생이 명령을 많이 아는 것보다 언제 무엇을 볼지 말할 수 있어야 한다.
-
-Cleanup도 Day 4에서 다시 다룬다. 장애 드릴 중에는 실패 container, 잘못 붙은 network, 오래된 volume, 잘못 만든 image tag가 남는다. 남은 자원은 다음 실습의 원인이 되므로, cleanup audit을 주의할 점으로 다룬다.
-
-## 다음 연결
-Day 5는 Day 2~4의 옵션을 compose.yaml로 옮겨 유명 아키텍처를 실행한다.
+Day 4의 완료 기준은 명령을 많이 실행한 것이 아니라, 실행 조건과 관찰 증거를 분리해서 설명할 수 있는 것이다.

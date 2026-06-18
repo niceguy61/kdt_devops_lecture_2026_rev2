@@ -1,59 +1,76 @@
-# 5교시: stats/resource/restart policy
+# 5교시: Stats, resource, restart policy
 
 ## 수업 목표
-- runtime config와 관찰 명령을 구분한다.
-- 정상/장애 확인 지점을 선별한다.
-- cleanup과 secret 비노출을 적용한다.
+- `docker stats --no-stream`으로 resource 사용량을 확인한다.
+- restart policy가 무엇을 해주고 무엇을 해주지 못하는지 설명한다.
+- crash loop를 증상 완화와 원인 해결로 구분한다.
 
-## 강의 전개
-resource 관찰과 restart policy의 의미를 확인한다.
+## 개념 설명
+`docker stats`는 container의 CPU, memory, network, block I/O를 보여준다. Day 4에서는 성능 튜닝을 깊게 하지 않는다. 대신 `실행 중인 container가 resource를 쓰고 있는지`, `비정상적으로 반복 재시작되는지`를 관찰하는 입구로 사용한다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 실수를 줄이는 좋은 확인 지점이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 확인한다.
+Restart policy는 container process가 죽었을 때 다시 시작할지 정하는 정책이다. 하지만 설정 누락, 잘못된 command, port 충돌 같은 원인을 고치지는 않는다. 반복 재시작은 장애를 숨길 수도 있으므로 logs와 함께 봐야 한다.
+
+환경 설정이 잘못된 상태에서 restart policy를 붙이면 더 헷갈릴 수 있다. 예를 들어 required env가 없어서 바로 죽는 container에 `--restart on-failure`를 붙이면 container가 반복해서 재시작한다. 이때 해결책은 restart 횟수를 늘리는 것이 아니라 missing env를 고치는 것이다.
 
 ## 실습 명령
 ```bash
 docker stats paperclip-day4-nginx --no-stream
-docker inspect paperclip-day4-nginx --format "{{json .HostConfig.RestartPolicy}}"
-```
-
-## 검증 명령
-```bash
+docker inspect paperclip-day4-nginx --format 'before={{json .HostConfig.RestartPolicy}}'
 docker update --restart unless-stopped paperclip-day4-nginx
-docker inspect paperclip-day4-nginx --format "{{json .HostConfig.RestartPolicy}}"
+docker inspect paperclip-day4-nginx --format 'after={{json .HostConfig.RestartPolicy}}'
 ```
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
-|---|---|
-| secret 노출 | README/screenshot/history에 값이 남지 않도록 masking한다. |
-| logs만 붙임 | inspect/exec/stats와 함께 원인을 좁힌다. |
-| cleanup 과잉 | volume/image/network 삭제 범위를 구분한다. |
+Expected:
 
-## Cleanup
+```text
+NAME                   CPU %     MEM USAGE / LIMIT
+before={"Name":"no","MaximumRetryCount":0}
+after={"Name":"unless-stopped","MaximumRetryCount":0}
+```
+
+## crash loop 맛보기
 ```bash
-docker stop paperclip-day4-nginx paperclip-day4-bad || true
-docker rm paperclip-day4-nginx paperclip-day4-bad || true
-# 생성한 env 파일에는 실제 비밀번호를 남기지 않는다.
+docker rm -f paperclip-day4-crash || true
+docker run -d --name paperclip-day4-crash --restart on-failure:3 alpine:3.20 sh -c 'echo crash-now; exit 1'
+sleep 3
+docker ps -a --filter name=paperclip-day4-crash
+docker logs paperclip-day4-crash
+docker inspect paperclip-day4-crash --format 'RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}'
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+Expected:
 
-## 주의할 점
-- Container가 `Up` 상태여도 애플리케이션이 정상이라는 뜻은 아니다. `logs`, HTTP 응답, DB 연결처럼 서비스 관점의 확인을 함께 봐야 한다.
-- 환경변수는 runtime 설정이지 image에 굳힐 값이 아니다. password, token, API key는 README, screenshot, terminal history에 남기지 않는다.
-- `docker inspect` 출력은 길다. 전체를 복사하기보다 env, mount, network, restart policy처럼 문제와 관련된 영역을 좁혀서 본다.
-- `docker exec`는 container 내부 관찰 도구다. host에서 되는 명령이 container 안에서도 된다고 가정하지 않는다.
-- 장애 드릴 후에는 실패 container, stale volume, 잘못 만든 network, 오래된 image tag가 다음 실습을 방해할 수 있으므로 cleanup 대상을 구분한다.
+```text
+crash-now
+RestartCount=3
+ExitCode=1
+```
 
-## 핵심 포인트
-Day 4는 "container가 떠 있다"와 "서비스가 정상이다"를 분리하는 날이다. `docker ps`에서 Up이라고 보여도 application은 설정 누락으로 의미 없는 상태일 수 있다. 반대로 container가 exit된 경우에도 logs를 보면 원인이 명확히 남아 있을 수 있다. 그래서 logs, inspect, exec, stats를 서로 다른 관찰 도구로 가르친다.
+## config 실패와 restart 구분
+```bash
+docker rm -f paperclip-day4-restart-missing-env || true
+docker run -d --name paperclip-day4-restart-missing-env --restart on-failure:2 postgres:16-alpine
+sleep 3
+docker inspect paperclip-day4-restart-missing-env --format 'RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}'
+docker logs paperclip-day4-restart-missing-env --tail 20 || true
+```
 
-환경변수는 편하지만 secret 관리와 연결된다. 수업용 password라도 README나 screenshot에 그대로 남기는 습관은 위험하다. 학생에게 공개해도 되는 것은 env var 이름과 주입 방식이지 실제 credential 값이 아니라는 점을 강조한다. `.env.example`은 형식을 공유하는 파일이고, 실제 `.env`는 로컬 전용이다.
+Expected:
 
-## 운영 해석
-장애 분석은 감으로 하는 것이 아니라 관찰 위치를 바꾸며 좁혀가는 일이다. logs는 application이 말한 내용, inspect는 Docker metadata, exec는 container 내부 관찰, stats는 resource 관찰이다. 어떤 문제에는 logs만으로 충분하고, 어떤 문제는 inspect의 network/mount/env를 봐야 한다. 학생이 명령을 많이 아는 것보다 언제 무엇을 볼지 말할 수 있어야 한다.
+```text
+RestartCount=2
+POSTGRES_PASSWORD
+```
 
-Cleanup도 Day 4에서 다시 다룬다. 장애 드릴 중에는 실패 container, 잘못 붙은 network, 오래된 volume, 잘못 만든 image tag가 남는다. 남은 자원은 다음 실습의 원인이 되므로, cleanup audit을 주의할 점으로 다룬다.
+해석: restart policy는 missing env를 해결하지 못한다. `POSTGRES_PASSWORD`를 주입해야 한다.
+
+## 판단 기준
+| 출력 | 해석 |
+|---|---|
+| `RestartCount` 증가 | process가 반복 실패 |
+| `ExitCode=1` | command가 실패 종료 |
+| logs에 같은 줄 반복 | restart가 원인을 해결하지 못함 |
+| `POSTGRES_PASSWORD` 반복 | config 누락을 restart로 가리고 있음 |
 
 ## 다음 연결
-Day 5는 Day 2~4의 옵션을 compose.yaml로 옮겨 유명 아키텍처를 실행한다.
+다음 교시는 여러 failure를 한 번에 분류하고 복구 기준을 세운다.

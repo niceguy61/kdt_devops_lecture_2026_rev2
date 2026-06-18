@@ -1,5 +1,7 @@
 # Week 2 Day 4 Compose App Lab
 
+> Note: 이 폴더는 Day 5 Docker Compose 수업으로 넘어가기 위한 preview 자료다. Day 4 본 실습은 `docker run`, runtime config, logs, inspect, exec, stats, failure drill 중심으로 진행한다.
+
 ## Purpose
 이 실습은 Day 3에서 길게 입력한 `docker run` 옵션을 `compose.yaml`로 옮긴다. 핵심은 파일 하나로 web, db, network, volume, environment, healthcheck, cleanup을 재현하는 것이다.
 

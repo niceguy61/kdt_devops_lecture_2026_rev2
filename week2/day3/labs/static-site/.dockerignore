@@ -1,5 +1,12 @@
 .git
 *.log
 .env
-node_modules
-tmp
+.env.*
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+dist/
+build/
+coverage/
+tmp/

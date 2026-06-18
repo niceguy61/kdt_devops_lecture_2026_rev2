@@ -1,87 +1,76 @@
-# Week 2 Day 3: Image, Dockerfile, Build, Registry
+# Week 2 Day 3: Buildable Image Delivery and Failure Analysis
 
 ## Overview
-Day 3는 Docker image를 직접 만들고 읽는 날이다. Day 1~2에서는 official image를 pull해서 실행했다. 이제 표준 실습 앱 코드를 제공하고, Dockerfile로 image를 build한 뒤 layer/cache/tag/digest/registry 관점에서 검증한다.
+Day 3는 Dockerfile 문법만 외우거나 명령어만 따라 치는 날이 아니다. 제공된 정적 앱을 **다른 사람이 같은 결과로 실행할 수 있는 image artifact**로 포장하고, build/run/verify 중 어디에서 실패했는지 증거로 좁히는 날이다.
 
 오늘의 핵심 질문은 다음과 같다.
 
 ```text
-내 코드와 실행 조건을 어떤 Dockerfile과 image tag로 포장해야 다른 사람이 같은 결과를 실행할 수 있는가?
+내 앱을 image로 납품하려면 Dockerfile, build context, layer/cache, tag/digest, registry gate, run/verify/security scan 기준이 어떻게 남아야 하는가?
 ```
 
-Day 3도 CLI 실험 중심이다. build 명령, run 검증, image history/inspect, tag/digest 확인, failure drill을 모두 code block으로 제공한다. Docker Hub push는 기본 요구하지 않고, 선택 실습으로만 둔다. push를 한다면 credential, public repository, secret 포함 여부를 먼저 gate로 확인한다.
+## Concept Map
+| 개념 | 반드시 설명할 내용 | 실습에서 확인할 증거 |
+|---|---|---|
+| Dockerfile | image를 만드는 build recipe이자 실행 계약서다. base image, 복사할 파일, 시작 process, container port를 정의한다. | `Dockerfile`, `docker image inspect` |
+| Build | source와 Dockerfile을 build context로 보내 image artifact를 만든다. build 성공은 아직 서비스 정상 확인이 아니다. | `docker build -t ... .`, `docker images` |
+| Layer | Dockerfile instruction이 누적되어 image 변경 이력을 만든다. layer를 보면 무엇이 image에 들어갔는지 추적할 수 있다. | `docker history` |
+| Cache | 이전 build layer를 재사용해 rebuild를 빠르게 만든다. 어떤 instruction 뒤에서 cache가 깨졌는지 보면 변경 영향이 보인다. | build output의 `CACHED`, rebuild 시간/출력 |
+| Tag | 사람이 읽기 쉬운 image 이름표다. 새 build가 아니라 기존 image에 reference를 추가할 수도 있다. | `docker tag`, `docker images` |
+| Digest | registry에서 content를 식별하는 값이다. tag보다 재현성 판단에 강하다. local image에서는 digest가 비어 있을 수 있다. | `RepoDigests` |
+| Registry | image를 다른 machine/runner/Kubernetes가 pull할 수 있게 저장하는 장소다. push 전 secret/public 범위 gate가 필요하다. | Docker Hub/ECR push gate, `RepoTags` |
+| Run & verify | image를 container로 실행하고 사용자가 접근할 정상 기준을 확인한다. `Up`과 HTTP 200은 다른 증거다. | `docker run`, `docker ps`, `curl` |
+| Vulnerability scan | image 안의 OS/package 취약점이 있는지 확인한다. scan 결과는 배포 차단/보류/예외 판단의 근거다. | `docker scout cves`, scan note |
 
 ## Learning Goals
-- image, layer, tag, digest의 차이를 설명한다.
-- Dockerfile의 `FROM`, `WORKDIR`, `COPY`, `RUN`, `CMD`, `EXPOSE`를 읽고 수정한다.
-- build context와 `.dockerignore`가 image size와 secret risk에 미치는 영향을 확인한다.
-- 제공된 표준 앱을 `docker build`로 image로 만들고 `docker run`으로 HTTP 확인한다.
-- `docker history`, `docker image inspect`, image size, cache hit/miss를 읽고 의미를 구분한다.
-- Docker Hub official image와 custom image의 provenance를 구분한다.
-- tag/push/pull 흐름을 설명하되, push는 credential/security gate 이후 선택으로 수행한다.
-- missing file, wrong CMD, wrong port, bloated context 같은 build/runtime 실패를 RCA로 확인한다.
+- Dockerfile이 어떤 실행 계약을 image에 담는지 설명한다.
+- build context와 `.dockerignore`가 secret risk, build speed, image size에 미치는 영향을 확인한다.
+- 표준 앱을 build/run하고 HTTP 200과 vulnerability scan 결과로 정상/안전 기준을 남긴다.
+- layer/cache를 보고 변경 영향과 rebuild 이유를 설명한다.
+- tag, digest, registry, optional push gate를 release handoff 기준으로 설명한다.
+- missing file, wrong CMD, wrong port, bloated context를 build/run/verify 단계로 분류한다.
 
 ## Lesson Index
-- 1교시: image와 layer, tag, digest - pull한 image를 `images`, `history`, `inspect`로 읽기
-- 2교시: Dockerfile 기본 문법 - `FROM`, `WORKDIR`, `COPY`, `RUN`, `CMD`, `EXPOSE`
-- 3교시: build context와 `.dockerignore` - source tree, secret 제외, context size 확인
-- 4교시: 표준 앱 image build/run - 제공 코드로 image build, container run, HTTP 확인
-- 5교시: build cache와 layer 최적화 - source 변경, cache hit/miss, image size 비교
-- 6교시: registry와 image provenance - Docker Hub official image, tag 전략, digest pinning, pull policy
-- 7교시: tag/push/pull 흐름 - local tag, Docker Hub push는 선택, credential/secret gate 필수
-- 8교시: image build failure drill - missing file, wrong CMD, wrong port, bloated context RCA
+- 1교시: Delivery target - image, container, artifact, run/verify 기준 잡기
+- 2교시: Dockerfile contract - Dockerfile instruction을 실행 계약으로 설명하기
+- 3교시: Build context gate - build context와 `.dockerignore` 위험 설명하기
+- 4교시: Build/run/verify/scan - 실행 가능하고 기본 취약점 점검을 거친 이미지 후보 만들기
+- 5교시: Layer/cache evidence - layer와 cache로 변경 영향 설명하기
+- 6교시: Failure drill - build/run/verify 실패를 RCA로 분류하기
+- 7교시: Tag/digest/registry gate - image 식별과 공유 기준 설명하기
+- 8교시: Delivery handoff - README에 build/run/check/cleanup과 실패 기준 남기기
 
 ## Practice Files And Assets
 | 자료 | 용도 |
 |---|---|
 | `assets/day3-image-build-registry-overview.png` | Day 3 image/build/registry 전체 구조 인포그래픽 |
+| `assets/lesson-08-delivery-handoff-table.png` | 8교시 image delivery 인수인계 표 인포그래픽 |
 | `labs/static-site/index.html` | 표준 실습 앱 HTML |
 | `labs/static-site/styles.css` | 표준 실습 앱 CSS |
 | `labs/static-site/Dockerfile` | Dockerfile build 실습 |
 | `labs/static-site/.dockerignore` | build context 제외 규칙 |
 | `labs/static-site/README.md` | build/run/check/cleanup 예시 |
 | `hands-on-lab.md` | Day 3 전체 실행 흐름 |
-| `assets/lesson-01-image-layer-tag-digest.png` | image layer/tag/digest 설명 |
-| `assets/lesson-02-dockerfile-instruction-map.png` | Dockerfile instruction map |
-| `assets/lesson-03-build-context-dockerignore.png` | source tree와 build context |
-| `assets/lesson-04-build-run-pipeline.png` | build/run/HTTP check pipeline |
-| `assets/lesson-05-build-cache-layer-optimization.png` | build cache/layer 최적화 |
-| `assets/lesson-06-registry-provenance.png` | registry와 image provenance |
-| `assets/lesson-07-tag-push-pull-gate.png` | tag/push/pull security gate |
-| `assets/lesson-08-build-failure-rca.png` | image build failure RCA |
 
-## Linux 사전 점검
-Day 3 build/run 명령은 Linux 또는 macOS Docker 환경에서 사전 테스트한다. 핵심은 exact image ID가 아니라 build 성공, HTTP 응답, history/inspect 해석, cleanup이다.
+## Instructor Rule
+명령어를 던지고 넘어가지 않는다. 각 명령 전에는 `무엇을 확인하려는가`, 명령 후에는 `어떤 출력이면 성공인가`, 실패하면 `어느 단계 문제인가`를 말한다. 중복 설명은 제거하되, Dockerfile/build/layer/cache/tag/digest/registry/run/verify의 첫 등장에는 반드시 개념 설명을 둔다.
 
-| 항목 | 결과 |
-|---|---|
-| Test OS | Ubuntu 24.04.3 LTS, Linux `6.6.87.2-microsoft-standard-WSL2`, `linux/amd64` |
-| Build command | `docker build -t paperclip-static-site:day3 .` |
-| Build result | image 생성 성공, build context size 확인 |
-| Run command | `docker run -d --name paperclip-day3-static -p 18083:80 paperclip-static-site:day3` |
-| HTTP check | `curl -I http://localhost:18083` -> `HTTP/1.1 200 OK` pattern |
-| History check | `docker history paperclip-static-site:day3`에서 base/COPY layer 확인 |
-| Inspect check | image ID, repo tag, architecture, size 확인 |
-| Cache check | source 변경 전후 cache hit/miss 확인 |
-| Failure drill | missing file, wrong CMD, wrong port, bloated context 중 하나 재현 |
+## Common Rules
+- `docker build`의 마지막 `.`은 build context다. 명령 위치와 포함 파일을 먼저 확인한다.
+- `.env`, token, 개인 파일, log, dependency directory는 image/context에 들어가지 않게 `.dockerignore`로 막는다.
+- `EXPOSE`는 문서화된 container port일 뿐 host port publish가 아니다. host 접근은 `docker run -p host:container`로 확인한다.
+- `latest`는 재현성 기준이 아니다. 수업에서는 명시적 tag를 쓰고, provenance 판단에는 digest/official image 여부를 함께 본다.
+- container cleanup과 image cleanup은 다르다. image 삭제는 다음 실행을 다시 build/pull하게 만든다.
 
-## 주의할 점
-- Build context는 Docker daemon으로 전달되는 입력이다. `.env`, log, 큰 dependency directory, 개인 파일을 포함하지 않도록 `.dockerignore`를 먼저 본다.
-- `COPY . .`는 빠르지만 위험하다. 필요한 파일만 image에 들어가도록 source path와 `.dockerignore`를 함께 설계한다.
-- `EXPOSE`는 host port publish가 아니다. 브라우저나 host curl 접근은 `docker run -p host:container`가 필요하다.
-- `latest` tag는 재현성을 보장하지 않는다. 수업 실습은 명시적 version tag를 우선하고, 운영 판단에서는 digest를 함께 본다.
-- Registry push는 기본 요구가 아니다. credential, public repository, secret 포함 여부를 확인할 수 있을 때만 선택한다.
-- Cleanup에서 container 삭제와 image 삭제를 구분한다. image를 지우면 다음 run에서 다시 build 또는 pull이 필요할 수 있다.
-
-## 마무리 점검
-- [ ] Dockerfile instruction 역할을 설명했다.
-- [ ] `docker build`로 표준 앱 image를 만들었다.
-- [ ] `docker run`과 `curl`로 HTTP 200을 확인했다.
-- [ ] `docker history`와 `docker image inspect`를 확인했다.
-- [ ] build cache 또는 source 변경 rebuild를 확인했다.
-- [ ] official image tag/digest 또는 registry 출처를 확인했다.
-- [ ] image build/run failure drill을 장애 흐름으로 확인했다.
-- [ ] container/image cleanup audit을 수행했다.
+## Completion Definition
+```text
+1. 표준 앱 image를 build했다.
+2. container run, HTTP 200, vulnerability scan 결과로 acceptance check를 남겼다.
+3. Dockerfile instruction과 build context 경계를 설명했다.
+4. history/inspect/cache 중 2개 이상을 evidence로 확인했다.
+5. build/run/verify failure 중 하나를 RCA로 분류했다.
+6. tag/digest/registry/push gate와 취약점 scan 판단을 README 또는 handoff note에 남겼다.
+```
 
 ## Next Connection
-Day 4는 runtime config와 observability/troubleshooting으로 넘어간다. Day 3에서 만든 image를 여러 환경변수와 실패 조건으로 실행하면서 logs, inspect, exec, stats를 사용해 정상/장애를 분류한다.
+Day 4는 Day 3에서 만든 image를 여러 runtime config와 failure 조건으로 실행한다. Day 3가 image artifact를 납품하는 날이라면, Day 4는 그 artifact가 다른 runtime 조건에서 왜 정상/장애가 되는지 logs, inspect, exec, stats로 분석하는 날이다.

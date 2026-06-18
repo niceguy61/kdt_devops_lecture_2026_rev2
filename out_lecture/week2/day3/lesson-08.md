@@ -1,113 +1,82 @@
-# 8교시: image build failure drill과 구름 EXP 배움일기
+# 8교시: Delivery handoff와 구름 EXP 배움일기
+
+![Day 3 image delivery handoff table infographic](https://raw.githubusercontent.com/niceguy61/kdt_devops_lecture_2026_rev2/main/week2/day3/assets/lesson-08-delivery-handoff-table.png)
 
 ## 수업 목표
-- missing file, wrong CMD, wrong port, bloated context를 구분한다.
-- 실패를 build 단계, run 단계, HTTP 접근 단계로 나누어 좁힌다.
-- 수업 후 구름 EXP 배움일기에 Day 3 핵심을 남긴다.
+- Day 3의 image 납품 증거를 README/runbook 형태로 정리한다.
+- build/run/verify/scan/cleanup과 failure RCA를 한 페이지에 남긴다.
+- Day 4 runtime config/observability로 넘길 image 기준을 확정한다.
 
-## 강의 전개
-Day 3 마지막 교시는 일부러 실패를 만든다. Docker build/run에서 실패가 나면 초급자는 Docker 전체가 어렵다고 느끼기 쉽다. 하지만 실패 위치를 나누면 복구할 수 있다. build 실패는 Dockerfile과 context를 보고, run 실패는 image tag와 container 이름을 보고, HTTP 실패는 port publish와 service 상태를 본다.
+## 개념 설명
+운영 인수인계는 명령어 목록만 넘기는 일이 아니다. 다음 사람이 어느 directory에서 build하는지, image tag가 무엇인지, 어떤 port로 실행하는지, 정상 확인은 무엇인지, 취약점 scan 결과는 어떤지, 실패하면 어디부터 볼지 알아야 한다.
 
-이 교시의 목적은 모든 에러 메시지를 외우는 것이 아니라, 어떤 명령 다음에 어떤 문제가 생겼는지 좁히는 것이다. 같은 static app으로 missing file, wrong CMD, wrong port, bloated context를 짧게 비교한다.
+이미 `week2/day3/labs/static-site/README.md`가 lab runbook 역할을 한다. 8교시는 이 README를 학생이 직접 읽고, 실행 결과값을 자기 handoff note에 옮기는 시간이다. Day 4에서 runtime config, logs, inspect, exec, stats를 다루려면 Day 3 image가 무엇이고 어떻게 검증됐고 어떤 보안 scan 상태인지 명확해야 한다.
 
-## Imagegen 인포그래픽: build failure RCA
-![Docker image build failure RCA infographic](https://raw.githubusercontent.com/niceguy61/kdt_devops_lecture_2026_rev2/main/week2/day3/assets/lesson-08-build-failure-rca.png)
+## 인수인계 표
+학생은 Day 3 결과를 문장형 감상문이 아니라 표로 정리한다. 표로 정리하면 다음 사람이 build 명령, 실행 기준, 보안 점검, 실패 복구 기준을 빠르게 확인할 수 있다.
 
-이 이미지는 build 실패를 네 가지 흔한 원인으로 나누어 보여준다. missing file, wrong CMD, wrong port, bloated context를 한꺼번에 의심하지 않고 첫 확인 위치를 분리한다.
+| 구분 | 작성할 내용 | 확인 명령 또는 증거 | 합격 기준 |
+|---|---|---|---|
+| 소스 위치 | 실습 앱 directory | `pwd`, `ls -la` | `week2/day3/labs/static-site`와 필수 파일 확인 |
+| 이미지 태그 | 최종 제출 image tag | `docker images paperclip-static-site` | `day3`, `day3-reviewed`, 버전/환경 tag 의미 설명 가능 |
+| 빌드 명령 | image를 만든 명령 | `docker build -t ... .` | build가 성공하고 image 목록에 표시됨 |
+| 실행 명령 | container 실행 명령 | `docker run -d --name ... -p ...` | container 이름과 port mapping 설명 가능 |
+| 정상 확인 | HTTP 응답 기준 | `curl -I`, `curl -s` | `HTTP/1.1 200 OK`와 페이지 문구 확인 |
+| 취약점 점검 | Docker Scout 결과 또는 blocker | `docker scout cves ...` | critical/high 없음, 조치 필요, 실행 불가 사유 중 하나 기록 |
+| 이미지 증거 | layer와 metadata | `docker history`, `docker image inspect` | `COPY index.html`, `COPY styles.css`, image id/size/tag 확인 |
+| 실패 분석 | 재현한 실패와 원인 | 실패 출력, `docker logs`, `docker ps`, `find` | build/run/verify/hygiene 중 어느 단계 문제인지 분류 |
+| 복구 확인 | 수정 후 다시 확인한 결과 | 재실행한 build/run/curl 명령 | 같은 문제가 해결됐음을 출력으로 확인 |
+| 정리 작업 | container/image/lab 복사본 정리 | cleanup 명령 | 불필요한 container와 임시 directory 제거 |
+| registry 판단 | push 여부 | push gate 체크 | local only 또는 push candidate 사유 설명 |
+| secret/context 점검 | 민감 정보 포함 여부 | `.dockerignore`, `find`, `du -sh` | `.env`, token, dependency/cache 제외 기준 확인 |
 
-## 시각 자료 1: 실패 위치 분리
-```mermaid
-flowchart TD
-  Fail[문제 발생] --> Build{docker build 단계인가}
-  Fail --> Run{docker run 단계인가}
-  Fail --> HTTP{curl 단계인가}
-  Build --> Context[Dockerfile, COPY, context]
-  Run --> ImageTag[image tag, container name]
-  HTTP --> Port[host port, container port, service]
-```
+작성 예시는 다음처럼 짧고 명확하게 남긴다.
 
-실패 위치를 먼저 나누면 확인할 명령이 줄어든다.
-
-## 시각 자료 2: RCA 흐름
-```mermaid
-flowchart LR
-  Symptom[증상] --> Hypothesis[가설]
-  Hypothesis --> Command[확인 명령]
-  Command --> Fix[수정]
-  Fix --> Retry[다시 build/run]
-```
-
-RCA는 긴 문서가 아니라 증상, 가설, 확인 명령, 수정, 재시도 순서다.
-
-## 실습 명령
-```bash
-cp -r week2/day3/labs/static-site week2/day3/labs/static-site-broken
-rm -f week2/day3/labs/static-site-broken/index.html
-cd week2/day3/labs/static-site-broken
-docker build -t paperclip-static-site:broken . || true
-```
-
-```bash
-cd /mnt/d/paperclip
-docker run -d --name paperclip-day3-static-wrong -p 18084:8080 paperclip-static-site:day3 || true
-curl -I http://localhost:18084 || true
-```
-
-## 검증 명령
-```bash
-docker ps -a --filter name=paperclip-day3-static
-docker logs paperclip-day3-static-wrong --tail 30 || true
-du -sh week2/day3/labs/static-site
-```
-
-## 실습 확장 흐름
-| 단계 | 할 일 | 기대되는 관찰 |
-|---|---|---|
-| 준비 | 정상 build/run 경로를 떠올린다. | 비교 기준이 있다. |
-| 실행 | missing file build 실패를 만든다. | COPY source 관련 실패가 나온다. |
-| 관찰 | 실패가 build 단계인지 확인한다. | container 실행 전 문제다. |
-| 실패 재현 | wrong port mapping으로 curl 실패를 만든다. | container와 host 연결 문제로 분리된다. |
-| 복구 | 파일을 되돌리고 `-p 18083:80`으로 실행한다. | 정상 HTTP 응답으로 돌아온다. |
-| 확인 | 실패 유형별 첫 확인 명령을 말한다. | build/run/HTTP 문제를 구분한다. |
-
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
+| 구분 | 기록 예시 |
 |---|---|
-| missing file | Dockerfile `COPY` source와 build context를 본다. |
-| wrong CMD | container logs와 image CMD를 본다. |
-| wrong port | `EXPOSE`, container port, host `-p`를 나누어 본다. |
-| bloated context | `.dockerignore`와 context directory 크기를 본다. |
+| 이미지 태그 | `paperclip-static-site:day3-reviewed`, 수업 검수 완료 tag |
+| 정상 확인 | `curl -I http://localhost:18083` 결과 `HTTP/1.1 200 OK` |
+| 취약점 점검 | Scout 실행 가능, critical/high 없음 또는 scan blocker 기록 |
+| 실패 분석 | missing file 실패, `COPY index.html ... not found`, build context 문제 |
+| registry 판단 | secret/context 확인 전이므로 push하지 않고 local only |
+
+## 최종 확인 명령과 기대 결과
+```bash
+docker images paperclip-static-site
+docker ps -a --filter name=paperclip-day3-static
+docker history paperclip-static-site:day3
+docker image inspect paperclip-static-site:day3 --format "{{.Id}} {{.Size}} {{json .RepoTags}}"
+docker scout cves --only-severity critical,high paperclip-static-site:day3 || true
+```
+
+Expected pattern:
+
+```text
+paperclip-static-site   day3
+paperclip-static-site   day3-v2
+paperclip-static-site   day3-reviewed
+paperclip-day3-static   Up 또는 Exited
+COPY index.html ./index.html
+COPY styles.css ./styles.css
+sha256:<id> <size> ["paperclip-static-site:day3"]
+critical/high CVE 없음 또는 scan blocker/action note 기록
+```
 
 ## Cleanup
 ```bash
-docker stop paperclip-day3-static paperclip-day3-static-wrong || true
-docker rm paperclip-day3-static paperclip-day3-static-wrong || true
+docker stop paperclip-day3-static paperclip-day3-static-wrong paperclip-day3-bad-cmd || true
+docker rm paperclip-day3-static paperclip-day3-static-wrong paperclip-day3-bad-cmd || true
 rm -rf week2/day3/labs/static-site-broken
 # 필요할 때만 image 삭제
-# docker image rm paperclip-static-site:day3 paperclip-static-site:day3-v2 paperclip-static-site:day3-reviewed paperclip-static-site:broken
+# docker image rm paperclip-static-site:day3 paperclip-static-site:day3-v2 paperclip-static-site:day3-reviewed paperclip-static-site:v1.0.0 paperclip-static-site:staging paperclip-static-site:size-default paperclip-static-site:size-alpine paperclip-static-site:size-trixie paperclip-static-site:broken paperclip-static-site:broken-fixed paperclip-static-site:bad-cmd
 ```
 
-## 주의할 점
-- build 실패와 runtime 실패를 섞지 않는다.
-- `COPY` 실패는 Dockerfile 문법보다 context와 source path 문제일 때가 많다.
-- wrong port는 app 문제가 아니라 host/container port mapping 문제일 수 있다.
-- bloated context는 당장 실패하지 않아도 build 시간, image size, secret risk를 키운다.
+## 구름 EXP 배움일기
+- 내가 만든 image의 tag와 acceptance check
+- Dockerfile instruction 중 실제 운영 계약으로 보인 것
+- build context와 `.dockerignore`에서 막아야 할 위험
+- build/run/verify/scan 중 내가 확인한 blocker 또는 RCA
+- Day 4에서 같은 image를 다른 runtime config로 실행할 때 확인하고 싶은 질문
 
 ## 핵심 포인트
-Day 3의 마무리는 image를 만들 수 있다는 자신감보다, 실패를 좁힐 수 있는 기준이다. Dockerfile, build context, image tag, container name, port mapping을 분리해서 보면 대부분의 초급 build/run 문제는 복구 가능하다.
-
-이 기준은 Day 4의 logs/inspect/exec/stats로 이어진다. Day 4에서는 같은 image를 다양한 runtime config와 장애 조건으로 실행하면서 관찰 도구를 더 깊게 사용한다.
-
-## 구름 EXP 배움일기
-수업 후 구름 EXP 배움일기에 오늘 공부한 내용을 남긴다. 간단한 메모 형태로 남겨도 되고, 블로그 형태로 정리해도 좋다.
-
-- image, layer, tag, digest의 차이
-- Dockerfile instruction 중 가장 헷갈린 것
-- build context와 `.dockerignore`에서 주의할 점
-- build 실패 시 먼저 볼 위치
-
-## 혼자 다시 따라오기
-최소 성공 경로는 정상 static app build/run, missing file 실패 재현, 올바른 파일 복구, port mapping 복구다. 실패가 나면 마지막으로 성공한 단계가 build인지 run인지 HTTP인지 먼저 나눈다.
-
-## 다음 연결
-Day 4는 Day 3에서 만든 image를 여러 runtime config와 failure 조건으로 실행하면서 logs, inspect, exec, stats를 사용한다.
+Day 3의 완료 기준은 `이미지 하나 만들었다`가 아니라 `다른 사람이 build/run/verify/scan/failure recovery를 재현할 수 있다`다.
