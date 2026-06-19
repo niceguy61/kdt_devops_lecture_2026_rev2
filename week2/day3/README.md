@@ -48,7 +48,7 @@ Day 3는 Dockerfile 문법만 외우거나 명령어만 따라 치는 날이 아
 |---|---|
 | `assets/day3-image-build-registry-overview.png` | Day 3 image/build/registry 전체 구조 인포그래픽 |
 | `assets/lesson-08-delivery-handoff-table.png` | 8교시 image delivery 인수인계 표 인포그래픽 |
-| `assets/session-09-3tier-architecture.svg` | 9세션 3-tier network/volume 구조도 |
+| `assets/session-09-3tier-architecture.png` | 9세션 3-tier network/volume 구조도 |
 | `labs/static-site/index.html` | 표준 실습 앱 HTML |
 | `labs/static-site/styles.css` | 표준 실습 앱 CSS |
 | `labs/static-site/Dockerfile` | Dockerfile build 실습 |

@@ -5,7 +5,7 @@
 성공 기준은 의도적으로 단순하다. frontend는 `index.html`과 `styles.css`를 nginx로 제공한다. backend는 Node.js hello world API를 띄운다. database는 `postgres:16` container와 named volume이 정상 생성되고 유지되는 것만 확인해도 성공이다.
 
 ## Architecture
-![Session 09 3-tier Docker architecture](assets/session-09-3tier-architecture.svg)
+![Session 09 3-tier Docker architecture](assets/session-09-3tier-architecture.png)
 
 | Tier | Container | Image | Network | 역할 |
 |---|---|---|---|---|
@@ -37,7 +37,7 @@ host -X-> database port
 | Path | 역할 |
 |---|---|
 | `frontend/Dockerfile` | frontend nginx image |
-| `assets/session-09-3tier-architecture.svg` | network, connection rule, volume 구조도 |
+| `assets/session-09-3tier-architecture.png` | network, connection rule, volume 구조도 |
 | `frontend/Dockerfile.size-compare` | frontend base image size 비교 |
 | `frontend/.dockerignore` | frontend build context에서 `.env`, `node_modules`, output 제외 |
 | `frontend/nginx.conf` | `/api/` 요청을 backend로 proxy |
