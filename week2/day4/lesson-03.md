@@ -39,6 +39,25 @@ HTTP/1.1 200 OK
 | `HTTP/1.1 200 OK` | host에서 서비스 접근 성공 |
 | access log | HTTP 요청이 container까지 도달 |
 
+## env 출력 로그 확인
+애플리케이션이 startup 시점에 env를 로그로 남기는 경우도 있다. 이때 환경 이름은 도움이 되지만 secret 값은 마스킹해야 한다.
+
+```bash
+docker rm -f paperclip-day4-log-env || true
+docker run --name paperclip-day4-log-env --env-file week2/day4/labs/env-report/.env -v "$PWD/week2/day4/labs/env-report:/work:ro" alpine:3.20 /work/report.sh || true
+docker logs paperclip-day4-log-env
+```
+
+Expected:
+
+```text
+APP_ENV=practice
+FEATURE_FLAG=on
+DB_PASSWORD=***masked***
+```
+
+해석: `report.sh`가 password를 직접 출력하지 않고 masking했다. 실제 application log도 이런 방식이어야 한다.
+
 ## log에 남겨도 되는 것과 안 되는 것
 | 로그 예시 | 판단 |
 |---|---|

@@ -43,7 +43,10 @@ nginx
 env 확인이 필요하면 key 이름과 적용 여부를 본다.
 
 ```bash
-docker run --rm --env-file week2/day4/labs/env-report/.env alpine:3.20 sh -c 'env | grep -E "APP_ENV|FEATURE_FLAG|DB_PASSWORD"'
+docker rm -f paperclip-day4-env-inspect || true
+docker run -d --name paperclip-day4-env-inspect --env-file week2/day4/labs/env-report/.env alpine:3.20 sleep 300
+docker inspect paperclip-day4-env-inspect --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E 'APP_ENV|FEATURE_FLAG|DB_PASSWORD'
+docker exec paperclip-day4-env-inspect sh -c 'env | grep -E "APP_ENV|FEATURE_FLAG|DB_PASSWORD"'
 ```
 
 Expected:
@@ -61,6 +64,8 @@ APP_ENV=practice
 FEATURE_FLAG=on
 DB_PASSWORD=***masked***
 ```
+
+해석: `inspect`와 `exec env` 모두 값 확인이 가능하다. 그래서 문제 해결에는 유용하지만, 제출물이나 질문 글에는 masking이 필요하다.
 
 ## 주의
 `docker inspect` 전체 JSON을 README에 붙이면 읽기 어렵다. 문제와 관련된 field만 뽑아서 증거로 남긴다.

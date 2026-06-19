@@ -67,10 +67,14 @@ POSTGRES_PASSWORD
 ## 판단 기준
 | 출력 | 해석 |
 |---|---|
+| `CPU %`, `MEM USAGE` | resource 관찰 출발점 |
 | `RestartCount` 증가 | process가 반복 실패 |
 | `ExitCode=1` | command가 실패 종료 |
 | logs에 같은 줄 반복 | restart가 원인을 해결하지 못함 |
 | `POSTGRES_PASSWORD` 반복 | config 누락을 restart로 가리고 있음 |
+
+## 운영 판단
+resource 수치가 높다고 곧바로 restart policy를 바꾸는 것은 아니다. 먼저 logs로 error를 보고, inspect로 restart count와 exit code를 확인하고, 필요하면 exec로 내부 상태를 본다. Day 4의 기준은 `많이 재시작한다`가 아니라 `왜 재시작하는지 증거를 모은다`다.
 
 ## 다음 연결
 다음 교시는 여러 failure를 한 번에 분류하고 복구 기준을 세운다.

@@ -150,12 +150,32 @@ HTTP/1.1 200 OK
 
 해석: `Up`은 process 상태이고, `HTTP/1.1 200 OK`는 서비스 관점의 확인이다.
 
+환경 설정을 로그로 남기는 경우에는 secret masking을 확인한다.
+
+```bash
+docker rm -f paperclip-day4-log-env || true
+docker run --name paperclip-day4-log-env --env-file week2/day4/labs/env-report/.env -v "$PWD/week2/day4/labs/env-report:/work:ro" alpine:3.20 /work/report.sh || true
+docker logs paperclip-day4-log-env
+```
+
+Expected:
+
+```text
+APP_ENV=practice
+FEATURE_FLAG=on
+DB_PASSWORD=***masked***
+```
+
 ## Phase E: inspect와 exec
 ```bash
 docker inspect paperclip-day4-nginx --format 'Ports={{json .NetworkSettings.Ports}}'
 docker inspect paperclip-day4-nginx --format 'Image={{.Config.Image}} Restart={{json .HostConfig.RestartPolicy}}'
 docker exec paperclip-day4-nginx ls -l /usr/share/nginx/html
 docker exec paperclip-day4-nginx sh -c 'ps | head'
+docker rm -f paperclip-day4-env-inspect || true
+docker run -d --name paperclip-day4-env-inspect --env-file week2/day4/labs/env-report/.env alpine:3.20 sleep 300
+docker inspect paperclip-day4-env-inspect --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E 'APP_ENV|FEATURE_FLAG|DB_PASSWORD'
+docker exec paperclip-day4-env-inspect sh -c 'env | grep -E "APP_ENV|FEATURE_FLAG|DB_PASSWORD"'
 ```
 
 Expected:
@@ -165,7 +185,12 @@ Ports={"80/tcp":[{"HostIp":"0.0.0.0","HostPort":"18084"}]}
 Image=nginx:1.27-alpine
 index.html
 nginx
+APP_ENV=practice
+FEATURE_FLAG=on
+DB_PASSWORD=change-me-locally
 ```
+
+해석: inspect/exec는 env 값을 보여줄 수 있으므로 제출물에는 `DB_PASSWORD=***masked***`로 남긴다.
 
 ## Phase F: stats와 restart policy
 ```bash
@@ -333,7 +358,7 @@ docker system df
 Cleanup:
 
 ```bash
-docker rm -f paperclip-day4-nginx paperclip-day4-pg-ok paperclip-day4-pg-missing-env paperclip-day4-net-web paperclip-day4-restart-missing-env paperclip-day4-pg-volume || true
+docker rm -f paperclip-day4-nginx paperclip-day4-log-env paperclip-day4-env-inspect paperclip-day4-pg-ok paperclip-day4-pg-missing-env paperclip-day4-net-web paperclip-day4-restart-missing-env paperclip-day4-pg-volume || true
 docker network rm paperclip-day4-net-a paperclip-day4-net-b || true
 rm -f week2/day4/labs/env-report/.env week2/day4/labs/env-report/.env.dev week2/day4/labs/env-report/.env.staging week2/day4/labs/env-report/.env.prod
 # data reset이 필요할 때만 실행

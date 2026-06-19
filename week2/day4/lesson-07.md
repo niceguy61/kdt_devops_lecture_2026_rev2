@@ -32,7 +32,7 @@ paperclip-day4-pgdata
 
 ## Cleanup 명령
 ```bash
-docker rm -f paperclip-day4-nginx paperclip-day4-pg-ok paperclip-day4-pg-missing-env paperclip-day4-net-web paperclip-day4-crash paperclip-day4-restart-missing-env paperclip-day4-pg-volume || true
+docker rm -f paperclip-day4-nginx paperclip-day4-log-env paperclip-day4-env-inspect paperclip-day4-pg-ok paperclip-day4-pg-missing-env paperclip-day4-net-web paperclip-day4-crash paperclip-day4-restart-missing-env paperclip-day4-pg-volume || true
 docker network rm paperclip-day4-net-a paperclip-day4-net-b || true
 rm -f /mnt/d/paperclip/week2/day4/labs/env-report/.env /mnt/d/paperclip/week2/day4/labs/env-report/.env.dev /mnt/d/paperclip/week2/day4/labs/env-report/.env.staging /mnt/d/paperclip/week2/day4/labs/env-report/.env.prod
 ```
