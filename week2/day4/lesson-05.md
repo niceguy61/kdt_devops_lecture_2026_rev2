@@ -1,82 +1,143 @@
-# 5교시: Stats, resource, restart policy
+# 5교시: Failure drill - 출력으로 원인 좁히기
 
-![Stats restart crash loop infographic](./assets/lesson-05-stats-restart-crash-loop.png)
+![Runtime failure RCA infographic](./assets/lesson-06-runtime-failure-rca.png)
 
 ## 수업 목표
-- `docker stats --no-stream`으로 resource 사용량을 확인한다.
-- restart policy가 무엇을 해주고 무엇을 해주지 못하는지 설명한다.
-- crash loop를 증상 완화와 원인 해결로 구분한다.
+- missing env, wrong env file, wrong port, wrong network, stale volume, bad image tag를 출력으로 구분한다.
+- 실패를 config, network, image, service check 문제로 분류한다.
+- 첫 확인 명령과 복구 명령을 연결한다.
 
-## 개념 설명
-`docker stats`는 container의 CPU, memory, network, block I/O를 보여준다. Day 4에서는 성능 튜닝을 깊게 하지 않는다. 대신 `실행 중인 container가 resource를 쓰고 있는지`, `비정상적으로 반복 재시작되는지`를 관찰하는 입구로 사용한다.
-
-Restart policy는 container process가 죽었을 때 다시 시작할지 정하는 정책이다. 하지만 설정 누락, 잘못된 command, port 충돌 같은 원인을 고치지는 않는다. 반복 재시작은 장애를 숨길 수도 있으므로 logs와 함께 봐야 한다.
-
-환경 설정이 잘못된 상태에서 restart policy를 붙이면 더 헷갈릴 수 있다. 예를 들어 required env가 없어서 바로 죽는 container에 `--restart on-failure`를 붙이면 container가 반복해서 재시작한다. 이때 해결책은 restart 횟수를 늘리는 것이 아니라 missing env를 고치는 것이다.
-
-## 실습 명령
+## 실패 1: Missing env
 ```bash
-docker stats paperclip-day4-nginx --no-stream
-docker inspect paperclip-day4-nginx --format 'before={{json .HostConfig.RestartPolicy}}'
-docker update --restart unless-stopped paperclip-day4-nginx
-docker inspect paperclip-day4-nginx --format 'after={{json .HostConfig.RestartPolicy}}'
+docker rm -f paperclip-day4-pg-missing-env || true
+docker run --name paperclip-day4-pg-missing-env postgres:16-alpine || true
+docker logs paperclip-day4-pg-missing-env --tail 40 || true
 ```
 
-Expected:
+Expected failure:
 
 ```text
-NAME                   CPU %     MEM USAGE / LIMIT
-before={"Name":"no","MaximumRetryCount":0}
-after={"Name":"unless-stopped","MaximumRetryCount":0}
+Error: Database is uninitialized and superuser password is not specified.
+You must specify POSTGRES_PASSWORD to a non-empty value
 ```
 
-## crash loop 맛보기
+Hint: `POSTGRES_PASSWORD`가 없으므로 config 문제다. 첫 확인 명령은 `docker logs`다.
+
+Fix:
+
 ```bash
-docker rm -f paperclip-day4-crash || true
-docker run -d --name paperclip-day4-crash --restart on-failure:3 alpine:3.20 sh -c 'echo crash-now; exit 1'
-sleep 3
-docker ps -a --filter name=paperclip-day4-crash
-docker logs paperclip-day4-crash
-docker inspect paperclip-day4-crash --format 'RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}'
+docker rm -f paperclip-day4-pg-missing-env || true
+docker run -d --name paperclip-day4-pg-ok -e POSTGRES_PASSWORD=practice-only postgres:16-alpine
+docker logs paperclip-day4-pg-ok --tail 40
 ```
 
-Expected:
+## 실패 2: Wrong env file path
+```bash
+docker run --rm --env-file week2/day4/labs/env-report/.env.production alpine:3.20 env || true
+```
+
+Expected failure:
 
 ```text
-crash-now
-RestartCount=3
-ExitCode=1
+open week2/day4/labs/env-report/.env.production: no such file or directory
 ```
 
-## config 실패와 restart 구분
+Hint: app 문제가 아니라 실행 전에 env file 경로가 틀린 문제다. 첫 확인 명령은 `ls week2/day4/labs/env-report`다.
+
+## 실패 3: Wrong port
 ```bash
-docker rm -f paperclip-day4-restart-missing-env || true
-docker run -d --name paperclip-day4-restart-missing-env --restart on-failure:2 postgres:16-alpine
-sleep 3
-docker inspect paperclip-day4-restart-missing-env --format 'RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}'
-docker logs paperclip-day4-restart-missing-env --tail 20 || true
+curl -I http://localhost:80 || true
+curl -I http://localhost:18084 || true
+docker ps --filter name=paperclip-day4-nginx
 ```
 
-Expected:
+Expected failure:
 
 ```text
-RestartCount=2
-POSTGRES_PASSWORD
+curl: (7) Failed to connect to localhost port 80
+0.0.0.0:18084->80/tcp
 ```
 
-해석: restart policy는 missing env를 해결하지 못한다. `POSTGRES_PASSWORD`를 주입해야 한다.
+Hint: container 내부 port 80과 host port 80은 다르다. `docker ps`의 `PORTS`가 첫 증거다.
 
-## 판단 기준
-| 출력 | 해석 |
+## 실패 4: Wrong network
+```bash
+docker rm -f paperclip-day4-net-web || true
+docker network rm paperclip-day4-net-a paperclip-day4-net-b || true
+docker network create paperclip-day4-net-a
+docker network create paperclip-day4-net-b
+docker run -d --name paperclip-day4-net-web --network paperclip-day4-net-a nginx:1.27-alpine
+docker run --rm --network paperclip-day4-net-b alpine:3.20 wget -S -O- http://paperclip-day4-net-web || true
+```
+
+Expected failure:
+
+```text
+bad address 'paperclip-day4-net-web'
+```
+
+Hint: container name DNS는 같은 Docker network 안에서만 기대할 수 있다.
+
+Fix:
+
+```bash
+docker run --rm --network paperclip-day4-net-a alpine:3.20 wget -S -O- http://paperclip-day4-net-web | head
+```
+
+## 실패 5: Stale volume
+```bash
+docker rm -f paperclip-day4-pg-volume || true
+docker volume rm paperclip-day4-pgdata || true
+docker run -d --name paperclip-day4-pg-volume -e POSTGRES_PASSWORD=practice-only -e POSTGRES_DB=first -v paperclip-day4-pgdata:/var/lib/postgresql/data postgres:16-alpine
+sleep 5
+docker rm -f paperclip-day4-pg-volume
+docker run -d --name paperclip-day4-pg-volume -e POSTGRES_PASSWORD=practice-only -e POSTGRES_DB=second -v paperclip-day4-pgdata:/var/lib/postgresql/data postgres:16-alpine
+docker logs paperclip-day4-pg-volume --tail 30
+```
+
+Expected signal:
+
+```text
+Database directory appears to contain a database; Skipping initialization
+```
+
+Hint: env를 바꿔도 기존 volume의 초기화된 DB data가 남아 있으면 최초 init 설정이 다시 적용되지 않을 수 있다. 첫 확인 명령은 `docker volume inspect paperclip-day4-pgdata`와 logs다.
+
+## 실패 6: Bad image tag
+```bash
+docker run --rm nginx:no-such-day4-tag || true
+```
+
+Expected failure:
+
+```text
+pull access denied
+repository does not exist
+manifest unknown
+```
+
+Hint: 실행 옵션 문제가 아니라 image reference 문제다. 첫 확인 명령은 `docker image ls nginx` 또는 tag 확인이다.
+
+## RCA 표
+| 실패 | 대표 출력 | 첫 확인 명령 | 수정 방향 |
+|---|---|---|---|
+| missing env | `POSTGRES_PASSWORD` | `docker logs` | env 주입 |
+| wrong env file | `no such file or directory` | `ls`, `pwd` | env file 경로 수정 |
+| wrong port | `Failed to connect`, `18084->80` | `docker ps` | host port 수정 |
+| wrong network | `bad address` | `docker network inspect` | 같은 network 사용 |
+| stale volume | `Skipping initialization` | `docker logs`, `volume inspect` | reset 여부 판단 |
+| bad image tag | `manifest unknown` | `docker image ls` | tag 확인 |
+
+## 제출 전 판단 질문
+명령을 고치기 전에 다음 질문을 먼저 채운다.
+
+| 질문 | 답 |
 |---|---|
-| `CPU %`, `MEM USAGE` | resource 관찰 출발점 |
-| `RestartCount` 증가 | process가 반복 실패 |
-| `ExitCode=1` | command가 실패 종료 |
-| logs에 같은 줄 반복 | restart가 원인을 해결하지 못함 |
-| `POSTGRES_PASSWORD` 반복 | config 누락을 restart로 가리고 있음 |
-
-## 운영 판단
-resource 수치가 높다고 곧바로 restart policy를 바꾸는 것은 아니다. 먼저 logs로 error를 보고, inspect로 restart count와 exit code를 확인하고, 필요하면 exec로 내부 상태를 본다. Day 4의 기준은 `많이 재시작한다`가 아니라 `왜 재시작하는지 증거를 모은다`다.
+| 이 실패는 config, network, port, volume, image 중 어디에 가까운가 |  |
+| 첫 번째 증거 명령은 무엇인가 |  |
+| 출력의 어느 줄이 원인 힌트인가 |  |
+| 수정하면 data가 삭제되는가 |  |
+| 같은 문제가 Compose/Kubernetes에서 나타나면 어떤 리소스를 볼 것인가 |  |
 
 ## 다음 연결
-다음 교시는 여러 failure를 한 번에 분류하고 복구 기준을 세운다.
+다음 교시는 장애 드릴 뒤 남은 container, network, volume을 정리하고 data 삭제 위험을 판단한다.

@@ -1,42 +1,53 @@
-# 2교시: `.env.example`과 secret 비노출
+# 2교시: Logs와 HTTP 정상 확인
 
-![Env example and secret masking infographic](./assets/lesson-02-env-secret-masking.png)
+![Logs and HTTP verification infographic](./assets/lesson-03-logs-http-verification.png)
 
 ## 수업 목표
-- `.env.example`과 실제 `.env`의 역할을 구분한다.
-- 문서에 남겨도 되는 정보와 남기면 안 되는 값을 분리한다.
-- secret masking 기준을 출력 예시로 확인한다.
+- `docker ps`의 `Up`과 서비스 정상 응답을 구분한다.
+- `docker logs`에서 startup/access/error 신호를 확인한다.
+- HTTP 응답으로 사용자가 접근 가능한 상태를 확인한다.
 
 ## 개념 설명
-`.env.example`은 팀원에게 필요한 key 이름과 형식을 알려주는 파일이다. 실제 password, token, cloud key를 담는 파일이 아니다. 반대로 `.env`는 로컬 실행을 위한 실제 값이 들어갈 수 있으므로 공개 repository, README, screenshot, 질문 게시글에 그대로 올리면 안 된다.
+container가 `Up`이면 process가 살아 있다는 뜻이다. 하지만 사용자가 접속 가능한지, 올바른 port로 열렸는지, app이 정상 응답하는지는 별도 확인이 필요하다. 그래서 logs와 HTTP 확인을 같이 본다.
 
-초보자는 `실습용이니까 괜찮다`고 생각하기 쉽다. 하지만 습관이 중요하다. 수업용 password라도 그대로 캡처해 공유하는 방식에 익숙해지면, 이후 Docker Hub token, AWS access key, database password도 같은 방식으로 노출될 수 있다.
+nginx는 좋은 예시다. process가 떠 있고 port publish가 맞으면 `curl -I`에서 `HTTP/1.1 200 OK`가 나온다. 반대로 port를 잘못 보면 container는 `Up`인데 host에서는 접속이 실패한다.
 
-실행할 때는 `.env`를 자동으로 읽는다고 가정하지 않는다. `docker run`에서는 명시적으로 `--env-file week2/day4/labs/env-report/.env`를 붙여야 한다.
-
-`-e DB_PASSWORD=value`처럼 명령줄에 값을 직접 넣으면 빠르지만 shell history와 화면 공유에 남기 쉽다. 여러 설정을 반복해서 쓸 때는 `.env`에 기록하고 `--env-file`로 로드하는 편이 낫다. 단, `.env` 자체를 공유하면 안 되고, 공유용으로는 `.env.example`만 둔다.
-
-환경별 파일을 나눌 때도 같은 원칙이 적용된다. `.env.dev`, `.env.staging`, `.env.prod`처럼 파일을 나누는 것은 가능하지만, 운영 secret을 repository에 넣어도 된다는 뜻은 아니다. 수업에서는 구조를 이해하기 위해 값을 넣어 보지만, 실제 회사에서는 production password, API key, cloud credential은 Secret Manager, CI/CD secret, Kubernetes Secret 같은 별도 경로로 주입하는 것이 일반적이다.
-
-공유할 수 있는 파일은 보통 값이 비어 있거나 placeholder만 있는 예시 파일이다.
-
-```dotenv
-# .env.prod.example
-APP_ENV=prod
-FEATURE_FLAG=off
-API_BASE_URL=https://api.example.com
-DB_PASSWORD=replace-me-securely
-```
-
-이 파일은 `prod에는 어떤 key가 필요한가`를 알려주는 문서 역할을 한다. 실제 `.env.prod`는 로컬 또는 배포 시스템 안에서만 관리한다.
+logs를 볼 때도 환경 설정과 secret 기준을 같이 본다. 예를 들어 `APP_ENV=staging`으로 실행한 서비스가 startup log에 `mode=staging` 정도를 남기는 것은 도움이 된다. 하지만 `DB_PASSWORD=...` 같은 실제 secret을 log에 찍으면 실패다. 로그는 장애 분석을 위한 증거이면서 동시에 유출 경로가 될 수 있다.
 
 ## 실습 명령
 ```bash
 cd /mnt/d/paperclip
-sed -n '1,120p' week2/day4/labs/env-report/.env.example
-cp week2/day4/labs/env-report/.env.example week2/day4/labs/env-report/.env
-chmod +x week2/day4/labs/env-report/report.sh
-docker run --rm --env-file week2/day4/labs/env-report/.env -v "$PWD/week2/day4/labs/env-report:/work:ro" alpine:3.20 /work/report.sh
+docker rm -f paperclip-day4-nginx || true
+docker run -d --name paperclip-day4-nginx -p 18084:80 nginx:1.27-alpine
+docker ps --filter name=paperclip-day4-nginx
+docker logs paperclip-day4-nginx --tail 30
+curl -I http://localhost:18084
+docker logs paperclip-day4-nginx --tail 30
+```
+
+Expected:
+
+```text
+STATUS Up
+0.0.0.0:18084->80/tcp
+HTTP/1.1 200 OK
+```
+
+## 확인 지점
+| 증거 | 의미 |
+|---|---|
+| `STATUS Up` | container process가 실행 중 |
+| `0.0.0.0:18084->80/tcp` | host 18084가 container 80으로 연결 |
+| `HTTP/1.1 200 OK` | host에서 서비스 접근 성공 |
+| access log | HTTP 요청이 container까지 도달 |
+
+## env 출력 로그 확인
+애플리케이션이 startup 시점에 env를 로그로 남기는 경우도 있다. 이때 환경 이름은 도움이 되지만 secret 값은 마스킹해야 한다.
+
+```bash
+docker rm -f paperclip-day4-log-env || true
+docker run --name paperclip-day4-log-env --env-file week2/day4/labs/env-report/.env -v "$PWD/week2/day4/labs/env-report:/work:ro" alpine:3.20 /work/report.sh || true
+docker logs paperclip-day4-log-env
 ```
 
 Expected:
@@ -47,31 +58,21 @@ FEATURE_FLAG=on
 DB_PASSWORD=***masked***
 ```
 
-## 문서화 기준
-| 문서에 남겨도 되는 것 | 문서에 남기면 안 되는 것 |
+해석: `report.sh`가 password를 직접 출력하지 않고 masking했다. 실제 application log도 이런 방식이어야 한다.
+
+## log에 남겨도 되는 것과 안 되는 것
+| 로그 예시 | 판단 |
 |---|---|
-| `DB_PASSWORD`라는 key 이름 | 실제 password 값 |
-| `--env-file .env` 사용 방식 | `.env` 전체 내용 |
-| `DB_PASSWORD=***masked***` | terminal에 찍힌 실제 token |
-| `.env.example` | 개인 `.env` |
-| `.env.prod.example` | 실제 `.env.prod` |
+| `APP_ENV=staging` | 환경 이름 정도는 가능 |
+| `HTTP/1.1 200 OK` | 정상 확인 증거 |
+| `GET /` | 접근 확인 증거 |
+| `DB_PASSWORD=my-real-password` | 실패, secret 노출 |
+| `AWS_SECRET_ACCESS_KEY=...` | 실패, credential 노출 |
 
-## 환경별 secret 판단
-| 파일 | 공유 여부 | 이유 |
-|---|---|---|
-| `.env.example` | 가능 | key 이름과 placeholder만 포함 |
-| `.env.dev` | 보통 로컬 전용 | 개인 개발값이 들어갈 수 있음 |
-| `.env.staging` | 제한 공유 | staging credential 포함 가능 |
-| `.env.prod` | 공유 금지 | 운영 secret 포함 가능 |
+## 오해 교정
+`docker logs`가 비어 있다고 항상 장애는 아니다. 요청을 아직 보내지 않았거나, image가 startup log를 적게 남길 수 있다. 이때는 `curl`을 먼저 보내고 logs를 다시 본다.
 
-## 실패 예시
-```text
-DB_PASSWORD=my-real-password
-```
-
-이 출력이 README나 screenshot에 남으면 실패다. Day 4의 목표는 secret manager를 깊게 다루는 것이 아니라, 로컬 Docker 실습에서도 값을 그대로 남기지 않는 습관을 만드는 것이다.
-
-Kubernetes와 Terraform에서도 같은 습관이 이어진다. Kubernetes manifest에는 ConfigMap으로 공개 가능한 설정을 두고, password/token은 Secret으로 분리한다. Terraform에서는 `*.tfvars`에 환경별 값을 나눌 수 있지만, 민감한 값은 state와 repository 노출 위험까지 함께 판단해야 한다.
+환경별 파일을 쓰는 서비스라면 logs에는 `어느 환경으로 떴는지`를 확인할 힌트가 남을 수 있다. 다만 password 자체를 확인하려고 logs에 찍는 방식은 금지한다. 값 확인은 masking된 script, `inspect`, application health endpoint 등으로 제한한다.
 
 ## 다음 연결
-다음 교시는 container를 실행하고 logs와 HTTP 응답을 분리해 정상 여부를 판단한다.
+다음 교시는 `inspect`와 `exec`로 Docker metadata와 container 내부 상태를 나눠 본다.

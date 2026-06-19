@@ -1,4 +1,4 @@
-# 1교시: Runtime config와 env 주입
+# 1교시: Runtime config, env file, secret masking
 
 ![Day 4 Runtime Observability overview](./assets/day4-runtime-observability-overview.png)
 
@@ -6,6 +6,8 @@
 - runtime config가 image build와 다른 단계임을 설명한다.
 - `-e`와 `--env-file`로 env를 주입하고 출력으로 확인한다.
 - env 값이 image 안에 굳어진 값인지, 실행 시점에 들어간 값인지 구분한다.
+- `.env.example`과 실제 `.env`의 역할을 구분한다.
+- secret 값을 문서와 screenshot에 남기지 않는 기준을 적용한다.
 
 ## 개념 설명
 Day 3에서 image를 만들었다면 Day 4는 그 image를 어떤 조건으로 실행할지 다룬다. 같은 image라도 `APP_ENV=dev`로 실행할 때와 `APP_ENV=prod`로 실행할 때 의미가 달라진다. 이 차이를 image를 다시 build해서 만들면 환경마다 image가 늘어나고, secret이 image layer에 남을 위험도 커진다.
@@ -136,19 +138,85 @@ APP_ENV=practice
 FEATURE_FLAG=on
 ```
 
-`.env` 값이 container 안에서 어떻게 보이는지 확인한다.
+`.env` 값이 container 안에서 어떻게 보이는지 확인하되, 기록용 출력은 masking한다.
 
 ```bash
-docker run --rm --env-file week2/day4/labs/env-report/.env alpine:3.20 sh -c 'echo "APP_ENV=$APP_ENV FEATURE_FLAG=$FEATURE_FLAG DB_PASSWORD=$DB_PASSWORD"'
+docker run --rm --env-file week2/day4/labs/env-report/.env alpine:3.20 sh -c 'echo "APP_ENV=$APP_ENV FEATURE_FLAG=$FEATURE_FLAG DB_PASSWORD=$DB_PASSWORD"' \
+  | sed -E 's/DB_PASSWORD=.*/DB_PASSWORD=***masked***/'
 ```
 
 Expected:
 
 ```text
-APP_ENV=practice FEATURE_FLAG=on DB_PASSWORD=change-me-locally
+APP_ENV=practice FEATURE_FLAG=on DB_PASSWORD=***masked***
 ```
 
-문서나 screenshot에는 위처럼 실제 password 값을 남기지 않는다. 확인 후 기록할 때는 `DB_PASSWORD=***masked***`처럼 마스킹한다.
+실제 값이 container 안에 주입되는 것은 맞지만, 문서나 screenshot에는 password 값을 남기지 않는다.
+
+## `.env.example`과 secret masking
+![Env example and secret masking infographic](./assets/lesson-02-env-secret-masking.png)
+
+`.env.example`은 팀원에게 필요한 key 이름과 형식을 알려주는 파일이다. 실제 password, token, cloud key를 담는 파일이 아니다. 반대로 `.env`는 로컬 실행을 위한 실제 값이 들어갈 수 있으므로 공개 repository, README, screenshot, 질문 게시글에 그대로 올리면 안 된다.
+
+초보자는 `실습용이니까 괜찮다`고 생각하기 쉽다. 하지만 습관이 중요하다. 수업용 password라도 그대로 캡처해 공유하는 방식에 익숙해지면, 이후 Docker Hub token, AWS access key, database password도 같은 방식으로 노출될 수 있다.
+
+공유할 수 있는 파일은 보통 값이 비어 있거나 placeholder만 있는 예시 파일이다.
+
+```dotenv
+# .env.prod.example
+APP_ENV=prod
+FEATURE_FLAG=off
+API_BASE_URL=https://api.example.com
+DB_PASSWORD=replace-me-securely
+```
+
+이 파일은 `prod에는 어떤 key가 필요한가`를 알려주는 문서 역할을 한다. 실제 `.env.prod`는 로컬 또는 배포 시스템 안에서만 관리한다.
+
+Masking script로 공유 가능한 출력만 남긴다.
+
+```bash
+chmod +x week2/day4/labs/env-report/report.sh
+docker run --rm --env-file week2/day4/labs/env-report/.env \
+  -v "$PWD/week2/day4/labs/env-report:/work:ro" \
+  alpine:3.20 /work/report.sh
+```
+
+Expected:
+
+```text
+APP_ENV=practice
+FEATURE_FLAG=on
+DB_PASSWORD=***masked***
+```
+
+문서화 기준:
+
+| 문서에 남겨도 되는 것 | 문서에 남기면 안 되는 것 |
+|---|---|
+| `DB_PASSWORD`라는 key 이름 | 실제 password 값 |
+| `--env-file .env` 사용 방식 | `.env` 전체 내용 |
+| `DB_PASSWORD=***masked***` | terminal에 찍힌 실제 token |
+| `.env.example` | 개인 `.env` |
+| `.env.prod.example` | 실제 `.env.prod` |
+
+환경별 secret 판단:
+
+| 파일 | 공유 여부 | 이유 |
+|---|---|---|
+| `.env.example` | 가능 | key 이름과 placeholder만 포함 |
+| `.env.dev` | 보통 로컬 전용 | 개인 개발값이 들어갈 수 있음 |
+| `.env.staging` | 제한 공유 | staging credential 포함 가능 |
+| `.env.prod` | 공유 금지 | 운영 secret 포함 가능 |
+
+## 운영 시나리오
+같은 image를 dev, staging, prod에서 모두 쓴다고 가정한다. 학생은 다음 질문에 답해야 한다.
+
+| 질문 | 판단 |
+|---|---|
+| image를 새로 build해야 하는가 | 아니다. 실행 조건만 바꾼다. |
+| env file을 바꿨는데 기존 container 값이 바뀌는가 | 아니다. container를 다시 만들어야 한다. |
+| prod password를 `.env.prod.example`에 넣어도 되는가 | 아니다. key 이름과 placeholder만 둔다. |
+| runtime config가 잘못됐을 때 첫 증거는 무엇인가 | `docker inspect`, `docker logs`, masking된 env 확인이다. |
 
 ## 판단 기준
 | 질문 | 확인 방법 | 좋은 답 |
@@ -163,4 +231,4 @@ APP_ENV=practice FEATURE_FLAG=on DB_PASSWORD=change-me-locally
 | image와 runtime config를 구분하는가 | 같은 image를 다른 env로 실행 | image는 같고 실행 조건만 달라짐 |
 
 ## 다음 연결
-다음 교시는 `.env.example`과 실제 `.env`를 구분하고, secret을 노출하지 않는 기준을 다룬다.
+다음 교시는 container를 실행하고 logs와 HTTP 응답을 분리해 정상 여부를 판단한다.

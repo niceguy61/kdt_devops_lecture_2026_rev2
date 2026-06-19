@@ -1,4 +1,18 @@
 services:
+  message-api:
+    image: node:20-alpine
+    working_dir: /app
+    command: ["node", "server.js"]
+    ports:
+      - "18105:3000"
+    volumes:
+      - ./apps/message-api:/app:ro
+    environment:
+      PORT: 3000
+      REDIS_HOST: queue
+    depends_on:
+      - queue
+
   queue:
     image: redis:7-alpine
 

@@ -1,78 +1,94 @@
-# 4교시: Inspect와 exec로 내부 확인
+# 4교시: Stats, resource, restart policy
 
-![Inspect and exec evidence infographic](./assets/lesson-04-inspect-exec-evidence.png)
+![Stats restart crash loop infographic](./assets/lesson-05-stats-restart-crash-loop.png)
 
 ## 수업 목표
-- `docker inspect`와 `docker exec`의 역할을 구분한다.
-- port, image, restart policy 같은 metadata를 선별해서 확인한다.
-- container 내부 filesystem/process를 직접 확인한다.
+- `docker stats --no-stream`으로 resource 사용량을 확인한다.
+- restart policy가 무엇을 해주고 무엇을 해주지 못하는지 설명한다.
+- crash loop를 증상 완화와 원인 해결로 구분한다.
 
 ## 개념 설명
-`inspect`는 Docker가 알고 있는 metadata를 보는 명령이다. port mapping, network, mount, image, env, restart policy처럼 container 외부 계약을 확인할 때 유용하다. `exec`는 이미 실행 중인 container 안에서 명령을 실행한다. filesystem, process, config file, network tool 존재 여부처럼 내부 상태를 볼 때 쓴다.
+`docker stats`는 container의 CPU, memory, network, block I/O를 보여준다. Day 4에서는 성능 튜닝을 깊게 하지 않는다. 대신 `실행 중인 container가 resource를 쓰고 있는지`, `비정상적으로 반복 재시작되는지`를 관찰하는 입구로 사용한다.
 
-두 명령을 섞어 쓰면 안 된다. port mapping이 궁금하면 `inspect`, nginx가 실제로 어떤 파일을 serving하는지 궁금하면 `exec`가 맞다.
+Restart policy는 container process가 죽었을 때 다시 시작할지 정하는 정책이다. 하지만 설정 누락, 잘못된 command, port 충돌 같은 원인을 고치지는 않는다. 반복 재시작은 장애를 숨길 수도 있으므로 logs와 함께 봐야 한다.
 
-단, `inspect`와 `exec env`는 secret을 보여줄 수 있다. `--env-file .env`로 넣은 값도 container metadata나 container 내부 환경에서 확인될 수 있다. 그래서 수업 기록에는 전체 출력 대신 필요한 key와 masking된 값만 남긴다.
+환경 설정이 잘못된 상태에서 restart policy를 붙이면 더 헷갈릴 수 있다. 예를 들어 required env가 없어서 바로 죽는 container에 `--restart on-failure`를 붙이면 container가 반복해서 재시작한다. 이때 해결책은 restart 횟수를 늘리는 것이 아니라 missing env를 고치는 것이다.
 
 ## 실습 명령
 ```bash
-docker inspect paperclip-day4-nginx --format 'Ports={{json .NetworkSettings.Ports}}'
-docker inspect paperclip-day4-nginx --format 'Image={{.Config.Image}} Restart={{json .HostConfig.RestartPolicy}}'
-docker exec paperclip-day4-nginx ls -l /usr/share/nginx/html
-docker exec paperclip-day4-nginx sh -c 'ps | head'
+docker stats paperclip-day4-nginx --no-stream
+docker inspect paperclip-day4-nginx --format 'before={{json .HostConfig.RestartPolicy}}'
+docker update --restart unless-stopped paperclip-day4-nginx
+docker inspect paperclip-day4-nginx --format 'after={{json .HostConfig.RestartPolicy}}'
 ```
 
 Expected:
 
 ```text
-Ports={"80/tcp":[{"HostIp":"0.0.0.0","HostPort":"18084"}]}
-Image=nginx:1.27-alpine
-index.html
-nginx
+NAME                   CPU %     MEM USAGE / LIMIT
+before={"Name":"no","MaximumRetryCount":0}
+after={"Name":"unless-stopped","MaximumRetryCount":0}
 ```
 
-## 선택 기준
-| 알고 싶은 것 | 먼저 쓸 명령 |
-|---|---|
-| host port가 어디에 연결됐는가 | `docker inspect ... NetworkSettings.Ports` |
-| 어떤 image로 떴는가 | `docker inspect ... Config.Image` |
-| restart policy가 무엇인가 | `docker inspect ... HostConfig.RestartPolicy` |
-| container 안에 파일이 있는가 | `docker exec ... ls` |
-| process가 무엇인가 | `docker exec ... ps` |
-| env key가 적용됐는가 | `docker inspect ... Config.Env` 또는 `docker exec ... env` |
-
-## env 확인 시 masking
-env 확인이 필요하면 key 이름과 적용 여부를 본다.
-
+## crash loop 맛보기
 ```bash
-docker rm -f paperclip-day4-env-inspect || true
-docker run -d --name paperclip-day4-env-inspect --env-file week2/day4/labs/env-report/.env alpine:3.20 sleep 300
-docker inspect paperclip-day4-env-inspect --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E 'APP_ENV|FEATURE_FLAG|DB_PASSWORD'
-docker exec paperclip-day4-env-inspect sh -c 'env | grep -E "APP_ENV|FEATURE_FLAG|DB_PASSWORD"'
+docker rm -f paperclip-day4-crash || true
+docker run -d --name paperclip-day4-crash --restart on-failure:3 alpine:3.20 sh -c 'echo crash-now; exit 1'
+sleep 3
+docker ps -a --filter name=paperclip-day4-crash
+docker logs paperclip-day4-crash
+docker inspect paperclip-day4-crash --format 'RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}'
 ```
 
 Expected:
 
 ```text
-APP_ENV=practice
-FEATURE_FLAG=on
-DB_PASSWORD=change-me-locally
+crash-now
+RestartCount=3
+ExitCode=1
 ```
 
-제출물에는 다음처럼 남긴다.
+## config 실패와 restart 구분
+```bash
+docker rm -f paperclip-day4-restart-missing-env || true
+docker run -d --name paperclip-day4-restart-missing-env --restart on-failure:2 postgres:16-alpine
+sleep 3
+docker inspect paperclip-day4-restart-missing-env --format 'RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}'
+docker logs paperclip-day4-restart-missing-env --tail 20 || true
+```
+
+Expected:
 
 ```text
-APP_ENV=practice
-FEATURE_FLAG=on
-DB_PASSWORD=***masked***
+RestartCount=2
+POSTGRES_PASSWORD
 ```
 
-해석: `inspect`와 `exec env` 모두 값 확인이 가능하다. 그래서 문제 해결에는 유용하지만, 제출물이나 질문 글에는 masking이 필요하다.
+해석: restart policy는 missing env를 해결하지 못한다. `POSTGRES_PASSWORD`를 주입해야 한다.
 
-## 주의
-`docker inspect` 전체 JSON을 README에 붙이면 읽기 어렵다. 문제와 관련된 field만 뽑아서 증거로 남긴다.
+## 판단 기준
+| 출력 | 해석 |
+|---|---|
+| `CPU %`, `MEM USAGE` | resource 관찰 출발점 |
+| `RestartCount` 증가 | process가 반복 실패 |
+| `ExitCode=1` | command가 실패 종료 |
+| logs에 같은 줄 반복 | restart가 원인을 해결하지 못함 |
+| `POSTGRES_PASSWORD` 반복 | config 누락을 restart로 가리고 있음 |
 
-Kubernetes에서도 같은 기준이 이어진다. Pod의 env, ConfigMap, Secret mount를 확인할 수는 있지만, 민감한 값을 그대로 issue나 README에 붙이면 안 된다.
+## 운영 판단
+resource 수치가 높다고 곧바로 restart policy를 바꾸는 것은 아니다. 먼저 logs로 error를 보고, inspect로 restart count와 exit code를 확인하고, 필요하면 exec로 내부 상태를 본다. Day 4의 기준은 `많이 재시작한다`가 아니라 `왜 재시작하는지 증거를 모은다`다.
+
+## 왜 여기서 끝내면 약한가
+`docker stats --no-stream`은 snapshot이다. 수업에서 한 번 보고 끝내면 "CPU가 몇 퍼센트였다" 정도만 남는다. 운영에서 더 중요한 질문은 보통 다음이다.
+
+| 질문 | `docker stats`만으로 부족한 이유 | 다음 단계 |
+|---|---|---|
+| 언제부터 CPU가 올라갔는가 | 과거 추세가 없다 | Prometheus time series |
+| 어떤 container가 계속 증가하는가 | 순간값만 보고 놓칠 수 있다 | Grafana panel 또는 Explore |
+| spike 시점에 무슨 log가 있었는가 | metrics에는 log line이 없다 | Loki 또는 `docker logs` |
+| 재시작 직전에 resource가 어땠는가 | 이전 상태가 사라진다 | metrics retention |
+
+그래서 Day 4 마지막 preview에서 Prometheus/Grafana/cAdvisor/Loki를 살짝 본다. 깊게 배우는 것이 아니라, `stats`가 metrics observability로 확장된다는 감각을 잡는 것이 목적이다.
 
 ## 다음 연결
-다음 교시는 resource 관찰과 restart policy를 다룬다.
+다음 교시는 여러 failure를 한 번에 분류하고 복구 기준을 세운다.

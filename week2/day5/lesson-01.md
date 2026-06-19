@@ -1,72 +1,65 @@
-# 1교시: Compose 기본과 검증 루프
+# 1교시: Compose 기본 개념과 편의성
 
 ![Day 5 Compose Architecture Lab overview](./assets/day5-compose-architecture-lab-overview.png)
 
 ## 수업 목표
-- Compose architecture를 실제 명령으로 실행한다.
-- config/up/ps/logs/curl/exec/down 검증 루프를 적용한다.
-- Week 3 MSA service boundary로 연결한다.
+- 긴 `docker run` 명령이 왜 인수인계와 재현성을 망가뜨리는지 설명한다.
+- `compose.yaml`의 `services`, `ports`, `environment`, `volumes`, `networks`, `depends_on`을 읽는다.
+- 모든 아키텍처 템플릿에 같은 검증 루프를 적용한다.
 
-## 강의 전개
-config/up/ps/logs/down 루프를 아키텍처 공통 기준으로 익힌다. 강사는 starter code와 compose.yaml을 제공하고, 학생은 YAML을 읽은 뒤 실제로 실행해 서비스 관계를 확인한다. 유명 아키텍처를 말로만 설명하지 않고 container, network, volume, port, log 확인 지점으로 확인한다.
+## 왜 Compose인가
+Day 3~4에서 실행한 명령은 길고, 순서가 중요하고, 사람이 빠뜨리기 쉽다. Web container를 띄우고, DB를 띄우고, network를 맞추고, env를 넣고, volume을 붙이고, log를 확인하는 과정을 매번 손으로 입력하면 팀원이 같은 환경을 재현하기 어렵다.
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 실수를 줄이는 좋은 확인 지점이다. 실패한 명령, 에러 요약, 가설, 다시 확인한 명령을 함께 확인한다.
+Compose는 이 실행 조건을 파일로 남긴다. `compose.yaml`은 단순한 편의 문법이 아니라 local architecture template이다.
 
-## 실습 명령
+| `docker run`에서 하던 일 | Compose에서 읽는 위치 |
+|---|---|
+| image 선택 | `services.<name>.image` 또는 `build` |
+| host port 공개 | `ports` |
+| runtime config | `environment`, `env_file` |
+| data 보존 | `volumes` |
+| service 간 통신 | service name, project network |
+| 실행 순서 힌트 | `depends_on` |
+
+## 공통 검증 루프
+모든 템플릿은 다음 순서로 확인한다.
+
 ```bash
-cd week2/day5/labs/compose-architectures/01-web-postgres
 docker compose config
 docker compose up -d
-```
-
-## 검증 명령
-```bash
-cd week2/day5/labs/compose-architectures/01-web-postgres
 docker compose ps
 docker compose logs --tail 80
 ```
 
-```bash
-cd week2/day5/labs/compose-architectures/01-web-postgres
-# web가 있는 architecture는 curl로 확인
-curl -I http://localhost:18085 || true
-# DB가 있는 architecture는 exec 또는 run client로 확인
-docker compose exec db psql -U postgres -d app -c 'SELECT 1;' || true
-```
+서비스별 확인은 architecture마다 다르다.
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
+| 서비스 유형 | 확인 예시 |
 |---|---|
-| config 실패 | indentation, env 누락, compose file path를 확인한다. |
-| service unhealthy | logs와 dependency readiness를 확인한다. |
-| down -v 남용 | database volume 삭제 위험을 설명한다. |
+| Web | `curl -I http://localhost:<port>` |
+| API | `curl -s http://localhost:<port>/<resource>` |
+| DB | `docker compose exec db psql ...` |
+| Cache | `docker compose exec redis redis-cli GET ...` |
+| Queue/Worker | `docker compose logs worker --tail 40` |
+| Proxy | proxy port로 접속하고 upstream service port는 직접 열지 않는다 |
 
-## Cleanup
+## Cleanup 기준
 ```bash
-cd week2/day5/labs/compose-architectures/01-web-postgres
 docker compose down
-# 데이터를 초기화해도 되는 실습일 때만 실행
+# DB/cache data까지 지워도 되는 실습에서만
 # docker compose down -v
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
-
-## 주의할 점
-- `docker compose config`가 성공해도 서비스가 정상 동작한다는 뜻은 아니다. YAML 문법 확인과 실제 실행 확인을 분리해서 봐야 한다.
-- Compose 내부 통신은 service name을 DNS 이름처럼 쓴다. host에서 접속할 때는 published port가 필요하지만, service끼리는 보통 container port로 통신한다.
-- `down`과 `down -v`는 다르다. `down -v`는 named volume까지 삭제하므로 DB 데이터나 cache 상태를 초기화해도 되는 실습인지 먼저 확인한다.
-- `.env` 값이 없거나 service name을 잘못 쓰면 앱 코드는 정상이어도 연결이 실패한다. 코드부터 고치기 전에 env, network, service name을 먼저 본다.
-- 여러 architecture를 실행한 뒤에는 project name, network, volume이 겹치지 않는지 확인한다. 이전 실습의 stale volume이나 port가 다음 실습 실패 원인이 될 수 있다.
+`down`은 container와 network를 정리한다. `down -v`는 named volume까지 지운다. DB가 있는 템플릿에서 `down -v`는 실습 데이터 삭제다.
 
 ## 핵심 포인트
-Day 5는 Compose 문법 암기 시간이 아니라 architecture를 실행 가능한 파일로 제공하는 연습이다. Day 2의 volume/network, Day 3의 image, Day 4의 env/logs/cleanup이 Compose 한 파일 안에서 다시 만난다. 학생은 `services`, `ports`, `environment`, `volumes`, `networks`를 YAML 속성으로만 보지 말고 지난 실습의 `docker run` 옵션이 옮겨진 결과로 읽어야 한다.
+1교시는 문법 암기 시간이 아니다. 이후 2~8교시에서 자주 쓰는 아키텍처를 바로 실행하기 위해 공통 독해법과 공통 검증 루프를 맞추는 시간이다.
 
-유명한 아키텍처 패턴을 다룰 때도 그림만 보여주지 않는다. Web+DB, DB UI, cache, reverse proxy, queue+worker는 모두 실제 container로 띄워야 한다. `docker compose config`는 문법 검증이고, `up`은 시작이며, `ps/logs/curl/exec`가 정상 검증이다. `down`과 `down -v`는 cleanup과 data reset의 경계다.
+Compose file을 읽을 때는 YAML 줄을 외우지 말고 다음 질문으로 읽는다.
 
-## 운영 해석
-Compose는 Kubernetes가 아니다. 하지만 Compose는 multi-service 사고를 배우기에 좋다. service name이 곧 내부 DNS가 되고, volume이 data lifecycle을 담당하며, ports가 host 공개 경계를 만든다. Week 3 MSA로 넘어갈 때 service boundary, dependency, failure propagation을 설명하는 첫 번째 실습 근거가 된다.
-
-각 architecture는 반드시 실행 상태를 확인한다. 학생이 두 개 이상의 architecture를 직접 실행하면 공통 패턴이 보이기 시작한다. 모든 architecture는 config, start, check, logs, cleanup이라는 같은 운영 루프를 가진다.
-
-## 다음 연결
-다음 architecture 또는 Week 3 MSA에서 같은 service/network/dependency 관점을 재사용한다.
+```text
+외부에서 들어오는 traffic은 어디로 들어오는가?
+service끼리는 어떤 이름으로 만나는가?
+상태를 가진 service는 어떤 volume을 쓰는가?
+실패하면 어떤 logs/exec/curl 결과를 먼저 볼 것인가?
+정리할 때 data를 지워도 되는가?
+```

@@ -100,8 +100,12 @@ prod off https://api.example.com
 ## Phase C: `-e`와 `--env-file` 비교
 ```bash
 docker run --rm -e APP_ENV=inline -e FEATURE_FLAG=off alpine:3.20 env | sort | grep -E 'APP_ENV|FEATURE_FLAG'
-docker run --rm --env-file week2/day4/labs/env-report/.env alpine:3.20 env | sort | grep -E 'APP_ENV|FEATURE_FLAG|DB_PASSWORD'
-docker run --rm --env-file week2/day4/labs/env-report/.env alpine:3.20 sh -c 'echo "APP_ENV=$APP_ENV FEATURE_FLAG=$FEATURE_FLAG DB_PASSWORD=$DB_PASSWORD"'
+docker run --rm --env-file week2/day4/labs/env-report/.env alpine:3.20 env \
+  | sort \
+  | grep -E 'APP_ENV|FEATURE_FLAG|DB_PASSWORD' \
+  | sed -E 's/DB_PASSWORD=.*/DB_PASSWORD=***masked***/'
+docker run --rm --env-file week2/day4/labs/env-report/.env alpine:3.20 sh -c 'echo "APP_ENV=$APP_ENV FEATURE_FLAG=$FEATURE_FLAG DB_PASSWORD=$DB_PASSWORD"' \
+  | sed -E 's/DB_PASSWORD=.*/DB_PASSWORD=***masked***/'
 ```
 
 Expected:
@@ -111,8 +115,8 @@ APP_ENV=inline
 FEATURE_FLAG=off
 APP_ENV=practice
 FEATURE_FLAG=on
-DB_PASSWORD=change-me-locally
-APP_ENV=practice FEATURE_FLAG=on DB_PASSWORD=change-me-locally
+DB_PASSWORD=***masked***
+APP_ENV=practice FEATURE_FLAG=on DB_PASSWORD=***masked***
 ```
 
 해석: `-e`는 명령줄에 직접 들어가고, `--env-file`은 파일에서 읽는다. 둘 다 runtime config이며 image를 새로 build하지 않는다.
@@ -174,8 +178,11 @@ docker exec paperclip-day4-nginx ls -l /usr/share/nginx/html
 docker exec paperclip-day4-nginx sh -c 'ps | head'
 docker rm -f paperclip-day4-env-inspect || true
 docker run -d --name paperclip-day4-env-inspect --env-file week2/day4/labs/env-report/.env alpine:3.20 sleep 300
-docker inspect paperclip-day4-env-inspect --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E 'APP_ENV|FEATURE_FLAG|DB_PASSWORD'
-docker exec paperclip-day4-env-inspect sh -c 'env | grep -E "APP_ENV|FEATURE_FLAG|DB_PASSWORD"'
+docker inspect paperclip-day4-env-inspect --format '{{range .Config.Env}}{{println .}}{{end}}' \
+  | grep -E 'APP_ENV|FEATURE_FLAG|DB_PASSWORD' \
+  | sed -E 's/DB_PASSWORD=.*/DB_PASSWORD=***masked***/'
+docker exec paperclip-day4-env-inspect sh -c 'env | grep -E "APP_ENV|FEATURE_FLAG|DB_PASSWORD"' \
+  | sed -E 's/DB_PASSWORD=.*/DB_PASSWORD=***masked***/'
 ```
 
 Expected:
@@ -187,10 +194,10 @@ index.html
 nginx
 APP_ENV=practice
 FEATURE_FLAG=on
-DB_PASSWORD=change-me-locally
+DB_PASSWORD=***masked***
 ```
 
-해석: inspect/exec는 env 값을 보여줄 수 있으므로 제출물에는 `DB_PASSWORD=***masked***`로 남긴다.
+해석: inspect/exec는 env 값을 보여줄 수 있다. 실습 중 실제 값을 확인할 수는 있지만 제출물과 screenshot에는 masking된 출력만 남긴다.
 
 ## Phase F: stats와 restart policy
 ```bash
@@ -365,6 +372,15 @@ rm -f week2/day4/labs/env-report/.env week2/day4/labs/env-report/.env.dev week2/
 # docker volume rm paperclip-day4-pgdata
 ```
 
+Audit note:
+
+```text
+삭제한 것:
+남긴 것:
+volume을 삭제하지 않은 이유:
+secret 값이 남은 출력/screenshot 여부:
+```
+
 ## Phase L: Compose mapping preview
 | 지금 실행한 option | Day 5에서 옮길 Compose 항목 |
 |---|---|
@@ -375,3 +391,145 @@ rm -f week2/day4/labs/env-report/.env week2/day4/labs/env-report/.env.dev week2/
 | `--network paperclip-day4-net-a` | `networks` |
 | `docker logs <name>` | `docker compose logs <service>` |
 | `docker exec <name> ...` | `docker compose exec <service> ...` |
+
+## Phase M: final evidence handoff
+다음 표를 채우지 못하면 Day 4를 완료한 것이 아니다. 명령을 실행한 횟수가 아니라, 어떤 증거로 어떤 판단을 했는지가 완료 기준이다.
+
+| 항목 | 내가 남길 증거 | 판단 |
+|---|---|---|
+| env 주입 | `-e` 또는 `--env-file` 실행 결과 | image rebuild 없이 runtime config가 바뀌었다. |
+| secret masking | `DB_PASSWORD=***masked***` 출력 | 실제 secret 값을 기록하지 않았다. |
+| HTTP 확인 | `curl -I http://localhost:18084` | `Up`과 서비스 정상 응답을 구분했다. |
+| logs | `docker logs ... --tail` | startup/access/error 중 무엇을 봤는지 적는다. |
+| inspect | port/env/restart/mount 중 선택 field | 전체 JSON이 아니라 필요한 field만 남겼다. |
+| exec | filesystem/process/env 중 하나 | container 내부 관찰 결과를 남겼다. |
+| restart | `RestartCount`, `ExitCode` | restart policy가 원인을 고치지 못한다는 것을 설명했다. |
+| failure RCA | 실패 출력 한 줄 | config/port/network/volume/image 중 하나로 분류했다. |
+| cleanup | 삭제/보존 목록 | volume 삭제가 data reset인지 판단했다. |
+| Day 5 mapping | `docker run` option -> Compose field | Compose로 옮길 이유를 설명했다. |
+
+RCA note:
+
+```text
+Symptom:
+First evidence command:
+Key output line:
+Category: env / port / network / volume / image / process
+Fix:
+Recheck:
+Data deletion risk:
+```
+
+## Phase N: 8교시 Prometheus/Grafana preview
+이 phase는 Day 4의 마무리 장면이다. `docker logs`와 `docker stats`로 본 정보를 Compose 기반 observability stack에서 어떻게 보는지 미리 체험한다.
+
+```bash
+cd /mnt/d/paperclip/week2/day4/labs/observability-preview
+export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"
+docker compose config
+docker compose --profile load config
+docker compose up -d
+docker compose ps
+for i in 1 2 3 4 5; do curl -I http://localhost:18085 || true; sleep 1; done
+docker compose logs sample-web --tail 20
+docker compose logs log-generator --tail 20
+```
+
+Expected:
+
+```text
+HTTP/1.1 200 OK
+level=info service=log-generator event=heartbeat
+```
+
+Open:
+
+```text
+Grafana:    http://localhost:13000  admin / practice-only
+Prometheus: http://localhost:19090
+cAdvisor:   http://localhost:18086
+```
+
+Grafana Explore에서 확인한다.
+
+| Source | Query | 의미 |
+|---|---|---|
+| Prometheus | `up` | scrape 대상이 살아 있는지 확인 |
+| Prometheus | `container_memory_usage_bytes` | container memory metrics 확인 |
+| Loki | `{job="docker"}` | Docker container log 확인 |
+
+Loki를 curl로 검증할 때는 instant `query`가 아니라 range query를 사용한다.
+
+WSL/Linux:
+
+```bash
+now_ns=$(date +%s%N)
+start_ns=$((now_ns - 300000000000))
+
+curl -G -s 'http://localhost:13100/loki/api/v1/query_range' \
+  --data-urlencode 'query={job="docker"}' \
+  --data-urlencode "start=$start_ns" \
+  --data-urlencode "end=$now_ns" \
+  --data-urlencode 'limit=5'
+```
+
+macOS:
+
+```bash
+end_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+start_time=$(date -u -v-5M +"%Y-%m-%dT%H:%M:%SZ")
+
+curl -G -s 'http://localhost:13100/loki/api/v1/query_range' \
+  --data-urlencode 'query={job="docker"}' \
+  --data-urlencode "start=$start_time" \
+  --data-urlencode "end=$end_time" \
+  --data-urlencode 'limit=5'
+```
+
+Impact drill:
+
+```bash
+docker compose --profile load up -d cpu-spike
+docker stats --no-stream
+sleep 20
+```
+
+Grafana Explore > Prometheus:
+
+```promql
+rate(container_cpu_usage_seconds_total[1m])
+```
+
+해석:
+
+```text
+docker stats는 현재 순간값이다.
+Prometheus/Grafana는 시간에 따른 변화를 보여준다.
+CPU spike가 보이면 docker logs/compose logs로 어떤 container가 무엇을 했는지 다시 좁힌다.
+```
+
+```bash
+docker compose stop cpu-spike
+```
+
+환경에 따라 Docker Desktop/WSL에서 Promtail이 `/var/lib/docker/containers`를 읽지 못할 수 있다. 이 경우에도 `docker compose logs`로 일반 로그를 확인하고, Prometheus/cAdvisor metrics 확인까지를 preview 성공으로 본다.
+
+Troubleshooting:
+
+| 환경 | 오류/증상 | 힌트 |
+|---|---|---|
+| WSL/Linux | `docker-credential-desktop.exe` not found | `DOCKER_CONFIG` 임시 디렉터리에 빈 `config.json`을 두고 실행 |
+| WSL/Linux | cAdvisor가 `/var/lib/docker`를 못 읽음 | `export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"` 후 재실행 |
+| WSL/Linux/macOS | `port is already allocated` | `docker ps`로 점유 port 확인. 이 lab은 cAdvisor `18086` 사용 |
+| WSL/Linux/macOS | Loki instant query 오류 | `/loki/api/v1/query_range` 사용 |
+| macOS | `date +%s%N`이 nanosecond로 안 나옴 | macOS용 `date -u -v-5M` 예시 사용 |
+| macOS | Promtail/Loki log가 비어 있음 | Docker Desktop VM log path 제한 가능. `docker compose logs`로 기본 로그 확인 |
+| macOS | cAdvisor device/mount 오류 | Docker Desktop 제약 가능. `docker stats`와 Prometheus/Grafana UI 확인 후 실패 원인을 토론 |
+
+Cleanup:
+
+```bash
+docker compose down
+# dashboard/log data까지 reset할 때만
+# docker compose down -v
+```

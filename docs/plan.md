@@ -194,7 +194,7 @@
 - Day 3는 image, Dockerfile, layer/cache, tag/digest, registry를 깊게 다룬다.
 - Day 4는 environment/config, logs/inspect/exec/stats, failure drill, cleanup/security를 도구별 소개가 아니라 운영 시나리오 기반 장애 대응으로 깊게 다룬다. 예: 환경변수 누락, 컨테이너는 Up인데 접속 실패, stale volume/data 혼동, container network DNS 오해, restart loop/resource 관찰, cleanup/data 삭제 위험.
 - Day 4 자료는 강박적으로 반복되는 핵심 포인트와 주의사항을 삭제한다. 공통 보안/cleanup/관찰 원칙은 한 번만 선언하고, 각 교시는 해당 시나리오에서 새로 판단해야 하는 증거, 명령, 실패 원인, 복구 기준만 담는다.
-- Day 5는 Docker Compose 섹션으로 확정하고, 표준 코드와 compose.yaml로 유명한 로컬 아키텍처 패턴을 직접 실행/검증한다.
+- Day 5는 Docker Compose 섹션으로 확정하고, Week1 Day4의 회사형 서비스 아키텍처를 compose.yaml과 실제 동작하는 작은 API 앱으로 로컬 재현한다. 각 아키텍처에는 network area, 연결선, 서비스 아이콘이 있는 구조도를 포함한다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
 
 ## 1일차
@@ -238,14 +238,14 @@
 - 8교시 : 구름 EXP 배움일기 - env/config/secret 구분, logs/inspect/exec/stats 사용 위치, compose.yaml로 옮기고 싶은 명령
 
 ## 5일차
-- 1교시 : Day4 강의 10분 요약 + Compose 기본과 검증 루프 - 제공 코드에서 `compose.yaml` 읽기, `config`, `up`, `ps`, `logs`, `down` 실행
-- 2교시 : Architecture 1 - Web + PostgreSQL two-tier app, service name과 internal port로 DB 연결
-- 3교시 : Architecture 2 - Web + PostgreSQL + Adminer/pgAdmin, DB 관리 UI와 host port 노출 기준
-- 4교시 : Architecture 3 - Web + Redis cache, cache hit/miss와 container logs 확인
-- 5교시 : Architecture 4 - Nginx reverse proxy + multiple web services, path/host routing과 upstream 장애 확인
-- 6교시 : Architecture 5 - Queue + worker + database, 비동기 처리와 worker logs 확인
-- 7교시 : Compose 장애 분석과 cleanup - missing env, wrong service name, wrong port, stale volume, `down` vs `down -v`
-- 8교시 : 구름 EXP 배움일기 - Compose가 줄여준 명령, service boundary/API/DB/worker 연결, Week3 MSA에서 확인할 질문
+- 1교시 : Day4 강의 10분 요약 + Compose 기본 개념과 편의성 - 긴 `docker run`을 `compose.yaml` template으로 바꾸는 이유, `config/up/ps/logs/down` 공통 검증 루프
+- 2교시 : 쿠팡형 커머스 카탈로그 - frontend, catalog API, PostgreSQL products table, `curl /products`와 DB query 확인
+- 3교시 : 당근형 백엔드 서비스 경계 - gateway, identity API, payment API, Adminer, service name `db` 확인
+- 4교시 : 토스형 프론트엔드 플랫폼 - frontend preview, config API, feature flag, Redis cache 확인
+- 5교시 : Gateway routing template - Nginx reverse proxy, 내부 upstream service, `/a/`, `/b/` routing과 upstream 장애 확인
+- 6교시 : 카카오형 메시징/worker - HTTP producer, Redis queue, worker logs, DB 확인
+- 7교시 : API + PostgreSQL - PostgREST API 응답과 DB init/query 로그 확인
+- 8교시 : Frontend + gateway + API + DB - Week3 MSA service boundary/dependency/failure propagation 질문 정리
 
 ## 2주차 학습 결과
 - 표준 실습 애플리케이션용 Dockerfile

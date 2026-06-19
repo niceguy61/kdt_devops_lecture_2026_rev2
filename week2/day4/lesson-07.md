@@ -1,69 +1,91 @@
-# 7교시: Cleanup과 security audit
+# 7교시: Compose mapping handoff와 구름 EXP 배움일기
 
-![Cleanup and security audit infographic](./assets/lesson-07-cleanup-security-audit.png)
+![Runtime to platform mapping infographic](./assets/lesson-08-runtime-to-platform-mapping.png)
 
 ## 수업 목표
-- container, image, network, volume cleanup의 차이를 구분한다.
-- 삭제하면 안 되는 data와 지워도 되는 실습 자원을 나눈다.
-- secret/context 흔적이 남았는지 점검한다.
+- Day 4에서 사용한 긴 `docker run` option을 Compose 항목으로 매핑한다.
+- runtime config, 관찰 명령, cleanup 기준을 표로 정리한다.
+- Day 5 Compose 수업에 가져갈 질문을 남긴다.
 
 ## 개념 설명
-cleanup은 `다 지우기`가 아니다. container 삭제는 실행 중인 process와 그 writable layer를 없애는 일이고, image 삭제는 다음 실행 때 다시 pull/build가 필요하게 만드는 일이다. network 삭제는 연결 공간을 없애는 일이고, volume 삭제는 data 삭제일 수 있다.
+Day 4는 Compose를 배우는 날이 아니라 Compose가 왜 필요한지 몸으로 느끼는 날이다. `docker run` 명령에 port, env, env file, volume, network, restart option이 계속 붙으면 길고 실수하기 쉬워진다. Day 5에서는 이 조건을 `compose.yaml`에 남긴다.
 
-Day 4 장애 드릴 뒤에는 실패 container와 임시 network가 남는다. 이것을 정리하지 않으면 다음 수업에서 같은 이름 충돌, port 충돌, stale volume 혼동이 생긴다.
+오늘의 mapping은 Week 2에서 끝나지 않는다. Compose의 `environment`, `env_file`, `volumes`, `networks`는 Kubernetes의 ConfigMap/Secret, Volume, Service/NetworkPolicy를 이해하는 다리가 된다. Terraform에서는 같은 환경 분리 사고가 `dev.tfvars`, `staging.tfvars`, `prod.tfvars` 같은 variable 파일과 workspace/환경별 state 판단으로 이어진다.
 
-환경별 env file도 cleanup 대상이다. `.env.dev`, `.env.staging`, `.env.prod`를 실습 중 만들었다면 실제 secret이 없더라도 로컬 실습 산출물인지 확인하고 정리한다. 반대로 `.env.example`은 공유용 형식 문서이므로 남겨도 된다.
+선택 preview로는 `labs/observability-preview`에서 Prometheus, Grafana, cAdvisor, Loki를 Compose로 띄워 본다. 여기서의 목표는 dashboard를 잘 꾸미는 것이 아니라 `logs`, `stats`, `metrics`의 차이를 감각적으로 구분하는 것이다.
 
-## Audit 명령
+학생에게 보여줄 장면은 단순하다. `cpu-spike` container를 잠깐 켜고, `docker stats`에서 순간 CPU 변화를 본 다음 Grafana/Prometheus에서 `rate(container_cpu_usage_seconds_total[1m])`로 시간 window를 본다. 그 다음 일반 log는 `docker compose logs`와 Loki Explore에서 비교한다. 이 장면이 있어야 `logs/exec/stats`가 단순 명령어가 아니라 observability로 이어지는 입구라는 감각이 생긴다.
+
+## Mapping 표
+| Day 4에서 사용한 것 | 의미 | Day 5 Compose 위치 |
+|---|---|---|
+| `docker run -d --name ...` | service process 시작 | `services.<name>` |
+| `-p 18084:80` | host/container port publish | `services.<name>.ports` |
+| `-e KEY=value` | runtime env 직접 주입 | `services.<name>.environment` |
+| `--env-file .env` | env file 사용 | `env_file` 또는 `${VARIABLE}` |
+| `.env.dev/.env.staging/.env.prod` | 환경별 설정 파일 | 환경별 Compose project 또는 env file |
+| `-v source:target` | mount/volume 연결 | `services.<name>.volumes` |
+| `--network name` | network 연결 | `networks` |
+| `docker logs` | log 확인 | `docker compose logs` |
+| `docker exec` | 내부 명령 실행 | `docker compose exec` |
+| cleanup 명령 | 종료/삭제 | `docker compose down`, 필요 시 `down -v` |
+| `docker stats` | 순간 resource 관찰 | Prometheus + cAdvisor metrics |
+| `docker logs` | 일반 log 확인 | Loki + Grafana Explore |
+
+## 다음 기술로 이어지는 표
+| Day 4 개념 | Compose | Kubernetes | Terraform |
+|---|---|---|---|
+| `-e KEY=value` | `environment` | ConfigMap/Secret env | variable |
+| `--env-file .env.dev` | `env_file` | 환경별 ConfigMap/Secret | `dev.tfvars` |
+| `-p host:container` | `ports` | Service/Ingress | load balancer/security group |
+| `-v volume:/path` | `volumes` | Volume/PVC | storage resource |
+| `--network` | `networks` | Service DNS/network policy | VPC/subnet/security group |
+| cleanup 판단 | `down` vs `down -v` | delete resource vs preserve PVC | destroy/retain state |
+| metrics/logs | Prometheus/Grafana/Loki | metrics-server/Prometheus/Loki | monitoring resources |
+
+## 제출 표
+학생은 다음 표를 채운다.
+
+| 구분 | 내가 확인한 내용 | 증거 명령 | Day 5로 넘길 질문 |
+|---|---|---|---|
+| env/config |  |  |  |
+| secret 비노출 |  |  |  |
+| logs |  |  |  |
+| inspect |  |  |  |
+| exec |  |  |  |
+| stats/restart |  |  |  |
+| failure RCA |  |  |  |
+| cleanup |  |  |  |
+| Compose mapping |  |  |  |
+| K8s/Terraform 연결 |  |  |  |
+
+이 표는 감상문이 아니다. 각 칸에는 최소 하나의 command 또는 output hint가 있어야 한다. 단, secret 값과 전체 inspect JSON은 붙이지 않는다.
+
+## 최종 확인 명령
 ```bash
 docker ps -a --filter name=paperclip-day4
 docker network ls | grep paperclip-day4 || true
 docker volume ls | grep paperclip-day4 || true
-docker system df
 ```
 
 Expected:
 
 ```text
-paperclip-day4-nginx
-paperclip-day4-pg-ok
-paperclip-day4-net-a
-paperclip-day4-net-b
-paperclip-day4-pgdata
+cleanup 후 실습 container/network가 남지 않는다.
+volume은 삭제 여부를 의식적으로 판단한다.
 ```
 
-## Cleanup 명령
-```bash
-docker rm -f paperclip-day4-nginx paperclip-day4-log-env paperclip-day4-env-inspect paperclip-day4-pg-ok paperclip-day4-pg-missing-env paperclip-day4-net-web paperclip-day4-crash paperclip-day4-restart-missing-env paperclip-day4-pg-volume || true
-docker network rm paperclip-day4-net-a paperclip-day4-net-b || true
-rm -f /mnt/d/paperclip/week2/day4/labs/env-report/.env /mnt/d/paperclip/week2/day4/labs/env-report/.env.dev /mnt/d/paperclip/week2/day4/labs/env-report/.env.staging /mnt/d/paperclip/week2/day4/labs/env-report/.env.prod
-```
+## 구름 EXP 배움일기
+- `Up`과 정상 응답을 구분한 순간
+- logs/inspect/exec/stats 중 가장 유용했던 명령
+- 내가 재현한 실패와 첫 확인 명령
+- cleanup에서 지우면 안 된다고 판단한 것
+- Day 5 Compose로 옮기면 편해질 option
+- Kubernetes/Terraform에서 다시 만날 것 같은 설정 분리 질문
+- Prometheus/Grafana preview에서 logs와 metrics가 어떻게 다르게 보였는지
 
-## 삭제 판단 표
-| 대상 | 기본 판단 | 이유 |
-|---|---|---|
-| 실패 container | 삭제 | 다음 실습 이름 충돌 방지 |
-| 임시 network | 삭제 | 실습 전용 연결 공간 |
-| `.env` | 삭제 또는 local 보관 | 실제 값 노출 방지 |
-| `.env.dev/staging/prod` | 실습 파일이면 삭제 | 환경별 secret 혼동 방지 |
-| `.env.example` | 유지 | 공유용 형식 문서 |
-| image | 보통 유지 | 다음 실습에서 재사용 가능 |
-| named volume | 신중히 판단 | DB data 삭제 가능 |
-
-## 위험한 명령
-```bash
-docker system prune --volumes
-```
-
-이 명령은 사용하지 않는다. volume까지 포함한 prune은 실습 DB data나 다른 프로젝트 data를 삭제할 수 있다.
-
-실습 reset이 필요해 `paperclip-day4-pgdata`를 지우려면 명시적으로 판단한 뒤 실행한다.
-
-```bash
-docker volume rm paperclip-day4-pgdata
-```
-
-이 명령은 PostgreSQL data를 삭제한다. `stale volume`을 해결할 때는 유용하지만, 보존해야 하는 data라면 실행하면 안 된다.
+## 핵심 포인트
+Day 4의 완료 기준은 명령을 많이 실행한 것이 아니라, 실행 조건과 관찰 증거를 분리해서 설명할 수 있는 것이다.
 
 ## 다음 연결
-마지막 교시는 Day 5 Compose로 옮길 option mapping을 표로 정리한다.
+마지막 교시는 Prometheus/Grafana preview로 `logs`, `stats`가 metrics/logs observability로 확장되는 장면을 본다.

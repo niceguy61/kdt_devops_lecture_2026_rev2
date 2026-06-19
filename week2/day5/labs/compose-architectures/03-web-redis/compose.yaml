@@ -7,9 +7,38 @@ services:
       - ./html:/usr/share/nginx/html:ro
     depends_on:
       - redis
+      - config-api
+
+  config-api:
+    image: node:20-alpine
+    working_dir: /app
+    command: ["node", "server.js"]
+    ports:
+      - "18103:3000"
+    volumes:
+      - ./apps/config-api:/app:ro
+    environment:
+      PORT: 3000
+      API_BASE_URL: http://localhost:18101
+      FEATURE_NEW_CHECKOUT: "true"
+      FEATURE_AI_REVIEW: "false"
 
   redis:
     image: redis:7-alpine
+
+  cache-writer:
+    image: redis:7-alpine
+    depends_on:
+      - redis
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          redis-cli -h redis SET compose:cache "hit-from-cache-writer"
+          redis-cli -h redis GET compose:cache
+          sleep 5
+        done
 
   redis-cli:
     image: redis:7-alpine
