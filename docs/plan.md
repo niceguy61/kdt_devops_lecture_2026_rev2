@@ -245,7 +245,7 @@
 - 5교시 : Gateway routing template - Nginx reverse proxy, 내부 upstream service, `/a/`, `/b/` routing과 upstream 장애 확인
 - 6교시 : 카카오형 메시징/worker - HTTP producer, Redis queue, worker logs, DB 확인
 - 7교시 : API + PostgreSQL - PostgREST API 응답과 DB init/query 로그 확인
-- 8교시 : Frontend + gateway + API + DB - Week3 MSA service boundary/dependency/failure propagation 질문 정리
+- 8교시 : Frontend + gateway + API + DB - Week3 MSA service boundary/dependency/failure propagation 질문 정리 + 구름 EXP 배움일기
 
 ## 2주차 학습 결과
 - 표준 실습 애플리케이션용 Dockerfile
