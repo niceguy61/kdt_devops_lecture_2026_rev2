@@ -531,6 +531,7 @@ def main() -> int:
     mmdc = args.mmdc.split()
     total_images = 0
     total_mermaid = 0
+    converted_files: list[Path] = []
 
     for source in sources:
         rel = source.relative_to(repo_root)
@@ -549,6 +550,7 @@ def main() -> int:
         )
         total_images += images
         total_mermaid += mermaids
+        converted_files.append(out_file)
 
     print(f"exported_markdown={len(sources)}")
     print(f"rewritten_images={total_images}")
@@ -563,7 +565,7 @@ def main() -> int:
         print(f"mermaid_assets={mermaid_label}")
     if args.pdf:
         chrome = find_chrome(args.chrome)
-        pdf_count = render_pdfs(pdf_sources(out_root), repo_root, base, chrome)
+        pdf_count = render_pdfs([path for path in converted_files if should_render_pdf(path)], repo_root, base, chrome)
         print(f"generated_pdfs={pdf_count}")
     try:
         out_label = out_root.relative_to(repo_root)
