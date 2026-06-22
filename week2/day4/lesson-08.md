@@ -163,6 +163,39 @@ docker compose --profile host-mount up -d cadvisor
 curl -s 'http://localhost:19090/api/v1/query?query=up'
 ```
 
+cAdvisor만 죽어 있거나 Prometheus에서 network 오류가 보이면 다음 순서로 분리한다.
+
+| 증상 | 의미 | 확인 명령 | 조치 |
+|---|---|---|---|
+| `cadvisor` container가 `Exited` | cAdvisor 자체가 시작 실패 | `docker compose ps cadvisor`, `docker compose logs cadvisor --tail 80` | mount/device 오류 확인 |
+| `cadvisor`는 `Up`인데 Prometheus target이 `down` | Prometheus가 `cadvisor:8080`을 같은 Compose network에서 못 찾음 | `curl -s http://localhost:19090/api/v1/targets` | 같은 directory/project에서 다시 실행 |
+| `no such host cadvisor` | Prometheus network 안에 `cadvisor` service DNS가 없음 | `docker compose ps cadvisor`, `docker network ls` | `docker compose --profile host-mount up -d cadvisor` |
+| `connection refused` | 이름은 resolve됐지만 cAdvisor 8080이 열려 있지 않음 | `docker compose logs cadvisor --tail 80` | cAdvisor 시작 실패 원인 확인 |
+| `go_*` metric만 보임 | Prometheus 자기 자신만 scrape 중 | `curl -s 'http://localhost:19090/api/v1/query?query=up'` | `host-mount` profile로 cAdvisor 실행 |
+| `mkdir /var/lib/docker: read-only file system` | Docker data root mount 불가 | `docker info --format '{{.DockerRootDir}}'` | 실제 DockerRootDir export 후 재시도 |
+| `/dev/kmsg` 또는 `/dev/disk` 오류 | runtime/device mount 제약 | `docker compose logs cadvisor --tail 80` | Docker Desktop/WSL 제약으로 보고 기본 preview로 진행 |
+
+network 오류는 대개 `cadvisor`만 다른 project/network로 띄웠을 때 생긴다. Prometheus 설정은 `cadvisor:8080`이라는 Compose service name을 scrape하므로, `docker run`으로 따로 띄운 cAdvisor나 다른 디렉터리에서 뜬 cAdvisor는 같은 이름으로 resolve되지 않는다.
+
+항상 같은 디렉터리에서 같은 project로 실행한다.
+
+```bash
+cd /mnt/d/paperclip/week2/day4/labs/observability-preview
+docker compose up -d
+export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"
+docker compose --profile host-mount up -d cadvisor promtail
+docker compose ps
+```
+
+network가 맞는지 확인:
+
+```bash
+docker inspect observability-preview-prometheus-1 --format '{{json .NetworkSettings.Networks}}'
+docker inspect observability-preview-cadvisor-1 --format '{{json .NetworkSettings.Networks}}'
+```
+
+둘 다 `observability-preview_observe-net`에 붙어 있어야 한다.
+
 그 다음에야 다음 query가 의미를 가진다.
 
 ```promql

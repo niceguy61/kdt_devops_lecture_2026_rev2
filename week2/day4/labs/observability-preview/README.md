@@ -135,6 +135,32 @@ job="prometheus" value=1
 job="cadvisor" value=1
 ```
 
+## cAdvisor target troubleshooting
+cAdvisor만 죽어 있거나 Prometheus target에서 network 오류가 보이면 “cAdvisor container가 죽었는지”와 “Prometheus가 cAdvisor를 같은 network에서 못 찾는지”를 분리한다.
+
+```bash
+docker compose ps cadvisor prometheus
+docker compose logs cadvisor --tail 80
+curl -s 'http://localhost:19090/api/v1/targets'
+```
+
+| 증상 | 의미 | 조치 |
+|---|---|---|
+| `cadvisor`가 `Exited` | mount/device 문제로 cAdvisor 시작 실패 | `docker compose logs cadvisor --tail 80`에서 `/var/lib/docker`, `/dev/kmsg`, `/dev/disk` 오류 확인 |
+| `cadvisor`는 `Up`인데 Prometheus target이 `down` | Prometheus가 `cadvisor:8080`을 resolve/connect 못함 | 같은 directory/project에서 다시 실행 |
+| `go_*` metric만 보임 | Prometheus 자기 자신만 scrape 중 | `docker compose --profile host-mount up -d cadvisor` |
+| `connection refused` | cAdvisor process가 8080에서 떠 있지 않음 | `docker compose ps cadvisor`, `docker compose logs cadvisor` |
+| `no such host cadvisor` | 같은 Compose network에 cAdvisor service가 없음 | `docker compose --profile host-mount up -d cadvisor` |
+
+network가 맞는지 확인:
+
+```bash
+docker inspect observability-preview-prometheus-1 --format '{{json .NetworkSettings.Networks}}'
+docker inspect observability-preview-cadvisor-1 --format '{{json .NetworkSettings.Networks}}'
+```
+
+둘 다 `observability-preview_observe-net`에 붙어 있어야 한다. `docker run`으로 cAdvisor만 따로 띄우거나 다른 디렉터리에서 `docker compose`를 실행하면 project/network 이름이 달라져 Prometheus의 `cadvisor:8080` scrape가 실패할 수 있다.
+
 Prometheus UI:
 
 ```text

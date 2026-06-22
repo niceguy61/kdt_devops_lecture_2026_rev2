@@ -632,6 +632,30 @@ export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"
 docker compose --profile host-mount up -d cadvisor
 ```
 
+cAdvisor만 죽어 있거나 Prometheus target에서 network 오류가 보이면 다음 순서로 분리한다.
+
+```bash
+docker compose ps cadvisor prometheus
+docker compose logs cadvisor --tail 80
+curl -s 'http://localhost:19090/api/v1/targets'
+```
+
+| 증상 | 의미 | 조치 |
+|---|---|---|
+| `cadvisor`가 `Exited` | mount/device 문제로 시작 실패 | `/var/lib/docker`, `/dev/kmsg`, `/dev/disk` 오류 확인 |
+| `cadvisor`는 `Up`인데 target이 `down` | Prometheus가 같은 network에서 `cadvisor:8080`을 못 찾음 | 같은 directory/project에서 다시 실행 |
+| `no such host cadvisor` | cAdvisor service가 Compose network에 없음 | `docker compose --profile host-mount up -d cadvisor` |
+| `connection refused` | cAdvisor process가 8080에서 정상 listen하지 않음 | `docker compose logs cadvisor --tail 80` 확인 |
+
+network 확인:
+
+```bash
+docker inspect observability-preview-prometheus-1 --format '{{json .NetworkSettings.Networks}}'
+docker inspect observability-preview-cadvisor-1 --format '{{json .NetworkSettings.Networks}}'
+```
+
+둘 다 `observability-preview_observe-net`에 붙어 있어야 한다.
+
 container 또는 service별 필터링:
 
 ```promql
@@ -717,6 +741,7 @@ Troubleshooting:
 | WSL/Linux | cAdvisor가 `/var/lib/docker`를 못 읽음 | `export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"` 후 `docker compose --profile host-mount up -d cadvisor promtail` |
 | WSL/Docker Desktop | `mkdir /var/lib/docker: read-only file system` | 기본 `docker compose up -d`로 돌아가고 `docker compose logs`, `docker stats` 중심으로 진행 |
 | WSL/Linux/macOS | Prometheus에서 `go_*` metric만 보임 | cAdvisor target이 없거나 down인 상태. `up` query 확인 후 `docker compose --profile host-mount up -d cadvisor` 실행 |
+| WSL/Linux/macOS | cAdvisor만 죽거나 target network 오류 | `docker compose ps cadvisor prometheus`, `curl -s http://localhost:19090/api/v1/targets`로 container exit와 target down을 분리 |
 | WSL/Linux/macOS | Grafana에서 Prometheus 연결 실패 | Data source URL은 `localhost:19090`이 아니라 `http://prometheus:9090` |
 | WSL/Linux/macOS | `Post "http://localhost:19090/api/v1/query": connect: connection refused` | Grafana가 아직 잘못된 URL을 보고 있음. Data source 편집 화면을 새로 열고 URL을 `http://prometheus:9090`으로 저장 |
 | WSL/Linux/macOS | `port is already allocated` | `docker ps`로 점유 port 확인. 이 lab은 cAdvisor `18086` 사용 |
