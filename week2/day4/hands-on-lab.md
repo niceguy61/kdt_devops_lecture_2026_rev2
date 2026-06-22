@@ -570,6 +570,15 @@ Grafana:    http://localhost:13000  admin / practice-only
 Prometheus: http://localhost:19090
 ```
 
+주소 구분:
+
+| 위치 | 올바른 주소 |
+|---|---|
+| Browser에서 Prometheus 직접 열기 | `http://localhost:19090` |
+| Grafana Data source URL | `http://prometheus:9090` |
+
+Grafana는 container 안에서 실행된다. Grafana Data source에 `http://localhost:19090`을 넣으면 Grafana 자기 자신의 localhost를 보게 되므로 연결이 실패한다. 이미 잘못 저장했다면 Grafana UI에서 URL을 수정하거나, 실습 data를 버려도 되는 경우에만 `docker compose down -v`로 Grafana volume을 초기화한다.
+
 기본 실행은 Docker data root를 mount하지 않는다. Docker Desktop/WSL/macOS에서 `/var/lib/docker`가 read-only로 막히는 경우가 있기 때문에, cAdvisor와 Promtail은 선택 profile로 분리한다.
 
 선택 심화:
@@ -666,6 +675,7 @@ Troubleshooting:
 | WSL/Linux | `docker-credential-desktop.exe` not found | `DOCKER_CONFIG` 임시 디렉터리에 빈 `config.json`을 두고 실행 |
 | WSL/Linux | cAdvisor가 `/var/lib/docker`를 못 읽음 | `export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"` 후 `docker compose --profile host-mount up -d cadvisor promtail` |
 | WSL/Docker Desktop | `mkdir /var/lib/docker: read-only file system` | 기본 `docker compose up -d`로 돌아가고 `docker compose logs`, `docker stats` 중심으로 진행 |
+| WSL/Linux/macOS | Grafana에서 Prometheus 연결 실패 | Data source URL은 `localhost:19090`이 아니라 `http://prometheus:9090` |
 | WSL/Linux/macOS | `port is already allocated` | `docker ps`로 점유 port 확인. 이 lab은 cAdvisor `18086` 사용 |
 | WSL/Linux/macOS | Loki instant query 오류 | `/loki/api/v1/query_range` 사용 |
 | macOS | `date +%s%N`이 nanosecond로 안 나옴 | macOS용 `date -u -v-5M` 예시 사용 |

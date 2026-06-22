@@ -120,6 +120,15 @@ Prometheus UI:
 http://localhost:19090
 ```
 
+주의할 점:
+
+| 위치 | 올바른 주소 |
+|---|---|
+| Browser에서 Prometheus 직접 열기 | `http://localhost:19090` |
+| Grafana Data source URL | `http://prometheus:9090` |
+
+Grafana는 container 안에서 실행된다. 따라서 Grafana Data source에 `http://localhost:19090`을 넣으면 Grafana 자기 자신의 `localhost`를 보게 되어 연결이 실패한다.
+
 Example queries:
 
 ```promql
@@ -150,6 +159,20 @@ admin / practice-only
 | Explore > Prometheus | `up` query가 되는가 |
 | Explore > Prometheus | `host-mount` 성공 시 `container_memory_usage_bytes` query가 되는가 |
 | Explore > Loki | `host-mount` 성공 시 `{job="docker"}` log query가 되는가 |
+
+Prometheus datasource 설정:
+
+```text
+URL: http://prometheus:9090
+Access: Server / proxy
+```
+
+이미 UI에서 `localhost:19090`으로 저장했다면 Data source URL을 수정한다. 실습 data를 버려도 되는 경우에만 아래처럼 volume을 초기화한다.
+
+```bash
+docker compose down -v
+docker compose up -d
+```
 
 ## Optional host-mount profile
 cAdvisor와 Promtail은 Docker engine 내부의 data root와 log file을 mount한다. 그래서 환경 영향을 크게 받는다.
@@ -246,6 +269,7 @@ docker compose logs log-generator
 | `docker-credential-desktop.exe` not found | `docker compose up -d` output | WSL이 Windows Docker credential helper를 찾지 못함 |
 | Grafana login fails | `docker compose logs grafana` | password typo or old `grafana-data` volume |
 | Prometheus has no cAdvisor target | `docker compose logs prometheus` | scrape target unavailable |
+| Grafana Prometheus data source fails | Grafana Data source URL | `localhost:19090`이 아니라 `http://prometheus:9090` 사용 |
 | cAdvisor container exits | `docker compose logs cadvisor` | host mount/device restriction |
 | Loki has no logs | `docker compose logs promtail` | Docker log path mount restriction |
 | `mkdir /var/lib/docker: read-only file system` | `docker compose --profile host-mount up -d cadvisor promtail` output | Docker Desktop/WSL host mount source path restriction |

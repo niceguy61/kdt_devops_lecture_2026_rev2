@@ -59,6 +59,16 @@ Grafana:    http://localhost:13000  admin / practice-only
 Prometheus: http://localhost:19090
 ```
 
+주소를 헷갈리면 안 된다. 브라우저에서 보는 Prometheus 주소와 Grafana가 내부에서 붙는 Prometheus 주소는 다르다.
+
+| 위치 | 올바른 주소 | 이유 |
+|---|---|---|
+| 내 PC browser/curl | `http://localhost:19090` | host port `19090`이 Prometheus container의 `9090`으로 publish됨 |
+| Grafana datasource URL | `http://prometheus:9090` | Grafana container는 Compose network에서 service name과 container port로 접근함 |
+| 잘못된 값 | `http://localhost:19090` | Grafana container 안의 `localhost`는 Grafana 자기 자신임 |
+
+Grafana에서 Data source를 직접 수정했다면 Prometheus URL은 반드시 `http://prometheus:9090`으로 둔다. 이미 `localhost:19090`으로 저장했다면 Grafana UI에서 고치거나, 실습 data를 버려도 되는 경우에만 `docker compose down -v`로 `grafana-data` volume을 초기화한다.
+
 기본 실행의 성공 기준은 `sample-web`, `log-generator`, `loki`, `prometheus`, `grafana`가 올라오고 일반 로그를 확인하는 것이다.
 
 ## 선택 심화: cAdvisor/Promtail host mount
@@ -166,6 +176,7 @@ curl -G -s 'http://localhost:13100/loki/api/v1/query_range' \
 | WSL/Linux | `docker-credential-desktop.exe` not found | Docker CLI가 Windows credential helper 설정을 참조했지만 WSL PATH에서 실행 파일을 찾지 못한 상태 |
 | WSL/Linux | cAdvisor가 Docker data root를 못 읽음 | `docker info --format '{{.DockerRootDir}}'`로 실제 DockerRootDir을 확인해야 함 |
 | WSL/Docker Desktop | `mkdir /var/lib/docker: read-only file system` | `/var/lib/docker` bind mount source를 만들 수 없는 환경. 기본 실행으로 돌아가고 `host-mount` profile은 선택 처리 |
+| WSL/Linux/macOS | Grafana에서 Prometheus 연결 실패 | datasource URL을 `localhost:19090`이 아니라 `http://prometheus:9090`으로 설정 |
 | WSL/Linux/macOS | `port is already allocated` | 이미 실행 중인 container가 host port를 점유한 상태. `docker ps`로 충돌 port를 찾음 |
 | WSL/Linux/macOS | Loki instant query 오류 | log query는 시간 범위가 필요하므로 `query_range`를 사용 |
 | macOS | `date +%s%N`이 동작하지 않음 | BSD `date`와 GNU `date` 옵션 차이 |
