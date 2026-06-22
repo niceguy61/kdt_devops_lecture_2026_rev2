@@ -140,6 +140,36 @@ docker compose stop cpu-spike
 | Prometheus | `rate(container_cpu_usage_seconds_total[1m])` | `host-mount` profile 성공 시 CPU 사용률 변화 확인 |
 | Loki | `{job="docker"}` | `host-mount` profile 성공 시 Docker container log 확인 |
 
+Prometheus에서 `go_*`, `prometheus_*`, `process_*` metric만 보이고 `container_cpu_usage_seconds_total`이 보이지 않으면 Prometheus가 자기 자신만 scrape하고 있다는 뜻이다. container metric은 Prometheus가 직접 만드는 값이 아니라 cAdvisor가 `/metrics`로 노출하고 Prometheus가 scrape해야 생긴다.
+
+먼저 target을 확인한다.
+
+```bash
+curl -s 'http://localhost:19090/api/v1/query?query=up'
+```
+
+정상 예시:
+
+```text
+instance="prometheus:9090", job="prometheus", value=1
+instance="cadvisor:8080", job="cadvisor", value=1
+```
+
+`cadvisor`가 없거나 `0`이면 container metric은 나오지 않는다. 이때는 선택 profile을 켠다.
+
+```bash
+export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"
+docker compose --profile host-mount up -d cadvisor
+curl -s 'http://localhost:19090/api/v1/query?query=up'
+```
+
+그 다음에야 다음 query가 의미를 가진다.
+
+```promql
+rate(container_cpu_usage_seconds_total[1m])
+container_memory_usage_bytes
+```
+
 container별로 좁혀서 보고 싶으면 label filter를 쓴다.
 
 | 기준 | PromQL 예시 | 언제 쓰는가 |

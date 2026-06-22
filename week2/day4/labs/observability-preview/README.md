@@ -114,6 +114,27 @@ Expected:
 Prometheus Server is Ready.
 ```
 
+`go_*`, `prometheus_*`, `process_*` metric만 보일 때:
+
+```bash
+curl -s 'http://localhost:19090/api/v1/query?query=up'
+```
+
+`container_cpu_usage_seconds_total`과 `container_memory_usage_bytes`는 Prometheus 자체 metric이 아니라 cAdvisor가 노출한 metric이다. `up` 결과에 `job="cadvisor"`가 없거나 값이 `1`이 아니면 선택 profile을 켠다.
+
+```bash
+export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"
+docker compose --profile host-mount up -d cadvisor
+curl -s 'http://localhost:19090/api/v1/query?query=up'
+```
+
+정상 target 상태:
+
+```text
+job="prometheus" value=1
+job="cadvisor" value=1
+```
+
 Prometheus UI:
 
 ```text
@@ -291,6 +312,7 @@ docker compose logs log-generator
 | `docker-credential-desktop.exe` not found | `docker compose up -d` output | WSL이 Windows Docker credential helper를 찾지 못함 |
 | Grafana login fails | `docker compose logs grafana` | password typo or old `grafana-data` volume |
 | Prometheus has no cAdvisor target | `docker compose logs prometheus` | scrape target unavailable |
+| Prometheus에서 `go_*` metric만 보임 | `curl -s 'http://localhost:19090/api/v1/query?query=up'` | cAdvisor가 실행 중이 아니거나 `job="cadvisor"` target이 down이라 container metric을 scrape하지 못함 |
 | Grafana Prometheus data source fails | Grafana Data source URL | `localhost:19090`이 아니라 `http://prometheus:9090` 사용 |
 | `Post "http://localhost:19090/api/v1/query": connect: connection refused` | Grafana Data source URL | Grafana가 아직 잘못된 URL을 보고 있음. Data source 편집 화면을 새로 열고 URL을 `http://prometheus:9090`으로 저장 |
 | cAdvisor container exits | `docker compose logs cadvisor` | host mount/device restriction |

@@ -612,6 +612,26 @@ Grafana Explore에서 확인한다.
 | Prometheus | `container_memory_usage_bytes` | `host-mount` 성공 시 container memory metrics 확인 |
 | Loki | `{job="docker"}` | `host-mount` 성공 시 Docker container log 확인 |
 
+Prometheus에서 `go_*`, `prometheus_*`, `process_*` metric만 보이면 Prometheus가 자기 자신만 scrape하는 상태다. container CPU/memory metric은 cAdvisor에서 온다.
+
+```bash
+curl -s 'http://localhost:19090/api/v1/query?query=up'
+```
+
+정상 target 상태:
+
+```text
+job="prometheus" value=1
+job="cadvisor" value=1
+```
+
+`cadvisor`가 없거나 `0`이면 다음을 실행한다.
+
+```bash
+export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"
+docker compose --profile host-mount up -d cadvisor
+```
+
 container 또는 service별 필터링:
 
 ```promql
@@ -696,6 +716,7 @@ Troubleshooting:
 | WSL/Linux | `docker-credential-desktop.exe` not found | `DOCKER_CONFIG` 임시 디렉터리에 빈 `config.json`을 두고 실행 |
 | WSL/Linux | cAdvisor가 `/var/lib/docker`를 못 읽음 | `export DOCKER_ROOT_DIR="$(docker info --format '{{.DockerRootDir}}')"` 후 `docker compose --profile host-mount up -d cadvisor promtail` |
 | WSL/Docker Desktop | `mkdir /var/lib/docker: read-only file system` | 기본 `docker compose up -d`로 돌아가고 `docker compose logs`, `docker stats` 중심으로 진행 |
+| WSL/Linux/macOS | Prometheus에서 `go_*` metric만 보임 | cAdvisor target이 없거나 down인 상태. `up` query 확인 후 `docker compose --profile host-mount up -d cadvisor` 실행 |
 | WSL/Linux/macOS | Grafana에서 Prometheus 연결 실패 | Data source URL은 `localhost:19090`이 아니라 `http://prometheus:9090` |
 | WSL/Linux/macOS | `Post "http://localhost:19090/api/v1/query": connect: connection refused` | Grafana가 아직 잘못된 URL을 보고 있음. Data source 편집 화면을 새로 열고 URL을 `http://prometheus:9090`으로 저장 |
 | WSL/Linux/macOS | `port is already allocated` | `docker ps`로 점유 port 확인. 이 lab은 cAdvisor `18086` 사용 |
