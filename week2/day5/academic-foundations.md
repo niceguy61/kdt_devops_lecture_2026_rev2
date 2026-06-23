@@ -32,6 +32,12 @@ Compose는 `docker run` 명령을 길게 적는 편의 도구가 아니다. appl
 
 Day 5에서 capacity planning을 정밀하게 계산하지는 않는다. 대신 각 구조에서 traffic ingress, CPU-heavy service, memory/state-heavy service를 구분해 Week 3 MSA와 Kubernetes의 scaling/readiness 질문으로 연결한다.
 
+## Synthesis Challenge Rationale
+
+9세션 챌린지는 worked example을 줄이고 keyword 기반 설계를 요구한다. 학생은 `gateway`, `api`, `postgres`, `redis`, `queue`, `worker` 같은 키워드를 service, network, volume, runtime config로 변환해야 한다. 이는 Week 3 MSA에서 요구되는 service boundary 사고와 Kubernetes manifest 작성의 전 단계다.
+
+챌린지는 기능 수를 비교하기 위한 시간이 아니라 architecture reasoning을 연습하는 시간이다. 외부 traffic이 어디로 들어오는지, stateful service를 어디에 둘지, 어떤 service가 CPU 또는 memory pressure를 받을지, 실패 시 어떤 evidence를 먼저 볼지를 편하게 설명해보는 데 초점을 둔다.
+
 ## Official Links
 
 - Docker Compose: https://docs.docker.com/compose/

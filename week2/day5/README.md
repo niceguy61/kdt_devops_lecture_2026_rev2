@@ -30,6 +30,7 @@ Day 5는 Compose 문법을 길게 외우는 날이 아니다. 1교시에서 Comp
 | 6교시 | 카카오형 메시징/worker | `05-queue-worker-db` | HTTP producer, Redis queue, worker logs |
 | 7교시 | API + PostgreSQL | `06-api-postgrest` | REST API response, DB init logs |
 | 8교시 | MSA preview | `07-frontend-gateway-api-db` | frontend marker, `/api/services`, Week3 bridge |
+| 9세션 | Architecture keyword challenge | `compose-architecture-challenge` | keyword만 보고 Compose 설계 |
 
 ## Practice Files
 | 자료 | 용도 |
@@ -42,6 +43,8 @@ Day 5는 Compose 문법을 길게 외우는 날이 아니다. 1교시에서 Comp
 | `labs/compose-architectures/05-queue-worker-db/` | async queue/worker |
 | `labs/compose-architectures/06-api-postgrest/` | API + DB |
 | `labs/compose-architectures/07-frontend-gateway-api-db/` | MSA preview |
+| `session-09-challenge.md` | architecture keyword 기반 Compose 설계 챌린지 |
+| `labs/compose-architecture-challenge/` | 9세션 챌린지 자율 설계 workspace |
 | `assets/day5-compose-architecture-lab-overview.png` | 전체 구조 인포그래픽 |
 | `assets/day5-arch-*.png` | 각 Compose architecture의 network area/연결선/서비스 아이콘 구조도 |
 
@@ -98,6 +101,12 @@ Service type별 추가 확인:
 - [ ] reverse proxy 또는 gateway에서 외부 진입점과 내부 service를 구분했다.
 - [ ] queue/worker 또는 API+DB template에서 logs/API/DB query를 함께 확인했다.
 - [ ] Week 3 MSA로 가져갈 dependency/failure 질문을 작성했다.
+- [ ] 9세션 챌린지를 선택했다면 architecture keyword를 Compose service/network/volume으로 변환했다.
+
+## Optional Session 09 Challenge
+Day 5를 마친 뒤에는 `session-09-challenge.md`로 architecture keyword challenge를 진행할 수 있다. 이번 챌린지는 정답 compose를 제공하지 않고, `frontend`, `gateway`, `api`, `postgres`, `redis`, `queue`, `worker` 같은 keyword를 받아 직접 Compose 구조를 설계한다.
+
+기록은 `labs/compose-architecture-challenge/NOTES.md`에 표로 남긴다. 기록할 내용은 service 목록, external entrypoint, internal service name, network area, stateful volume, traffic/CPU/memory pressure, 실패 주입 결과다.
 
 ## Completion Definition
 Day 5는 다음 문장을 증거와 함께 말할 수 있을 때 완료된다.

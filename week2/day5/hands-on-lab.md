@@ -186,7 +186,29 @@ week2-day5-msa-preview
 "name":"api"
 ```
 
-## 제출/정리
+## 9세션 선택 챌린지: Architecture keywords to Compose
+Day 5 기본 template을 마친 뒤에는 keyword만 보고 Compose 구조를 직접 만든다.
+
+```bash
+cd /mnt/d/paperclip/week2/day5
+sed -n '1,260p' session-09-challenge.md
+cd labs/compose-architecture-challenge
+sed -n '1,220p' NOTES.md
+```
+
+진행 기준:
+
+| 항목 | 요구 |
+|---|---|
+| keyword set | A/B/C/D 중 하나 |
+| service 수 | 4개 이상 |
+| network | `public_net`과 내부 network 1개 이상 |
+| stateful service | PostgreSQL 또는 Redis 1개 이상 |
+| evidence | HTTP, logs, DB/Redis/queue 중 3종 이상 |
+| load note | traffic/CPU/memory pressure 비교 |
+| failure drill | backend/API/DB/Redis/env 중 1개 이상 실패 주입 |
+
+## 기록/정리
 | 항목 | 기록 |
 |---|---|
 | 실행한 template | folder name |
