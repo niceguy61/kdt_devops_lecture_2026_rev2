@@ -1,42 +1,105 @@
-# 5교시: 로그 분산과 correlation id
+# 5교시: Poison Message와 DLQ 필요성
+
+![Week 3 Day 2 Lesson 5](./assets/lesson-05-startup-order-readiness.png)
 
 ## 수업 목표
-- 여러 서비스 로그를 이어서 보는 방법를 실제 운영 판단과 연결한다.
-- running, healthy, ready, user-visible success를 구분한다.
-- 장애 리포트에 남길 증거를 고른다.
+- 잘못된 queue message가 worker에 어떤 영향을 주는지 확인한다.
+- message가 소비된 뒤 실패하면 evidence가 어떻게 사라질 수 있는지 이해한다.
+- retry, dead-letter queue, schema validation 필요성을 설명한다.
+- 단순 worker log 확인을 넘어 실패 message 처리 정책을 논의한다.
 
-## 핵심 설명
-분산 로그는 request id 없이는 이어 보기 어렵다.
+## 사고 시나리오
+정상 message:
 
-## 실습 기준
-```bash
-cd week3/day1/labs/msa-demo
-curl -s -H 'x-request-id: classroom-msa-001' http://localhost:18084/api/status
+```json
+{"order_id": 12, "request_id": "day2-..."}
 ```
 
-## 판단 표
-| 상황 | 먼저 볼 증거 | 다음 행동 |
-|---|---|---|
-| frontend는 열리지만 데이터가 안 보임 | frontend logs, api status | API URL/proxy 확인 |
-| api가 running인데 503 | `/health`, api logs | DB host/readiness 확인 |
-| worker가 반복 실패 | worker logs, API health | dependency 복구 또는 retry 간격 확인 |
-| 원인 전달 필요 | ops report | 재현 조건과 핵심 출력만 첨부 |
+poison message:
 
-## 리포트 문장 예시
 ```text
-증상: frontend /api/status 요청이 503으로 실패했다.
-증거: api /health에서 database_reachable=false를 확인했다.
-원인 후보: DB container 중지 또는 DB_HOST 설정 오류.
-복구: db start 후 /health 200 재확인.
+not-json-day2-poison
 ```
 
+worker는 queue에서 message를 꺼내 JSON으로 파싱하려고 한다. 파싱에 실패하면 error log를 남긴다. 그런데 이 교육용 worker에는 DLQ가 없으므로 message가 별도로 보관되지 않는다.
 
+## 실행
+```bash
+cd week3/day2/labs/incident-scenarios
+./03_poison_message.sh
+```
+
+## 봐야 할 Evidence
+| Evidence | 질문 |
+|---|---|
+| worker log | `worker_error`가 남았는가 |
+| queue length | poison message가 남아 있는가 |
+| audit_logs | 업무 event로 기록됐는가 |
+| request id | 추적 가능한 id가 있는가 |
+
+## 해석
+| 관찰 | 의미 |
+|---|---|
+| `worker_error` | worker가 message 처리에 실패했다 |
+| queue length 0 | message가 소비된 뒤 사라졌을 수 있다 |
+| audit row 없음 | 업무 처리 단계까지 가지 못했다 |
+| request id 없음 | 추적이 더 어렵다 |
+
+이 시나리오는 현실적이다. 운영에서는 잘못된 payload, schema 변경, 배포 버전 불일치, 수동 queue 주입 실수로 poison message가 발생할 수 있다.
+
+## 왜 위험한가
+| 위험 | 설명 |
+|---|---|
+| silent loss | 실패 message가 사라져 재처리할 수 없다 |
+| 반복 실패 | 같은 message가 계속 worker를 실패시킬 수 있다 |
+| backlog blockage | queue 종류에 따라 뒤 message 처리가 막힐 수 있다 |
+| 원인 추적 어려움 | request id와 payload metadata가 없으면 조사 어렵다 |
+
+## 필요한 설계
+| 설계 | 목적 |
+|---|---|
+| schema validation | worker 처리 전에 message 형태 검증 |
+| retry metadata | 몇 번 실패했는지 기록 |
+| DLQ | 반복 실패 message를 별도 queue로 격리 |
+| error reason | 실패 원인 저장 |
+| alert | DLQ 증가나 worker error rate 감지 |
+
+## 실무형 Runbook
+| 단계 | 명령/확인 | 판단 |
+|---|---|---|
+| 1 | worker error rate 확인 | poison message 가능성 |
+| 2 | queue depth 확인 | backlog 동반 여부 |
+| 3 | 실패 payload 샘플 확인 | schema mismatch 여부 |
+| 4 | DLQ 확인 | 격리된 message 수 |
+| 5 | 재처리 가능성 판단 | idempotency와 데이터 상태 확인 |
+
+현재 실습에는 DLQ가 없다. 그래서 "없는 것" 자체가 학습 포인트다.
+
+## 운영 리포트 문장
+```text
+Redis queue에 malformed payload를 주입하자 order-worker가 worker_error를 남겼다.
+이후 order-events queue length는 0이 되었고, audit_logs에는 업무 event가 남지 않았다.
+현재 worker에는 DLQ가 없어 실패 message를 별도로 추적하거나 재처리하기 어렵다.
+```
+
+## 핵심 포인트
+queue를 쓴다고 자동으로 안정적인 것이 아니다.
+
+```text
+queue + worker
+  needs retry policy
+  needs DLQ
+  needs schema validation
+  needs idempotent processing
+```
 
 ## Evidence Note
 ```markdown
-# Evidence
-- command:
-- observed output:
-- normal or failure:
-- next action:
+# W3D2S5 Poison Message
+- payload:
+- worker error:
+- queue length after consume:
+- audit row:
+- lost evidence:
+- required design:
 ```

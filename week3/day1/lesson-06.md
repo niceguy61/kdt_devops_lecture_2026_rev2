@@ -131,9 +131,27 @@ docker compose logs --tail=60 catalog-api | grep w3d1-catalog-001 || true
 ```bash
 curl -s -X POST -H 'x-request-id: w3d1-order-001' \
   http://localhost:18121/api/orders
+docker compose exec redis redis-cli LLEN order-events
+docker compose exec redis redis-cli LRANGE order-events 0 -1
 docker compose logs --tail=80 order-api | grep w3d1-order-001 || true
 docker compose logs --tail=80 order-worker | grep w3d1-order-001 || true
 ```
+
+`order-worker`는 교육용으로 `ORDER_WORKER_POLL_SECONDS=2`초마다 queue를 확인하고, message를 발견하면 `ORDER_WORKER_MESSAGE_VISIBILITY_SECONDS=10`초 동안 일부러 queue에 남겨둔 뒤 소비한다. 그래서 주문을 넣은 직후에는 Redis list에 message가 잠깐 남아 있어야 한다.
+
+| 명령 | 의미 |
+|---|---|
+| `LLEN order-events` | 현재 queue에 남아 있는 message 개수 |
+| `LRANGE order-events 0 -1` | queue에 남은 message payload 확인 |
+| `logs order-worker` | worker가 message를 꺼내 처리했는지 확인 |
+
+`LRANGE` 결과 예시:
+
+```json
+{"order_id":12,"request_id":"w3d1-order-001"}
+```
+
+약 10초가 지나면 worker가 message를 꺼내므로 `LLEN`은 다시 `0`이 된다. 이 변화가 `queue에 들어감 -> worker가 소비함 -> DB 상태 변경` 흐름의 핵심 evidence다.
 
 주문 상태 확인:
 
@@ -141,7 +159,7 @@ docker compose logs --tail=80 order-worker | grep w3d1-order-001 || true
 curl -s http://localhost:18121/api/orders
 ```
 
-queue가 비었는지 확인:
+queue가 처리되었는지 다시 확인:
 
 ```bash
 docker compose exec redis redis-cli LLEN order-events
