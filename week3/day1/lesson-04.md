@@ -2,6 +2,15 @@
 
 ![Week 3 Day 1 Lesson 4](./assets/lesson-04-standard-msa-topology.png)
 
+그림을 읽을 때는 다음 네 가지를 먼저 확인한다.
+
+| 확인 지점 | 해석 |
+|---|---|
+| 외부 진입점 | Host/browser에서 직접 접근하는 service는 `frontend`뿐이다. |
+| 내부 service 통신 | `frontend -> api`, `api -> db`, `worker -> api`는 Compose 내부 DNS 이름으로 통신한다. |
+| worker 위치 | `worker`는 외부 port를 받지 않고, 사용자 요청 경로가 아닌 background 확인 루프를 수행한다. |
+| DB 공개 범위 | `db`는 host에 port를 공개하지 않고, 내부 network와 volume을 통해서만 사용한다. |
+
 ## 수업 목표
 - `msa-demo`의 frontend, api, worker, db 요청 흐름을 설명한다.
 - 사용자 요청 경로와 background worker 경로를 구분한다.
