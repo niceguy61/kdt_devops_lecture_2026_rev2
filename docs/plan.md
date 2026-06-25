@@ -36,7 +36,7 @@
 - 수업은 도구 나열보다 시나리오 해결 중심으로 구성한다. 학생이 "명령을 배웠다"가 아니라 "사건을 증거로 분석하고 복구했다"라고 느끼도록 범위와 실습 밀도를 높인다.
 - Kubernetes add-on과 known plugin 설치는 Helm으로 통일한다. 공식 문서의 raw manifest 설치 예제가 있더라도 수업 설치 절차는 `helm repo add`, `helm repo update`, `helm upgrade --install`, `helm list`, `kubectl get pods`, `helm uninstall` 흐름으로 맞춘다.
 - Kubernetes add-on 설정은 긴 `--set` 나열보다 수업용 `values.yaml`을 우선한다. 학생이 chart, release, namespace, values, rollback, uninstall의 공통 패턴을 반복해서 익히도록 한다.
-- W3D4부터 이어지는 Kubernetes 7일 탐험의 imagegen 인포그래픽은 "귀여운 너구리 캐릭터가 바다로 항해하며 Kubernetes 섬과 항로를 탐험하는" 일관된 시각 컨셉을 사용한다. 너구리 캐릭터는 장식용 마스코트가 아니라 cluster, route, observability, policy, GitOps, mesh 같은 개념을 안내하는 학습 보조 요소로 배치한다.
+- W3D4부터 이어지는 Kubernetes 7일 탐험의 imagegen 인포그래픽은 전문적인 클라우드 아키텍처 그래픽을 기본 톤으로 한다. 귀여운 너구리 캐릭터는 화면 한쪽에서 작은 설명자 역할만 하며, 바다/항해 요소는 나침반, 옅은 항로선, 작은 아이콘처럼 보조 장식으로만 사용한다. 아키텍처 그림에서는 박스, 연결선, 계층, traffic flow, 상태 흐름이 반드시 주인공이어야 한다.
 
 # 1주차
 
