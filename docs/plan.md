@@ -13,7 +13,7 @@
 | 1주차 | 컴퓨팅 펀더멘털, DevOps 마인드셋, 로컬 서비스 실행 | 미니 웹앱, README/runbook, RCA, 컴퓨팅 spine 매핑 |
 | 2주차 | Docker, 이미지/컨테이너, Dockerfile, Compose | Dockerfile, compose.yaml, 이미지 실행 흐름, 컨테이너 장애 분석 |
 | 3주차 | MSA 2일, GitHub/GitHub Actions 1일, Kubernetes 진입 2일 | MSA 장애 리포트, branch/merge/rebase/revert/tag 압축 실습, CI gate, Pod/Deployment/Service 첫 배포 |
-| 4주차 | Kubernetes 5일 | Kubernetes runbook, Pod/Deployment/Service/ConfigMap/Secret/Ingress, MSA 앱 배포 |
+| 4주차 | Kubernetes 운영 5일 | Helm 기반 add-on 설치, Ingress, metrics-server, Prometheus/Grafana, RBAC, Kyverno, Argo CD, Istio/Kiali preview |
 | 5주차 | AWS 마무리 3일, Terraform/IaC 2일 | AWS 운영 runbook, 비용/관찰 흐름, Terraform 코드/plan/destroy 흐름 |
 
 ## 일차 운영 리듬
@@ -34,6 +34,9 @@
 - 강의 자료에서 같은 핵심 포인트, 주의사항, cleanup 원칙, 운영 해석을 교시마다 반복하지 않는다. 공통 원칙은 README나 hands-on lab 앞부분에 한 번만 두고, 각 lesson에는 그 교시 고유의 판단 기준과 위험만 남긴다.
 - "핵심 포인트"와 "주의할 점"은 분량 채우기용 문단이 아니다. 이전 교시와 의미가 같은 문장은 삭제하고, 실제 시나리오 판단에 필요한 새 정보만 남긴다.
 - 수업은 도구 나열보다 시나리오 해결 중심으로 구성한다. 학생이 "명령을 배웠다"가 아니라 "사건을 증거로 분석하고 복구했다"라고 느끼도록 범위와 실습 밀도를 높인다.
+- Kubernetes add-on과 known plugin 설치는 Helm으로 통일한다. 공식 문서의 raw manifest 설치 예제가 있더라도 수업 설치 절차는 `helm repo add`, `helm repo update`, `helm upgrade --install`, `helm list`, `kubectl get pods`, `helm uninstall` 흐름으로 맞춘다.
+- Kubernetes add-on 설정은 긴 `--set` 나열보다 수업용 `values.yaml`을 우선한다. 학생이 chart, release, namespace, values, rollback, uninstall의 공통 패턴을 반복해서 익히도록 한다.
+- W3D4부터 이어지는 Kubernetes 7일 탐험의 imagegen 인포그래픽은 "귀여운 너구리 캐릭터가 바다로 항해하며 Kubernetes 섬과 항로를 탐험하는" 일관된 시각 컨셉을 사용한다. 너구리 캐릭터는 장식용 마스코트가 아니라 cluster, route, observability, policy, GitOps, mesh 같은 개념을 안내하는 학습 보조 요소로 배치한다.
 
 # 1주차
 
@@ -313,6 +316,7 @@
 - GitHub는 1일로 압축한다. branch 전략, PR 운영, merge/rebase/revert/tag, GitHub Actions CI gate를 한 흐름으로 묶되 배포 전략의 깊은 내용은 Kubernetes rollout 주차로 넘긴다.
 - GitHub Actions는 릴리스 전 검문소(CI gate)로 다룬다. Docker image build와 tag 기준은 맛보기로 연결하고, environment approval과 고급 CD는 이후 주차에서 확장한다.
 - 3주차 후반 2일은 Kubernetes 입문에 사용한다. 학생 기대가 큰 영역이므로 cluster/node/kubectl/Pod/Deployment/Service를 실제 손으로 확인한다.
+- 3주차 4~5일차는 W4D1~W4D5까지 이어지는 7일 Kubernetes 탐험의 시작이다. W3D4는 기본 요소와 설치, W3D5는 Pod/Deployment/Service 첫 실행에 집중하고, known plugin은 Week4에서 Helm 기반으로 단계적으로 심는다.
 - 각 lesson에는 중복 주의사항을 반복하지 않고, 해당 시나리오에서 새로 판단해야 하는 증거와 실패 기준만 둔다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
 
@@ -408,85 +412,114 @@
 - probes
 - resources
 - helm
+- metrics-server
 - observability
+- prometheus
+- grafana
+- rbac
+- kyverno
+- argocd
+- istio
+- kiali
 - runbook
 - troubleshooting
 
 ## 4주차 목표
-- Kubernetes cluster, node, control plane, worker node, kubelet, container runtime의 역할을 설명한다.
-- kubectl context, namespace, get, describe, logs, exec, apply, delete를 실습 흐름에서 사용한다.
-- Pod, Deployment, Service를 이용해 MSA 서비스를 선언적으로 배포하고 내부 통신을 확인한다.
-- Kubernetes에서 ConfigMap, Secret, volume, Ingress, probe, rollout/rollback, resource limit을 운영 시나리오로 실습한다.
-- Docker Compose 기반 MSA 실습 앱을 Kubernetes manifest로 옮겨 namespace 안에 배포한다.
-- kubectl로 리소스 상태, 로그, 이벤트, 네트워크 연결 문제를 확인한다.
-- Helm을 이용해 Ingress Controller 또는 관찰 컴포넌트를 설치하고 release 상태를 관리한다.
-- Week3에서 만든 image tag, release 기준, rollback 기준을 Kubernetes rollout과 연결한다.
+- Week3 Day4~Day5에서 잡은 Kubernetes 기본 요소를 실제 운영 시나리오로 확장한다.
+- Helm의 chart, repository, release, values, upgrade, rollback, uninstall 흐름을 Kubernetes add-on 설치 표준으로 사용한다.
+- Pod, Deployment, Service, ConfigMap, Secret, probe, resource request/limit, Ingress를 MSA 운영 맥락에서 연결한다.
+- metrics-server로 Pod/node resource 사용량을 확인하고 requests/limits, HPA preview와 연결한다.
+- ingress-nginx를 Helm으로 설치하고 frontend/API 외부 진입 경로를 host/path routing으로 확인한다.
+- kube-prometheus-stack을 Helm으로 설치하고 Prometheus target, Grafana dashboard, Pod/node metric을 확인한다.
+- ServiceAccount, Role, RoleBinding, RBAC 최소 권한을 실습하고 Kyverno로 admission policy가 배포를 차단하는 흐름을 확인한다.
+- Argo CD로 Git repository의 Kubernetes manifest를 sync하고 drift, OutOfSync, manual sync 흐름을 확인한다.
+- Istio와 Kiali는 service mesh의 sidecar, traffic graph, traffic split/fault injection을 preview 수준으로 체험한다.
+- Kubernetes runbook을 배포, 확인, 장애 분석, rollback, policy 위반, observability, cleanup 기준으로 정리한다.
 
 ## 4주차 운영 원칙
-- 4주차는 Kubernetes 5일 집중 주간으로 운영한다.
+- 4주차는 W3D4~W3D5에서 시작한 7일 Kubernetes 탐험의 후반 5일로 운영한다.
 - Week3에서 정리한 MSA 앱, branch/tag/release 기준, CI/CD 증거를 Kubernetes 배포 대상으로 사용한다.
 - Kubernetes를 YAML 암기 수업으로 만들지 않고, MSA 운영 문제를 해결하는 선언적 운영 모델로 다룬다.
-- Kubernetes known plugin은 깊은 튜닝보다 설치 이유, 핵심 리소스, 운영 효과, 장애 확인 방법을 중심으로 다룬다.
+- Kubernetes known plugin은 한 날에 몰아 소개하지 않는다. workload, traffic, observability, security, GitOps, mesh 주제 안에 하나씩 심어서 실제 운영 문제 해결 도구로 사용한다.
+- Kubernetes add-on 설치는 Helm으로 통일한다. `kubectl apply -f <remote-url>` 방식은 설치 표준으로 쓰지 않고, 필요할 때만 왜 혼란을 만드는지 비교 설명한다.
+- 모든 Helm 설치는 `helm upgrade --install`을 기본으로 하고 namespace, release name, chart repo, values file, 검증 명령, uninstall 명령을 함께 제공한다.
+- Helm values는 수업 repo 안의 파일로 관리한다. 긴 `--set` 명령은 빠른 데모나 공식 문서 비교가 아닌 이상 사용하지 않는다.
+- add-on별 목표는 깊은 튜닝이 아니라 설치 이유, 핵심 리소스, 운영 효과, 장애 확인 방법이다.
 - AWS 계정, 네트워크, 비용 안전장치, EC2/RDS 등 클라우드 인프라 실습은 5주차로 넘긴다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
 
+## W3D4~W4D5 Kubernetes 7일 흐름
+| 일차 | 본 주제 | 함께 심는 add-on/plugin | 설치 기준 |
+|---|---|---|---|
+| W3D4 | Kubernetes 기본 요소와 kind 설치 | 없음 | kind/kubectl 자체 설치와 cluster 확인 |
+| W3D5 | Pod, Deployment, Service 첫 실행 | 없음 | 기본 object manifest 직접 작성 |
+| W4D1 | 운영 가능한 workload와 resource 관찰 | Helm, metrics-server | Helm으로 metrics-server 설치 |
+| W4D2 | Service, DNS, Ingress, 외부 traffic | ingress-nginx | Helm으로 ingress-nginx 설치 |
+| W4D3 | 장애와 성능 관찰 | kube-prometheus-stack | Helm으로 Prometheus/Grafana 설치 |
+| W4D4 | 권한과 정책 | RBAC, Kyverno | RBAC은 기본 object, Kyverno는 Helm 설치 |
+| W4D5 | GitOps와 mesh preview | Argo CD, Istio, Kiali | 모두 Helm 설치 |
+
 ## 1일차
-- 1교시 : Week3 강의 10분 요약 + Kubernetes가 필요한 이유 - 여러 컨테이너 운영, 장애 복구, 배포 자동화, 선언적 상태 관리
-- 2교시 : Kubernetes 전체 그림 - cluster, node, control plane, worker node, kubelet, container runtime
-- 3교시 : 로컬 Kubernetes 환경 준비 - kind 설치, kubectl 연결, context 확인
-- 4교시 : kind multi-node 클러스터 구성 - control-plane/worker node 구성, `kubectl get nodes` 확인
-- 5교시 : kubectl 기본 - context, namespace, get, describe, logs, exec, apply, delete
-- 6교시 : 첫 Pod 실행 - image, command, port, logs, exec, delete 흐름
-- 7교시 : Pod 장애 확인 - ImagePullBackOff, CrashLoopBackOff, pending 상태를 describe/events/logs로 확인
-- 8교시 : 구름 EXP 배움일기 - Kubernetes가 필요한 이유, cluster/node/control plane, kubectl에서 막힌 지점
+- 1교시 : Week3 Kubernetes 2일 요약 + 운영 가능한 workload 기준 - Pod/Deployment/Service 복습, 설정/상태/자원/관찰이 필요한 이유
+- 2교시 : Helm 기본 개념 - chart, repository, release, namespace, values, upgrade, rollback, uninstall
+- 3교시 : Helm 공통 설치 루프 - `repo add/update`, `upgrade --install`, `helm list`, `kubectl get pods`, `helm uninstall`
+- 4교시 : ConfigMap과 Secret - image 밖 runtime config, 민감정보 주입, `.env`와 Kubernetes object 연결
+- 5교시 : probe와 readiness - liveness/readiness/startup probe, 잘못된 probe가 traffic과 restart에 미치는 영향
+- 6교시 : resource requests/limits - CPU/memory 요청과 제한, OOMKilled, node capacity, 비용 감각
+- 7교시 : metrics-server 설치와 관찰 - Helm으로 metrics-server 설치, `kubectl top node/pod`, HPA preview
+- 8교시 : 구름 EXP 배움일기 - Helm 설치 패턴, ConfigMap/Secret, probe/resource에서 막힌 지점
 
 ## 2일차
-- 1교시 : Day1 강의 10분 요약 + Deployment가 필요한 이유 - Pod 직접 실행의 한계, desired state, replica, self-healing
-- 2교시 : Deployment manifest 구조 - apiVersion, kind, metadata, spec, selector, template
-- 3교시 : Week3 MSA 앱의 api Deployment 배포 - 이미지 지정, replicas, labels, selector 확인
-- 4교시 : Service가 필요한 이유 - Pod IP 변화, 안정적인 접근 주소, ClusterIP 개념
-- 5교시 : Service manifest 구조와 연결 확인 - api Service 생성, exec/curl로 내부 통신 확인
-- 6교시 : frontend와 api 연결 - service name DNS, container port, service port, targetPort 구분
-- 7교시 : multi-node 배치 확인 - replica가 어떤 node에 배치되는지 확인, node 단위 장애 영향 관찰
-- 8교시 : 구름 EXP 배움일기 - Deployment/Service 역할, service name DNS, multi-node 배치, rollout 질문
+- 1교시 : Day1 강의 10분 요약 + Kubernetes networking 다시 잡기 - Pod IP, Service, Endpoint, DNS, selector
+- 2교시 : MSA 앱 내부 통신 - frontend/api/database 또는 cache 연결, service name DNS와 targetPort 구분
+- 3교시 : ingress-nginx 설치 - Helm으로 ingress-nginx 설치, controller Pod/Service, admission job 확인
+- 4교시 : Ingress rule 작성 - host/path routing, frontend와 API routing, curl/browser 확인
+- 5교시 : Ingress 장애 분석 - className 누락, Service selector 오류, backend port 오류, 404/502/connection refused 분리
+- 6교시 : NetworkPolicy preview - frontend -> backend, backend -> database 허용/차단 기준과 DNS 주의
+- 7교시 : rollout과 external traffic - image tag 변경, rollout status/history/undo, Ingress 경로로 사용자 영향 확인
+- 8교시 : 구름 EXP 배움일기 - Service/Ingress/DNS 차이, ingress-nginx Helm 설치, traffic 장애에서 먼저 볼 증거
 
 ## 3일차
-- 1교시 : Day2 강의 10분 요약 + ConfigMap과 Secret이 필요한 이유 - 설정과 민감정보를 이미지에서 분리하는 운영 원칙
-- 2교시 : ConfigMap 실습 - 환경변수 주입, 설정 변경, Pod 재시작 필요성 확인
-- 3교시 : Secret 실습 - DB credential 주입, base64 오해, 저장소에 올리면 안 되는 정보
-- 4교시 : Database를 Kubernetes에서 다루는 기본 관점 - Stateful workload의 어려움, local 실습과 운영 환경의 차이
-- 5교시 : volume 기본 - emptyDir, hostPath 또는 local volume 개념, 데이터 보존과 삭제의 관계
-- 6교시 : MSA 앱 전체 배포 - frontend, api, worker, database를 namespace 안에 배포
-- 7교시 : 연결 장애 분석 - service name, selector, env, secret, pod log, event를 증거로 확인
-- 8교시 : 구름 EXP 배움일기 - ConfigMap/Secret 차이, Kubernetes database, selector/env 장애에서 먼저 볼 지점
+- 1교시 : Day2 강의 10분 요약 + Kubernetes observability 기준 - logs/events/metrics/traces 차이, Docker stats와의 차이
+- 2교시 : kube-prometheus-stack 설치 - Helm으로 Prometheus, Grafana, Alertmanager, exporter 구성 확인
+- 3교시 : Prometheus target 확인 - scrape target, ServiceMonitor/PodMonitor 개념, target down 원인
+- 4교시 : Grafana dashboard 확인 - node/pod CPU/memory/restart, namespace별 resource 사용량
+- 5교시 : 장애와 metric 연결 - bad rollout, readiness 실패, restart 증가, CPU/memory 압박을 dashboard로 확인
+- 6교시 : alert preview - alert rule과 silence 개념, threshold를 너무 낮게 잡을 때 생기는 noise
+- 7교시 : 관찰 runbook 작성 - 증상, 관련 metric, 확인 명령, dashboard 위치, 개발팀 전달 정보
+- 8교시 : 구름 EXP 배움일기 - Prometheus/Grafana에서 본 지표, target down 원인, 운영 dashboard 질문
 
 ## 4일차
-- 1교시 : Day3 강의 10분 요약 + Ingress Controller와 외부 진입점 - Service와 Ingress의 역할 구분
-- 2교시 : Helm 기본 사용 - repo, search, install, upgrade, uninstall, release 개념
-- 3교시 : Ingress Controller 설치 - Helm으로 ingress-nginx 설치, controller pod와 service 확인
-- 4교시 : Ingress rule 작성 - host/path routing, frontend/API routing, curl/browser 확인
-- 5교시 : rollout과 rollback - Week3 image tag 변경, rollout status, history, undo
-- 6교시 : health probe - livenessProbe, readinessProbe, 잘못된 probe가 장애를 만드는 사례
-- 7교시 : 장애 주입 - 잘못된 이미지 태그, readiness 실패, service selector 오류를 logs/events로 확인
-- 8교시 : 구름 EXP 배움일기 - Ingress/Helm/rollout/probe가 필요한 상황과 장애 확인 순서
+- 1교시 : Day3 강의 10분 요약 + Kubernetes 권한 모델 - user, group, ServiceAccount, Role, ClusterRole, RoleBinding
+- 2교시 : RBAC 최소 권한 실습 - 읽기 전용 ServiceAccount, namespace scope 권한, forbidden error 확인
+- 3교시 : app Pod와 ServiceAccount - default ServiceAccount 위험, token mount, workload identity preview
+- 4교시 : Kyverno 설치 - Helm으로 Kyverno 설치, admission controller Pod와 webhook 확인
+- 5교시 : Kyverno policy 실습 1 - `latest` tag 금지, required label, Audit/Enforce 차이
+- 6교시 : Kyverno policy 실습 2 - privileged container 또는 hostPath 제한, policy violation 결과 확인
+- 7교시 : 권한과 정책 장애 분석 - RBAC forbidden과 Kyverno admission deny를 구분하고 복구 기준 정리
+- 8교시 : 구름 EXP 배움일기 - RBAC과 Kyverno 차이, 보안 정책이 배포를 막을 때 확인할 증거
 
 ## 5일차
-- 1교시 : Day4 강의 10분 요약 + 리소스 요청과 제한 - requests, limits, CPU/Memory 압박, OOMKilled 개념
-- 2교시 : autoscaler 개념 - HPA, metrics-server, replicas 자동 조정, 부하와 비용의 관계
-- 3교시 : Observability 기본 - metrics-server, logs, events, 간단한 dashboard 또는 top 명령 확인
-- 4교시 : Kubernetes 운영 Runbook - 배포 방법, 확인 명령, 장애 확인 명령, rollback 절차
-- 5교시 : MSA on Kubernetes 통합 점검 - namespace, deployment, service, configmap, secret, ingress를 한 흐름으로 확인
-- 6교시 : Kubernetes 운영 비용과 복잡도 - 직접 운영 vs managed Kubernetes, 노드 비용, 플러그인 운영 부담
-- 7교시 : AWS 연결 Preview - Kubernetes와 cloud network, managed service, IAM, billing이 연결되는 지점
-- 8교시 : 구름 EXP 배움일기 - Kubernetes 5일 요약, 운영 runbook, AWS로 넘겨 볼 질문
+- 1교시 : Day4 강의 10분 요약 + GitOps 개념 - GitHub Actions와 Argo CD 차이, CI와 CD 책임 분리
+- 2교시 : Argo CD 설치 - Helm으로 Argo CD 설치, admin secret, port-forward 또는 Ingress 접속 기준
+- 3교시 : Argo CD Application 생성 - Git repository의 manifest path를 Application으로 등록하고 sync 상태 확인
+- 4교시 : drift와 sync - manifest 변경, OutOfSync, manual sync, prune/self-heal preview, rollback 기준
+- 5교시 : Istio 개념 preview - sidecar, Envoy, mTLS, traffic policy, mesh가 필요한 시나리오
+- 6교시 : Istio/Kiali 설치 - Helm으로 istio-base, istiod, gateway, Kiali 설치, namespace injection 확인
+- 7교시 : mesh traffic 확인 - sample app sidecar injection, traffic split 또는 fault injection, Kiali graph 확인
+- 8교시 : 구름 EXP 배움일기 - Argo CD/GitOps, Istio mesh preview, Kubernetes 7일 탐험에서 남은 질문
 
 ## 4주차 학습 결과
 - MSA 실습 앱을 배포할 Kubernetes manifest 세트
-- namespace, deployment, service, configmap, secret, ingress 역할 설명 문서
-- 로컬 multi-node 클러스터 구성과 node/pod 배치 확인 결과
-- Helm으로 설치한 Ingress Controller 또는 관찰 컴포넌트 release 상태
+- namespace, deployment, service, configmap, secret, ingress, probe, resource 역할 설명 문서
+- Helm chart/repository/release/values/uninstall 공통 설치 패턴 evidence
+- Helm으로 설치한 metrics-server, ingress-nginx, kube-prometheus-stack, Kyverno, Argo CD, Istio/Kiali release 상태
 - kubectl 기반 상태 확인 및 장애 분석 명령 모음
 - rollout 또는 rollback 실습 흐름 1개
+- Prometheus/Grafana dashboard와 target 확인 evidence
+- RBAC forbidden과 Kyverno admission deny를 구분한 보안 장애 note
+- Argo CD Application sync/drift evidence
+- Istio/Kiali mesh preview evidence
 - Kubernetes 운영 runbook 초안
 - Week3 image tag/release 기준과 Kubernetes rollout 연결 메모
 - AWS로 넘길 계정/네트워크/비용 질문 목록
@@ -500,6 +533,8 @@
 - `kubectl logs`, `kubectl describe`, `kubectl exec` 사용 가능
 - Week3에서 생성한 image tag 또는 로컬 빌드 이미지 사용 가능
 - rollout/rollback 실습용 정상 이미지와 실패 이미지 준비 가능
+- Helm chart 다운로드가 가능한 네트워크 상태 확인
+- Grafana, Argo CD, Kiali UI 접속을 위한 port-forward 또는 Ingress 접근 가능
 
 # 5주차
 ## Keyword

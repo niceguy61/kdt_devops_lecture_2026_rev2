@@ -86,6 +86,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       QUEUE_NAME: order-events
+      COUNT: ${COUNT:-8}
     depends_on:
       db:
         condition: service_healthy
