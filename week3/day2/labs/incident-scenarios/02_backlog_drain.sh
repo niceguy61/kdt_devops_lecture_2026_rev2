@@ -11,7 +11,21 @@ echo "[scenario] Worker backlog and drain"
 echo "[prefix] ${PREFIX}"
 echo "[count] ${COUNT}"
 
+docker compose down >/dev/null
 docker compose up --build -d >/dev/null
+ready=false
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -fsS http://localhost:18121/health >/dev/null 2>&1; then
+    ready=true
+    break
+  fi
+  sleep 1
+done
+if [ "${ready}" != "true" ]; then
+  echo "[error] order-api did not become ready"
+  docker compose logs --tail=80 order-api
+  exit 1
+fi
 docker compose stop order-worker >/dev/null
 
 echo
