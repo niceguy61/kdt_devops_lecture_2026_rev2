@@ -245,12 +245,14 @@ cat week3/day3/labs/github-actions/dockerhub-publish.yml
 | 2 | Prepare image metadata | tag/version을 만든다 |
 | 3 | Run unit test | 코드 단위 검증 |
 | 4 | Run SAST and secret scan | 위험 코드와 secret 노출 검사 |
-| 5 | Set up Docker Buildx | Docker build 환경 준비 |
-| 6 | Build local image for DAST | push 전 image build, GHA cache 사용 |
-| 7 | Run DAST health check | 실행 중인 container 검증 |
-| 8 | Login to Docker Hub | secret으로 registry 인증 |
-| 9 | Build and push image | Docker Hub에 image 업로드 |
-| 10 | Show pull command | 검증 명령 출력 |
+| 5 | Set up QEMU | non-native architecture build 준비 |
+| 6 | Set up Docker Buildx | Docker build 환경 준비 |
+| 7 | Build local image for DAST | push 전 image build, GHA cache 사용 |
+| 8 | Run DAST health check | 실행 중인 container 검증 |
+| 9 | Login to Docker Hub | secret으로 registry 인증 |
+| 10 | Build and push image | Docker Hub에 image 업로드 |
+| 11 | Inspect pushed multi-arch image | amd64/arm64 manifest 확인 |
+| 12 | Show pull command | 검증 명령 출력 |
 
 주의:
 
@@ -270,6 +272,16 @@ Docker Hub token 권한 확인:
 | `login failed` | secret 값 또는 token 자체 오류 | Secret 이름과 token 재등록 |
 
 Docker Hub access token은 생성 후 값을 다시 볼 수 없다. 권한이 헷갈리면 기존 token을 고치려고 하지 말고 새 token을 만들고 GitHub Secret `DOCKERHUB_TOKEN`을 교체한다.
+
+multi-platform 확인:
+| 항목 | 기준 |
+|---|---|
+| push step | `platforms: linux/amd64,linux/arm64` |
+| DAST step | `load: true` 단일 local image로 health check |
+| inspect step | `docker buildx imagetools inspect` 결과에 amd64/arm64 표시 |
+| Docker Hub UI | tag detail에 OS/architecture 여러 개 표시 |
+
+Apple Silicon Mac이나 ARM 서버까지 고려하면 amd64만 push해서는 부족하다. 수업 workflow는 DAST는 runner 기본 architecture로 빠르게 확인하고, 최종 push는 multi-platform manifest로 올리는 구조다.
 
 ## Phase 8. GitHub에서 Actions 동작 확인
 GitHub UI에서 확인한다.
