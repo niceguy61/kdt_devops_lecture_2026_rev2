@@ -6,7 +6,7 @@ It is safe for class because it does not modify the lecture repository history.
 
 ## Create Sandbox
 ```bash
-week3/day3/labs/git-sandbox/setup.sh
+bash week3/day3/labs/git-sandbox/setup.sh
 cd /tmp/w3d3-git-sandbox
 ```
 

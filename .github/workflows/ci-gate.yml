@@ -3,10 +3,10 @@ name: w3d3-ci-gate-demo
 on:
   pull_request:
     branches:
-      - main
+      - develop
   push:
     branches:
-      - main
+      - develop
 
 jobs:
   smoke-test:
@@ -28,4 +28,4 @@ jobs:
 
       - name: Run smoke test
         run: |
-          bash week3/day3/labs/ci-gate-demo/tests/smoke_test.sh
+          week3/day3/labs/ci-gate-demo/tests/smoke_test.sh

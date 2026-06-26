@@ -29,6 +29,17 @@ GitHub repository secrets:
 | `DOCKERHUB_USERNAME` | Docker Hub username |
 | `DOCKERHUB_TOKEN` | Docker Hub access token |
 
+Docker Hub access token은 push 권한이 있어야 한다. Docker 공식 문서 기준으로 access token 생성 시 권한을 선택하며, image push에는 최소 `Read & Write`가 필요하다. `Read-only` token으로는 login이 되는 것처럼 보여도 push 단계에서 거절될 수 있다.
+
+확인할 것:
+| 항목 | 기준 |
+|---|---|
+| token 종류 | Docker Hub account password가 아니라 access token |
+| token 권한 | `Read & Write` 이상 |
+| username | Docker Hub의 실제 Docker ID 또는 push 대상 namespace |
+| repository | `DOCKERHUB_USERNAME/w3d3-dockerhub-app`에 push 권한 있음 |
+| token 재확인 | 기존 token 값은 다시 볼 수 없으므로 헷갈리면 새 token 생성 |
+
 ## GitHub Secrets 장단점
 | 장점 | 설명 |
 |---|---|
@@ -51,6 +62,14 @@ GitHub repository secrets:
   with:
     username: ${{ secrets.DOCKERHUB_USERNAME }}
     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+- name: Verify Docker Hub configuration
+  env:
+    DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  run: |
+    test -n "${DOCKERHUB_USERNAME}"
+    echo "Docker Hub username secret is present."
+    echo "Push requires a Docker Hub access token with Read & Write permission."
 
 - name: Build and push image
   uses: docker/build-push-action@v6
@@ -157,10 +176,48 @@ docker logout
 | 실패 | 원인 후보 |
 |---|---|
 | login failed | secret 이름/토큰 오류 |
+| `401 Unauthorized: access token has insufficient scopes` | Docker Hub token이 Read-only이거나 push 대상 repository/namespace 권한이 없음 |
 | denied requested access | Docker Hub repo 권한 문제 |
 | pull access denied | private repo인데 `docker login`을 하지 않음 |
 | build context not found | workflow path 오류 |
 | tag가 안 보임 | push event/tag 조건 불일치 |
+
+## 401 insufficient scopes 분석
+다음 오류는 Docker build가 실패했다기보다 registry push 권한이 부족하다는 뜻이다.
+
+```text
+failed to fetch oauth token
+401 Unauthorized: access token has insufficient scopes
+scope=repository:.../w3d3-dockerhub-app:pull,push
+```
+
+해석:
+| 로그 조각 | 의미 |
+|---|---|
+| `auth.docker.io/token` | Docker Hub registry token 발급 단계 |
+| `pull,push` | buildx가 push 권한을 요청 |
+| `401 Unauthorized` | Docker Hub가 권한 부족으로 거절 |
+| `insufficient scopes` | token 권한 범위가 push 요구를 만족하지 않음 |
+
+해결 순서:
+| 순서 | 확인 |
+|---|---|
+| 1 | Docker Hub에서 새 access token 생성 |
+| 2 | token permission을 `Read & Write` 이상으로 설정 |
+| 3 | GitHub Secret `DOCKERHUB_TOKEN`을 새 token으로 교체 |
+| 4 | `DOCKERHUB_USERNAME`이 Docker Hub namespace와 정확히 같은지 확인 |
+| 5 | Docker Hub에 `w3d3-dockerhub-app` repository가 없으면 생성하거나, 자동 생성 권한이 있는 계정인지 확인 |
+| 6 | 조직 namespace로 push한다면 개인 token이 아니라 해당 namespace에 write 권한이 있는 계정/token인지 확인 |
+
+로컬에서 같은 token을 빠르게 확인할 수 있다.
+
+```bash
+docker login -u DOCKERHUB_USERNAME
+docker tag w3d3-dockerhub-app:0.1.0 DOCKERHUB_USERNAME/w3d3-dockerhub-app:scope-test
+docker push DOCKERHUB_USERNAME/w3d3-dockerhub-app:scope-test
+```
+
+여기서도 `insufficient scopes`가 나오면 GitHub Actions 문제가 아니라 Docker Hub token 권한 문제다.
 
 ## 비슷한 도구
 | 도구 | 특징 | 적합한 경우 |

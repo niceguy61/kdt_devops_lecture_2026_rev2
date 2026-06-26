@@ -60,14 +60,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Verify Docker Hub configuration
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        run: |
-          test -n "${DOCKERHUB_USERNAME}"
-          echo "Docker Hub username secret is present."
-          echo "Push requires a Docker Hub access token with Read & Write permission."
-
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:

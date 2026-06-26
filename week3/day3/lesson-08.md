@@ -108,6 +108,12 @@ cp -R "$COURSE_REPO/week3/day3/labs/quality-gates" week3/day3/labs/
 
 `dockerhub-publish.yml`의 `APP_DIR`가 `week3/day3/labs/dockerhub-app`로 되어 있으므로, app 경로를 다르게 만들었다면 workflow의 `APP_DIR`도 같이 수정한다.
 
+`dockerhub-publish.yaml`을 실행하기 위해 다음과 같은 명령어를 실행해야 정상 동작한다.
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
 ## Workflow 작성 체크
 workflow에는 step이 한 덩어리로 뭉쳐 있으면 안 된다. 시간이 어디서 쓰였는지 보기 위해 step을 나눠야 한다.
 
