@@ -260,6 +260,15 @@ cat week3/day3/labs/github-actions/dockerhub-publish.yml
 | tag trigger를 쓸 때 `v0.1.0` 형식을 맞춘다 | `v*.*.*` 조건과 일치 |
 | cache가 항상 빨라지는 것은 아니다 | restore/save 비용과 cache miss 가능성 |
 
+Docker Hub token 권한 확인:
+| 오류 | 의미 | 조치 |
+|---|---|---|
+| `401 Unauthorized: access token has insufficient scopes` | token이 push 권한을 갖고 있지 않음 | Docker Hub에서 `Read & Write` token 재생성 |
+| `denied requested access` | repository/namespace 권한 문제 | username, repository owner, org 권한 확인 |
+| `login failed` | secret 값 또는 token 자체 오류 | Secret 이름과 token 재등록 |
+
+Docker Hub access token은 생성 후 값을 다시 볼 수 없다. 권한이 헷갈리면 기존 token을 고치려고 하지 말고 새 token을 만들고 GitHub Secret `DOCKERHUB_TOKEN`을 교체한다.
+
 ## Phase 8. GitHub에서 Actions 동작 확인
 GitHub UI에서 확인한다.
 
