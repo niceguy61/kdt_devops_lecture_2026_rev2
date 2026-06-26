@@ -355,8 +355,8 @@
 - 2교시 : Kubernetes 핵심 컨셉 - cluster, node, control plane, worker node, kubelet, container runtime
 - 3교시 : Kubernetes가 많이 쓰이는 이유 - 선언적 운영, self-healing, service discovery, rollout/rollback, 확장성
 - 4교시 : 장점과 단점 - 표준화/자동화/이식성 vs 러닝커브/YAML/관찰/비용/운영 부담
-- 5교시 : 많이 쓰이는 분야와 참고 사례 - MSA, SaaS, 플랫폼 엔지니어링, CI/CD, managed Kubernetes, edge/k3s 비교
-- 6교시 : 실습 도구 선택 - kind를 학습/테스트용 표준으로 쓰고 k3s는 경량 운영 배포판으로 비교
+- 5교시 : 많이 쓰이는 분야와 참고 사례 - MSA, SaaS, 플랫폼 엔지니어링, CI/CD, managed Kubernetes, edge/cloud 사례
+- 6교시 : 실습 도구 선택 - kind를 과정 표준으로 고정하고 학습/테스트용 cluster의 한계 설명
 - 7교시 : WSL/macOS kind 설치 - Docker, kubectl, kind 설치와 버전 확인
 - 8교시 : kind cluster 생성과 확인 - `kind create cluster`, context, node, cluster-info 확인
 

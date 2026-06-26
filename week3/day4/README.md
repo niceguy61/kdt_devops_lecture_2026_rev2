@@ -13,7 +13,7 @@ Kubernetes 탄생 배경
   -> 선언적 API와 reconciliation
   -> 많이 쓰이는 이유와 한계
   -> 사용 분야와 참고 사례
-  -> kind vs k3s 선택
+  -> kind 실습 표준 선택
   -> WSL/macOS 설치
   -> kind cluster 생성/확인/삭제 기준
 ```
@@ -24,7 +24,7 @@ Kubernetes 탄생 배경
 - `kubectl`, API Server, etcd, Scheduler, Controller Manager, kubelet, Pod가 각각 client, API 입구, 상태 저장소, 배치 판단, 상태 조정, node agent, workload 단위 중 어디에 해당하는지 설명한다.
 - Kubernetes의 장점과 단점을 운영 관점에서 함께 설명한다.
 - MSA, SaaS, platform engineering, CI/CD, managed Kubernetes, edge 환경에서 Kubernetes가 쓰이는 이유를 설명한다.
-- kind와 k3s의 차이를 학습/테스트/운영 관점으로 구분한다.
+- 이번 과정의 Kubernetes 실습 도구를 kind로 통일하는 이유와 한계를 설명한다.
 - WSL/macOS에서 Docker, `kubectl`, `kind` 설치 상태를 확인한다.
 - kind cluster를 만들고 context, node, cluster-info, namespace를 확인한다.
 - cluster를 계속 유지할지 삭제할지 판단 기준을 세운다.
@@ -37,7 +37,7 @@ Kubernetes 탄생 배경
 | 3교시 | Node와 workload 실행 구조 | Node, kubelet, container runtime, Pod |
 | 4교시 | 선언적 API와 reconciliation | desired state, controller loop, self-healing |
 | 5교시 | 장점/단점과 사용 분야 | 표준화, 운영 비용, MSA/SaaS/platform team |
-| 6교시 | kind를 선택하는 이유 | kind/k3s/minikube/Docker Desktop Kubernetes 비교 |
+| 6교시 | kind를 선택하는 이유 | kind 단일 표준, Docker 기반 local cluster 한계 |
 | 7교시 | WSL/macOS 설치 | Docker, kubectl, kind version evidence |
 | 8교시 | kind cluster 생성과 확인 | context/node/cluster-info/namespace 확인, 다음날 연결 |
 

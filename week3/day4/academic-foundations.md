@@ -104,15 +104,15 @@ controller action: 부족한 Pod 1개 생성
 | 비용 관리 | node capacity, request/limit, idle resource 관리 필요 |
 | 디버깅 난도 | "내 앱 문제"와 "cluster 문제"를 구분해야 함 |
 
-## kind와 k3s
-| 도구 | 적합한 경우 | 주의 |
-|---|---|---|
-| kind | 로컬 학습, CI 테스트, 빠른 cluster 생성/삭제 | Docker가 필요하고 실제 운영 cluster와 차이가 있음 |
-| k3s | 경량 운영/edge/lab server | 설치 후 host에 오래 남는 운영 성격이 강함 |
-| minikube | 로컬 학습, 다양한 driver | 환경 옵션이 많아 수업 표준화가 어려울 수 있음 |
-| Docker Desktop Kubernetes | Docker Desktop 사용자에게 편함 | 학생 환경별 UI/상태 차이가 큼 |
+## kind 실습 표준
+이번 과정은 WSL/macOS 학생이 섞여 있고, Day5에서 첫 Pod와 Service로 빠르게 넘어가야 하므로 kind를 단일 실습 표준으로 둔다.
 
-이번 과정은 WSL/macOS 학생이 섞여 있고, Day5에서 첫 Pod와 Service로 빠르게 넘어가야 하므로 kind를 기준으로 한다.
+| 기준 | 설명 |
+|---|---|
+| 표준화 | Docker 위에 동일한 방식으로 cluster를 만든다 |
+| 재현성 | config file로 cluster 이름과 port mapping을 고정할 수 있다 |
+| 정리 | `kind delete cluster`로 수업 리소스를 빠르게 지운다 |
+| 한계 | node가 Docker container라 cloud VM 기반 운영 cluster와 차이가 있다 |
 
 ## Day5 연결
 Day4의 목표는 cluster를 만든 것에서 끝나지 않는다. Day5에서는 이 cluster 위에 다음 object를 올린다.

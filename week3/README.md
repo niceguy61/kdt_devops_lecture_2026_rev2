@@ -15,7 +15,7 @@
 | Day 1 | MSA 토폴로지와 첫 실행 | `msa-demo` compose 실행, frontend/api/worker/db 상태 확인 |
 | Day 2 | 장애 전파와 운영 증거 | health, readiness, timeout/retry, queue/worker, correlation id, 운영 리포트 |
 | Day 3 | GitHub 협업과 CI gate | branch/PR/merge/rebase/revert/tag, Actions workflow |
-| Day 4 | Kubernetes 배경과 kind 설치 | Kubernetes 컨셉, kind/k3s 비교, WSL/macOS 설치, cluster 생성 |
+| Day 4 | Kubernetes 배경과 kind 설치 | Kubernetes 컨셉, kind 단일 표준, WSL/macOS 설치, cluster 생성 |
 | Day 5 | Kubernetes 샘플앱 실행 | Pod, Deployment, Service, rollout 맛보기 |
 
 ## Learning Goals
