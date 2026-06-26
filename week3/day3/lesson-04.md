@@ -1,6 +1,6 @@
 # 4교시: Branch 전략 - dev, stage, prod
 
-![Week 3 Day 3 Lesson 4](./assets/lesson-04-worker-queue-lab.png)
+![Week 3 Day 3 Lesson 4](./assets/lesson-04-branch-strategy-dev-stage-prod.png)
 
 ## 수업 목표
 - `dev`, `stage`, `prod` branch 전략의 장단점을 설명한다.
