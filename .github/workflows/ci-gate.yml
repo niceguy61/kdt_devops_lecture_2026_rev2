@@ -23,6 +23,7 @@ jobs:
 
       - name: Check shell syntax
         run: |
+          bash -n chmod +x week3/day3/labs/ci-gate-demo/tests/smoke_test.sh
           bash -n week3/day3/labs/ci-gate-demo/app.sh
           bash -n week3/day3/labs/ci-gate-demo/tests/smoke_test.sh
 
