@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paperclip-wrong-port
+  namespace: week4
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: wrong-port.paperclip.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+
