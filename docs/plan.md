@@ -315,6 +315,7 @@
 - MSA는 2일로 압축한다. 개념 설명을 오래 끌지 않고 운영 시나리오와 장애 분석 중심으로 진행한다.
 - GitHub는 1일로 압축한다. branch 전략, PR 운영, merge/rebase/revert/tag, GitHub Actions CI gate를 한 흐름으로 묶되 배포 전략의 깊은 내용은 Kubernetes rollout 주차로 넘긴다.
 - GitHub Actions는 릴리스 전 검문소(CI gate)로 다룬다. Docker image build와 tag 기준은 맛보기로 연결하고, environment approval과 고급 CD는 이후 주차에서 확장한다.
+- 학생이 직접 실행하는 shell script는 macOS BSD 기본 도구와 Linux GNU 도구 차이를 피한다. 특히 `sed -i`처럼 OS별 문법이 다른 명령은 쓰지 않고, 임시 파일을 만든 뒤 교체하는 portable 방식으로 작성한다.
 - 3주차 후반 2일은 Kubernetes 입문에 사용한다. 학생 기대가 큰 영역이므로 cluster/node/kubectl/Pod/Deployment/Service를 실제 손으로 확인한다.
 - 3주차 4~5일차는 W4D1~W4D5까지 이어지는 7일 Kubernetes 탐험의 시작이다. W3D4는 기본 요소와 설치, W3D5는 Pod/Deployment/Service 첫 실행에 집중하고, known plugin은 Week4에서 Helm 기반으로 단계적으로 심는다.
 - 각 lesson에는 중복 주의사항을 반복하지 않고, 해당 시나리오에서 새로 판단해야 하는 증거와 실패 기준만 둔다.

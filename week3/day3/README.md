@@ -53,6 +53,18 @@ Git 이론
 | `labs/ci-gate-demo/` | local CI gate 간단 검증 |
 | `hands-on-lab.md` | 전체 실습 순서 |
 
+## Lab Script Compatibility
+학생 PC는 macOS와 Linux/WSL이 섞여 있으므로, W3D3의 실행 스크립트는 OS별 CLI 차이를 피하는 방식으로 작성한다.
+
+| 기준 | 설명 |
+|---|---|
+| inline edit | `sed -i`를 쓰지 않고 임시 파일 생성 후 교체 |
+| shell | `/usr/bin/env bash` 기준 |
+| evidence | 실패 시 오류 메시지와 실행 OS를 함께 기록 |
+| 재실행 | sandbox는 `/tmp/w3d3-git-sandbox`를 지우고 다시 생성 |
+
+macOS에서 `sed: ... command a expects \ followed by text`가 나오면 실행 권한 문제가 아니라 오래된 `setup.sh`의 BSD/GNU sed 호환성 문제다. 최신 `labs/git-sandbox/setup.sh`로 갱신해 다시 실행한다.
+
 ## Secret Policy
 Docker Hub push에는 GitHub repository secrets가 필요하다. Docker Hub repository를 private으로 만들었다면 pull하는 PC나 서버에서도 Docker Hub 인증이 필요하다.
 
