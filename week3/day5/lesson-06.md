@@ -50,6 +50,26 @@ spec:
 | `port` | Service가 받을 port |
 | `targetPort` | Pod/container 쪽으로 보낼 port |
 
+## 그림에서 덜어낸 세부 구조
+이미지는 `client -> CoreDNS -> Service -> Endpoints -> Ready Pods` 흐름만 단순하게 보여준다. 실제 troubleshooting에서는 아래 항목을 따로 확인해야 한다.
+
+| 항목 | 확인 명령 | 해석 기준 |
+|---|---|---|
+| Service DNS | `kubectl -n week3 run curlbox --rm -it --image=curlimages/curl:8.8.0 --restart=Never -- nslookup hello-web` | 같은 namespace에서는 `hello-web` 이름으로 해석되어야 한다 |
+| ClusterIP | `kubectl -n week3 get svc hello-web` | Pod IP와 달리 Service가 유지되는 동안 안정적인 내부 IP다 |
+| selector | `kubectl -n week3 get svc hello-web -o jsonpath='{.spec.selector}'` | Pod label과 정확히 맞아야 endpoint가 생긴다 |
+| Pod label | `kubectl -n week3 get pods --show-labels` | Service selector가 찾는 label이 Pod에 붙어 있어야 한다 |
+| Endpoints | `kubectl -n week3 get endpoints hello-web` | Ready 상태인 Pod IP와 port가 보여야 한다 |
+| EndpointSlice | `kubectl -n week3 get endpointslice -l kubernetes.io/service-name=hello-web` | 최근 Kubernetes에서는 EndpointSlice가 endpoint 정보를 더 세밀하게 나눠 관리한다 |
+
+중요한 점은 DNS가 성공해도 application 통신이 성공한다는 뜻은 아니라는 것이다. DNS는 Service 이름을 찾는 단계이고, 실제 traffic은 Service selector가 만든 endpoint로 전달된다.
+
+```text
+DNS 성공 + endpoint 없음 = 이름은 찾았지만 보낼 Pod가 없음
+DNS 실패 = Service 이름, namespace, CoreDNS 상태부터 확인
+endpoint 있음 + curl 실패 = Pod readiness, container port, app 응답, NetworkPolicy를 확인
+```
+
 ## Service 생성
 ```bash
 export NS=week3
@@ -57,6 +77,14 @@ export LAB=week3/day5/labs/k8s-first-app
 
 kubectl apply -f "$LAB/service.yaml"
 kubectl -n "$NS" get svc hello-web
+kubectl -n "$NS" get endpoints hello-web
+```
+
+끝난 뒤에는 selector, label, endpoint가 한 줄로 이어지는지 확인한다.
+
+```bash
+kubectl -n "$NS" get svc hello-web -o wide
+kubectl -n "$NS" get pods -l app=hello-web --show-labels -o wide
 kubectl -n "$NS" get endpoints hello-web
 ```
 
@@ -102,10 +130,18 @@ ENDPOINTS가 비어 있음
 
 이 상태는 backend Pod가 죽은 것이 아닐 수도 있다. Service가 selector로 Pod를 못 찾는 것이다.
 
+운영에서 이 유형은 자주 나온다. Deployment는 정상이고 Pod도 Running인데 Service endpoint만 비어 있으면, app 장애처럼 보이지만 실제로는 `selector`와 `label` 계약이 깨진 상태일 수 있다.
+
 확인:
 ```bash
 kubectl -n "$NS" get pods -l app=hello-web
 kubectl -n "$NS" describe svc hello-web
+```
+
+비교 확인:
+```bash
+kubectl -n "$NS" get svc hello-web -o jsonpath='{.spec.selector}{"\n"}'
+kubectl -n "$NS" get pods --show-labels
 ```
 
 복구:

@@ -228,9 +228,23 @@ curl -H "Host: paperclip.local" http://localhost:8080/api
 ```
 
 ## 11. NetworkPolicy preview
+적용 전에 현재 Service와 Endpoint를 먼저 본다.
+
+```bash
+kubectl -n "$NS" get svc,endpoints
+kubectl -n "$NS" get pod --show-labels
+kubectl get ns --show-labels
+```
+
+NetworkPolicy가 없으면 namespace가 다르다는 이유만으로 Pod traffic이 자동 차단된다고 가정하면 안 된다. 실제 차단은 CNI와 NetworkPolicy enforcement가 담당한다.
+
 ```bash
 kubectl apply -f "$LAB/networkpolicy-preview.yaml"
 kubectl -n "$NS" get networkpolicy
+kubectl -n "$NS" describe networkpolicy default-deny-all
+kubectl -n "$NS" describe networkpolicy allow-frontend-to-api
+kubectl -n "$NS" describe networkpolicy allow-api-to-db
+kubectl -n kube-system get pod -l k8s-app=kube-dns --show-labels
 ```
 
 주의:
@@ -238,6 +252,15 @@ kubectl -n "$NS" get networkpolicy
 kind 기본 CNI에서는 NetworkPolicy가 강제되지 않을 수 있다.
 오늘은 traffic 허용선과 DNS egress를 설명하는 preview로 사용한다.
 ```
+
+확인 질문:
+| 질문 | 봐야 할 것 |
+|---|---|
+| frontend -> api는 왜 허용되는가 | api ingress + frontend egress |
+| api -> postgres는 왜 허용되는가 | postgres ingress + api egress |
+| frontend -> postgres는 왜 막아야 하는가 | db 직접 접근 차단 |
+| DNS는 왜 따로 여는가 | Service 이름 해석이 CoreDNS를 사용 |
+| 다른 namespace까지 허용하려면 무엇이 필요한가 | `namespaceSelector` |
 
 ## Cleanup
 ```bash
@@ -247,4 +270,3 @@ kubectl delete namespace ingress-nginx
 ```
 
 W4D3에서도 ingress를 계속 쓰고 싶다면 삭제하지 않아도 된다. 남겨둘 경우 `helm list -A`와 `kubectl get ns`에 evidence를 남긴다.
-

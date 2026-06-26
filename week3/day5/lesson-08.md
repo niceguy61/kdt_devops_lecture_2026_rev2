@@ -20,6 +20,20 @@ context 확인
   -> rollout 실패와 undo
 ```
 
+## evidence를 남기는 기준
+그림에는 `Context`, `Pod`, `Deployment`, `Service`, `Rollout`, `Week4`만 남겼다. 대신 제출하거나 회고할 때는 아래처럼 "무엇을 봤는지"와 "그 출력이 무슨 뜻인지"를 본문에 남긴다.
+
+| 항목 | 남길 evidence | 해석 문장 예시 |
+|---|---|---|
+| Context | `kubectl config current-context` | 내가 어느 cluster에 명령을 보내는지 확인했다 |
+| Namespace | `kubectl get ns week3` | 실습 object를 기본 namespace와 분리했다 |
+| Pod | `kubectl -n week3 get pods -o wide` | Pod 상태, node 배치, Pod IP를 함께 확인했다 |
+| 장애 Pod | `kubectl -n week3 describe pod ...` | event에서 image pull 실패나 restart 원인을 찾았다 |
+| Deployment | `kubectl -n week3 get deploy,rs,pod` | Deployment가 ReplicaSet과 Pod 수를 맞추는 것을 확인했다 |
+| Service | `kubectl -n week3 get svc,endpoints hello-web` | Service selector가 Ready Pod endpoint로 연결되는지 확인했다 |
+| Rollout | `kubectl -n week3 rollout status deploy/hello-web` | 새 version 배포가 성공했는지 rollout 상태로 확인했다 |
+| Undo | `kubectl -n week3 rollout undo deploy/hello-web` | 실패한 image 배포를 이전 revision으로 되돌렸다 |
+
 ## 배움일기 권장 구조
 ```markdown
 # W3D5 Kubernetes 첫 앱 실행

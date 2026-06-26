@@ -23,6 +23,30 @@ kubectl -n week3 logs <pod-name>
 | `Pending` | 아직 node에 실행 배치되지 못함 | scheduling event |
 | `Running` but `0/1` | process는 있어도 Ready가 아님 | readiness/probe, endpoint |
 
+## k9s로 빠르게 상태 훑기
+k9s는 Kubernetes resource를 terminal UI로 탐색하는 보조 도구다. `kubectl`을 대체하는 것이 아니라, 현재 cluster의 상태를 빠르게 훑고 다음 `kubectl` 명령을 고르는 데 도움을 준다.
+
+```bash
+kubectl config current-context
+k9s
+```
+
+수업 중 최소 조작:
+
+| k9s 조작 | 대응되는 kubectl 감각 |
+|---|---|
+| `:pods` | `kubectl get pods -A` |
+| `:deploy` | `kubectl get deploy -A` |
+| `:svc` | `kubectl get svc -A` |
+| `0` | 모든 namespace 보기 |
+| `/crash` | 목록 필터링 |
+| `d` | `kubectl describe ...` |
+| `l` | `kubectl logs ...` |
+
+주의할 점은 context다. k9s는 현재 kubeconfig context를 바라보므로, 먼저 `kubectl config current-context`를 확인한다. context가 틀리면 k9s도 엉뚱한 cluster를 보여준다.
+
+증거를 제출하거나 수업 기록을 남길 때는 k9s 화면만 캡처하지 말고, 핵심 원인을 재현할 수 있는 `kubectl describe`나 `kubectl logs` 출력도 함께 남긴다.
+
 ## 장애 1: ImagePullBackOff
 bad image manifest는 존재하지 않는 image tag를 사용한다.
 
@@ -123,4 +147,5 @@ CrashLoopBackOff는 process가 시작했다가 죽는 것이다.
 - RESTARTS 변화:
 - `logs`보다 `describe`를 먼저 봐야 하는 경우:
 - `logs --previous`가 필요한 경우:
+- k9s로 확인한 resource와 대응 kubectl 명령:
 ```

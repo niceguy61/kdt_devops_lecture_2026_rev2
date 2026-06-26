@@ -36,7 +36,11 @@
 - 수업은 도구 나열보다 시나리오 해결 중심으로 구성한다. 학생이 "명령을 배웠다"가 아니라 "사건을 증거로 분석하고 복구했다"라고 느끼도록 범위와 실습 밀도를 높인다.
 - Kubernetes add-on과 known plugin 설치는 Helm으로 통일한다. 공식 문서의 raw manifest 설치 예제가 있더라도 수업 설치 절차는 `helm repo add`, `helm repo update`, `helm upgrade --install`, `helm list`, `kubectl get pods`, `helm uninstall` 흐름으로 맞춘다.
 - Kubernetes add-on 설정은 긴 `--set` 나열보다 수업용 `values.yaml`을 우선한다. 학생이 chart, release, namespace, values, rollback, uninstall의 공통 패턴을 반복해서 익히도록 한다.
+- Kubernetes 상태 확인은 `kubectl`을 기본으로 가르치고, k9s 같은 TUI 도구는 보조 관찰 도구로 소개한다. TUI가 편해도 `get`, `describe`, `logs`, `events`, `exec`, `rollout`의 의미를 대체하지 않는다는 점을 명확히 한다.
 - W3D4부터 이어지는 Kubernetes 7일 탐험의 imagegen 인포그래픽은 전문적인 클라우드 아키텍처 그래픽을 기본 톤으로 한다. 귀여운 너구리 캐릭터는 화면 한쪽에서 작은 설명자 역할만 하며, 바다/항해 요소는 나침반, 옅은 항로선, 작은 아이콘처럼 보조 장식으로만 사용한다. 아키텍처 그림에서는 박스, 연결선, 계층, traffic flow, 상태 흐름이 반드시 주인공이어야 한다.
+- Kubernetes 이미지에는 긴 설명문을 넣지 않는다. 이미지는 구조를 보여주는 도식이어야 하며, 제목 1개, 핵심 노드 4~7개, 짧은 라벨 6~10개 정도만 허용한다. 문장형 설명, 긴 체크리스트, 표 형태의 세부 비교, 주의사항은 lesson 본문 표로 내린다.
+- 이미지에 들어갈 텍스트는 `API Server`, `etcd`, `Pod`, `Service`, `Sync`, `Deny`, `Graph`처럼 짧은 명사/상태어 중심으로 둔다. "왜", "주의", "장단점", "운영 해석"은 그림 안에 쓰지 않고 본문 표에서 설명한다.
+- 이미지 리팩토링 우선순위는 구조 이해가 중요한 그림부터 한다. 1순위는 control plane, node/runtime, Service/DNS/Ingress, NetworkPolicy, Argo CD sync, Istio/Kiali mesh graph다. 배움일기/요약 이미지는 텍스트가 많아지기 쉬우므로 아이콘형 evidence board 정도로 단순화한다.
 
 # 1주차
 
@@ -358,11 +362,11 @@
 - 4교시 : 장점과 단점 - 표준화/자동화/이식성 vs 러닝커브/YAML/관찰/비용/운영 부담
 - 5교시 : 많이 쓰이는 분야와 참고 사례 - MSA, SaaS, 플랫폼 엔지니어링, CI/CD, managed Kubernetes, edge/cloud 사례
 - 6교시 : 실습 도구 선택 - kind를 과정 표준으로 고정하고 학습/테스트용 cluster의 한계 설명
-- 7교시 : WSL/macOS kind 설치 - Docker, kubectl, kind 설치와 버전 확인
-- 8교시 : kind cluster 생성과 확인 - `kind create cluster`, context, node, cluster-info 확인
+- 7교시 : WSL/macOS kind 설치 - Docker, kubectl, kind, k9s 선택 설치와 버전 확인
+- 8교시 : kind cluster 생성과 확인 - `kind create cluster`, context, node, cluster-info 확인, k9s로 현재 context/resource 탐색 preview
 
 ## 5일차
-- 1교시 : Day4 강의 10분 요약 + kubectl 기본 - context, namespace, get, describe, logs, exec, apply, delete
+- 1교시 : Day4 강의 10분 요약 + kubectl 기본과 k9s preview - context, namespace, get, describe, logs, exec, apply, delete, TUI 상태 탐색
 - 2교시 : 첫 Pod 실행 - image, command, port, logs, exec, delete 흐름
 - 3교시 : Pod 장애 확인 - ImagePullBackOff, CrashLoopBackOff, pending 상태를 describe/events/logs로 확인
 - 4교시 : Deployment가 필요한 이유 - Pod 직접 실행의 한계, desired state, replica, self-healing
@@ -445,6 +449,8 @@
 - Kubernetes add-on 설치는 Helm으로 통일한다. `kubectl apply -f <remote-url>` 방식은 설치 표준으로 쓰지 않고, 필요할 때만 왜 혼란을 만드는지 비교 설명한다.
 - 모든 Helm 설치는 `helm upgrade --install`을 기본으로 하고 namespace, release name, chart repo, values file, 검증 명령, uninstall 명령을 함께 제공한다.
 - Helm values는 수업 repo 안의 파일로 관리한다. 긴 `--set` 명령은 빠른 데모나 공식 문서 비교가 아닌 이상 사용하지 않는다.
+- system namespace에 설치되는 add-on은 통신/권한 원리를 반드시 설명한다. `kube-system`, `monitoring`, `argocd`, `istio-system` 등에 설치된 Pod가 다른 namespace를 보는 이유를 Service DNS, APIService, ServiceAccount, Role/ClusterRole, RoleBinding/ClusterRoleBinding 기준으로 나눠 설명한다.
+- "namespace가 다르지만 통신된다"는 표현은 HTTP/Service 통신인지 Kubernetes API 조회/변경인지 구분한다. Service 통신은 DNS/Service/Endpoint/NetworkPolicy를 보고, API 접근은 ServiceAccount token과 RBAC을 본다.
 - add-on별 목표는 깊은 튜닝이 아니라 설치 이유, 핵심 리소스, 운영 효과, 장애 확인 방법이다.
 - AWS 계정, 네트워크, 비용 안전장치, EC2/RDS 등 클라우드 인프라 실습은 5주차로 넘긴다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
@@ -476,7 +482,7 @@
 - 3교시 : ingress-nginx 설치 - Helm으로 ingress-nginx 설치, controller Pod/Service, admission job 확인
 - 4교시 : Ingress rule 작성 - host/path routing, frontend와 API routing, curl/browser 확인
 - 5교시 : Ingress 장애 분석 - className 누락, Service selector 오류, backend port 오류, 404/502/connection refused 분리
-- 6교시 : NetworkPolicy preview - frontend -> backend, backend -> database 허용/차단 기준과 DNS 주의
+- 6교시 : NetworkPolicy preview - namespace는 기본 network 격리벽이 아니라는 점을 명확히 설명하고, frontend -> backend, backend -> database 허용/차단 기준, podSelector/namespaceSelector 차이, DNS egress 주의를 다룬다
 - 7교시 : rollout과 external traffic - image tag 변경, rollout status/history/undo, Ingress 경로로 사용자 영향 확인
 - 8교시 : 구름 EXP 배움일기 - Service/Ingress/DNS 차이, ingress-nginx Helm 설치, traffic 장애에서 먼저 볼 증거
 

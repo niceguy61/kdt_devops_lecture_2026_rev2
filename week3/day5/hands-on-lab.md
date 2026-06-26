@@ -14,6 +14,7 @@ export LAB=week3/day5/labs/k8s-first-app
 kubectl config current-context
 kubectl get nodes -o wide
 kubectl get ns
+k9s version 2>/dev/null || true
 ```
 
 성공 기준:
@@ -27,6 +28,23 @@ node STATUS가 Ready다.
 context가 다르면 엉뚱한 cluster에 배포할 수 있다.
 명령이 실패하면 W3D4의 kind cluster 생성/확인 절차로 돌아간다.
 ```
+
+k9s가 설치되어 있다면 현재 context를 확인한 뒤 UI를 잠깐 열어본다.
+
+```bash
+kubectl config current-context
+k9s
+```
+
+최소 확인:
+| 조작 | 확인 |
+|---|---|
+| `:nodes` | kind node가 보이는가 |
+| `:ns` | `week3` namespace가 있는가 |
+| `:pods` | Pod 목록 화면으로 이동 가능한가 |
+| `q` | 종료 |
+
+k9s는 선택 도구다. 설치가 안 되어 있으면 `kubectl` 명령만으로 실습을 진행한다.
 
 ## Phase 1. Namespace 생성
 ```bash
@@ -67,6 +85,15 @@ kubectl -n "$NS" get pod bad-image-pod
 kubectl -n "$NS" describe pod bad-image-pod
 ```
 
+k9s를 쓰는 경우:
+```text
+:pods
+/bad-image
+d
+```
+
+이 화면에서 event를 확인하되, 기록은 `kubectl describe pod bad-image-pod -n week3` 출력으로 남긴다.
+
 예상 패턴:
 ```text
 STATUS: ImagePullBackOff 또는 ErrImagePull
@@ -86,6 +113,16 @@ kubectl -n "$NS" logs crashloop-pod
 kubectl -n "$NS" logs crashloop-pod --previous || true
 kubectl -n "$NS" describe pod crashloop-pod
 ```
+
+k9s를 쓰는 경우:
+```text
+:pods
+/crashloop
+l
+d
+```
+
+log 화면에서 종료 메시지를 보고, describe 화면에서 restart/back-off event를 확인한다.
 
 예상 패턴:
 ```text
@@ -212,6 +249,7 @@ kubectl -n "$NS" get pods -l app=hello-web
 - curlbox HTTP status:
 - rollout failure symptom:
 - rollout undo result:
+- k9s로 확인한 화면 또는 resource:
 - Week4 question:
 ```
 

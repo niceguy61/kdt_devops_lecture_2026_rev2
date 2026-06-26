@@ -10,6 +10,16 @@
 ## 왜 NetworkPolicy가 필요한가
 Service와 Ingress는 “어디로 보낼 것인가”를 다룬다. NetworkPolicy는 “누가 누구에게 갈 수 있는가”를 다룬다.
 
+Kubernetes namespace는 기본적으로 이름을 나누는 경계이지, 항상 network를 자동 차단하는 방화벽은 아니다. NetworkPolicy가 없고 CNI가 기본 허용 모델이면 다른 namespace Service도 DNS 이름으로 호출될 수 있다.
+
+```text
+frontend.week4
+  -> http://api.week4.svc.cluster.local
+  -> http://api.other-namespace.svc.cluster.local
+```
+
+따라서 "namespace가 다르면 못 간다"가 아니라 "NetworkPolicy 또는 CNI/보안 설정으로 막아야 못 간다"가 정확하다.
+
 운영 기준:
 ```text
 사용자 -> Ingress -> frontend/api
@@ -21,6 +31,28 @@ DNS egress 허용
 ```
 
 host에서 db에 직접 접근하는 구조는 만들지 않는다. db는 내부 backend dependency로 남겨둔다.
+
+## 기본 허용과 정책 적용 후 모델
+NetworkPolicy를 이해할 때는 적용 전과 적용 후를 나누어야 한다.
+
+| 상태 | 의미 |
+|---|---|
+| NetworkPolicy 없음 | CNI 기본값에 따라 Pod 간 통신이 대부분 허용될 수 있음 |
+| 특정 Pod에 ingress policy 존재 | 그 Pod로 들어오는 traffic은 허용 rule에 맞아야 함 |
+| 특정 Pod에 egress policy 존재 | 그 Pod에서 나가는 traffic은 허용 rule에 맞아야 함 |
+| default deny ingress/egress | 명시적으로 연 traffic만 통과 |
+
+NetworkPolicy는 "Service를 없애는 것"이 아니다. Service DNS와 Endpoint가 있어도 policy가 막으면 packet이 통과하지 못한다.
+
+```text
+Service exists
+Endpoint exists
+DNS resolves
+NetworkPolicy denies
+  -> timeout 또는 connection failure
+```
+
+그래서 network 장애를 볼 때는 `Service/DNS/Endpoint`와 `NetworkPolicy`를 분리해서 확인해야 한다.
 
 ## 오늘 manifest 보기
 ```bash
@@ -45,6 +77,31 @@ allow-api-egress-to-db         app=api        5s
 ```
 
 `default-deny-all`과 `allow-dns-egress`의 `podSelector: {}`는 namespace 안 모든 Pod를 대상으로 한다. 그 위에 역할별 허용 policy를 추가해 필요한 통신만 열어준다.
+
+## selector를 정확히 읽는다
+NetworkPolicy는 이름이 아니라 label selector로 대상을 고른다.
+
+| selector | 범위 |
+|---|---|
+| `podSelector: {}` | policy가 있는 namespace의 모든 Pod |
+| `podSelector.matchLabels.app: api` | policy가 있는 namespace의 `app=api` Pod |
+| `from.podSelector.app: frontend` | 같은 namespace의 `app=frontend` Pod |
+| `from.namespaceSelector...` | 조건에 맞는 namespace의 Pod |
+
+이 수업의 manifest는 `week4` namespace 내부의 `frontend -> api -> postgres`를 다룬다. 다른 namespace에서 들어오는 traffic까지 허용하려면 `namespaceSelector`가 필요하다.
+
+예시:
+```yaml
+from:
+  - namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: partner
+    podSelector:
+      matchLabels:
+        app: caller
+```
+
+이 rule은 `partner` namespace 안의 `app=caller` Pod를 뜻한다. `podSelector`만 쓰면 policy가 있는 namespace 안에서만 찾는다고 이해하면 된다.
 
 ## CNI 주의
 NetworkPolicy는 Kubernetes API object지만, 실제 packet 차단은 CNI plugin이 수행한다.
@@ -73,6 +130,17 @@ Could not resolve host: api
 
 이때 app이 죽은 것이 아니라 DNS egress가 막혔을 수 있다.
 
+DNS는 보통 `kube-system` namespace의 CoreDNS Pod로 간다. 그러므로 default deny egress를 적용했다면 application namespace 밖으로 나가는 DNS traffic도 열어야 한다.
+
+```text
+app Pod in week4
+  -> kube-dns Service
+  -> CoreDNS Pod in kube-system
+  -> service name resolved
+```
+
+여기서도 "다른 namespace라서 무조건 막힘/허용"이 아니라, egress policy와 CNI enforcement가 실제 결과를 결정한다.
+
 ## traffic matrix
 | Source | Destination | 허용 여부 | 이유 |
 |---|---|---|---|
@@ -81,6 +149,7 @@ Could not resolve host: api
 | frontend | postgres | 차단 의도 | db 직접 접근 방지 |
 | unknown Pod | postgres | 차단 의도 | lateral movement 방지 |
 | app Pod | kube-dns | 허용 | Service DNS 필요 |
+| app Pod | 다른 namespace Service | 기본은 가능할 수 있음 | 정책이 없으면 namespace만으로 차단되지 않음 |
 
 ## 정책별 의미
 | Policy | 대상 | 의미 |
@@ -123,6 +192,7 @@ kubectl -n week4 describe networkpolicy default-deny-all
 kubectl -n week4 describe networkpolicy allow-frontend-to-api
 kubectl -n week4 describe networkpolicy allow-api-to-db
 kubectl -n week4 get pod --show-labels
+kubectl get ns --show-labels
 kubectl -n kube-system get pod -l k8s-app=kube-dns --show-labels
 ```
 
@@ -132,6 +202,16 @@ kubectl -n kube-system get pod -l k8s-app=kube-dns --show-labels
 | Pod label | policy selector가 label 기반 |
 | kube-dns label | DNS egress rule 대상 |
 | namespace label | `kubernetes.io/metadata.name` 사용 여부 |
+
+정책 적용 전/후를 비교할 때는 다음 순서로 본다.
+
+```bash
+kubectl -n week4 get svc,endpoints
+kubectl -n week4 get networkpolicy
+kubectl -n week4 describe networkpolicy default-deny-all
+```
+
+Service와 Endpoint가 정상인데 timeout이면 NetworkPolicy 가능성이 커진다. DNS resolve 자체가 실패하면 DNS egress를 먼저 본다.
 
 ## 운영에서 더 나은 구성
 오늘 manifest도 역할별로 나누어 둔다. 운영에서는 여기에 namespace, ServiceAccount, app tier, environment label을 더해 정책을 세분화한다.
@@ -191,10 +271,12 @@ unknown pod -> api/db 실패
 - api -> db policy:
 - kind 기본 CNI 주의:
 - DNS egress를 빼먹으면 생기는 증상:
+- namespace만으로 network가 자동 차단되지 않는 이유:
+- podSelector와 namespaceSelector 차이:
 - label이 틀리면 생기는 문제:
 ```
 
 ## 한 줄 요약
 ```text
-NetworkPolicy는 routing이 아니라 허용선을 정하는 정책이며, DNS egress를 빼먹으면 Service 이름부터 깨질 수 있다.
+NetworkPolicy는 namespace 자동 격리가 아니라 label 기반 허용선이며, DNS egress를 빼먹으면 Service 이름부터 깨질 수 있다.
 ```

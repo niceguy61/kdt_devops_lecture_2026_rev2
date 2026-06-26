@@ -85,6 +85,18 @@ metrics-server는 kubelet에서 resource metric을 수집해 Kubernetes Metrics 
 
 metrics-server는 Prometheus/Grafana를 대체하지 않는다. 목적이 다르다.
 
+metrics-server는 보통 `kube-system` namespace에 설치된다. 그렇다고 `week4` namespace의 Pod가 metrics-server와 직접 통신해서 `kubectl top` 결과를 만드는 것은 아니다. 흐름은 API server를 중심으로 이해한다.
+
+```text
+kubectl top pod -n week4
+  -> Kubernetes API server
+  -> metrics.k8s.io APIService
+  -> kube-system/metrics-server Service
+  -> metrics-server가 수집한 kubelet resource metric
+```
+
+namespace는 조회 대상을 필터링하는 범위이고, metrics-server의 설치 위치와는 별개다. metrics-server가 여러 namespace의 Pod metric을 제공하려면 chart가 설치하는 ServiceAccount, RBAC, APIService가 정상이어야 한다.
+
 | 도구 | 주 용도 |
 |---|---|
 | metrics-server | CPU/memory 현재 사용량, HPA/VPA의 기본 resource metric |
@@ -92,4 +104,3 @@ metrics-server는 Prometheus/Grafana를 대체하지 않는다. 목적이 다르
 | Grafana | dashboard 시각화 |
 
 kind/local 실습에서는 kubelet certificate 검증 문제 때문에 `--kubelet-insecure-tls`가 필요할 수 있다. 이 설정은 로컬 실습 편의용이며 운영 환경의 기본값으로 가져가면 안 된다.
-

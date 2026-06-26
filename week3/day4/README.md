@@ -26,6 +26,7 @@ Kubernetes 탄생 배경
 - MSA, SaaS, platform engineering, CI/CD, managed Kubernetes, edge 환경에서 Kubernetes가 쓰이는 이유를 설명한다.
 - 이번 과정의 Kubernetes 실습 도구를 kind로 통일하는 이유와 한계를 설명한다.
 - WSL/macOS에서 Docker, `kubectl`, `kind` 설치 상태를 확인한다.
+- k9s 같은 Kubernetes TUI 도구를 선택 설치하고, `kubectl` current-context를 그대로 바라본다는 점을 이해한다.
 - kind cluster를 만들고 context, node, cluster-info, namespace를 확인한다.
 - cluster를 계속 유지할지 삭제할지 판단 기준을 세운다.
 
@@ -71,6 +72,7 @@ Day4에서 최소한 다음 문장은 말할 수 있어야 한다.
 | Docker | `docker version`, Docker Desktop/Engine 실행 여부 |
 | kubectl | client version, current-context |
 | kind | kind version, cluster list |
+| k9s | optional install, current context 확인 |
 | cluster | `kubectl get nodes -o wide`에서 node Ready |
 | context | `kind-paperclip-week3`를 보고 있는지 |
 | troubleshooting | 실패 명령, 오류 메시지, 첫 확인 명령 |
@@ -85,6 +87,7 @@ Day4에서 최소한 다음 문장은 말할 수 있어야 한다.
 | kubectl macOS Install | https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/ |
 | kind Quick Start | https://kind.sigs.k8s.io/docs/user/quick-start/ |
 | kind Configuration | https://kind.sigs.k8s.io/docs/user/configuration/ |
+| k9s Install | https://k9scli.io/topics/install/ |
 
 ## End-Of-Day Checklist
 - [ ] Kubernetes가 Compose의 단순 대체물이 아니라 cluster 운영 API라는 점을 설명했다.
@@ -92,6 +95,7 @@ Day4에서 최소한 다음 문장은 말할 수 있어야 한다.
 - [ ] Pod가 container와 같은 말이 아니라 Kubernetes의 배포 최소 단위라는 점을 설명했다.
 - [ ] Kubernetes의 장점과 단점을 둘 다 말했다.
 - [ ] WSL/macOS 중 본인 환경 기준 설치 상태를 확인했다.
+- [ ] 선택 사항으로 k9s를 설치하거나, k9s가 어떤 용도의 TUI인지 설명했다.
 - [ ] kind cluster를 생성하고 `kubectl get nodes` 결과를 확인했다.
 - [ ] context가 잘못되었을 때 생길 위험을 설명했다.
 - [ ] Day5에서 Pod/Deployment/Service로 이어질 질문을 남겼다.

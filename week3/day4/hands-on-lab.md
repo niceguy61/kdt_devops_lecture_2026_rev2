@@ -10,6 +10,7 @@ docker compose version
 docker ps
 kubectl version --client=true
 kind version
+k9s version 2>/dev/null || true
 ```
 
 판정:
@@ -20,6 +21,7 @@ kind version
 | `docker ps` | container 목록 출력 | permission, Docker context |
 | `kubectl version --client=true` | client version 출력 | kubectl 설치/PATH |
 | `kind version` | kind version 출력 | kind 설치/PATH |
+| `k9s version` | 선택 설치 시 version 출력 | 설치하지 않았으면 건너뜀 |
 
 ## Phase 2. WSL 설치 기준
 WSL에서는 Docker Desktop의 WSL integration이 켜져 있어야 한다.
@@ -47,6 +49,15 @@ sudo mv ./kind /usr/local/bin/kind
 kind version
 ```
 
+선택 도구 k9s 설치:
+
+```bash
+wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
+sudo apt install ./k9s_linux_amd64.deb
+rm k9s_linux_amd64.deb
+k9s version
+```
+
 WSL 확인 포인트:
 
 | 증상 | 원인 후보 | 확인 |
@@ -55,14 +66,17 @@ WSL 확인 포인트:
 | `permission denied` | Docker socket 권한 문제 | Docker Desktop 방식인지 Linux Engine 방식인지 확인 |
 | `kind: command not found` | PATH 미등록 | `which kind` |
 | `kubectl: command not found` | PATH 미등록 | `which kubectl` |
+| `k9s: command not found` | 선택 도구 미설치 | 설치하지 않았으면 정상, 필요 시 설치 |
 
 ## Phase 3. macOS 설치 기준
 Homebrew가 있다면 다음 흐름이 가장 단순하다.
 
 ```bash
 brew install kubectl kind
+brew install k9s
 kubectl version --client=true
 kind version
+k9s version
 docker version
 ```
 
@@ -108,6 +122,30 @@ kubectl get nodes -o wide
 | nodes | `paperclip-week3-control-plane` Ready |
 
 context가 다르면 엉뚱한 cluster에 명령을 보낼 수 있다. Kubernetes 실습에서 가장 먼저 확인하는 습관을 들인다.
+
+## Phase 5-1. k9s로 상태 보기 preview
+k9s는 terminal UI로 Kubernetes resource를 탐색하는 도구다. 새 API를 쓰는 별도 cluster manager가 아니라, 현재 kubeconfig context를 사용해 Kubernetes API를 조회한다.
+
+```bash
+kubectl config current-context
+k9s
+```
+
+수업 중 보여줄 최소 조작:
+
+| 조작 | 의미 |
+|---|---|
+| `:nodes` | node 목록 보기 |
+| `:ns` | namespace 보기 |
+| `:pods` | Pod 목록 보기 |
+| `0` | 모든 namespace 보기 |
+| `/검색어` | 현재 목록 필터링 |
+| `d` | 선택 resource describe |
+| `l` | 선택 Pod log |
+| `Esc` | 이전 화면 |
+| `q` | 종료 |
+
+k9s가 편하더라도 원인 분석 언어는 여전히 `kubectl get`, `describe`, `logs`, `events`다. TUI는 상태를 빠르게 훑는 도구이고, evidence에는 재현 가능한 명령과 핵심 출력을 남긴다.
 
 ## Phase 6. Namespace와 첫 연결 확인
 Day5에서 사용할 namespace만 미리 만들어본다.
@@ -164,6 +202,7 @@ kind get clusters
 - Docker version:
 - kubectl client version:
 - kind version:
+- k9s version 또는 미설치:
 - cluster name:
 - current context:
 - node status:
