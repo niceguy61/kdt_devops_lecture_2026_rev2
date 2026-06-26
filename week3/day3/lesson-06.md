@@ -53,8 +53,8 @@ cat week3/day3/labs/dockerhub-app/.dockerignore
 ## 로컬 Docker Build
 ```bash
 cd /mnt/d/paperclip
-week3/day3/labs/quality-gates/unit-test.sh
-week3/day3/labs/quality-gates/sast-scan.sh
+bash week3/day3/labs/quality-gates/unit-test.sh
+bash week3/day3/labs/quality-gates/sast-scan.sh
 
 docker build \
   --build-arg APP_VERSION=0.1.0 \
@@ -81,7 +81,7 @@ docker rm -f w3d3-dockerhub-app
 한 번에 실행:
 
 ```bash
-week3/day3/labs/quality-gates/run-all-local.sh
+bash week3/day3/labs/quality-gates/run-all-local.sh
 ```
 
 ## Gate가 늘어나면 느려진다
@@ -228,6 +228,32 @@ self-hosted runner는 회사 내부 서버, 클라우드 VM, 온프레미스 장
 | secret 값을 `echo`하지 않기 | log 노출 위험 |
 | step을 너무 크게 합치지 않기 | 실패 위치와 실행 시간 분석이 어려움 |
 | local에서 먼저 같은 명령을 실행하기 | runner에서 실패하기 전에 문제 확인 |
+| `.sh`는 `bash script.sh`로 실행 | executable bit가 없어도 GitHub Actions에서 실행 가능 |
+
+## Permission denied가 나는 이유
+GitHub Actions에서 다음처럼 실행하면 멈출 수 있다.
+
+```yaml
+run: |
+  week3/day3/labs/quality-gates/unit-test.sh
+```
+
+대표 오류:
+```text
+Permission denied
+Process completed with exit code 126
+```
+
+원인은 script 내용이 틀린 것이 아니라, Git repository에 executable bit가 `100755`가 아니라 `100644`로 저장되어 runner에서 직접 실행 권한이 없기 때문이다. 특히 Windows/macOS에서 파일을 만들고 복사하다 보면 권한 bit를 의식하지 못하는 경우가 많다.
+
+수업 workflow는 권한 bit에 의존하지 않도록 다음처럼 실행한다.
+
+```yaml
+run: |
+  bash week3/day3/labs/quality-gates/unit-test.sh
+```
+
+이 방식은 GitHub Actions runner와 학생 로컬 환경에서 모두 안정적이다.
 
 ## Docker Hub Push Workflow 읽기
 ```bash
@@ -248,6 +274,8 @@ cat week3/day3/labs/github-actions/dockerhub-publish.yml
 | unit test step | push 전 코드 검증 |
 | SAST step | push 전 보안/secret scan |
 | DAST step | image 실행 후 health 검증 |
+
+workflow 안의 shell script 실행은 모두 `bash ...sh` 형태로 둔다. `chmod +x`로 해결할 수도 있지만, 학생 repository마다 권한 bit가 제대로 commit됐는지 확인해야 하므로 수업에서는 `bash` 명시를 표준으로 삼는다.
 
 ## Docker Hub Workflow 작성 흐름
 최종 workflow는 다음 흐름으로 작성한다.

@@ -16,7 +16,7 @@
 
 ## Sandbox 만들기
 ```bash
-week3/day3/labs/git-sandbox/setup.sh
+bash week3/day3/labs/git-sandbox/setup.sh
 cd /tmp/w3d3-git-sandbox
 git log --oneline --graph --decorate --all
 ```

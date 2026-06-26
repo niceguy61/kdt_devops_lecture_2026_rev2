@@ -20,7 +20,7 @@ git remote -v
 
 ## Phase 2. Git Sandbox로 conflict/revert/tag
 ```bash
-week3/day3/labs/git-sandbox/setup.sh
+bash week3/day3/labs/git-sandbox/setup.sh
 cd /tmp/w3d3-git-sandbox
 git log --oneline --graph --decorate --all
 ```
@@ -85,8 +85,8 @@ curl -s http://localhost:8080/health
 ## Phase 6. Docker Build and Local Run
 ```bash
 cd /mnt/d/paperclip
-week3/day3/labs/quality-gates/unit-test.sh
-week3/day3/labs/quality-gates/sast-scan.sh
+bash week3/day3/labs/quality-gates/unit-test.sh
+bash week3/day3/labs/quality-gates/sast-scan.sh
 
 docker build \
   --build-arg APP_VERSION=0.1.0 \
@@ -103,13 +103,13 @@ docker rm -f w3d3-dockerhub-app
 DAST smoke check:
 
 ```bash
-week3/day3/labs/quality-gates/dast-health-check.sh
+bash week3/day3/labs/quality-gates/dast-health-check.sh
 ```
 
 한 번에 실행:
 
 ```bash
-week3/day3/labs/quality-gates/run-all-local.sh
+bash week3/day3/labs/quality-gates/run-all-local.sh
 ```
 
 ## Phase 7. GitHub Actions Workflow 작성
@@ -143,6 +143,22 @@ cp "$COURSE_REPO/week3/day3/labs/github-actions/dockerhub-publish.yml" .github/w
 ls -al .github/workflows
 sed -n '1,220p' .github/workflows/dockerhub-publish.yml
 ```
+
+workflow 안에서 shell script를 실행할 때는 직접 경로만 쓰지 않고 `bash ...sh` 형태인지 확인한다.
+
+```yaml
+run: |
+  bash week3/day3/labs/quality-gates/unit-test.sh
+```
+
+아래처럼 되어 있으면 GitHub Actions에서 `Permission denied` 또는 exit code 126으로 멈출 수 있다.
+
+```yaml
+run: |
+  week3/day3/labs/quality-gates/unit-test.sh
+```
+
+이 문제는 token이나 Docker Hub 권한 문제가 아니라, repository에 저장된 shell script 실행 권한 문제다.
 
 전제 조건:
 

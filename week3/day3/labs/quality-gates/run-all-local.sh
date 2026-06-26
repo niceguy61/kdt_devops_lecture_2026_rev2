@@ -5,10 +5,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 cd "${ROOT_DIR}"
 
 echo "[gate] unit test"
-week3/day3/labs/quality-gates/unit-test.sh
+bash week3/day3/labs/quality-gates/unit-test.sh
 
 echo "[gate] sast scan"
-week3/day3/labs/quality-gates/sast-scan.sh
+bash week3/day3/labs/quality-gates/sast-scan.sh
 
 echo "[gate] docker build"
 docker build \
@@ -17,6 +17,6 @@ docker build \
   week3/day3/labs/dockerhub-app
 
 echo "[gate] dast health check"
-week3/day3/labs/quality-gates/dast-health-check.sh
+bash week3/day3/labs/quality-gates/dast-health-check.sh
 
 echo "quality-gates-ok"
