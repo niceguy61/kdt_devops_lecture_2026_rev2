@@ -1,6 +1,6 @@
 # 2교시: 개발자가 많이 쓰는 GitHub 흐름
 
-![Week 3 Day 3 Lesson 2](./assets/lesson-02-worker-operations.png)
+![Week 3 Day 3 Lesson 2](./assets/lesson-02-github-developer-flow.png)
 
 ## 수업 목표
 - 개발자가 GitHub에서 issue, branch, PR, review를 어떻게 쓰는지 설명한다.

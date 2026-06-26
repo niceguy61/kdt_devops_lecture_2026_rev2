@@ -1,6 +1,6 @@
 # 1교시: Git 이론과 변경 이력 모델
 
-![Week 3 Day 3 Lesson 1](./assets/lesson-01-data-dependency.png)
+![Week 3 Day 3 Lesson 1](./assets/lesson-01-git-history-model.png)
 
 ## 수업 목표
 - Git이 파일 백업 도구가 아니라 변경 이력 그래프임을 이해한다.
