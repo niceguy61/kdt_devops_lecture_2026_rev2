@@ -25,6 +25,8 @@ cd /tmp/w3d3-git-sandbox
 git log --oneline --graph --decorate --all
 ```
 
+macOS에서 `sed: ... command a expects \ followed by text`가 나오면 권한 문제가 아니라 BSD sed와 GNU sed의 `-i` 옵션 차이다. 최신 `setup.sh`는 portable 방식으로 수정되어 있으므로 자료를 갱신한 뒤 다시 실행한다.
+
 Conflict:
 
 ```bash

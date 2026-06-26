@@ -21,6 +21,15 @@ cd /tmp/w3d3-git-sandbox
 git log --oneline --graph --decorate --all
 ```
 
+macOS에서 다음 오류가 나오면 실행 권한 문제가 아니다.
+
+```text
+sed: 1: "app.txt
+": command a expects \ followed by text
+```
+
+원인은 macOS 기본 BSD sed와 Linux GNU sed의 `sed -i` 문법 차이다. 수업용 `setup.sh`는 `sed -i`를 쓰지 않는 portable 방식으로 수정되어 있으므로 최신 파일로 다시 실행한다.
+
 ## Conflict 재현
 ```bash
 git switch feature/change-message

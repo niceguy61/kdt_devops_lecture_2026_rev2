@@ -20,14 +20,25 @@ EOF
 git add app.txt
 git commit -q -m "initial app"
 
+replace_in_file() {
+  local old_text="$1"
+  local new_text="$2"
+  local file="$3"
+  local tmp_file
+
+  tmp_file="$(mktemp)"
+  sed "s/${old_text}/${new_text}/" "${file}" > "${tmp_file}"
+  mv "${tmp_file}" "${file}"
+}
+
 git switch -q -c feature/change-message
-sed -i 's/message=hello from main/message=hello from feature/' app.txt
+replace_in_file 'message=hello from main' 'message=hello from feature' app.txt
 git add app.txt
 git commit -q -m "change message on feature"
 
 git switch -q main
 git switch -q -c hotfix/main-message
-sed -i 's/message=hello from main/message=hello from hotfix/' app.txt
+replace_in_file 'message=hello from main' 'message=hello from hotfix' app.txt
 git add app.txt
 git commit -q -m "hotfix message on main line"
 
