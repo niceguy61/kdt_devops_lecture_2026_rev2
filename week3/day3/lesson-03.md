@@ -1,6 +1,6 @@
 # 3교시: 인프라 엔지니어의 GitHub 관리 전략
 
-![Week 3 Day 3 Lesson 3](./assets/lesson-03-queue-redis-concept.png)
+![Week 3 Day 3 Lesson 3](./assets/lesson-03-infra-github-governance.png)
 
 ## 수업 목표
 - 인프라 엔지니어가 GitHub를 코드 저장소 이상으로 사용하는 방식을 설명한다.

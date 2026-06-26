@@ -1,6 +1,6 @@
 # 8교시: 개인 Repo Docker Hub Push 회고
 
-![Week 3 Day 3 Lesson 8](./assets/lesson-08-observability-lab.png)
+![Week 3 Day 3 Lesson 8](./assets/lesson-08-personal-repo-dockerhub-retro.png)
 
 ## 수업 목표
 - 학생 본인의 GitHub repository를 만들고 Docker Hub push workflow를 실행한다.

@@ -1,6 +1,6 @@
 # 7교시: GitHub Actions 2 - Secrets, Docker Hub Push, 유사 도구
 
-![Week 3 Day 3 Lesson 7](./assets/lesson-07-distributed-logs.png)
+![Week 3 Day 3 Lesson 7](./assets/lesson-07-actions-secrets-dockerhub-push.png)
 
 ## 수업 목표
 - GitHub Actions에서 Docker Hub에 image를 push하는 흐름을 설명한다.

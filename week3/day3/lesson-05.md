@@ -1,6 +1,6 @@
 # 5교시: PR, Merge, Rebase, Revert, Tag 운영
 
-![Week 3 Day 3 Lesson 5](./assets/lesson-05-failure-propagation.png)
+![Week 3 Day 3 Lesson 5](./assets/lesson-05-pr-merge-rebase-revert-tag.png)
 
 ## 수업 목표
 - PR merge 방식과 history 운영 기준을 설명한다.

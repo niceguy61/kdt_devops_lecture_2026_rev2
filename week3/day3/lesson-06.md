@@ -1,6 +1,6 @@
 # 6교시: GitHub Actions 1 - 코드, Workflow, Unit/SAST/DAST Gate
 
-![Week 3 Day 3 Lesson 6](./assets/lesson-06-timeout-retry.png)
+![Week 3 Day 3 Lesson 6](./assets/lesson-06-github-actions-quality-gates.png)
 
 ## 수업 목표
 - GitHub Actions로 빌드할 sample app 구조를 이해한다.
