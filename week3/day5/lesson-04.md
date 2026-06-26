@@ -27,6 +27,41 @@ Deployment
     -> Pod 2
 ```
 
+## Deployment와 ReplicaSet count가 둘 다 보이는 이유
+처음 Kubernetes를 볼 때 가장 헷갈리는 지점이 여기다. `Deployment`에도 replica 수가 있고, 그 아래 `ReplicaSet`에도 replica 수가 있다. 둘 중 하나가 node별 count를 의미하는 것은 아니다.
+
+| 항목 | count가 의미하는 것 | node와의 관계 |
+|---|---|---|
+| Deployment `spec.replicas` | 이 application version을 최종적으로 몇 개 유지할지 선언 | node를 직접 고르지 않음 |
+| ReplicaSet `spec.replicas` | 특정 Pod template으로 Pod를 몇 개 유지할지 실행 | node를 직접 고르지 않음 |
+| Scheduler | 만들어진 Pod를 어느 node에 둘지 결정 | node 배치 담당 |
+| DaemonSet | 보통 node마다 Pod 1개씩 유지 | node 수와 강하게 연결 |
+
+Deployment는 "앱 배포 단위"다. ReplicaSet은 Deployment가 만든 "특정 Pod template의 Pod 집합"이다. node별 배치는 ReplicaSet이 아니라 Scheduler가 한다.
+
+```text
+Deployment: hello-web v1을 2개 유지해
+  -> ReplicaSet: 이 Pod template으로 2개 유지해
+    -> Pod 2개 생성
+      -> Scheduler: 각 Pod를 어느 node에 둘지 결정
+```
+
+따라서 아래처럼 설명한다.
+
+```text
+Deployment의 replica count = 운영자가 원하는 앱 전체 개수
+ReplicaSet의 replica count = 현재 Pod template을 기준으로 유지해야 하는 Pod 개수
+node별 count = ReplicaSet이 아니라 Scheduler/DaemonSet/scheduling 정책의 영역
+```
+
+rolling update 때 ReplicaSet count가 더 중요하게 보인다. 새 template이 생기면 새 ReplicaSet이 만들어지고, Deployment는 새 ReplicaSet의 count를 늘리면서 기존 ReplicaSet의 count를 줄인다.
+
+```text
+Deployment desired replicas = 2
+old ReplicaSet replicas: 2 -> 1 -> 0
+new ReplicaSet replicas: 0 -> 1 -> 2
+```
+
 ## Deployment 배포
 ```bash
 export NS=week3
@@ -45,6 +80,34 @@ replicaset.apps/hello-web-...
 pod/hello-web-...           Running
 pod/hello-web-...           Running
 ```
+
+Deployment와 ReplicaSet의 count를 나란히 본다.
+
+```bash
+kubectl -n "$NS" get deploy hello-web
+kubectl -n "$NS" get rs -l app=hello-web
+```
+
+읽는 법:
+
+| 출력 | 해석 |
+|---|---|
+| Deployment `READY 2/2` | Deployment가 원하는 전체 앱 replica 2개 중 2개가 Ready |
+| ReplicaSet `DESIRED 2` | 현재 Pod template을 가진 ReplicaSet이 Pod 2개를 유지해야 함 |
+| Pod `NODE` | Scheduler가 각 Pod를 어느 node에 배치했는지 보여줌 |
+
+kind 단일 node 실습에서는 Pod가 같은 node에 몰려 보일 수 있다. 이것은 ReplicaSet이 node별로 배치했다는 뜻이 아니라, cluster에 node가 하나뿐이라 Scheduler가 선택할 node가 하나뿐인 것이다.
+
+노드마다 1개씩 떠야 하는 예시는 Deployment/ReplicaSet이 아니라 DaemonSet이다.
+
+```text
+로그 수집 agent
+node exporter
+CNI agent
+storage CSI node plugin
+```
+
+이런 workload는 "앱 replica 수"보다 "node마다 agent가 있어야 한다"는 목적이 강하다.
 
 ## Deployment가 유지하는 상태
 manifest에서 가장 중요한 부분은 replica 수와 Pod template이다.

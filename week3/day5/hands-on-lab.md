@@ -152,6 +152,27 @@ kubectl -n "$NS" get deploy,rs,pod -l app=hello-web -o wide
 | ReplicaSet | Deployment가 만든 ReplicaSet 존재 |
 | Pod | label `app=hello-web` Pod 2개 |
 
+Deployment와 ReplicaSet count를 따로 읽는다.
+
+```bash
+kubectl -n "$NS" get deploy hello-web
+kubectl -n "$NS" get rs -l app=hello-web
+kubectl -n "$NS" get pod -l app=hello-web -o wide
+```
+
+해석:
+```text
+Deployment READY 2/2 = 앱 전체 replica 2개가 Ready
+ReplicaSet DESIRED 2 = 현재 Pod template으로 Pod 2개 유지
+Pod NODE = Scheduler가 배치한 node
+```
+
+주의:
+```text
+Deployment/ReplicaSet의 replica count는 node별 개수가 아니다.
+node마다 1개씩 유지해야 하는 workload는 DaemonSet으로 설명한다.
+```
+
 Self-healing 확인:
 ```bash
 POD_NAME=$(kubectl -n "$NS" get pod -l app=hello-web -o jsonpath='{.items[0].metadata.name}')

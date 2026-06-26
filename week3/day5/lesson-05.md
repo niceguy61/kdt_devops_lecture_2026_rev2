@@ -65,6 +65,31 @@ kubectl -n week3 scale deployment hello-web --replicas=2
 
 scale 명령은 live object를 바꾼다. 수업에서는 manifest와 live state가 달라질 수 있다는 점을 보여주기 위해 짧게 사용한다. 운영에서는 Git/manifest 기준과 cluster live state가 어긋나는 문제를 Argo CD에서 다시 다룬다.
 
+여기서 말하는 `replicas`는 node별 개수가 아니라 application 전체 Pod 개수다.
+
+```text
+replicas: 3
+= cluster 전체에서 hello-web Pod를 3개 유지하고 싶다
+!= node마다 3개씩 띄운다
+```
+
+Deployment를 scale하면 보통 Deployment 아래 ReplicaSet의 desired count도 함께 바뀐다.
+
+```bash
+kubectl -n week3 get deploy hello-web
+kubectl -n week3 get rs -l app=hello-web
+```
+
+하지만 역할은 다르게 읽어야 한다.
+
+| 리소스 | 왜 count가 보이는가 |
+|---|---|
+| Deployment | 운영자가 선언한 배포 단위의 desired replica를 가진다 |
+| ReplicaSet | 특정 Pod template에 대해 실제 Pod 수를 맞춘다 |
+| Pod | Scheduler가 node에 배치한 실행 단위다 |
+
+rollout이 일어나면 Deployment 하나 아래에 ReplicaSet이 여러 개 보일 수 있다. 이때 모든 ReplicaSet이 같은 수를 유지하는 것이 아니라, Deployment가 전체 desired replica를 기준으로 새 ReplicaSet과 옛 ReplicaSet의 수를 조정한다.
+
 ## selector와 template label
 Deployment에서 가장 중요한 연결이다.
 
