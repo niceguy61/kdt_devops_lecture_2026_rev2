@@ -1,4 +1,4 @@
-# 6교시: NetworkPolicy Preview
+# 6교시: NetworkPolicy와 Cilium/Hubble Preview
 
 ![Week 4 Day 2 Lesson 6](./assets/lesson-06-networkpolicy-preview.png)
 
@@ -6,6 +6,7 @@
 - frontend -> api -> db traffic 허용선을 설계한다.
 - NetworkPolicy가 왜 DNS egress를 고려해야 하는지 설명한다.
 - kind 기본 CNI에서는 NetworkPolicy가 강제되지 않을 수 있음을 명확히 구분한다.
+- Cilium/Hubble이 NetworkPolicy enforcement와 flow observability에서 어떤 역할을 하는지 preview한다.
 
 ## 왜 NetworkPolicy가 필요한가
 Service와 Ingress는 “어디로 보낼 것인가”를 다룬다. NetworkPolicy는 “누가 누구에게 갈 수 있는가”를 다룬다.
@@ -163,18 +164,47 @@ app Pod in week4
 
 NetworkPolicy는 ingress와 egress 양쪽을 나누어 생각해야 한다. egress default deny가 걸려 있으면 source Pod에서 나가는 것도 열어야 한다.
 
-## NetworkPolicy와 Ingress는 다른 문제다
-Ingress는 외부 요청을 Service로 보낸다. NetworkPolicy는 Pod 간 network path를 제한한다.
+## NetworkPolicy와 Gateway API는 다른 문제다
+Gateway/HTTPRoute는 외부 요청을 Service로 보낸다. NetworkPolicy는 Pod 간 network path를 제한한다.
 
 ```text
-Ingress 정상
+Gateway 정상
+HTTPRoute 정상
 Service 정상
 Endpoint 정상
 NetworkPolicy가 backend traffic 차단
   -> timeout 또는 connection 문제
 ```
 
-즉 Ingress rule이 맞아도 NetworkPolicy 때문에 backend 연결이 안 될 수 있다.
+즉 Gateway/HTTPRoute rule이 맞아도 NetworkPolicy 때문에 backend 연결이 안 될 수 있다.
+
+## Cilium과 Hubble preview
+Kubernetes NetworkPolicy는 표준 API지만 실제 packet 차단은 CNI가 수행한다. Cilium은 eBPF 기반 CNI로 NetworkPolicy와 CiliumNetworkPolicy를 처리할 수 있고, Hubble은 service 간 flow를 관찰하는 도구다.
+
+| 도구 | 역할 |
+|---|---|
+| Cilium | CNI, NetworkPolicy enforcement, eBPF 기반 datapath |
+| CiliumNetworkPolicy | Kubernetes NetworkPolicy보다 확장된 정책 표현 |
+| Hubble | flow, service dependency, drop reason 관찰 |
+| Hubble UI/CLI | 어떤 Pod가 어떤 Service로 통신했는지 시각화/조회 |
+
+수업에서는 깊은 설치보다 다음 질문을 남긴다.
+
+```text
+Service/DNS/Endpoint는 정상인데 timeout이 난다면
+NetworkPolicy 또는 CNI 레벨에서 packet이 drop되는지 어떻게 볼 것인가?
+```
+
+Prometheus/Grafana가 resource와 application metric을 보여준다면, Hubble은 network flow evidence를 보강한다.
+
+```text
+frontend -> api flow allowed
+frontend -> postgres flow denied
+api -> postgres flow allowed
+unknown -> postgres flow denied
+```
+
+이 관점은 W4D5 Istio와도 연결된다. Istio는 sidecar/service mesh 계층에서 traffic policy와 telemetry를 제공하고, Cilium은 CNI/eBPF datapath 계층에서 network policy와 flow 관찰을 제공한다. 둘은 같은 문제가 아니라 서로 다른 계층을 다룬다.
 
 ## 강제되지 않는 환경에서의 확인법
 kind 기본 CNI처럼 policy가 강제되지 않는 환경에서는 정책을 적용해도 통신이 계속 될 수 있다.
@@ -270,6 +300,7 @@ unknown pod -> api/db 실패
 - frontend -> api policy:
 - api -> db policy:
 - kind 기본 CNI 주의:
+- Cilium/Hubble로 보고 싶은 flow:
 - DNS egress를 빼먹으면 생기는 증상:
 - namespace만으로 network가 자동 차단되지 않는 이유:
 - podSelector와 namespaceSelector 차이:
@@ -278,5 +309,5 @@ unknown pod -> api/db 실패
 
 ## 한 줄 요약
 ```text
-NetworkPolicy는 namespace 자동 격리가 아니라 label 기반 허용선이며, DNS egress를 빼먹으면 Service 이름부터 깨질 수 있다.
+NetworkPolicy는 namespace 자동 격리가 아니라 label 기반 허용선이며, Cilium/Hubble은 그 허용선과 실제 network flow를 더 깊게 관찰하는 선택지다.
 ```

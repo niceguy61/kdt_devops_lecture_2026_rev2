@@ -1,195 +1,223 @@
-# 3교시: ingress-nginx 설치
+# 3교시: Gateway API와 Envoy Gateway 설치
 
 ![Week 4 Day 2 Lesson 3](./assets/lesson-03-ingress-nginx-helm-install.png)
 
 ## 수업 목표
-- Ingress object와 Ingress Controller의 차이를 설명한다.
-- ingress-nginx를 Helm으로 설치하고 release, Pod, Service, IngressClass를 확인한다.
-- kind/local 환경에서 NodePort와 port-forward 확인 방식을 구분한다.
+- Gateway API의 `GatewayClass`, `Gateway`, `HTTPRoute` 역할을 구분한다.
+- Envoy Gateway를 Helm으로 설치하고 controller Pod, GatewayClass, CRD를 확인한다.
+- Docker reverse proxy 감각이 Kubernetes controller/data plane 구조로 어떻게 확장되는지 설명한다.
 
-## Ingress만으로는 동작하지 않는다
-Ingress는 rule이다. rule을 실제 proxy 설정으로 반영하는 controller가 필요하다.
+## Docker reverse proxy에서 Kubernetes Gateway로
+Docker Compose에서는 NGINX container 하나를 reverse proxy로 세우고 설정 파일에 route를 적는 방식이 흔했다.
 
 ```text
-Ingress object
-  -> "paperclip.local /api는 api Service로 보내라"라는 선언
-
-Ingress Controller
-  -> 그 선언을 읽고 NGINX 설정으로 반영하는 실행체
+browser
+  -> nginx reverse proxy container
+  -> frontend/api container
 ```
 
-오늘은 Ingress Controller로 `ingress-nginx`를 설치한다.
+Kubernetes에서는 이 역할을 API object와 controller로 나눈다.
+
+```text
+Gateway API object
+  -> GatewayClass / Gateway / HTTPRoute
+
+Gateway controller
+  -> Envoy Gateway
+
+data plane
+  -> Envoy proxy
+```
+
+즉 학생들이 기억해야 할 변화는 이것이다.
+
+```text
+Docker: proxy 설정 파일을 직접 관리하는 느낌
+Kubernetes: routing 의도를 API object로 선언하고 controller가 proxy를 맞춤
+```
+
+## Gateway API 구성요소
+| 리소스 | 누가 주로 관리하나 | 의미 |
+|---|---|---|
+| GatewayClass | platform/infra team | 어떤 controller가 Gateway를 처리할지 지정 |
+| Gateway | platform/app platform team | listener, port, protocol, route attach 범위 |
+| HTTPRoute | app/team owner | host/path/header 기반 routing |
+| Service | app/team owner | backend 안정 진입점 |
+| EndpointSlice | Kubernetes controller | Ready Pod IP 목록 |
+
+Ingress에서는 하나의 Ingress object에 많은 의미가 몰렸다. Gateway API는 역할을 더 잘게 나누어 platform owner와 application owner의 책임을 분리하기 쉽다.
+
+## NGINX Ingress는 왜 언급만 하는가
+NGINX Ingress Controller는 오래 쓰였고 현업에서 여전히 많이 만난다. 하지만 이번 수업은 새 traffic API를 기준으로 한다.
+
+| 항목 | 이번 수업 기준 |
+|---|---|
+| NGINX Ingress | 기존 방식으로 비교 언급 |
+| Gateway API | 직접 작성 |
+| Envoy Gateway | 직접 설치 |
+| HTTPRoute | 직접 route 작성 |
+
+현장에서 NGINX Ingress를 만나면 `IngressClass`, `Ingress`, controller log를 보면 된다. 이번 수업에서는 같은 사고방식을 `GatewayClass`, `Gateway`, `HTTPRoute`, Envoy Gateway log로 확장한다.
 
 ## Helm values 확인
 ```bash
-cat week4/day2/labs/ingress-nginx/values.yaml
+cat week4/day2/labs/envoy-gateway/values.yaml
 ```
 
-핵심 설정:
+수업 values는 최소 설정만 둔다.
+
 ```yaml
-controller:
-  ingressClass: nginx
-  ingressClassResource:
-    name: nginx
-    enabled: true
-    default: false
-  service:
-    type: NodePort
-    nodePorts:
-      http: 30080
-      https: 30443
+deployment:
+  replicas: 1
+config:
+  envoyGateway:
+    logging:
+      level:
+        default: info
 ```
 
-해석:
-| 설정 | 의미 |
-|---|---|
-| `ingressClass: nginx` | Ingress rule이 사용할 class 이름 |
-| `default: false` | className 없는 Ingress를 자동 처리하지 않음 |
-| `service.type: NodePort` | bare metal/kind 확인을 위한 Service 타입 |
-| `nodePorts.http: 30080` | cluster node의 30080으로 http 노출 |
+설치 표준은 W4 공통 원칙과 같다.
 
-kind cluster가 host port mapping 없이 만들어졌다면 host의 `localhost:30080`이 바로 동작하지 않을 수 있다. 이 경우 `port-forward`로 확인한다.
+```text
+helm repo add/update
+helm upgrade --install
+namespace 명시
+values file 사용
+release/pod/crd 확인
+```
 
 ## Helm 설치
 ```bash
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo add eg https://gateway.envoyproxy.io
 helm repo update
 
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
+helm upgrade --install envoy-gateway eg/gateway-helm \
+  --namespace envoy-gateway-system \
   --create-namespace \
-  -f week4/day2/labs/ingress-nginx/values.yaml
+  -f week4/day2/labs/envoy-gateway/values.yaml
 ```
 
 예상 출력:
 ```text
-Release "ingress-nginx" does not exist. Installing it now.
-NAME: ingress-nginx
-NAMESPACE: ingress-nginx
+Release "envoy-gateway" does not exist. Installing it now.
+NAME: envoy-gateway
+NAMESPACE: envoy-gateway-system
 STATUS: deployed
-REVISION: 1
 ```
 
 이미 설치되어 있으면 upgrade 출력이 나온다.
 
-## release 확인
+## release와 controller 확인
 ```bash
-helm list -n ingress-nginx
-helm status ingress-nginx -n ingress-nginx
-helm get values ingress-nginx -n ingress-nginx
-```
-
-예상 출력:
-```text
-NAME            NAMESPACE       REVISION  STATUS    CHART
-ingress-nginx   ingress-nginx   1         deployed  ingress-nginx-x.x.x
-```
-
-`STATUS=deployed`는 Helm release가 배포됐다는 뜻이다. controller Pod가 Ready인지는 별도로 본다.
-
-## controller 리소스 확인
-```bash
-kubectl -n ingress-nginx get deploy,pod,svc
-kubectl get ingressclass
-```
-
-예상 출력:
-```text
-NAME                                       READY   UP-TO-DATE   AVAILABLE
-deployment.apps/ingress-nginx-controller   1/1     1            1
-
-NAME                                  READY   STATUS
-pod/ingress-nginx-controller-xxxxx    1/1     Running
-
-NAME                                 TYPE       PORT(S)
-service/ingress-nginx-controller     NodePort   80:30080/TCP,443:30443/TCP
-```
-
-IngressClass:
-```text
-NAME    CONTROLLER
-nginx   k8s.io/ingress-nginx
-```
-
-## admission job 확인
-ingress-nginx chart는 admission webhook 관련 Job/Secret을 만들 수 있다.
-
-```bash
-kubectl -n ingress-nginx get job,secret | grep admission
+helm list -n envoy-gateway-system
+kubectl -n envoy-gateway-system get deploy,pod,svc
+kubectl get crd | grep gateway.networking.k8s.io
 ```
 
 예상:
 ```text
-job.batch/ingress-nginx-admission-create
-job.batch/ingress-nginx-admission-patch
-secret/ingress-nginx-admission
+NAME             NAMESPACE              STATUS
+envoy-gateway    envoy-gateway-system   deployed
+
+deployment.apps/envoy-gateway   1/1
+pod/envoy-gateway-...           1/1 Running
 ```
 
-admission webhook은 잘못된 Ingress 설정을 API Server 단계에서 검증하는 데 쓰인다. 오늘은 깊게 파지 않고, 설치 시 함께 생성되는 구성요소라는 점만 확인한다.
+Gateway API CRD가 있어야 `GatewayClass`, `Gateway`, `HTTPRoute`를 만들 수 있다.
+
+대표 CRD:
+```text
+gatewayclasses.gateway.networking.k8s.io
+gateways.gateway.networking.k8s.io
+httproutes.gateway.networking.k8s.io
+```
+
+## GatewayClass 확인
+```bash
+kubectl get gatewayclass
+```
+
+예상:
+```text
+NAME             CONTROLLER
+envoy-gateway    gateway.envoyproxy.io/gatewayclass-controller
+```
+
+`GatewayClass`는 "이 Gateway를 어떤 구현체가 처리할 것인가"를 정한다. Ingress의 `ingressClassName`과 비슷한 위치에 있지만, Gateway API에서는 더 명시적인 리소스다.
 
 ## controller log 읽기
-Ingress가 동작하지 않을 때 controller log를 본다.
-
 ```bash
-kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=80
+kubectl -n envoy-gateway-system logs deploy/envoy-gateway --tail=80
 ```
 
-정상적으로 rule을 읽으면 reload 또는 sync 관련 메시지가 보일 수 있다. 오류가 있으면 service endpoint, class, backend 관련 메시지가 단서가 된다.
-
-확인 기준:
-| log 단서 | 의미 |
+확인할 단서:
+| log/상태 단서 | 의미 |
 |---|---|
-| ingress class mismatch | controller가 해당 Ingress를 처리하지 않음 |
-| service not found | backend Service 이름 오류 |
-| endpoint not found | Service endpoint 없음 |
-| port not found | backend service port 오류 |
+| GatewayClass accepted | controller가 class를 인식 |
+| Gateway accepted | listener 설정을 처리 |
+| HTTPRoute attached | route가 Gateway에 붙음 |
+| backend not found | Service 이름/namespace 오류 |
+| invalid backend port | Service port 오류 |
 
-## NodePort와 port-forward 차이
-둘 다 host에서 확인하는 방법이지만 의미가 다르다.
+## Envoy data plane 확인
+Gateway/HTTPRoute를 적용한 뒤 Envoy proxy Pod나 Service가 추가로 생길 수 있다.
 
-| 방식 | 명령/URL | 특징 |
-|---|---|---|
-| NodePort | `http://paperclip.local:30080` | node port를 통해 접근 |
-| port-forward | `kubectl port-forward svc/... 8080:80` | kubectl이 임시 터널 생성 |
+```bash
+kubectl get pods -A | grep envoy
+kubectl get svc -A | grep envoy
+```
 
-kind에서 NodePort를 host로 바로 쓰려면 cluster 생성 시 extraPortMappings가 필요할 수 있다. 수업에서는 환경 편차를 줄이기 위해 port-forward를 기본 확인 방법으로 둔다.
+환경과 chart 버전에 따라 이름이 다를 수 있다. 중요한 것은 controller Pod와 실제 traffic을 받는 data plane을 구분하는 것이다.
+
+```text
+Envoy Gateway controller = API object 감시/반영
+Envoy proxy data plane = 실제 HTTP traffic 처리
+```
 
 ## port-forward 준비
-kind/local에서 가장 안정적인 확인 방법:
+local/kind 환경에서는 LoadBalancer가 바로 외부 IP를 받지 못할 수 있다. 수업에서는 port-forward를 기본 확인 방법으로 둔다.
+
+Gateway를 적용한 뒤 Envoy Service를 찾는다.
 
 ```bash
-kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8080:80
+kubectl get svc -A | grep envoy
 ```
 
-이 명령은 터미널을 점유한다. 다른 터미널에서 curl을 실행한다.
+예시:
+```bash
+kubectl -n envoy-gateway-system port-forward svc/<envoy-service-name> 8080:80
+```
+
+다른 터미널에서 확인한다.
 
 ```bash
 curl -H "Host: paperclip.local" http://localhost:8080/
 ```
 
-아직 Ingress rule을 만들지 않았다면 404가 나올 수 있다. 이것은 controller가 죽었다는 뜻이 아니라 rule이 없다는 뜻일 수 있다.
+아직 HTTPRoute를 만들지 않았다면 404가 나올 수 있다. 이것은 controller가 죽었다는 뜻이 아니라 route가 없다는 뜻일 수 있다.
 
 ## 장애 판단
 | 증상 | 확인 |
 |---|---|
 | Helm chart를 못 찾음 | `helm repo list`, `helm repo update` |
-| controller Pod가 Pending | `kubectl -n ingress-nginx describe pod` |
-| controller Pod가 CrashLoop | `kubectl -n ingress-nginx logs deploy/ingress-nginx-controller` |
-| IngressClass 없음 | `kubectl get ingressclass` |
-| localhost:30080 안 됨 | kind port mapping 여부, port-forward 사용 |
+| controller Pod Pending | `kubectl -n envoy-gateway-system describe pod` |
+| GatewayClass 없음 | `kubectl get gatewayclass` |
+| Gateway가 Accepted 아님 | `kubectl -n week4 describe gateway paperclip-gateway` |
+| HTTPRoute가 붙지 않음 | `kubectl -n week4 describe httproute paperclip-routes` |
+| localhost 접근 실패 | Envoy Service 이름, port-forward 대상 확인 |
 
 ## Evidence Note
 ```markdown
-# W4D2S3 ingress-nginx
+# W4D2S3 Envoy Gateway
 - Helm release:
 - controller Pod READY:
-- controller Service type/ports:
-- IngressClass:
-- port-forward 명령:
+- GatewayClass:
+- Gateway API CRD:
+- Envoy Service/port-forward:
 - controller log에서 본 단서:
 ```
 
 ## 한 줄 요약
 ```text
-Ingress rule은 길 안내판이고, ingress-nginx controller는 실제 traffic을 라우팅하는 실행체다.
+Gateway API는 traffic 의도를 선언하고, Envoy Gateway는 그 의도를 Envoy data plane으로 반영하는 controller다.
 ```

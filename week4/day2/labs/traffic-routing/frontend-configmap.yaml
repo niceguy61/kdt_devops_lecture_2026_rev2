@@ -17,8 +17,7 @@ data:
     </head>
     <body>
       <h1>Paperclip W4D2 Frontend</h1>
-      <p>Ingress <code>/</code> path routes to the frontend service.</p>
+      <p>Gateway API <code>/</code> path routes to the frontend service.</p>
       <p>API path should route to <code>/api</code>.</p>
     </body>
     </html>
-

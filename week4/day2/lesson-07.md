@@ -3,9 +3,9 @@
 ![Week 4 Day 2 Lesson 7](./assets/lesson-07-rollout-external-traffic.png)
 
 ## 수업 목표
-- Deployment rollout이 Ingress 외부 traffic에 어떻게 보이는지 확인한다.
+- Deployment rollout이 Gateway 외부 traffic에 어떻게 보이는지 확인한다.
 - API v1 -> v2 변경을 외부 경로 `/api`로 검증한다.
-- rollout status/history/undo와 Ingress response를 연결한다.
+- rollout status/history/undo와 Gateway response를 연결한다.
 
 ## 현재 API 확인
 port-forward가 켜져 있다고 가정한다.
@@ -23,8 +23,9 @@ curl -H "Host: paperclip.local" http://localhost:8080/api
 
 ```text
 curl
-  -> ingress-nginx
-  -> Ingress /api rule
+  -> Envoy Gateway data plane
+  -> Gateway listener
+  -> HTTPRoute /api rule
   -> api Service
   -> api Endpoint
   -> api Pod
@@ -111,7 +112,7 @@ curl -H "Host: paperclip.local" http://localhost:8080/api
 {"service":"api","version":"v1","status":"ok"}
 ```
 
-rollback은 Deployment revision 기준이다. Ingress rule을 되돌리는 것이 아니라 api Deployment의 Pod template을 이전 revision으로 되돌린다.
+rollback은 Deployment revision 기준이다. Gateway나 HTTPRoute rule을 되돌리는 것이 아니라 api Deployment의 Pod template을 이전 revision으로 되돌린다.
 
 ## 장애 rollout 시나리오
 새 버전이 readiness를 통과하지 못하면 외부 응답은 어떻게 보일까?
@@ -137,7 +138,7 @@ kubectl -n week4 describe pod -l app=api
 |---|---|
 | 기존 Pod Ready 유지 | 사용자는 기존 버전 응답을 계속 받을 수 있음 |
 | 새 Pod Ready 실패 | rollout이 멈추거나 지연 |
-| 모든 endpoint 없음 | Ingress에서 503 계열 가능 |
+| 모든 endpoint 없음 | Gateway 경로에서 503 계열 가능 |
 | readiness 없이 배포 | 준비 안 된 Pod가 traffic을 받을 위험 |
 
 ## image tag와 rollout
@@ -189,5 +190,5 @@ rollout 실습 후 v1으로 되돌릴지 v2로 남길지 결정한다.
 
 ## 한 줄 요약
 ```text
-rollout은 Pod 교체이고, Ingress 외부 응답은 Service endpoint에 들어온 Ready Pod 기준으로 바뀐다.
+rollout은 Pod 교체이고, Gateway 외부 응답은 Service endpoint에 들어온 Ready Pod 기준으로 바뀐다.
 ```

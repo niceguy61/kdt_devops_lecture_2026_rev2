@@ -196,7 +196,37 @@ env 주입은 쉽지만 모든 상황에서 최선은 아니다.
 | volume mount | file 기반 key/cert에 적합 | app이 파일 reload를 지원해야 함 |
 | external secret | cloud secret manager와 연결 | add-on과 권한 설계 필요 |
 
-오늘은 입문이므로 env/envFrom으로 시작한다. W4D4 RBAC/Kyverno, W5 AWS/Terraform에서 secret 권한과 외부 secret 관리로 확장한다.
+오늘은 입문이므로 env/envFrom으로 시작한다. 하지만 현업에서는 운영 secret 값을 Git repository의 Kubernetes Secret YAML에 직접 넣지 않는 패턴이 흔하다. 이때 자주 등장하는 도구가 External Secrets Operator다.
+
+## External Secrets Operator preview
+External Secrets Operator는 외부 secret store의 값을 Kubernetes Secret으로 동기화하는 operator다.
+
+```text
+AWS Secrets Manager 또는 SSM Parameter Store
+  -> External Secrets Operator
+  -> Kubernetes Secret
+  -> Pod env 또는 volume mount
+```
+
+Docker에서는 `.env.prod` 파일을 배포 서버에 두거나 CI secret으로 주입하는 식으로 처리했다. Kubernetes에서는 secret 값의 출처와 동기화 주체를 더 명확히 나눈다.
+
+| 방식 | Docker/Compose 감각 | Kubernetes 확장 |
+|---|---|---|
+| `.env` 파일 | container 실행 시 env 주입 | ConfigMap/Secret, 환경별 manifest |
+| CI secret | workflow에서 build/deploy 시 주입 | GitHub Secret, cloud secret store |
+| 운영 secret store | 직접 스크립트로 조회 | External Secrets Operator |
+| cloud IAM | 배포 서버 권한 | ServiceAccount + workload identity |
+
+AWS에서는 External Secrets Operator가 Secrets Manager와 SSM Parameter Store를 provider로 사용할 수 있다. 수업에서는 W4D4에서 권한 모델을 보고, W5 AWS에서 Secrets Manager/Parameter Store 선택 기준으로 다시 연결한다.
+
+| 외부 저장소 | 성격 |
+|---|---|
+| AWS Secrets Manager | rotation, secret lifecycle, DB credential 관리에 적합 |
+| AWS SSM Parameter Store | 설정/parameter 저장, 비용과 단순성 측면에서 선택 가능 |
+
+중요한 점은 "External Secrets Operator를 쓰면 secret 고민이 끝난다"가 아니다. operator가 외부 secret을 읽을 권한, Kubernetes Secret을 만들 권한, Pod가 그 Secret을 읽는 권한을 모두 설계해야 한다.
+
+오늘은 개념 preview이고 실제 설치는 W4D4에서 RBAC/ServiceAccount 흐름과 함께 다룬다.
 
 ## 설정 변경 후 Pod가 자동으로 바뀌는가
 ConfigMap을 수정했다고 기존 Pod의 env가 자동으로 바뀌지는 않는다. env는 container 시작 시점에 주입된다.

@@ -164,6 +164,70 @@ too-large-pod     0/1     Pending   0          20s
 | `insufficient memory` | request를 만족할 memory capacity가 없음 |
 | log 없음 | container가 시작되지 않았으므로 정상 |
 
+## storage scheduling preview
+Pod 재배치는 CPU/memory만으로 결정되지 않는다. volume이 붙으면 storage가 갈 수 있는 node나 zone이 scheduler 판단에 영향을 줄 수 있다.
+
+Docker에서는 named volume을 붙이면 대체로 "이 Docker host 안에 data가 남는다" 정도로 이해했다.
+
+```text
+docker volume
+  -> 같은 host의 container 교체에는 유리
+  -> host를 넘는 scheduling 문제는 직접 다루지 않음
+```
+
+Kubernetes에서는 storage가 API object로 분리된다.
+
+| 리소스 | 역할 |
+|---|---|
+| PersistentVolumeClaim | Pod가 필요한 storage 요청 |
+| PersistentVolume | 실제 storage 자원 |
+| StorageClass | 어떤 방식으로 volume을 만들지 정의 |
+| volumeBindingMode | volume을 언제 binding할지 결정 |
+| PV nodeAffinity | 이 volume을 사용할 수 있는 node/topology 제약 |
+
+핵심은 compute scheduling과 storage scheduling을 분리해 생각하는 것이다.
+
+```text
+Deployment/ReplicaSet
+  -> replica 수를 맞춤
+Scheduler
+  -> Pod를 어느 node에 둘지 결정
+PVC/PV/StorageClass
+  -> volume이 붙을 수 있는 위치를 제한할 수 있음
+```
+
+## WaitForFirstConsumer가 필요한 이유
+StorageClass에는 `volumeBindingMode`가 있다. `WaitForFirstConsumer`는 Pod가 실제로 스케줄링될 때까지 volume binding/provisioning을 미루는 방식이다.
+
+```yaml
+volumeBindingMode: WaitForFirstConsumer
+```
+
+이 방식은 zone이 있는 storage에서 중요하다. 먼저 volume을 아무 zone에 만들어버리면, 나중에 Pod가 다른 zone node에 배치되어 volume을 붙일 수 없는 상황이 생길 수 있다.
+
+## AWS EBS와 zone 제약
+AWS EBS는 zonal block storage다. 예를 들어 `us-east-1a`에 있는 EBS volume은 `us-east-1b`의 node에 attach할 수 없다.
+
+```text
+EBS volume: us-east-1a
+Pod scheduled node: us-east-1b
+  -> attach 불가
+  -> Pod Pending 또는 attach/mount 실패
+```
+
+그래서 EBS-backed PVC를 쓰는 workload는 다음을 함께 봐야 한다.
+
+| 확인 | 이유 |
+|---|---|
+| Pod가 배치된 node의 zone | volume과 같은 zone인지 |
+| PV `nodeAffinity` | volume이 허용하는 topology |
+| StorageClass `volumeBindingMode` | binding 시점 |
+| Stateful workload 복구 전략 | node/AZ 장애 때 어떻게 옮길지 |
+
+여러 node/AZ에서 동시에 공유해야 한다면 EBS가 아니라 EFS 같은 shared filesystem, 애플리케이션 레벨 복제, 또는 RDS 같은 managed database를 검토해야 한다.
+
+이 내용은 W5 AWS Storage에서 EBS/EFS/S3/RDS 선택 기준으로 다시 회수한다.
+
 ## CPU throttling은 왜 더 어렵나
 memory limit 초과는 OOMKilled로 비교적 선명하게 보인다. CPU limit은 보통 process가 죽지 않고 느려진다.
 

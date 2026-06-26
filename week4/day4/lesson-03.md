@@ -109,6 +109,44 @@ command terminated with exit code 1
 
 필요한 경우에도 최소 권한 Role을 붙인다.
 
+## External Secrets Operator 권한 모델
+External Secrets Operator는 app Pod와 성격이 다르다. 일반 web API가 Kubernetes API를 몰라도 되는 것과 달리, operator는 Kubernetes API와 외부 secret provider를 모두 다룬다.
+
+```text
+External Secrets Operator Pod
+  -> Kubernetes API에서 ExternalSecret object watch
+  -> AWS Secrets Manager 또는 SSM Parameter Store 조회
+  -> Kubernetes Secret 생성/갱신
+```
+
+그래서 권한도 두 방향으로 나뉜다.
+
+| 권한 | 설명 |
+|---|---|
+| Kubernetes RBAC | ExternalSecret을 읽고 Secret을 만들거나 갱신할 권한 |
+| cloud IAM | AWS Secrets Manager/SSM Parameter Store 값을 읽을 권한 |
+| app Pod 권한 | 만들어진 Kubernetes Secret을 env/volume으로 참조할 권한 |
+
+중요한 구분:
+
+```text
+app Pod가 AWS secret store를 직접 읽는 구조가 아니다.
+ESO controller가 외부 secret을 읽고 Kubernetes Secret으로 동기화한다.
+app Pod는 Kubernetes Secret을 참조한다.
+```
+
+현업에서는 EKS에서 IRSA나 EKS Pod Identity 같은 workload identity로 ESO ServiceAccount에 AWS IAM 권한을 연결하는 패턴을 자주 사용한다. local kind에서는 실제 AWS 권한을 붙이지 않고 구조만 preview한다.
+
+## Secret Manager와 Parameter Store 선택 기준
+AWS에서는 External Secrets Operator가 Secrets Manager와 SSM Parameter Store를 provider로 사용할 수 있다.
+
+| 저장소 | 수업에서 설명할 기준 |
+|---|---|
+| Secrets Manager | rotation, DB credential, secret lifecycle이 중요한 값 |
+| SSM Parameter Store | 설정값/parameter, 단순 secret, 비용과 운영 단순성이 중요한 값 |
+
+두 경우 모두 Git에 실제 secret 값을 넣지 않는다는 원칙은 같다. Git에는 `ExternalSecret` 같은 참조와 mapping을 넣고, 값은 외부 store에 둔다.
+
 ## workload identity preview
 cloud 환경에서는 Kubernetes ServiceAccount와 cloud IAM을 연결하는 방식이 자주 쓰인다.
 
@@ -165,6 +203,8 @@ kubectl -n week4-security describe pod token-mounted-demo
 - token-mounted-demo token files:
 - security-api token directory result:
 - token이 필요한 workload 예시:
+- ESO가 필요한 권한:
+- app Pod와 ESO controller의 차이:
 ```
 
 ## 한 줄 요약

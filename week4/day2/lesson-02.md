@@ -16,7 +16,7 @@ frontend
   -> postgres
 ```
 
-외부 사용자는 db에 직접 접근하지 않는다. 외부 사용자의 진입점은 Ingress이며, db는 cluster 내부 backend만 접근해야 한다.
+외부 사용자는 db에 직접 접근하지 않는다. 외부 사용자의 진입점은 Gateway/HTTPRoute이며, db는 cluster 내부 backend만 접근해야 한다.
 
 ## 배포
 ```bash

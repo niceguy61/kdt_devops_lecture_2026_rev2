@@ -22,7 +22,7 @@ Pod Running
   -> readiness 실패
   -> Endpoint 없음
   -> Service는 있지만 backend 없음
-  -> Ingress에서 503 계열 장애
+  -> Gateway 경로에서 503 계열 장애
 ```
 
 ## Kubernetes traffic 기본 흐름
@@ -39,8 +39,9 @@ cluster 밖 사용자는 한 단계가 더 필요하다.
 
 ```text
 사용자
-  -> Ingress Controller
-  -> Ingress rule
+  -> Envoy Gateway data plane
+  -> Gateway listener
+  -> HTTPRoute rule
   -> Service
   -> Endpoint
   -> Pod
@@ -161,16 +162,16 @@ Pod IP 변경
   -> client는 http://api 계속 사용
 ```
 
-이 감각이 있어야 Ingress도 이해된다. Ingress는 Pod로 직접 보내지 않고 Service로 보낸다.
+이 감각이 있어야 Gateway API도 이해된다. HTTPRoute는 Pod로 직접 보내지 않고 Service로 보낸다.
 
 ## 오늘의 장애 판단 순서
 | 순서 | 명령 | 판단 |
 |---|---|---|
-| 1 | `kubectl -n week4 get ingress` | rule이 있는가 |
-| 2 | `kubectl -n week4 describe ingress paperclip` | host/path/backend가 맞는가 |
+| 1 | `kubectl -n week4 get gateway,httproute` | Gateway와 Route가 있는가 |
+| 2 | `kubectl -n week4 describe httproute paperclip-routes` | parentRefs, host/path/backendRefs가 맞는가 |
 | 3 | `kubectl -n week4 get svc,endpoints` | Service와 Endpoint가 있는가 |
 | 4 | `kubectl -n week4 get pod` | Ready Pod가 있는가 |
-| 5 | `kubectl -n ingress-nginx logs deploy/ingress-nginx-controller` | controller가 rule을 처리했는가 |
+| 5 | `kubectl -n envoy-gateway-system logs deploy/envoy-gateway` | controller가 Gateway/Route를 처리했는가 |
 
 ## Evidence Note
 ```markdown
@@ -185,5 +186,5 @@ Pod IP 변경
 
 ## 한 줄 요약
 ```text
-Kubernetes traffic 장애는 Ingress, Service, Endpoint, Pod readiness를 순서대로 좁혀야 한다.
+Kubernetes traffic 장애는 Gateway, HTTPRoute, Service, Endpoint, Pod readiness를 순서대로 좁혀야 한다.
 ```
