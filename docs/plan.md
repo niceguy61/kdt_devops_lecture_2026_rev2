@@ -434,7 +434,10 @@
 - Helm의 chart, repository, release, values, upgrade, rollback, uninstall 흐름을 Kubernetes add-on 설치 표준으로 사용한다.
 - Pod, Deployment, Service, ConfigMap, Secret, probe, resource request/limit, Ingress를 MSA 운영 맥락에서 연결한다.
 - metrics-server로 Pod/node resource 사용량을 확인하고 requests/limits, HPA preview와 연결한다.
-- ingress-nginx를 Helm으로 설치하고 frontend/API 외부 진입 경로를 host/path routing으로 확인한다.
+- PV/PVC, StorageClass, volume binding, zonal disk 제약을 Pod 재배치와 scheduling 관점에서 preview하고 AWS EBS/EFS/RDS 판단으로 연결한다.
+- Gateway API와 Envoy Gateway를 Helm으로 설치하고 frontend/API 외부 진입 경로를 Gateway/HTTPRoute 기준으로 확인한다. ingress-nginx는 널리 쓰인 기존 Ingress Controller로 언급만 하고, 실습 표준은 Envoy Gateway/Gateway API로 잡는다.
+- External Secrets Operator를 Kubernetes Secret과 cloud secret store를 연결하는 도구로 소개하고 AWS Secrets Manager, SSM Parameter Store 연동으로 확장한다.
+- Cilium과 Hubble을 NetworkPolicy, CNI, eBPF 기반 network observability 후보로 소개하고 기존 Kubernetes NetworkPolicy와 비교한다.
 - kube-prometheus-stack을 Helm으로 설치하고 Prometheus target, Grafana dashboard, Pod/node metric을 확인한다.
 - ServiceAccount, Role, RoleBinding, RBAC 최소 권한을 실습하고 Kyverno로 admission policy가 배포를 차단하는 흐름을 확인한다.
 - Argo CD로 Git repository의 Kubernetes manifest를 sync하고 drift, OutOfSync, manual sync 흐름을 확인한다.
@@ -449,8 +452,11 @@
 - Kubernetes add-on 설치는 Helm으로 통일한다. `kubectl apply -f <remote-url>` 방식은 설치 표준으로 쓰지 않고, 필요할 때만 왜 혼란을 만드는지 비교 설명한다.
 - 모든 Helm 설치는 `helm upgrade --install`을 기본으로 하고 namespace, release name, chart repo, values file, 검증 명령, uninstall 명령을 함께 제공한다.
 - Helm values는 수업 repo 안의 파일로 관리한다. 긴 `--set` 명령은 빠른 데모나 공식 문서 비교가 아닌 이상 사용하지 않는다.
+- NGINX Ingress Controller는 기존 Ingress 생태계의 대표 사례로만 언급한다. 새 실습은 Gateway API/Envoy Gateway를 기준으로 구성하고, Ingress와 Gateway API의 API shape 차이를 비교한다.
 - system namespace에 설치되는 add-on은 통신/권한 원리를 반드시 설명한다. `kube-system`, `monitoring`, `argocd`, `istio-system` 등에 설치된 Pod가 다른 namespace를 보는 이유를 Service DNS, APIService, ServiceAccount, Role/ClusterRole, RoleBinding/ClusterRoleBinding 기준으로 나눠 설명한다.
 - "namespace가 다르지만 통신된다"는 표현은 HTTP/Service 통신인지 Kubernetes API 조회/변경인지 구분한다. Service 통신은 DNS/Service/Endpoint/NetworkPolicy를 보고, API 접근은 ServiceAccount token과 RBAC을 본다.
+- Pod 재배치 설명에서는 compute scheduling과 storage scheduling을 분리한다. Deployment/ReplicaSet은 replica 수를 맞추고, Scheduler는 node를 고르며, PVC/PV/StorageClass와 PV `nodeAffinity` 또는 topology constraint는 volume이 붙을 수 있는 node/zone을 제한할 수 있다.
+- AWS EBS는 zonal block storage이므로 EBS-backed PVC를 사용하는 Pod가 다른 AZ node로 마음대로 이동할 수 없다는 점을 명확히 설명한다. 여러 node/AZ에서 공유가 필요한 경우 EFS, 애플리케이션 레벨 복제, RDS 같은 managed database 선택지를 비교한다.
 - add-on별 목표는 깊은 튜닝이 아니라 설치 이유, 핵심 리소스, 운영 효과, 장애 확인 방법이다.
 - AWS 계정, 네트워크, 비용 안전장치, EC2/RDS 등 클라우드 인프라 실습은 5주차로 넘긴다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
@@ -460,11 +466,32 @@
 |---|---|---|---|
 | W3D4 | Kubernetes 기본 요소와 kind 설치 | 없음 | kind/kubectl 자체 설치와 cluster 확인 |
 | W3D5 | Pod, Deployment, Service 첫 실행 | 없음 | 기본 object manifest 직접 작성 |
-| W4D1 | 운영 가능한 workload와 resource 관찰 | Helm, metrics-server | Helm으로 metrics-server 설치 |
-| W4D2 | Service, DNS, Ingress, 외부 traffic | ingress-nginx | Helm으로 ingress-nginx 설치 |
-| W4D3 | 장애와 성능 관찰 | kube-prometheus-stack | Helm으로 Prometheus/Grafana 설치 |
-| W4D4 | 권한과 정책 | RBAC, Kyverno | RBAC은 기본 object, Kyverno는 Helm 설치 |
-| W4D5 | GitOps와 mesh preview | Argo CD, Istio, Kiali | 모두 Helm 설치 |
+| W4D1 | 운영 가능한 workload와 resource/storage scheduling 관찰 | Helm, metrics-server, External Secrets Operator preview | Helm으로 metrics-server 설치, PV/PVC와 ESO는 개념 preview |
+| W4D2 | Service, DNS, Gateway API, 외부 traffic | Envoy Gateway, Gateway API, cert-manager preview | Helm으로 Envoy Gateway 설치, NGINX Ingress는 비교 언급 |
+| W4D3 | 장애와 성능/네트워크 관찰 | kube-prometheus-stack, K9s, Cilium/Hubble preview | Helm으로 Prometheus/Grafana 설치, Cilium/Hubble은 network observability preview |
+| W4D4 | 권한, 정책, secret 연동 | RBAC, Kyverno, External Secrets Operator | RBAC은 기본 object, Kyverno/ESO는 Helm 설치 또는 preview |
+| W4D5 | GitOps와 mesh preview | Argo CD, Istio, Kiali, Cilium 비교 | 모두 Helm 설치, Cilium은 mesh/CNI 비교 축 |
+
+## Kubernetes known plugin/add-on 배치 기준
+| plugin/add-on | 넣을 세션 | 수업 역할 | 설치/실습 기준 |
+|---|---|---|---|
+| Helm | W4D1S2~S3 | add-on 설치 표준 | 모든 add-on 설치 패턴의 기준 |
+| metrics-server | W4D1S7 | `kubectl top`, HPA preview | Helm 설치 |
+| External Secrets Operator | W4D1S4 preview, W4D4S3~S4, W5D2 연결 | Kubernetes Secret과 외부 secret store 연동 | Helm 설치 또는 provider manifest preview |
+| AWS Secrets Manager | W4D4/W5D2 연결 | 운영 secret 저장소 | ESO provider로 연결 설명 |
+| AWS SSM Parameter Store | W4D4/W5D2 연결 | 저비용 parameter/secret 저장소 | ESO provider로 연결 설명 |
+| Gateway API | W4D2S3~S4 | Ingress 이후 세대 L4/L7 routing API | Gateway/HTTPRoute 작성 |
+| Envoy Gateway | W4D2S3~S5 | Gateway API controller | Helm 설치 |
+| cert-manager | W4D2S6 preview, W5 AWS 연결 | TLS certificate 자동화 | preview 또는 Helm 설치 선택 |
+| NGINX Ingress Controller | W4D2S1~S2 비교 언급 | 기존 Ingress 생태계 이해 | 설치하지 않고 비교만 |
+| kube-prometheus-stack | W4D3S2~S6 | Prometheus/Grafana/Alertmanager | Helm 설치 |
+| K9s | W4D3S1/S7 | TUI 기반 cluster 상태 확인 | 로컬 도구 소개 |
+| Cilium | W4D2S6, W4D3S5, W4D5S5 | CNI, NetworkPolicy, eBPF visibility, mesh와 비교 | kind에서는 preview 중심, 설치 가능 환경이면 Helm |
+| Hubble | W4D3S5 | service dependency/flow observability | Cilium과 함께 preview |
+| Kyverno | W4D4S4~S7 | admission policy, Policy as Code | Helm 설치 |
+| Argo CD | W4D5S1~S4 | GitOps sync/drift/self-heal | Helm 설치 |
+| Istio | W4D5S5~S7 | Service Mesh, traffic policy, mTLS preview | Helm 설치 |
+| Kiali | W4D5S6~S7 | mesh traffic graph | Helm 설치 |
 
 ## 1일차
 - 1교시 : Week3 Kubernetes 2일 요약 + 운영 가능한 workload 기준 - Pod/Deployment/Service 복습, 설정/상태/자원/관찰이 필요한 이유
@@ -472,35 +499,35 @@
 - 3교시 : Helm 공통 설치 루프 - `repo add/update`, `upgrade --install`, `helm list`, `kubectl get pods`, `helm uninstall`
 - 4교시 : ConfigMap과 Secret - image 밖 runtime config, 민감정보 주입, `.env`와 Kubernetes object 연결
 - 5교시 : probe와 readiness - liveness/readiness/startup probe, 잘못된 probe가 traffic과 restart에 미치는 영향
-- 6교시 : resource requests/limits - CPU/memory 요청과 제한, OOMKilled, node capacity, 비용 감각
+- 6교시 : resource requests/limits와 storage scheduling preview - CPU/memory 요청과 제한, OOMKilled, node capacity, PV/PVC, StorageClass, WaitForFirstConsumer, PV nodeAffinity, zonal volume 제약
 - 7교시 : metrics-server 설치와 관찰 - Helm으로 metrics-server 설치, `kubectl top node/pod`, HPA preview
 - 8교시 : 구름 EXP 배움일기 - Helm 설치 패턴, ConfigMap/Secret, probe/resource에서 막힌 지점
 
 ## 2일차
 - 1교시 : Day1 강의 10분 요약 + Kubernetes networking 다시 잡기 - Pod IP, Service, Endpoint, DNS, selector
 - 2교시 : MSA 앱 내부 통신 - frontend/api/database 또는 cache 연결, service name DNS와 targetPort 구분
-- 3교시 : ingress-nginx 설치 - Helm으로 ingress-nginx 설치, controller Pod/Service, admission job 확인
-- 4교시 : Ingress rule 작성 - host/path routing, frontend와 API routing, curl/browser 확인
-- 5교시 : Ingress 장애 분석 - className 누락, Service selector 오류, backend port 오류, 404/502/connection refused 분리
-- 6교시 : NetworkPolicy preview - namespace는 기본 network 격리벽이 아니라는 점을 명확히 설명하고, frontend -> backend, backend -> database 허용/차단 기준, podSelector/namespaceSelector 차이, DNS egress 주의를 다룬다
-- 7교시 : rollout과 external traffic - image tag 변경, rollout status/history/undo, Ingress 경로로 사용자 영향 확인
-- 8교시 : 구름 EXP 배움일기 - Service/Ingress/DNS 차이, ingress-nginx Helm 설치, traffic 장애에서 먼저 볼 증거
+- 3교시 : Gateway API와 Envoy Gateway 설치 - Helm으로 Envoy Gateway 설치, GatewayClass/Gateway/HTTPRoute 구조 확인, NGINX Ingress는 기존 방식으로 비교만 언급
+- 4교시 : HTTPRoute rule 작성 - host/path routing, frontend와 API routing, curl/browser 확인
+- 5교시 : Gateway/HTTPRoute 장애 분석 - GatewayClass 누락, HTTPRoute parentRefs 오류, Service selector 오류, backend port 오류, 404/502/connection refused 분리
+- 6교시 : NetworkPolicy와 Cilium preview - namespace는 기본 network 격리벽이 아니라는 점을 명확히 설명하고, frontend -> backend, backend -> database 허용/차단 기준, podSelector/namespaceSelector 차이, DNS egress, CiliumNetworkPolicy/Hubble preview를 다룬다
+- 7교시 : rollout과 external traffic - image tag 변경, rollout status/history/undo, Gateway 경로로 사용자 영향 확인
+- 8교시 : 구름 EXP 배움일기 - Service/Gateway API/DNS 차이, Envoy Gateway Helm 설치, traffic 장애에서 먼저 볼 증거
 
 ## 3일차
 - 1교시 : Day2 강의 10분 요약 + Kubernetes observability 기준 - logs/events/metrics/traces 차이, Docker stats와의 차이
 - 2교시 : kube-prometheus-stack 설치 - Helm으로 Prometheus, Grafana, Alertmanager, exporter 구성 확인
 - 3교시 : Prometheus target 확인 - scrape target, ServiceMonitor/PodMonitor 개념, target down 원인
 - 4교시 : Grafana dashboard 확인 - node/pod CPU/memory/restart, namespace별 resource 사용량
-- 5교시 : 장애와 metric 연결 - bad rollout, readiness 실패, restart 증가, CPU/memory 압박을 dashboard로 확인
+- 5교시 : 장애와 metric/network flow 연결 - bad rollout, readiness 실패, restart 증가, CPU/memory 압박을 dashboard로 확인하고 Cilium/Hubble이 있다면 service dependency와 flow 관찰을 preview
 - 6교시 : alert preview - alert rule과 silence 개념, threshold를 너무 낮게 잡을 때 생기는 noise
-- 7교시 : 관찰 runbook 작성 - 증상, 관련 metric, 확인 명령, dashboard 위치, 개발팀 전달 정보
+- 7교시 : 관찰 runbook 작성 - K9s로 상태를 빠르게 훑고, 증상, 관련 metric, 확인 명령, dashboard 위치, 개발팀 전달 정보를 정리
 - 8교시 : 구름 EXP 배움일기 - Prometheus/Grafana에서 본 지표, target down 원인, 운영 dashboard 질문
 
 ## 4일차
 - 1교시 : Day3 강의 10분 요약 + Kubernetes 권한 모델 - user, group, ServiceAccount, Role, ClusterRole, RoleBinding
 - 2교시 : RBAC 최소 권한 실습 - 읽기 전용 ServiceAccount, namespace scope 권한, forbidden error 확인
-- 3교시 : app Pod와 ServiceAccount - default ServiceAccount 위험, token mount, workload identity preview
-- 4교시 : Kyverno 설치 - Helm으로 Kyverno 설치, admission controller Pod와 webhook 확인
+- 3교시 : app Pod와 ServiceAccount, external secret 권한 - default ServiceAccount 위험, token mount, workload identity preview, External Secrets Operator가 AWS Secrets Manager/SSM Parameter Store를 읽는 권한 모델
+- 4교시 : Kyverno와 External Secrets Operator 설치/preview - Helm으로 Kyverno 설치, ESO 설치 또는 manifest preview, admission controller와 operator reconciliation 차이
 - 5교시 : Kyverno policy 실습 1 - `latest` tag 금지, required label, Audit/Enforce 차이
 - 6교시 : Kyverno policy 실습 2 - privileged container 또는 hostPath 제한, policy violation 결과 확인
 - 7교시 : 권한과 정책 장애 분석 - RBAC forbidden과 Kyverno admission deny를 구분하고 복구 기준 정리
@@ -511,7 +538,7 @@
 - 2교시 : Argo CD 설치 - Helm으로 Argo CD 설치, admin secret, port-forward 또는 Ingress 접속 기준
 - 3교시 : Argo CD Application 생성 - Git repository의 manifest path를 Application으로 등록하고 sync 상태 확인
 - 4교시 : drift와 sync - manifest 변경, OutOfSync, manual sync, prune/self-heal preview, rollback 기준
-- 5교시 : Istio 개념 preview - sidecar, Envoy, mTLS, traffic policy, mesh가 필요한 시나리오
+- 5교시 : Istio 개념 preview와 Cilium 비교 - sidecar, Envoy, mTLS, traffic policy, mesh가 필요한 시나리오, CNI/eBPF 계열 Cilium과 mesh 역할 차이
 - 6교시 : Istio/Kiali 설치 - Helm으로 istio-base, istiod, gateway, Kiali 설치, namespace injection 확인
 - 7교시 : mesh traffic 확인 - sample app sidecar injection, traffic split 또는 fault injection, Kiali graph 확인
 - 8교시 : 구름 EXP 배움일기 - Argo CD/GitOps, Istio mesh preview, Kubernetes 7일 탐험에서 남은 질문
@@ -590,7 +617,7 @@
 - 8교시 : 구름 EXP 배움일기 - ALB/ECR/ECS/CloudWatch 연결 흐름과 장애 확인 지점
 
 ## 2일차
-- 1교시 : Day1 강의 10분 요약 + Storage와 Database 서비스 선택 기준 - EBS, EFS, S3, RDS의 용도와 운영 책임 비교
+- 1교시 : Day1 강의 10분 요약 + Storage와 Database 서비스 선택 기준 - EBS, EFS, S3, RDS의 용도와 운영 책임, Kubernetes PV/PVC와 EBS zonal 제약 연결
 - 2교시 : S3 Console 실습 - bucket 생성, 객체 업로드, public access block, 정적 파일 호스팅 개념
 - 3교시 : S3 보안/비용 시나리오 - public access, lifecycle, storage class, 삭제 확인
 - 4교시 : RDS 개념과 비용 주의사항 - subnet group, security group, backup, Multi-AZ, storage 비용
