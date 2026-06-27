@@ -25,6 +25,30 @@ Pod Running
   -> Gateway 경로에서 503 계열 장애
 ```
 
+## 오늘 cluster를 먼저 고정한다
+Kubernetes 실습은 첫 명령이 `kubectl apply`가 아니다. 먼저 오늘 사용할 cluster를 만들고, `kubectl` context를 그 cluster로 고정한다.
+
+```bash
+bash week4/scripts/create-kind-cluster.sh paperclip-w4d2
+bash week4/scripts/ensure-kind-context.sh paperclip-w4d2
+```
+
+예상:
+```text
+[cluster] current context: kind-paperclip-w4d2
+node STATUS Ready
+```
+
+이 확인을 건너뛰면 지난 수업 cluster, Docker Desktop 기본 cluster, 다른 학생 실습 cluster에 manifest를 적용할 수 있다. 수업 중에는 중요한 작업 전마다 아래 명령을 반복한다.
+
+```bash
+bash week4/scripts/ensure-kind-context.sh paperclip-w4d2
+kubectl config current-context
+kubectl get nodes
+```
+
+오늘 evidence에는 반드시 current-context를 남긴다.
+
 ## Kubernetes traffic 기본 흐름
 Pod끼리 직접 Pod IP로 통신하지 않는다. Pod IP는 바뀔 수 있으므로 Service를 사용한다.
 
@@ -176,6 +200,7 @@ Pod IP 변경
 ## Evidence Note
 ```markdown
 # W4D2S1 Networking recap
+- current-context:
 - frontend Pod IP:
 - api Service ClusterIP:
 - api Endpoint:

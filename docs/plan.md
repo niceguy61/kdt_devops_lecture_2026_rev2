@@ -452,6 +452,7 @@
 - Kubernetes add-on 설치는 Helm으로 통일한다. `kubectl apply -f <remote-url>` 방식은 설치 표준으로 쓰지 않고, 필요할 때만 왜 혼란을 만드는지 비교 설명한다.
 - 모든 Helm 설치는 `helm upgrade --install`을 기본으로 하고 namespace, release name, chart repo, values file, 검증 명령, uninstall 명령을 함께 제공한다.
 - Helm values는 수업 repo 안의 파일로 관리한다. 긴 `--set` 명령은 빠른 데모나 공식 문서 비교가 아닌 이상 사용하지 않는다.
+- 매일 1교시에는 오늘 사용할 kind cluster를 생성하고 `kubectl` context를 고정한다. 매일 8교시에는 cluster를 유지할지 삭제할지 결정하고 `kind get clusters`, `kubectl config current-context`, `helm list -A` evidence를 남긴다. 수업 중 중요한 `kubectl apply`/`helm upgrade` 전에는 `week4/scripts/ensure-kind-context.sh`를 반복 호출한다.
 - NGINX Ingress Controller는 기존 Ingress 생태계의 대표 사례로만 언급한다. 새 실습은 Gateway API/Envoy Gateway를 기준으로 구성하고, Ingress와 Gateway API의 API shape 차이를 비교한다.
 - system namespace에 설치되는 add-on은 통신/권한 원리를 반드시 설명한다. `kube-system`, `monitoring`, `argocd`, `istio-system` 등에 설치된 Pod가 다른 namespace를 보는 이유를 Service DNS, APIService, ServiceAccount, Role/ClusterRole, RoleBinding/ClusterRoleBinding 기준으로 나눠 설명한다.
 - "namespace가 다르지만 통신된다"는 표현은 HTTP/Service 통신인지 Kubernetes API 조회/변경인지 구분한다. Service 통신은 DNS/Service/Endpoint/NetworkPolicy를 보고, API 접근은 ServiceAccount token과 RBAC을 본다.

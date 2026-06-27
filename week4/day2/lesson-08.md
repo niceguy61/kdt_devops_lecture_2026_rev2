@@ -92,6 +92,7 @@
 
 ## 오늘의 evidence 명령
 ```bash
+bash week4/scripts/ensure-kind-context.sh paperclip-w4d2
 helm list -n envoy-gateway-system
 kubectl get gatewayclass
 kubectl -n envoy-gateway-system get deploy,pod,svc
@@ -103,6 +104,26 @@ curl -H "Host: paperclip.local" http://localhost:8080/
 curl -H "Host: paperclip.local" http://localhost:8080/api
 kubectl -n week4 rollout history deploy/api
 ```
+
+## 수업 종료 cluster 정리
+오늘 cluster를 다음 W4D3에서 그대로 이어 쓸지, 완전히 지울지 결정한다. 헷갈림을 줄이려면 수업 종료 시점에 반드시 둘 중 하나를 말로 정하고 evidence를 남긴다.
+
+유지하는 경우:
+```bash
+bash week4/scripts/ensure-kind-context.sh paperclip-w4d2
+kind get clusters
+kubectl get ns
+helm list -A
+```
+
+삭제하는 경우:
+```bash
+bash week4/scripts/delete-kind-cluster.sh paperclip-w4d2
+kind get clusters
+kubectl config current-context
+```
+
+삭제 후 `kubectl config current-context`가 에러를 내거나 다른 context를 보여도 놀라지 않는다. 중요한 것은 다음 수업 시작 때 다시 `create-kind-cluster.sh`로 오늘 cluster를 명확히 잡는 것이다.
 
 ## 장애별 한 줄 판별법
 | 증상 | 한 줄 판별 |
@@ -168,6 +189,7 @@ W4D3에서는 같은 traffic을 dashboard와 metric으로 본다. 오늘의 evid
 ## Evidence Note
 ```markdown
 # W4D2S8 final journal
+- cluster 유지/삭제 결정:
 - 오늘 확인한 정상 경로:
 - 가장 이해가 어려웠던 계층:
 - 내가 본 장애 출력:
