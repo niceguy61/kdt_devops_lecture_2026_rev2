@@ -3,7 +3,7 @@
 - 주차 : 5주
 - 일별 수업 시간 : 일 8시간, 50분 수업 10분 휴식, 매 정시 시작
 - 1주차 1일차 과정별 OT는 운영 확정 일정에 따라 2026-06-10(수) 12:00~18:00, 점심시간 13:00~14:00, 총 5시간으로 진행한다.
-- 수업 범위 : Devops, Cloud(AWS), Docker, Kubernetes, MSA, IaC, Observability, Kubernetes Known plugins
+- 수업 범위 : Devops, Cloud(AWS), Docker, Kubernetes, MSA, Observability, Kubernetes Known plugins
 - 과목 명 : Cloud Native
 - 대상자 : 전공 막학기 학생, 비전공 취업준비생, 전직 개발자 (클라우드 직군 이직 희망자)
 
@@ -14,7 +14,7 @@
 | 2주차 | Docker, 이미지/컨테이너, Dockerfile, Compose | Dockerfile, compose.yaml, 이미지 실행 흐름, 컨테이너 장애 분석 |
 | 3주차 | MSA 2일, GitHub/GitHub Actions 1일, Kubernetes 진입 2일 | MSA 장애 리포트, branch/merge/rebase/revert/tag 압축 실습, CI gate, Pod/Deployment/Service 첫 배포 |
 | 4주차 | Kubernetes 운영 5일 | Helm 기반 add-on 설치, Ingress, metrics-server, Prometheus/Grafana, RBAC, Kyverno, Argo CD, Istio/Kiali preview |
-| 5주차 | AWS 마무리 3일, Terraform/IaC 2일 | AWS 운영 runbook, 비용/관찰 흐름, Terraform 코드/plan/destroy 흐름 |
+| 5주차 | AWS 운영 집중 5일 | AWS 계정 안전장치, 네트워크/컴퓨팅/저장소/데이터베이스/관찰/비용 운영 runbook |
 
 ## 일차 운영 리듬
 | 일차 | 공통 흐름 |
@@ -53,28 +53,28 @@
 - 로컬 컴퓨터에서 웹 서비스가 실행되고 접속되는 흐름을 명령, port, HTTP status, log 확인으로 설명한다.
 - GitHub, VS Code, Git, CLI, README를 이용해 실습 흐름을 재현 가능한 형태로 이해한다.
 - 작은 정적 웹 애플리케이션을 만들고, 장애/RCA 흐름을 이해한다.
-- Docker, MSA, Kubernetes, AWS, Terraform, Observability가 Week 1 컴퓨팅 spine 위에서 어떤 문제를 확장해 해결하는지 설명한다.
+- Docker, MSA, Kubernetes, AWS, Observability가 Week 1 컴퓨팅 spine 위에서 어떤 문제를 확장해 해결하는지 설명한다.
 
 ## 1주차 운영 원칙
 - 1주차는 overview 주간이지만 얕은 용어 소개가 아니다. 이후 기술을 해석할 컴퓨팅 좌표계를 만든다.
 - Docker 명령 실습, AWS 리소스 생성, DORA 지표 수업, Well-Architected 독립 수업은 1주차에서 진행하지 않는다.
-- Docker, Kubernetes, AWS, Terraform은 미래 anchor로만 언급하고, 모든 언급은 Week 1 컴퓨팅 spine에 연결한다.
+- Docker, Kubernetes, AWS는 미래 anchor로만 언급하고, 모든 언급은 Week 1 컴퓨팅 spine에 연결한다.
 - 모든 활동은 화면, 명령 출력, 브라우저 동작처럼 관찰 가능한 상태를 기준으로 다룬다.
 - 비유는 최소화하고 공식 문서, 학술 기준, 현업 DevOps/SRE 기준, 실행 상태 확인을 우선한다.
 - 1주차 4일차는 국내 IT 기업 사례로 현대 애플리케이션 구성요소를 설명하고 Docker 필요성을 빌드업한다. 7~8교시는 더 이상 면담 전용으로 비워두지 않으며, 환경/용어/자신감 회복이 필요한 학생의 첫 1:1 멘토링은 Day6로 이동한다.
 
 ## 1주차 컴퓨팅 spine
-| Fundamental | Local computer | Docker로 확장 | Kubernetes로 확장 | AWS로 확장 | Terraform/IaC로 확장 |
-|---|---|---|---|---|---|
-| Compute | CPU가 process를 실행 | container process | Pod/container, replica | EC2, ECS task, Lambda, EKS node | compute resource |
-| Memory | process가 RAM을 사용 | memory limit/usage | requests/limits, OOMKilled | instance/task memory | size variable |
-| Storage | file/directory/data path | image layer, volume | Volume, PV, ConfigMap mount | EBS, EFS, S3, RDS | bucket/volume/db resource |
-| Network | IP, localhost, port, protocol | port binding, bridge DNS | Service, Ingress, cluster DNS | VPC, subnet, SG, ALB, Route 53 | VPC/subnet/SG resource |
-| Lifecycle | start, stop, crash, restart | run/stop/restart policy | rollout, probe, restart | Auto Scaling, ECS service | plan/apply/destroy |
-| Configuration | env var, config file | `-e`, `.env`, Dockerfile default | ConfigMap, Secret | Parameter Store, Secrets Manager | variables, sensitive values |
-| Identity/access | user, permission, token | registry auth, secret mount | ServiceAccount, RBAC | IAM, MFA, role, access key | provider/IAM resources |
-| Observability | logs, status, exit code | logs, inspect, stats | logs, events, metrics, probes | CloudWatch, CloudTrail | outputs, drift signals |
-| Cost/resource boundary | local resource limits | image size, running containers | node capacity, requests | billing, Free Tier, instance class | cost assumptions, destroy |
+| Fundamental | Local computer | Docker로 확장 | Kubernetes로 확장 | AWS로 확장 |
+|---|---|---|---|---|
+| Compute | CPU가 process를 실행 | container process | Pod/container, replica | EC2, ECS task, Lambda, EKS node |
+| Memory | process가 RAM을 사용 | memory limit/usage | requests/limits, OOMKilled | instance/task memory |
+| Storage | file/directory/data path | image layer, volume | Volume, PV, ConfigMap mount | EBS, EFS, S3, RDS |
+| Network | IP, localhost, port, protocol | port binding, bridge DNS | Service, Ingress, cluster DNS | VPC, subnet, SG, ALB, Route 53 |
+| Lifecycle | start, stop, crash, restart | run/stop/restart policy | rollout, probe, restart | Auto Scaling, ECS service |
+| Configuration | env var, config file | `-e`, `.env`, Dockerfile default | ConfigMap, Secret | Parameter Store, Secrets Manager |
+| Identity/access | user, permission, token | registry auth, secret mount | ServiceAccount, RBAC | IAM, MFA, role, access key |
+| Observability | logs, status, exit code | logs, inspect, stats | logs, events, metrics, probes | CloudWatch, CloudTrail |
+| Cost/resource boundary | local resource limits | image size, running containers | node capacity, requests | billing, Free Tier, instance class |
 
 ## 1일차
 
@@ -574,99 +574,101 @@
 # 5주차
 ## Keyword
 - aws
+- iam
+- vpc
+- ec2
 - load balancer
 - ecr
 - ecs
 - s3
 - rds
 - cloudwatch
+- cloudtrail
 - finops
 - observability
 - managed service
-- terraform
-- iac
-- state
-- drift
-- plan
-- destroy
 
 ## 5주차 목표
 - AWS compute, network, storage, database, container, observability, billing 서비스를 운영 관점에서 연결한다.
-- EC2/ALB, ECR/ECS 또는 컨테이너 실행 서비스, S3, RDS, CloudWatch를 실습 시나리오로 확인한다.
+- AWS 계정 안전장치, IAM, MFA, Budget, region/AZ, VPC의 기본 운영 경계를 이해한다.
+- EC2, Security Group, ALB, ECR/ECS 또는 App Runner, S3, RDS, CloudWatch를 실습 시나리오로 확인한다.
 - 비용이 발생하는 지점을 예측하고 Budget, Cost Explorer, 태그 기반 비용 관리의 필요성을 이해한다.
-- Terraform의 provider, resource, variable, output, state, plan/apply/destroy 흐름을 이해한다.
-- AWS Console 구성 일부를 Terraform 코드로 재현하고, 변경 검토와 cleanup 절차를 이해한다.
-- 수작업 콘솔 구성의 반복성, 누락 위험, 리뷰 불가능성을 IaC와 연결한다.
+- IAM 권한, public network, secret, 로그, 비용, cleanup을 포함한 AWS 운영 runbook을 작성한다.
+- Kubernetes에서 배운 Service, Ingress, Secret, PV/PVC, observability 개념을 AWS managed service와 연결한다.
 
 ## 5주차 운영 원칙
-- 5주차 1~3일차는 AWS 계정 안전장치, 네트워크, 컴퓨팅, 컨테이너/관찰 흐름을 압축해서 다룬다.
-- 5주차 4~5일차는 남은 시간을 Terraform/IaC에 집중한다.
+- 5주차 전체는 AWS 운영 집중 주간으로 운영한다.
+- Terraform/IaC는 본과정 5주차에서 제외하고, 하루 2시간 단위의 별도 보강 커리큘럼으로 분리한다.
+- 5주차 1일차는 AWS 계정 안전장치와 클라우드 운영 좌표계를 먼저 잡는다.
+- 5주차 2~3일차는 네트워크, 컴퓨팅, 로드밸런싱, 컨테이너 실행 흐름을 다룬다.
+- 5주차 4일차는 storage, database, secret, observability, security, cost를 운영 시나리오로 묶는다.
+- 5주차 5일차는 AWS 통합 운영 실습, 장애 분석, cleanup, 포트폴리오 runbook으로 마무리한다.
 - AWS 실습은 비용 통제가 가능한 리소스를 우선 사용하고, RDS/ECS/EKS는 계정/비용 상태에 따라 생성 또는 시뮬레이션 경로를 둔다.
 - FinOps와 Observability는 별도 이론으로 분리하지 않고, 리소스 선택과 운영 판단 안에 함께 다룬다.
-- Terraform은 거대한 모듈 작성보다 plan을 읽고 변경/비용/보안/cleanup을 검토하는 능력에 집중한다.
-- 모든 Terraform apply 전 plan을 읽고, 실습 후 destroy 또는 잔여 리소스 확인을 수행한다.
+- 모든 AWS 실습은 생성 전 비용/권한/region을 확인하고, 실습 후 중지/삭제/잔여 리소스 확인을 수행한다.
+- root 계정, access key, public S3, 0.0.0.0/0 inbound, RDS 삭제 보호, NAT Gateway/EIP/ALB 잔여 비용은 반복 점검 항목으로 둔다.
 - 1주차 첫 멘토링은 Day6로 이동한다. 2주차 이후에는 주차 상황에 따라 1일차 또는 4일차 후반을 개인 면담, 환경 점검, 보충 실습, 진도 회복 시간으로 사용할 수 있다.
 
 ## 1일차
-- 1교시 : Week4 강의 10분 요약 + Load Balancing 개념 - ALB, target group, health check, listener, public/private 경계
-- 2교시 : ALB Console 실습 - target group 생성, health check 확인, ALB로 웹 서비스 접속
-- 3교시 : 컨테이너 실행 서비스 매핑 - Docker/Kubernetes 관점에서 ECR, ECS, EKS가 해결하는 문제 비교
-- 4교시 : ECR 실습 - repository 생성, image tag 규칙, push/pull 흐름, credential 주의
-- 5교시 : ECS 또는 App Runner 맛보기 - task/service 개념, image 실행, logs와 health 확인
-- 6교시 : CloudWatch Logs 기본 - 로그 그룹, 로그 스트림, EC2/ECS/app 로그 수집 개념
-- 7교시 : CloudWatch Metrics와 Alarm - CPU, network, ALB target health, threshold, notification 개념
-- 8교시 : 구름 EXP 배움일기 - ALB/ECR/ECS/CloudWatch 연결 흐름과 장애 확인 지점
+- 1교시 : Week4 강의 10분 요약 + AWS로 넘어가는 이유 - Kubernetes node, load balancer, storage, identity, cost가 cloud resource로 연결되는 흐름
+- 2교시 : AWS 계정 안전장치 - root 계정 사용 금지, MFA, IAM user/role, access key 위험, Budget 알림, Free Tier 오해
+- 3교시 : Region/AZ와 장애 경계 - region, availability zone, latency, 장애 범위, 서울 리전 선택 기준
+- 4교시 : AWS 서비스 운영 지도 - EC2, VPC, S3, RDS, ELB, ECR/ECS, CloudWatch, CloudTrail을 computing spine에 매핑
+- 5교시 : VPC와 Security Group 기본 - VPC, subnet, route table, internet gateway, security group을 Service/Ingress와 비교
+- 6교시 : EC2 첫 관찰 - AMI, instance type, key pair, public IP, SSH, user data, stop/terminate 차이
+- 7교시 : S3 첫 관찰 - bucket, object, public access block, static hosting preview, 삭제/비용 주의
+- 8교시 : 구름 EXP 배움일기 - AWS 계정 안전장치, EC2/S3/VPC/IAM 매핑, 다음 실습 전 질문
 
 ## 2일차
-- 1교시 : Day1 강의 10분 요약 + Storage와 Database 서비스 선택 기준 - EBS, EFS, S3, RDS의 용도와 운영 책임, Kubernetes PV/PVC와 EBS zonal 제약 연결
+- 1교시 : Day1 강의 10분 요약 + AWS 네트워크 실습 지도 - VPC, public/private subnet, route table, internet gateway, security group
+- 2교시 : EC2 Console 실습 - instance 생성, key pair, tag, security group, SSH 또는 browser-based 접속 확인
+- 3교시 : EC2 웹 서버 실행 - user data 또는 직접 설치로 간단한 HTTP 응답 만들기, public IP/curl 확인
+- 4교시 : Security Group 장애 분석 - 80/22 port, source CIDR, wrong rule, 닫힌 포트 증거 확인
+- 5교시 : Load Balancing 개념 - ALB, target group, health check, listener, public/private 경계
+- 6교시 : ALB Console 실습 - target group 생성, health check 확인, ALB로 웹 서비스 접속
+- 7교시 : EC2/ALB 운영 관찰 - instance status, system log, target health, access failure evidence
+- 8교시 : 구름 EXP 배움일기 - VPC/EC2/Security Group/ALB 연결 흐름과 장애 확인 지점
+
+## 3일차
+- 1교시 : Day2 강의 10분 요약 + 컨테이너 실행 서비스 매핑 - Docker/Kubernetes 관점에서 ECR, ECS, EKS, App Runner가 해결하는 문제 비교
+- 2교시 : ECR 실습 - repository 생성, image tag 규칙, push/pull 흐름, credential 주의
+- 3교시 : ECS 또는 App Runner 맛보기 - task/service 개념, image 실행, logs와 health 확인
+- 4교시 : Container service와 ALB 연결 - listener, target group, health check, container port, service desired count
+- 5교시 : 배포 변경과 rollback preview - 새 image tag, service update, 실패 시 이전 image로 복구
+- 6교시 : CloudWatch Logs 기본 - 로그 그룹, 로그 스트림, EC2/ECS/app 로그 수집 개념
+- 7교시 : CloudWatch Metrics와 Alarm - CPU, network, ALB target health, threshold, notification 개념
+- 8교시 : 구름 EXP 배움일기 - ECR/ECS/App Runner/CloudWatch 연결 흐름과 장애 확인 지점
+
+## 4일차
+- 1교시 : Day3 강의 10분 요약 + Storage와 Database 서비스 선택 기준 - EBS, EFS, S3, RDS의 용도와 운영 책임, Kubernetes PV/PVC와 EBS zonal 제약 연결
 - 2교시 : S3 Console 실습 - bucket 생성, 객체 업로드, public access block, 정적 파일 호스팅 개념
-- 3교시 : S3 보안/비용 시나리오 - public access, lifecycle, storage class, 삭제 확인
+- 3교시 : S3 보안/비용 시나리오 - public access, lifecycle, storage class, versioning, 삭제 확인
 - 4교시 : RDS 개념과 비용 주의사항 - subnet group, security group, backup, Multi-AZ, storage 비용
 - 5교시 : RDS Console 실습 또는 시뮬레이션 - DB 생성 흐름, 연결 정보, 보안 그룹, 삭제 보호 옵션 확인
 - 6교시 : 애플리케이션 연결 관점 - connection string, secret 관리, private subnet, 접근 경로
-- 7교시 : 장애/보안 점검 - DB port 노출, credential 노출, backup/delete protection, 비용 잔여 리소스
+- 7교시 : 보안/비용 점검 - DB port 노출, credential 노출, backup/delete protection, S3/RDS 잔여 비용
 - 8교시 : 구름 EXP 배움일기 - S3/RDS 선택 기준, connection string과 secret, 비용 위험 질문
 
-## 3일차
-- 1교시 : Day2 강의 10분 요약 + 운영 대시보드 기본 - CloudWatch Dashboard, 서비스별 핵심 지표, 장애 확인 순서
+## 5일차
+- 1교시 : Day4 강의 10분 요약 + 운영 대시보드 기본 - CloudWatch Dashboard, 서비스별 핵심 지표, 장애 확인 순서
 - 2교시 : FinOps 실습 - Cost Explorer, Budget 알림, 태그별 비용 추적, 리소스별 비용 발생 지점 확인
 - 3교시 : 보안 운영 기본 - IAM 최소 권한, security group 검토, secret 노출 위험, public resource 점검
-- 4교시 : AWS 통합 장애 시나리오 - EC2/ALB/S3/RDS/CloudWatch 중 하나의 실패를 증거로 분석
+- 4교시 : AWS 통합 장애 시나리오 - EC2/ALB/ECS/S3/RDS/CloudWatch 중 하나의 실패를 증거로 분석
 - 5교시 : AWS 운영 Runbook - 배포, 확인, 로그/지표, 비용, cleanup 절차 정리
-- 6교시 : 콘솔 작업의 한계 - 클릭 순서 누락, 설정값 불일치, 재현 어려움, 리뷰 불가능성
-- 7교시 : Terraform 전환 Preview - 어떤 설정을 코드로 옮길지, 변수화/민감정보/상태 관리 기준
-- 8교시 : 구름 EXP 배움일기 - AWS 5일 요약, 운영 runbook, Terraform으로 옮길 후보
-
-## 4일차
-- 1교시 : Day3 강의 10분 요약 + Terraform 기본 개념 - provider, resource, variable, output, state, plan/apply/destroy
-- 2교시 : Terraform 설치 및 인증 준비 - terraform version, AWS 인증, provider init, fmt, validate
-- 3교시 : 작은 AWS 구성 코드화 - region, tag, security group, EC2 또는 S3 등 비용 통제 가능한 리소스
-- 4교시 : variable/output/sensitive - 반복 설정 제거, output 확인, secret을 코드와 state에 남기는 위험
-- 5교시 : Terraform plan 검토 - 변경 전 미리보기, 비용/보안/태그/관찰 가능성 누락 확인
-- 6교시 : Terraform apply 및 검증 - Console, curl, CloudWatch, terraform state 비교
-- 7교시 : 개인 면담 및 환경 점검 - Terraform init/provider 인증/state/backend 문제 확인
-- 8교시 : 구름 EXP 배움일기 - Terraform plan을 읽는 법, provider 인증, sensitive/state에서 주의할 점
-
-## 5일차
-- 1교시 : Day4 강의 10분 요약 + 변경/drift 실습 - Console에서 tag 또는 rule 변경 후 plan 차이 확인
-- 2교시 : Terraform import 개념과 한계 - 이미 만든 리소스와 코드의 관계, state 관리 위험
-- 3교시 : 모듈화 맛보기 - 반복 리소스 정리, module input/output, 과한 추상화의 위험
-- 4교시 : destroy와 cleanup audit - destroy 전 plan 확인, 잔여 리소스, 비용 알림, state 파일 처리
-- 5교시 : 최종 통합 정리 - Docker, MSA, GitHub Actions, Kubernetes, AWS, Terraform이 하나의 운영 흐름으로 연결되는 방식
-- 6교시 : 운영 포트폴리오 패킷 - 아키텍처 다이어그램, runbook, CI workflow, manifest, Terraform plan, cleanup evidence
-- 7교시 : 다음 학습 로드맵 - EKS/ECS 심화, Observability, Security, Terraform module/backend, GitOps
-- 8교시 : 구름 EXP 배움일기 - 전체 과정에서 연결된 개념, Terraform으로 이해한 재현성, 이후 더 공부할 질문
+- 6교시 : 운영 포트폴리오 패킷 - 아키텍처 다이어그램, runbook, CI workflow, Kubernetes manifest, AWS evidence, cleanup evidence
+- 7교시 : 다음 학습 로드맵 - EKS/ECS 심화, Observability, Security, Terraform/IaC 보강, GitOps
+- 8교시 : 구름 EXP 배움일기 - 전체 과정에서 연결된 개념, AWS 운영 runbook, 이후 더 공부할 질문
 
 ## 5주차 학습 결과
 - AWS Console로 구성한 실습 아키텍처 다이어그램
 - AWS 서비스 매핑 표 - compute, network, storage, database, observability, billing
+- AWS 계정 안전장치 체크리스트 - MFA, IAM, Budget, region, tag, cleanup
 - Budget 또는 비용 알림 설정 흐름
 - CloudWatch Logs/Metrics/Alarm/Dashboard 실습 흐름
-- EC2/ALB, ECR/ECS 또는 App Runner, S3/RDS 중 선택 실습 결과
+- EC2/Security Group/ALB 실습 결과
+- ECR/ECS 또는 App Runner 실습 결과
+- S3/RDS 실습 또는 시뮬레이션 결과
 - AWS 운영 runbook과 cleanup 체크리스트
-- Terraform 전환 대상 리소스 목록과 최소 Terraform 코드
-- `terraform init/fmt/validate/plan/apply/destroy` 실행 흐름
-- state, drift, secret, 비용 위험에 대한 운영 note
 - 전체 과정 포트폴리오 패킷 초안
 
 ## 5주차 환경 준비 체크리스트
@@ -678,8 +680,52 @@
 - VPC, security group, EC2, ALB 또는 컨테이너 실행 서비스 생성 가능
 - S3, RDS 생성 또는 시뮬레이션 흐름 확인 가능
 - CloudWatch Logs/Metrics/Alarm 접근 가능
-- Terraform 설치 및 `terraform version` 확인
-- AWS 인증을 Terraform provider에서 사용할 수 있음
-- `terraform init`, `terraform fmt`, `terraform validate` 실행 가능
-- `terraform plan` 결과를 읽고 변경 내용을 설명 가능
 - 실습 종료 후 삭제/중지할 리소스 목록 확인
+
+# Terraform 보강 커리큘럼
+
+Terraform은 본과정 5주차에서 제외하고, AWS 주간 이후 별도 보강 수업으로 운영한다. 각 회차는 하루 약 2시간 기준이며, 이미 AWS Console에서 본 리소스를 코드로 재현하는 흐름에 집중한다.
+
+## Keyword
+- terraform
+- iac
+- provider
+- resource
+- variable
+- output
+- state
+- plan
+- apply
+- destroy
+- drift
+
+## 보강 목표
+- 수작업 콘솔 구성의 반복성, 누락 위험, 리뷰 불가능성을 IaC와 연결한다.
+- Terraform의 provider, resource, variable, output, state, plan/apply/destroy 흐름을 이해한다.
+- AWS Console에서 이해한 EC2, Security Group, S3 같은 작은 리소스를 Terraform 코드로 재현한다.
+- plan을 읽고 변경, 비용, 보안, cleanup 위험을 검토한다.
+- state, secret, drift, destroy의 운영 위험을 이해한다.
+
+## 보강 운영 원칙
+- 보강은 AWS 리소스 개념을 다시 가르치는 시간이 아니라, 이미 배운 AWS 리소스를 코드화하는 시간이다.
+- 모든 apply 전 plan을 읽고, 실습 후 destroy 또는 잔여 리소스 확인을 수행한다.
+- 거대한 module 작성보다 provider 인증, resource argument, state 확인, plan 해석, cleanup에 집중한다.
+- secret을 코드와 state에 남기는 위험을 반복 확인한다.
+
+## Terraform 1회차 - IaC 기본과 로컬 실행 루프
+- 1교시 : IaC가 필요한 이유 - 콘솔 클릭 순서 누락, 설정값 불일치, 리뷰 불가능성
+- 2교시 : Terraform 기본 개념 - provider, resource, variable, output, state, plan/apply/destroy
+- 3교시 : 설치 및 초기화 - `terraform version`, provider block, `terraform init`, `fmt`, `validate`
+- 4교시 : plan 읽기와 fake change 검토 - 어떤 리소스가 생성/변경/삭제되는지 읽는 법
+
+## Terraform 2회차 - 작은 AWS 리소스 코드화
+- 1교시 : AWS provider 인증과 region/tag 기준
+- 2교시 : S3 또는 Security Group 코드화 - 비용 통제 가능한 리소스부터 시작
+- 3교시 : variable/output/sensitive - 반복 설정 제거, output 확인, 민감정보 위험
+- 4교시 : apply, Console 검증, state 확인, destroy
+
+## Terraform 3회차 - drift, import, module preview
+- 1교시 : drift 실습 - Console에서 tag 또는 rule 변경 후 plan 차이 확인
+- 2교시 : import 개념과 한계 - 이미 만든 리소스와 코드/state의 관계
+- 3교시 : module preview - 반복 리소스 정리, input/output, 과한 추상화의 위험
+- 4교시 : 최종 cleanup audit - destroy 전 plan, 잔여 리소스, state 파일 처리, 비용 알림 확인
