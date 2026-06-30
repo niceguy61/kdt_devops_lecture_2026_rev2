@@ -54,9 +54,76 @@ helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 
 helm repo update metrics-server
 
-helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system -f week4/day1/labs/helm-metrics-server/values.yaml
+helm upgrade --install metrics-server metrics-server/metrics-server \
+  --namespace kube-system \
+  -f week4/day1/labs/helm-metrics-server/values.yaml
 
 helm list -n kube-system
+```
+
+여기서 `values.yaml`을 그냥 붙여 넣는 옵션 파일로 보면 안 된다. local kind cluster에서 metrics-server가 kubelet metric을 가져오려면 다음 설정이 중요하다.
+
+```yaml
+args:
+  - --kubelet-insecure-tls
+  - --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
+```
+
+| 설정 | 왜 필요한가 | 주의 |
+|---|---|---|
+| `--kubelet-insecure-tls` | kind/local에서 kubelet 인증서의 IP SAN 문제로 scrape가 실패하는 경우를 우회한다 | 운영 환경의 기본 보안 설정으로 가져가면 안 된다 |
+| `--kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP` | metrics-server가 node에 접근할 주소 우선순위를 명확히 한다 | cluster마다 node address 정책이 다를 수 있다 |
+
+kind에서 자주 보이는 실패 로그는 다음과 같다.
+
+```text
+Failed to scrape node
+tls: failed to verify certificate:
+x509: cannot validate certificate for 172.19.0.2 because it doesn't contain any IP SANs
+
+Failed probe probe="metric-storage-ready" err="no metrics to serve"
+```
+
+이 로그는 metrics-server 자체가 완전히 다른 서비스라서 실패한 것이 아니라, metrics-server가 kubelet의 `https://<node-ip>:10250/metrics/resource`를 긁는 과정에서 TLS 검증에 실패했다는 뜻이다. `metric-storage-ready`의 `no metrics to serve`는 보통 그 결과로 저장할 metric이 없다는 후속 증상이다.
+
+설치 후에는 values file에 적혀 있다는 사실만 믿지 말고 실제 Deployment args까지 확인한다.
+
+```bash
+helm get values metrics-server -n kube-system
+
+kubectl -n kube-system get deploy metrics-server \
+  -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
+```
+
+예상 출력에는 최소한 다음 값이 보여야 한다.
+
+```text
+--kubelet-insecure-tls
+--kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
+```
+
+만약 args에 `--kubelet-insecure-tls`가 없다면 values가 실제 release에 반영되지 않은 것이다. 같은 명령으로 다시 upgrade하고 rollout을 확인한다.
+
+```bash
+helm upgrade --install metrics-server metrics-server/metrics-server \
+  --namespace kube-system \
+  -f week4/day1/labs/helm-metrics-server/values.yaml
+
+kubectl -n kube-system rollout restart deploy/metrics-server
+kubectl -n kube-system rollout status deploy/metrics-server
+kubectl -n kube-system logs deploy/metrics-server --tail=80
+kubectl get apiservice v1beta1.metrics.k8s.io
+
+sleep 60
+kubectl top node
+```
+
+여기서도 안 되면 먼저 현재 cluster가 맞는지 확인한다. 이전 실습 cluster를 보고 있으면 values가 맞아도 전혀 다른 metrics-server를 디버깅하게 된다.
+
+```bash
+kubectl config current-context
+kind get clusters
+kubectl get nodes
 ```
 
 ## 실제 명령 출력으로 용어 연결하기
@@ -223,6 +290,8 @@ Helm은 강력하지만 다음 오해를 조심한다.
 - chart와 release 차이:
 - values file에 남겨야 하는 이유:
 - `upgrade --install`을 쓰는 이유:
+- metrics-server args 실제 반영 확인 결과:
+- `x509 IP SANs` 또는 `metric-storage-ready` 오류가 나면 먼저 볼 것:
 - Helm으로도 해결되지 않는 것:
 ```
 
