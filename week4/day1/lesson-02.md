@@ -48,6 +48,17 @@ Helm은 이 문제를 release와 values로 정리한다. 특히 values file을 G
 | Values | chart에 넣는 설정 | `values.yaml` |
 | Revision | release 변경 이력 | `helm history` |
 
+## Metric Server 설치
+```bash
+helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+
+helm repo update metrics-server
+
+helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system
+
+helm list -n kube-system
+```
+
 ## 실제 명령 출력으로 용어 연결하기
 용어는 외우는 것보다 출력에서 찾는 것이 빠르다.
 
