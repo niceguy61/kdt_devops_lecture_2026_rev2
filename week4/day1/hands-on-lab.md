@@ -181,6 +181,9 @@ helm status metrics-server -n kube-system
 kubectl -n kube-system get deploy,pod -l app.kubernetes.io/name=metrics-server
 kubectl -n kube-system get sa | grep metrics-server
 kubectl get apiservice v1beta1.metrics.k8s.io
+helm get values metrics-server -n kube-system
+kubectl -n kube-system get deploy metrics-server \
+  -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
 ```
 
 metrics-server는 `kube-system`에 있지만 `kubectl top pod -n week4` 결과를 제공한다. 이건 `week4` Pod가 metrics-server와 직접 통신한다는 뜻이 아니라, API server가 `metrics.k8s.io` APIService를 통해 metrics-server로 요청을 전달한다는 뜻이다.
@@ -196,7 +199,7 @@ kubectl describe apiservice v1beta1.metrics.k8s.io
 | `Available` | Metrics API가 사용 가능한지 |
 | `Message` | 연결 실패 이유 |
 
-kind/local에서 `--kubelet-insecure-tls`는 kubelet 인증서 검증 문제를 우회하기 위한 실습용 설정이다. 운영 환경에서는 cluster 인증서 체계에 맞게 해결해야 한다.
+kind/local에서 `--kubelet-insecure-tls`는 kubelet 인증서 검증 문제를 우회하기 위한 실습용 설정이다. 운영 환경에서는 cluster 인증서 체계에 맞게 해결해야 한다. values 파일에 적혀 있어도 실제 Deployment args에 반영되지 않으면 효과가 없으므로 위 jsonpath 출력에서 반드시 확인한다.
 
 ## 8. `kubectl top` 확인
 metrics-server가 뜬 직후에는 metric이 바로 보이지 않을 수 있다. 30~90초 기다린다.
@@ -221,7 +224,30 @@ runtime-api-xxxxxxxxxx-xxxxx   1m           8Mi
 | `Metrics API not available` | metrics-server 미설치 또는 아직 준비 전 | `kubectl get apiservice v1beta1.metrics.k8s.io` |
 | metrics-server Pod CrashLoop | args, 권한, kubelet 연결 문제 | `kubectl -n kube-system logs deploy/metrics-server` |
 | node metric 없음 | kubelet scrape 실패 | metrics-server log |
+| `x509: cannot validate certificate ... IP SANs` | kind kubelet 인증서와 node IP 검증 문제 또는 values 미반영 | deployment args에서 `--kubelet-insecure-tls` 확인 |
+| `metric-storage-ready no metrics to serve` | node scrape 실패 후 metric 저장소가 비어 있음 | x509/kubelet scrape 로그를 먼저 해결 |
 | `top pod`에 앱이 없음 | namespace 오타 또는 Pod 종료 | `kubectl -n week4 get pods` |
+
+이 로그가 보이면 바로 아래 순서로 확인한다.
+
+```bash
+kubectl config current-context
+kind get clusters
+helm get values metrics-server -n kube-system
+kubectl -n kube-system get deploy metrics-server \
+  -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
+```
+
+`--kubelet-insecure-tls`가 없다면 다시 upgrade한다.
+
+```bash
+helm upgrade --install metrics-server metrics-server/metrics-server \
+  --namespace kube-system \
+  -f week4/day1/labs/helm-metrics-server/values.yaml
+
+kubectl -n kube-system rollout restart deploy/metrics-server
+kubectl -n kube-system rollout status deploy/metrics-server
+```
 
 ## 9. Helm rollback/uninstall 맛보기
 이번 실습에서는 일부러 실패 upgrade를 오래 유지하지 않는다. 대신 명령의 의미를 확인한다.

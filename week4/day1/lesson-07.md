@@ -76,9 +76,10 @@ values file:
 ```yaml
 args:
   - --kubelet-insecure-tls
+  - --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
 ```
 
-kind/local 실습에서는 kubelet certificate 검증 문제 때문에 필요할 수 있다. 운영 환경에 그대로 가져가면 안 된다.
+kind/local 실습에서는 kubelet certificate 검증 문제 때문에 필요할 수 있다. `--kubelet-preferred-address-types`는 metrics-server가 node에 접근할 주소 우선순위를 명시한다. 운영 환경에 그대로 가져가기보다 cluster 인증서와 node address 체계에 맞게 설정해야 한다.
 
 ## values file을 먼저 읽는다
 설치 전에 values file을 직접 확인한다.
@@ -91,6 +92,7 @@ cat week4/day1/labs/helm-metrics-server/values.yaml
 ```yaml
 args:
   - --kubelet-insecure-tls
+  - --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
 
 resources:
   requests:
@@ -110,6 +112,23 @@ helm status metrics-server -n kube-system
 kubectl -n kube-system get deploy,pod -l app.kubernetes.io/name=metrics-server
 kubectl get apiservice v1beta1.metrics.k8s.io
 ```
+
+values 파일이 실제 Deployment에 반영됐는지도 확인한다.
+
+```bash
+helm get values metrics-server -n kube-system
+kubectl -n kube-system get deploy metrics-server \
+  -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
+```
+
+반드시 다음 값이 보여야 한다.
+
+```text
+--kubelet-insecure-tls
+--kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
+```
+
+values 파일에는 값이 있는데 Deployment args에 없다면 Helm upgrade가 values 파일 없이 실행됐거나, 다른 cluster/context를 보고 있을 가능성이 크다.
 
 metrics-server가 어떤 ServiceAccount와 APIService를 쓰는지도 확인한다.
 
@@ -210,9 +229,58 @@ metrics-server log에서 볼 수 있는 계열:
 ```text
 unable to fully scrape metrics from node
 x509: cannot validate certificate
+failed to verify certificate: x509: cannot validate certificate for 172.19.0.2 because it doesn't contain any IP SANs
+Failed probe probe="metric-storage-ready" err="no metrics to serve"
 ```
 
-kind/local에서는 kubelet 인증서 검증 이슈가 흔하다. 그래서 실습용 values에 `--kubelet-insecure-tls`를 넣었다. 단, 이건 운영 보안 기준이 아니라 로컬 실습 우회다.
+kind/local에서는 kubelet 인증서 검증 이슈가 흔하다. metrics-server가 kubelet의 `https://<node-ip>:10250/metrics/resource`를 긁으려는데, kubelet 인증서에 해당 IP가 SAN으로 들어있지 않으면 TLS 검증이 실패한다. 그래서 실습용 values에 `--kubelet-insecure-tls`를 넣었다. 단, 이건 운영 보안 기준이 아니라 로컬 실습 우회다.
+
+`metric-storage-ready`가 `no metrics to serve`라고 나오는 것은 보통 metrics-server가 node scrape에 실패해 저장할 metric이 없다는 후속 증상이다. root cause는 앞의 x509/kubelet scrape 실패다.
+
+## x509 IP SAN 오류 즉시 복구
+다음 로그가 보이면:
+
+```text
+failed to verify certificate: x509: cannot validate certificate for 172.19.0.2 because it doesn't contain any IP SANs
+```
+
+먼저 context를 확인한다. 예전 cluster를 보고 있으면 values를 고쳐도 다른 곳에 적용된다.
+
+```bash
+kubectl config current-context
+kind get clusters
+kubectl get nodes
+```
+
+그 다음 Helm values와 실제 Deployment args를 확인한다.
+
+```bash
+helm get values metrics-server -n kube-system
+kubectl -n kube-system get deploy metrics-server \
+  -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
+```
+
+`--kubelet-insecure-tls`가 없으면 values 파일로 다시 upgrade한다.
+
+```bash
+helm upgrade --install metrics-server metrics-server/metrics-server \
+  --namespace kube-system \
+  -f week4/day1/labs/helm-metrics-server/values.yaml
+
+kubectl -n kube-system rollout restart deploy/metrics-server
+kubectl -n kube-system rollout status deploy/metrics-server
+```
+
+다시 확인한다.
+
+```bash
+kubectl -n kube-system logs deploy/metrics-server --tail=80
+kubectl get apiservice v1beta1.metrics.k8s.io
+sleep 60
+kubectl top node
+```
+
+그래도 같은 오류가 유지되면 현재 보고 있는 cluster가 수업 values로 설치한 cluster인지 다시 확인한다. node 이름이 예를 들어 `paperclip-week3-control-plane`이면 W4D1 cluster가 아니라 이전 Week3 cluster에 설치했거나 그 context를 보고 있을 수 있다.
 
 ## Helm은 성공했는데 top이 안 되는 경우
 이 케이스를 꼭 분리한다.
@@ -233,6 +301,7 @@ kubectl -n kube-system get pod -l app.kubernetes.io/name=metrics-server
 kubectl get apiservice v1beta1.metrics.k8s.io
 kubectl -n kube-system logs deploy/metrics-server --tail=80
 helm get values metrics-server -n kube-system
+kubectl -n kube-system get deploy metrics-server -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
 ```
 
 판단 기준:

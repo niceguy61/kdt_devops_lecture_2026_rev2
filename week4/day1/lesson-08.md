@@ -102,6 +102,7 @@ kubectl top pod -n week4 실행 시 Metrics API not available 발생
 
 ## 조치
 - values.yaml에 --kubelet-insecure-tls가 들어갔는지 확인
+- 실제 Deployment args에도 --kubelet-insecure-tls가 들어갔는지 확인
 - helm upgrade --install 재실행
 - 60초 뒤 kubectl top node 재확인
 ```

@@ -54,7 +54,7 @@ helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 
 helm repo update metrics-server
 
-helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system
+helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system -f week4/day1/labs/helm-metrics-server/values.yaml
 
 helm list -n kube-system
 ```
