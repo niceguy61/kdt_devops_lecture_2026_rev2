@@ -34,3 +34,12 @@
 | EC2 Instance Connect | browser 또는 CLI 기반 EC2 접속 방식 | EC2 Connect tab |
 | Public Subnet | route table에 internet gateway 경로가 있는 subnet | `0.0.0.0/0 -> igw-*` |
 | Private Subnet | internet gateway로 직접 route하지 않는 subnet | route table, NAT 필요 여부 |
+| ECR | Elastic Container Registry. container image를 저장하는 AWS registry | repository, image tag, push command |
+| ECS | Elastic Container Service. container task와 service를 실행하는 AWS orchestration service | cluster, task definition, service |
+| App Runner | source code 또는 container image에서 web service를 실행하는 managed service | service, deployment, logs |
+| Task Definition | ECS task를 실행하기 위한 image, port, env, resource 정의 | revision, container definition |
+| ECS Service | task를 desired count만큼 유지하고 load balancer와 연결할 수 있는 단위 | desired/running count |
+| Desired Count | service가 유지하려는 task 수 | desired count, running count |
+| Container Port | container 안 process가 listen하는 port | task definition, target group |
+| Image Tag | image version을 가리키는 tag | `latest`, semantic tag, digest |
+| Rollback | 실패한 배포를 이전 정상 image/tag 또는 revision으로 되돌리는 작업 | previous task definition, deployment history |
