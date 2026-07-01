@@ -39,10 +39,9 @@ helm v3.x 출력
 ## 1. Envoy Gateway Helm 설치
 ```bash
 bash week4/scripts/ensure-kind-context.sh paperclip-w4d2
-helm repo add eg https://gateway.envoyproxy.io
-helm repo update
 
-helm upgrade --install envoy-gateway eg/gateway-helm \
+helm upgrade --install envoy-gateway oci://docker.io/envoyproxy/gateway-helm \
+  --version v1.8.0 \
   --namespace envoy-gateway-system \
   --create-namespace \
   -f week4/day2/labs/envoy-gateway/values.yaml

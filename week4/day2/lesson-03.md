@@ -79,7 +79,7 @@ config:
 설치 표준은 W4 공통 원칙과 같다.
 
 ```text
-helm repo add/update
+OCI chart 경로와 version 명시
 helm upgrade --install
 namespace 명시
 values file 사용
@@ -87,11 +87,11 @@ release/pod/crd 확인
 ```
 
 ## Helm 설치
-```bash
-helm repo add eg https://gateway.envoyproxy.io
-helm repo update
+Envoy Gateway Helm chart는 DockerHub OCI registry에 배포된다. `https://gateway.envoyproxy.io`는 문서 사이트이며 Helm repository가 아니므로 `helm repo add` 대상으로 쓰지 않는다.
 
-helm upgrade --install envoy-gateway eg/gateway-helm \
+```bash
+helm upgrade --install envoy-gateway oci://docker.io/envoyproxy/gateway-helm \
+  --version v1.8.0 \
   --namespace envoy-gateway-system \
   --create-namespace \
   -f week4/day2/labs/envoy-gateway/values.yaml
