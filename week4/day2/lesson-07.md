@@ -112,6 +112,17 @@ curl -H "Host: paperclip.local" http://localhost:8080/api
 {"service":"api","version":"v1","status":"ok"}
 ```
 
+rollout 직후에는 EndpointSlice와 Envoy data plane 반영 사이의 짧은 타이밍 때문에 첫 요청이 `connection refused` 또는 503으로 보일 수 있다. 이때는 rollout 실패로 바로 판단하지 말고 endpoint를 확인한 뒤 짧게 재시도한다.
+
+```bash
+kubectl -n week4 get endpointslice -l kubernetes.io/service-name=api
+for i in $(seq 1 10); do
+  curl -sS -H "Host: paperclip.local" http://localhost:8080/api && break
+  echo
+  sleep 2
+done
+```
+
 rollback은 Deployment revision 기준이다. Gateway나 HTTPRoute rule을 되돌리는 것이 아니라 api Deployment의 Pod template을 이전 revision으로 되돌린다.
 
 ## 장애 rollout 시나리오

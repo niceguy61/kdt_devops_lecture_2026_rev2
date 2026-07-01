@@ -261,6 +261,17 @@ kubectl -n "$NS" rollout status deploy/api
 curl -H "Host: paperclip.local" http://localhost:8080/api
 ```
 
+rollout 직후에는 EndpointSlice와 Envoy data plane 반영 사이의 짧은 타이밍 때문에 첫 요청이 실패할 수 있다. 이때는 endpoint를 확인하고 1-2초 간격으로 다시 요청한다.
+
+```bash
+kubectl -n "$NS" get endpointslice -l kubernetes.io/service-name=api
+for i in $(seq 1 10); do
+  curl -sS -H "Host: paperclip.local" http://localhost:8080/api && break
+  echo
+  sleep 2
+done
+```
+
 ## 10. NetworkPolicy와 Cilium/Hubble preview
 적용 전에 현재 Service와 Endpoint를 먼저 본다.
 
@@ -317,5 +328,14 @@ helm list -A
 bash week4/scripts/delete-kind-cluster.sh paperclip-w4d2
 kind get clusters
 ```
+
+## S6-S8 검증 스크립트
+NetworkPolicy, Gateway port-forward, rollout/rollback을 한 번에 확인하려면 다음 스크립트를 실행한다.
+
+```bash
+bash week4/day2/labs/traffic-routing/verify-s6-s8.sh
+```
+
+`8080`을 이미 사용 중인 환경에서는 스크립트가 기본으로 `18080`을 사용한다. 다른 port가 필요하면 `LOCAL_PORT=18081`처럼 지정한다.
 
 W4D3에서도 traffic stack을 계속 쓰고 싶다면 삭제하지 않아도 된다. 남겨둘 경우 `helm list -A`, `kubectl get ns`, `kind get clusters`에 evidence를 남긴다.

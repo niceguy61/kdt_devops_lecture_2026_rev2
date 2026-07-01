@@ -105,6 +105,14 @@ curl -H "Host: paperclip.local" http://localhost:8080/api
 kubectl -n week4 rollout history deploy/api
 ```
 
+kind에서는 Gateway의 `PROGRAMMED`가 `False`로 보여도 `describe gateway`의 이유가 `AddressNotAssigned`라면 LoadBalancer 외부 주소가 없다는 뜻일 수 있다. 이 경우 Envoy data plane Service로 port-forward한 curl 검증이 실제 traffic path evidence다.
+
+S6-S8 전체를 재검증하려면 다음 스크립트를 실행한다.
+
+```bash
+bash week4/day2/labs/traffic-routing/verify-s6-s8.sh
+```
+
 ## 수업 종료 cluster 정리
 오늘 cluster를 다음 W4D3에서 그대로 이어 쓸지, 완전히 지울지 결정한다. 헷갈림을 줄이려면 수업 종료 시점에 반드시 둘 중 하나를 말로 정하고 evidence를 남긴다.
 

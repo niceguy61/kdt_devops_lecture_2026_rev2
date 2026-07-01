@@ -180,6 +180,8 @@ Envoy proxy data plane = 실제 HTTP traffic 처리
 ## port-forward 준비
 local/kind 환경에서는 LoadBalancer가 바로 외부 IP를 받지 못할 수 있다. 수업에서는 port-forward를 기본 확인 방법으로 둔다.
 
+kind에서는 `kubectl -n week4 get gateway`의 `PROGRAMMED`가 `False`로 보여도 `describe gateway`의 이유가 `AddressNotAssigned`라면 Gateway listener/route 자체가 실패했다는 뜻은 아닐 수 있다. LoadBalancer 주소가 없기 때문에 Gateway 주소 배정만 실패한 상태이고, Envoy data plane Service로 port-forward해서 실제 traffic path를 확인한다.
+
 Gateway를 적용한 뒤 Envoy Service를 찾는다.
 
 ```bash
