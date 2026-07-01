@@ -95,6 +95,8 @@ helm upgrade --install envoy-gateway oci://docker.io/envoyproxy/gateway-helm \
   --namespace envoy-gateway-system \
   --create-namespace \
   -f week4/day2/labs/envoy-gateway/values.yaml
+
+kubectl apply -f week4/day2/labs/envoy-gateway/gatewayclass.yaml
 ```
 
 예상 출력:
@@ -112,6 +114,7 @@ STATUS: deployed
 helm list -n envoy-gateway-system
 kubectl -n envoy-gateway-system get deploy,pod,svc
 kubectl get crd | grep gateway.networking.k8s.io
+kubectl get gatewayclass
 ```
 
 예상:

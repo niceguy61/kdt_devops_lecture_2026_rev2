@@ -45,6 +45,8 @@ helm upgrade --install envoy-gateway oci://docker.io/envoyproxy/gateway-helm \
   --namespace envoy-gateway-system \
   --create-namespace \
   -f week4/day2/labs/envoy-gateway/values.yaml
+
+kubectl apply -f week4/day2/labs/envoy-gateway/gatewayclass.yaml
 ```
 
 확인:
