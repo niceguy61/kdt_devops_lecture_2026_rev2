@@ -53,15 +53,6 @@ flowchart LR
 오늘은 EC2/ALB/ECS/RDS를 깊게 실습하지 않는다. 첫날부터 많은 resource를 만들면 학생마다 잔여 비용과 권한 상태가 달라져 다음 날 수업이 흔들린다. 오늘은 안전장치와 resource map을 먼저 잡고, 실제 EC2/ALB는 Day2에서 진행한다.
 
 
-## 50분 수업 운영 흐름
-| 시간 | 활동 | 확인할 evidence |
-|---|---|---|
-| 0~10분 | Week4 Kubernetes 운영 흐름 복기 | GitOps/Ingress/Secret/PV 질문 목록 |
-| 10~20분 | AWS 계정/Region/resource boundary 소개 | Account ID, Region selector |
-| 20~35분 | Kubernetes object를 AWS service로 매핑 | mapping table 완성 |
-| 35~45분 | 비용/권한/관찰 질문으로 재분류 | Billing, IAM, CloudWatch 위치 |
-| 45~50분 | 오늘의 안전장치 확인 | MFA/Budget/Region note |
-
 ## 강의 중 질문
 - Kubernetes에서 `Service`가 외부 traffic을 받는다고 말할 때, 실제 cloud load balancer 비용은 어디에 잡히는가?
 - Pod가 죽으면 Kubernetes가 다시 띄울 수 있다. 그런데 node 자체가 cloud instance라면 node 비용과 장애 경계는 누가 관리하는가?
@@ -85,34 +76,23 @@ flowchart LR
 ## 캡처 가이드
 수업 자료나 배움일기에 캡처를 남길 때는 credential, account email, MFA code, access key가 보이지 않게 한다. 캡처에는 Region selector, resource name, tag, 상태값처럼 재현에 필요한 정보만 남긴다.
 
-## 강사 보강 노트
-이 교시는 `AWS 전환 관점`을 학생이 말로 설명할 수 있게 만드는 데 초점을 둔다. Console 화면을 따라 누르는 시간으로만 흘러가면 학생은 성공 화면은 보지만, 다음 날 같은 resource를 혼자 다시 만들거나 장애를 설명하지 못한다. 각 단계마다 "지금 무엇을 결정했는가", "그 결정은 비용/보안/관찰 중 어디에 영향을 주는가"를 짧게 되묻는다.
-
-## 학생이 자주 흔들리는 지점
-| 흔들리는 지점 | 강사 개입 문장 |
+## 운영 판단 연습
+| 판단 질문 | 확인 기준 |
 |---|---|
-| Service는 ALB가 될 수도 있지만 항상 같은 것은 아니다. | "지금 화면에서 그 판단을 증명하는 값이 어디에 있나요?" |
-| PV는 EBS/EFS/S3/RDS 중 무엇을 쓰는지에 따라 운영 경계가 달라진다. | "이 값이 바뀌면 접속, 비용, 권한 중 무엇이 먼저 달라질까요?" |
-| Secret은 Kubernetes 안에 있을 수도 있고 AWS Secrets Manager나 Parameter Store와 연결될 수도 있다. | "성공 화면 말고 실패했을 때 다시 볼 evidence를 남겼나요?" |
+| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | Kubernetes object를 AWS service로 단순 치환하지 않는다. |
+| 실패했을 때 어느 경계부터 볼 것인가 | 계정, Region, 권한, 비용 경계가 먼저 정해져야 resource 의미가 생긴다. |
+| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | resource를 만들기 전에도 관찰할 evidence가 있다. |
 
-## 실습 중 멈춤 포인트
-- 첫 번째 멈춤: 학생이 resource를 생성하기 전에 이름, Region, tag, 예상 비용 발생 지점을 말하게 한다.
-- 두 번째 멈춤: 성공 화면이 나온 직후 resource ID와 상태값을 evidence note에 적게 한다.
-- 세 번째 멈춤: 실패나 지연이 생기면 새로 클릭하기 전에 이전 단계의 화면과 명령을 다시 보게 한다.
-- 네 번째 멈춤: 정리 단계에서 "삭제했다"가 아니라 "검색해도 남아 있지 않다"를 확인하게 한다.
+## 흔한 실패와 첫 확인 위치
+| 흔한 실패 | 첫 확인 위치 |
+|---|---|
+| Region이 다른 상태에서 resource를 찾는다 | AWS Console 오른쪽 위 Region selector를 먼저 확인한다 |
 
-## 확인 질문
-1. 오늘 만든 resource가 어느 Region과 어느 계정 경계에 있는가?
-2. 이 resource가 비용을 만들기 시작하는 시점은 언제인가?
-3. 접속이 실패하면 app, network, permission 중 무엇을 먼저 확인할 것인가?
-4. 수업이 끝난 뒤 남겨도 되는 resource와 지워야 하는 resource는 무엇인가?
-
-## 제출 evidence 기준
-| evidence | 좋은 예 | 부족한 예 |
-|---|---|---|
-| 화면 캡처 | Region selector가 보이는 Console 화면 | 성공 toast만 보이는 캡처 |
-| 설정 기록 | Week4 object와 AWS service mapping 표 | "기본값 사용"이라고만 적음 |
-| 운영 판단 | 오늘 만들지 않을 resource 목록 | "잘 됨", "안 됨"으로만 적음 |
+## Evidence 점검
+- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
+- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
+- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
+- Week4 object와 AWS service mapping, 사용할 Account ID와 Region, 비용/권한 우려 지점 중 최소 두 가지는 배움일기에 남긴다.
 
 ## Evidence Note
 ```markdown

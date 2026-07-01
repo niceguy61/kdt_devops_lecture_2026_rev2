@@ -58,15 +58,6 @@ flowchart LR
 ```
 
 
-## 50분 수업 운영 흐름
-| 시간 | 활동 | 확인할 evidence |
-|---|---|---|
-| 0~10분 | Day2 ALB/health 복기 | target health note |
-| 10~20분 | ECR/ECS/EKS/App Runner 역할 분류 | service map |
-| 20~30분 | image -> service 운영 루프 설명 | lifecycle diagram |
-| 30~40분 | ECS와 App Runner 선택 기준 | decision table |
-| 40~50분 | 오늘 실습 경로 선택 | ECS/App Runner/simulation |
-
 ## 왜 컨테이너 실행 서비스가 필요한가
 EC2에 직접 web server를 설치하면 서버 단위 운영이 된다. container image를 사용하면 실행 패키지가 표준화되고, service는 원하는 개수의 task를 유지하며, 배포 변경은 image tag와 revision으로 추적할 수 있다. 이 변화는 Week2 Docker와 Week4 Kubernetes의 중간 다리다.
 
@@ -84,34 +75,23 @@ Image가 ECR에 있어도 service가 pull하지 못하면 배포는 실패한다
 ## 캡처 가이드
 ECR repository, service detail, health/status, CloudWatch log group을 각각 캡처한다. Console 화면마다 Region이 보이면 좋다.
 
-## 강사 보강 노트
-이 교시는 `컨테이너 서비스 선택`을 학생이 말로 설명할 수 있게 만드는 데 초점을 둔다. Console 화면을 따라 누르는 시간으로만 흘러가면 학생은 성공 화면은 보지만, 다음 날 같은 resource를 혼자 다시 만들거나 장애를 설명하지 못한다. 각 단계마다 "지금 무엇을 결정했는가", "그 결정은 비용/보안/관찰 중 어디에 영향을 주는가"를 짧게 되묻는다.
-
-## 학생이 자주 흔들리는 지점
-| 흔들리는 지점 | 강사 개입 문장 |
+## 운영 판단 연습
+| 판단 질문 | 확인 기준 |
 |---|---|
-| ECR을 Docker Hub와 완전히 같다고 봄 | "지금 화면에서 그 판단을 증명하는 값이 어디에 있나요?" |
-| ECS task와 Kubernetes Pod를 1:1로 고정함 | "이 값이 바뀌면 접속, 비용, 권한 중 무엇이 먼저 달라질까요?" |
-| managed service가 운영 책임을 없앤다고 생각함 | "성공 화면 말고 실패했을 때 다시 볼 evidence를 남겼나요?" |
+| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | ECR은 image 저장소이고 실행 서비스가 아니다. |
+| 실패했을 때 어느 경계부터 볼 것인가 | ECS/App Runner는 container 실행 책임 경계가 다르다. |
+| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | managed service도 비용과 관찰 책임은 남는다. |
 
-## 실습 중 멈춤 포인트
-- 첫 번째 멈춤: 학생이 resource를 생성하기 전에 이름, Region, tag, 예상 비용 발생 지점을 말하게 한다.
-- 두 번째 멈춤: 성공 화면이 나온 직후 resource ID와 상태값을 evidence note에 적게 한다.
-- 세 번째 멈춤: 실패나 지연이 생기면 새로 클릭하기 전에 이전 단계의 화면과 명령을 다시 보게 한다.
-- 네 번째 멈춤: 정리 단계에서 "삭제했다"가 아니라 "검색해도 남아 있지 않다"를 확인하게 한다.
+## 흔한 실패와 첫 확인 위치
+| 흔한 실패 | 첫 확인 위치 |
+|---|---|
+| ECR에 push하면 app이 실행된다고 생각한다 | image 저장과 runtime service를 분리한다 |
 
-## 확인 질문
-1. 오늘 만든 resource가 어느 Region과 어느 계정 경계에 있는가?
-2. 이 resource가 비용을 만들기 시작하는 시점은 언제인가?
-3. 접속이 실패하면 app, network, permission 중 무엇을 먼저 확인할 것인가?
-4. 수업이 끝난 뒤 남겨도 되는 resource와 지워야 하는 resource는 무엇인가?
-
-## 제출 evidence 기준
-| evidence | 좋은 예 | 부족한 예 |
-|---|---|---|
-| 화면 캡처 | 서비스 선택 표 | 성공 toast만 보이는 캡처 |
-| 설정 기록 | container image 위치 | "기본값 사용"이라고만 적음 |
-| 운영 판단 | runtime 책임 경계 | "잘 됨", "안 됨"으로만 적음 |
+## Evidence 점검
+- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
+- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
+- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
+- 서비스 선택 표, image 위치, runtime 책임 중 최소 두 가지는 배움일기에 남긴다.
 
 ## Evidence Note
 ```markdown

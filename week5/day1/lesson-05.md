@@ -69,15 +69,6 @@ Service와 Security Group을 같은 것으로 보면 안 된다. Service는 clus
 | security group inbound 22/80 source |  |
 
 
-## 50분 수업 운영 흐름
-| 시간 | 활동 | 확인할 evidence |
-|---|---|---|
-| 0~10분 | VPC 구성요소 용어 정리 | VPC/subnet/route table |
-| 10~25분 | public subnet 조건 분석 | IGW route 확인 |
-| 25~35분 | Security Group inbound/outbound | 22/80 rule 예시 |
-| 35~45분 | Kubernetes와 비교 | Service/Ingress/NetworkPolicy 비교 |
-| 45~50분 | Day2 EC2 준비 note | subnet/SG checklist |
-
 ## public subnet을 판정하는 절차
 1. EC2가 어느 subnet에 있는지 확인한다.
 2. 해당 subnet이 연결된 route table을 연다.
@@ -103,34 +94,23 @@ Day2 실습에서는 Security Group을 중심으로 본다. Network ACL은 subne
 - SG inbound source가 내 IP 또는 public traffic을 허용하는가?
 - app이 실제로 해당 port에서 listen하는가?
 
-## 강사 보강 노트
-이 교시는 `VPC와 Security Group`을 학생이 말로 설명할 수 있게 만드는 데 초점을 둔다. Console 화면을 따라 누르는 시간으로만 흘러가면 학생은 성공 화면은 보지만, 다음 날 같은 resource를 혼자 다시 만들거나 장애를 설명하지 못한다. 각 단계마다 "지금 무엇을 결정했는가", "그 결정은 비용/보안/관찰 중 어디에 영향을 주는가"를 짧게 되묻는다.
-
-## 학생이 자주 흔들리는 지점
-| 흔들리는 지점 | 강사 개입 문장 |
+## 운영 판단 연습
+| 판단 질문 | 확인 기준 |
 |---|---|
-| subnet만 public이면 접속된다고 생각함 | "지금 화면에서 그 판단을 증명하는 값이 어디에 있나요?" |
-| SG outbound만 열고 inbound를 놓침 | "이 값이 바뀌면 접속, 비용, 권한 중 무엇이 먼저 달라질까요?" |
-| CIDR을 IP 하나처럼 읽음 | "성공 화면 말고 실패했을 때 다시 볼 evidence를 남겼나요?" |
+| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | public subnet, route, public IP, SG가 함께 맞아야 외부 접속이 된다. |
+| 실패했을 때 어느 경계부터 볼 것인가 | Security Group은 instance 앞의 상태 기반 방화벽이다. |
+| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | CIDR은 누가 접근 가능한지를 표현한다. |
 
-## 실습 중 멈춤 포인트
-- 첫 번째 멈춤: 학생이 resource를 생성하기 전에 이름, Region, tag, 예상 비용 발생 지점을 말하게 한다.
-- 두 번째 멈춤: 성공 화면이 나온 직후 resource ID와 상태값을 evidence note에 적게 한다.
-- 세 번째 멈춤: 실패나 지연이 생기면 새로 클릭하기 전에 이전 단계의 화면과 명령을 다시 보게 한다.
-- 네 번째 멈춤: 정리 단계에서 "삭제했다"가 아니라 "검색해도 남아 있지 않다"를 확인하게 한다.
+## 흔한 실패와 첫 확인 위치
+| 흔한 실패 | 첫 확인 위치 |
+|---|---|
+| SG만 열었는데 접속된다고 생각한다 | public IP, route, SG inbound를 함께 확인한다 |
 
-## 확인 질문
-1. 오늘 만든 resource가 어느 Region과 어느 계정 경계에 있는가?
-2. 이 resource가 비용을 만들기 시작하는 시점은 언제인가?
-3. 접속이 실패하면 app, network, permission 중 무엇을 먼저 확인할 것인가?
-4. 수업이 끝난 뒤 남겨도 되는 resource와 지워야 하는 resource는 무엇인가?
-
-## 제출 evidence 기준
-| evidence | 좋은 예 | 부족한 예 |
-|---|---|---|
-| 화면 캡처 | VPC ID | 성공 toast만 보이는 캡처 |
-| 설정 기록 | subnet public/private 판단 근거 | "기본값 사용"이라고만 적음 |
-| 운영 판단 | SG inbound rule | "잘 됨", "안 됨"으로만 적음 |
+## Evidence 점검
+- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
+- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
+- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
+- VPC ID, subnet 성격, SG inbound rule 중 최소 두 가지는 배움일기에 남긴다.
 
 ## Evidence Note
 ```markdown
