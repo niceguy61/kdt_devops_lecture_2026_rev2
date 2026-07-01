@@ -60,6 +60,64 @@ echo "hello from paperclip w5" > /var/www/html/index.html
 
 위 예시는 OS와 web server 설치 상태에 따라 그대로 동작하지 않을 수 있다. Day2에서는 AMI에 맞는 전체 script를 사용한다.
 
+
+## 50분 수업 운영 흐름
+| 시간 | 활동 | 확인할 evidence |
+|---|---|---|
+| 0~10분 | EC2가 담당하는 compute 계층 설명 | EC2 vs container 비교 |
+| 10~25분 | launch 화면 항목 읽기 | AMI/type/key/network |
+| 25~35분 | state와 비용 연결 | running/stopped/terminated |
+| 35~45분 | user data preview | bootstrap 개념 |
+| 45~50분 | Day2 생성 전 checklist | launch note |
+
+## 생성 전 의사결정 표
+| 선택 | 초보자가 자주 하는 실수 | 안전한 판단 |
+|---|---|---|
+| AMI | 문서와 다른 OS 선택 | 수업 명령과 맞는 AMI 선택 |
+| Instance type | 큰 type 선택 | 실습 목적의 작은 type |
+| Key pair | 다운로드 후 위치 모름 | 저장 위치와 권한 기록 |
+| Public IP | 꺼둔 채 접속 기대 | public 접속 필요 시 enable |
+| Storage | terminate 후 data 보존 오해 | EBS delete 옵션 확인 |
+| Tag | 이름만 적음 | Owner/Purpose/Week tag 포함 |
+
+## stop이 안전한 삭제가 아닌 이유
+stopped 상태는 instance compute는 멈추지만 EBS volume, Elastic IP 연결 상태, snapshot, load balancer 같은 다른 resource 비용은 남을 수 있다. 그래서 수업 종료 checklist는 "EC2 stop" 하나로 끝나면 안 된다. 어떤 resource가 계속 비용을 만들 수 있는지 같이 확인해야 한다.
+
+## user data를 미리 보는 이유
+EC2에 접속해서 손으로 설치하면 당장은 성공할 수 있다. 하지만 다른 학생이나 다음 날의 내가 같은 서버를 다시 만들 때 순서가 누락될 수 있다. user data는 완전한 IaC는 아니지만, 최소한 bootstrap 절차를 instance 생성 시점에 묶어 재현성을 높인다.
+
+## 캡처 가이드
+EC2 launch summary에서 AMI, instance type, network, SG, storage, tag가 보이도록 캡처한다. private key 내용이나 계정 email은 절대 캡처하지 않는다.
+
+## 강사 보강 노트
+이 교시는 `EC2 운영 관찰`을 학생이 말로 설명할 수 있게 만드는 데 초점을 둔다. Console 화면을 따라 누르는 시간으로만 흘러가면 학생은 성공 화면은 보지만, 다음 날 같은 resource를 혼자 다시 만들거나 장애를 설명하지 못한다. 각 단계마다 "지금 무엇을 결정했는가", "그 결정은 비용/보안/관찰 중 어디에 영향을 주는가"를 짧게 되묻는다.
+
+## 학생이 자주 흔들리는 지점
+| 흔들리는 지점 | 강사 개입 문장 |
+|---|---|
+| running이면 app도 정상이라고 봄 | "지금 화면에서 그 판단을 증명하는 값이 어디에 있나요?" |
+| public IP가 바뀔 수 있다는 점을 놓침 | "이 값이 바뀌면 접속, 비용, 권한 중 무엇이 먼저 달라질까요?" |
+| stop과 terminate의 비용 차이를 모름 | "성공 화면 말고 실패했을 때 다시 볼 evidence를 남겼나요?" |
+
+## 실습 중 멈춤 포인트
+- 첫 번째 멈춤: 학생이 resource를 생성하기 전에 이름, Region, tag, 예상 비용 발생 지점을 말하게 한다.
+- 두 번째 멈춤: 성공 화면이 나온 직후 resource ID와 상태값을 evidence note에 적게 한다.
+- 세 번째 멈춤: 실패나 지연이 생기면 새로 클릭하기 전에 이전 단계의 화면과 명령을 다시 보게 한다.
+- 네 번째 멈춤: 정리 단계에서 "삭제했다"가 아니라 "검색해도 남아 있지 않다"를 확인하게 한다.
+
+## 확인 질문
+1. 오늘 만든 resource가 어느 Region과 어느 계정 경계에 있는가?
+2. 이 resource가 비용을 만들기 시작하는 시점은 언제인가?
+3. 접속이 실패하면 app, network, permission 중 무엇을 먼저 확인할 것인가?
+4. 수업이 끝난 뒤 남겨도 되는 resource와 지워야 하는 resource는 무엇인가?
+
+## 제출 evidence 기준
+| evidence | 좋은 예 | 부족한 예 |
+|---|---|---|
+| 화면 캡처 | instance state | 성공 toast만 보이는 캡처 |
+| 설정 기록 | public IP/DNS | "기본값 사용"이라고만 적음 |
+| 운영 판단 | instance type과 tag | "잘 됨", "안 됨"으로만 적음 |
+
 ## Evidence Note
 ```markdown
 # W5D1S6 ec2 observation

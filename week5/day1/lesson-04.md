@@ -64,6 +64,66 @@ Managed service는 "운영 책임이 0"이라는 뜻이 아니다. AWS가 하드
 | RDS | DB 설치/backup 기능 제공 | engine, size, backup window, SG |
 | ECS/App Runner | container 실행 제어 일부 | image, env, secret, scaling, logs |
 
+
+## 50분 수업 운영 흐름
+| 시간 | 활동 | 확인할 evidence |
+|---|---|---|
+| 0~10분 | computing spine 복기 | Week1 spine table |
+| 10~25분 | AWS service를 spine에 매핑 | service map |
+| 25~35분 | CloudWatch/CloudTrail 차이 | logs/metrics/audit 구분 |
+| 35~45분 | managed service 책임 분리 | shared responsibility note |
+| 45~50분 | 오늘 이후 학습 경로 연결 | D2~D5 예고 |
+
+## 서비스 이름을 외우지 않는 법
+AWS 초반에는 service 이름이 많아서 압도된다. 이때 이름을 알파벳순으로 외우면 오래가지 않는다. 운영 질문으로 분류해야 한다. "어디서 실행되는가", "어디로 들어오는가", "데이터는 어디에 남는가", "누가 접근 가능한가", "장애 evidence는 어디 있는가", "비용은 어디에 잡히는가"라는 질문이 먼저다.
+
+## CloudWatch와 CloudTrail 사례
+| 사건 | CloudWatch에서 볼 것 | CloudTrail에서 볼 것 |
+|---|---|---|
+| app이 500 응답 | log stream error, 5xx metric | 직접 원인 API는 아닐 수 있음 |
+| Security Group rule 변경 | metric 변화 가능 | `AuthorizeSecurityGroupIngress` event |
+| EC2 instance 생성 | 기본 metric 생성 후 관찰 | `RunInstances` event |
+| ALB target unhealthy | target metric, health reason | target group 설정 변경 event |
+
+## Managed service 책임 분리 예시
+RDS는 database 설치와 backup 기능을 쉽게 제공하지만, 어떤 engine/version을 쓸지, public access를 열지, backup retention을 어떻게 둘지, deletion protection을 켤지, 비용을 감당할 수 있는지는 사용자가 결정한다. managed라는 말은 책임이 사라진다는 뜻이 아니라 책임의 위치가 바뀐다는 뜻이다.
+
+## 운영 질문 체크리스트
+- 이 service는 compute, network, storage, identity, observability, cost 중 어디에 속하는가?
+- resource가 Region 단위인가, global인가?
+- 삭제하면 data가 사라지는가, 별도 storage가 남는가?
+- 누가 생성/수정/삭제했는지 CloudTrail에서 볼 수 있는가?
+- 로그와 metric은 CloudWatch 어디에 나타나는가?
+
+## 강사 보강 노트
+이 교시는 `서비스 지도`을 학생이 말로 설명할 수 있게 만드는 데 초점을 둔다. Console 화면을 따라 누르는 시간으로만 흘러가면 학생은 성공 화면은 보지만, 다음 날 같은 resource를 혼자 다시 만들거나 장애를 설명하지 못한다. 각 단계마다 "지금 무엇을 결정했는가", "그 결정은 비용/보안/관찰 중 어디에 영향을 주는가"를 짧게 되묻는다.
+
+## 학생이 자주 흔들리는 지점
+| 흔들리는 지점 | 강사 개입 문장 |
+|---|---|
+| EC2와 ECS를 같은 단위로 봄 | "지금 화면에서 그 판단을 증명하는 값이 어디에 있나요?" |
+| S3와 EBS를 모두 저장소라는 말로 뭉뚱그림 | "이 값이 바뀌면 접속, 비용, 권한 중 무엇이 먼저 달라질까요?" |
+| CloudWatch와 CloudTrail을 같은 로그 도구로 봄 | "성공 화면 말고 실패했을 때 다시 볼 evidence를 남겼나요?" |
+
+## 실습 중 멈춤 포인트
+- 첫 번째 멈춤: 학생이 resource를 생성하기 전에 이름, Region, tag, 예상 비용 발생 지점을 말하게 한다.
+- 두 번째 멈춤: 성공 화면이 나온 직후 resource ID와 상태값을 evidence note에 적게 한다.
+- 세 번째 멈춤: 실패나 지연이 생기면 새로 클릭하기 전에 이전 단계의 화면과 명령을 다시 보게 한다.
+- 네 번째 멈춤: 정리 단계에서 "삭제했다"가 아니라 "검색해도 남아 있지 않다"를 확인하게 한다.
+
+## 확인 질문
+1. 오늘 만든 resource가 어느 Region과 어느 계정 경계에 있는가?
+2. 이 resource가 비용을 만들기 시작하는 시점은 언제인가?
+3. 접속이 실패하면 app, network, permission 중 무엇을 먼저 확인할 것인가?
+4. 수업이 끝난 뒤 남겨도 되는 resource와 지워야 하는 resource는 무엇인가?
+
+## 제출 evidence 기준
+| evidence | 좋은 예 | 부족한 예 |
+|---|---|---|
+| 화면 캡처 | compute/network/storage/identity 표 | 성공 toast만 보이는 캡처 |
+| 설정 기록 | 오늘 깊게 다루지 않을 서비스 | "기본값 사용"이라고만 적음 |
+| 운영 판단 | 다음 날 실습으로 연결할 서비스 | "잘 됨", "안 됨"으로만 적음 |
+
 ## Evidence Note
 ```markdown
 # W5D1S4 service map

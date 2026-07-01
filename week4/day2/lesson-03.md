@@ -183,13 +183,20 @@ local/kind 환경에서는 LoadBalancer가 바로 외부 IP를 받지 못할 수
 Gateway를 적용한 뒤 Envoy Service를 찾는다.
 
 ```bash
-kubectl get svc -A | grep envoy
+kubectl -n envoy-gateway-system get svc \
+  -l gateway.envoyproxy.io/owning-gateway-name=paperclip-gateway
 ```
 
 예시:
 ```bash
-kubectl -n envoy-gateway-system port-forward svc/<envoy-service-name> 8080:80
+ENVOY_SVC=$(kubectl -n envoy-gateway-system get svc \
+  -l gateway.envoyproxy.io/owning-gateway-name=paperclip-gateway \
+  -o jsonpath='{.items[0].metadata.name}')
+
+kubectl -n envoy-gateway-system port-forward "svc/${ENVOY_SVC}" 8080:80
 ```
+
+`8080`이 이미 사용 중이면 왼쪽 local port만 바꾼다. 예: `18080:80`
 
 다른 터미널에서 확인한다.
 
@@ -208,6 +215,7 @@ curl -H "Host: paperclip.local" http://localhost:8080/
 | Gateway가 Accepted 아님 | `kubectl -n week4 describe gateway paperclip-gateway` |
 | HTTPRoute가 붙지 않음 | `kubectl -n week4 describe httproute paperclip-routes` |
 | localhost 접근 실패 | Envoy Service 이름, port-forward 대상 확인 |
+| Gateway 경유 요청 timeout | NetworkPolicy가 Envoy namespace에서 backend Pod로 들어오는 traffic을 허용하는지 확인 |
 
 ## Evidence Note
 ```markdown

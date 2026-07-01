@@ -248,6 +248,8 @@ Service와 Endpoint가 정상인데 timeout이면 NetworkPolicy 가능성이 커
 
 | Policy | 목적 |
 |---|---|
+| `allow-envoy-gateway-to-frontend` | Gateway data plane이 frontend Pod로 진입 |
+| `allow-envoy-gateway-to-api` | Gateway data plane이 api Pod로 진입 |
 | `allow-frontend-to-api` | frontend가 api 호출 |
 | `allow-api-to-db` | api가 db 호출 |
 | `allow-dns-egress` | DNS 해석 허용 |
