@@ -22,5 +22,6 @@ if [[ "${CURRENT_CONTEXT}" != "${EXPECTED_CONTEXT}" ]]; then
 fi
 
 echo "[cluster] current context: ${CURRENT_CONTEXT}"
+echo "[cluster] waiting for node Ready"
+kubectl wait --for=condition=Ready node --all --timeout=180s
 kubectl get nodes -o wide
-

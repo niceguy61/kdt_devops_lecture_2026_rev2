@@ -38,7 +38,7 @@ prometheus:
 ## Helm 설치
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
+helm repo update prometheus-community
 
 helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
@@ -63,12 +63,13 @@ kubectl get nodes -o wide
 
 예시:
 ```text
-kind v0.32.0
+kind v0.x.x
 kind-paperclip-w4d3
-paperclip-w4d3-control-plane   Ready   control-plane   v1.31.x
+paperclip-w4d3-control-plane   Ready   control-plane   v1.x.x
 ```
 
 과정에서는 kind만 기준으로 둔다. 다른 local Kubernetes가 남아 있으면 context, namespace, Service 이름이 섞일 수 있으므로 설치 전 current-context를 반드시 확인한다.
+Kubernetes VERSION은 kind 버전과 node image에 따라 다를 수 있다. 여기서는 version 숫자보다 `Ready` 상태와 context 이름이 더 중요하다.
 
 ## 설치 확인
 ```bash

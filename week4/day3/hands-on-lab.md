@@ -23,8 +23,10 @@ kubectl get nodes -o wide
 검증 예시:
 ```text
 NAME                             STATUS   ROLES           VERSION
-paperclip-w4d3-control-plane     Ready    control-plane   v1.31.x
+paperclip-w4d3-control-plane     Ready    control-plane   v1.x.x
 ```
+
+Kubernetes VERSION은 kind 버전과 node image에 따라 다를 수 있다. 이 실습의 첫 기준은 node `STATUS`가 `Ready`인지다.
 
 ### kind 버전 주의
 Docker Engine이 최신인데 오래된 kind를 쓰면 cluster 생성 단계에서 실패할 수 있다.
@@ -46,7 +48,7 @@ go install sigs.k8s.io/kind@latest
 ## 1. kube-prometheus-stack 설치
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
+helm repo update prometheus-community
 
 helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
   --namespace monitoring \

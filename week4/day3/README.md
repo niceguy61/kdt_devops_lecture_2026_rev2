@@ -35,7 +35,7 @@ W4D3는 W4D2에서 만든 traffic 경로를 관찰 가능한 운영 시스템으
 | `labs/observability-scenarios/` | readiness, restart, resource 압박, alert preview manifest |
 
 ## Verified Local Baseline
-아래 흐름은 kind `v0.32.0`, Kubernetes node image `kindest/node:v1.31.9`, Docker Desktop/WSL2 환경에서 실제 검증했다.
+아래 흐름은 kind single-node cluster와 Docker Desktop/WSL2 환경에서 실제 검증했다. kind와 node image 버전에 따라 Kubernetes `VERSION`은 달라질 수 있으므로, 실습의 첫 기준은 node `Ready`와 monitoring Pod `Running/Ready` 상태다.
 
 ```text
 monitoring namespace:
