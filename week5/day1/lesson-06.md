@@ -1,5 +1,7 @@
 # 6교시: EC2 첫 관찰
 
+![EC2 observation checklist map](./assets/lesson-06-ec2-observation.png)
+
 ## 수업 목표
 - EC2 instance를 compute resource 관점으로 읽는다.
 - AMI, instance type, key pair, public IP, user data, state를 구분한다.

@@ -31,7 +31,14 @@
 |---|---|
 | `academic-foundations.md` | 공식 문서 기반 개념 근거와 읽을 키워드 |
 | `lesson-01.md` ~ `lesson-08.md` | 교시별 강의 자료 |
-| `assets/day1-aws-operating-map.png` | AWS 계정, IAM, 비용, Region, VPC, EC2, S3, 관찰 계층 overview |
+| `assets/day1-aws-operating-map.png` | Day1 AWS 운영 지도 대표 이미지 |
+| `assets/lesson-02-account-safety.png` | root/MFA/IAM/Budget/access key 안전장치 |
+| `assets/lesson-03-region-az.png` | Region/AZ와 장애 경계 |
+| `assets/lesson-04-service-map.png` | AWS service operating map |
+| `assets/lesson-05-vpc-security-group.png` | VPC, route, subnet, Security Group traffic |
+| `assets/lesson-06-ec2-observation.png` | EC2 생성 전 관찰 항목 |
+| `assets/lesson-07-s3-observation.png` | S3 bucket/object/public access |
+| `assets/lesson-08-evidence-cleanup-board.png` | 배움일기 evidence와 cleanup board |
 
 ## Official References
 | Topic | Reference |

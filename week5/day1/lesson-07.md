@@ -1,5 +1,7 @@
 # 7교시: S3 첫 관찰
 
+![S3 object storage and public access map](./assets/lesson-07-s3-observation.png)
+
 ## 수업 목표
 - S3를 file server가 아니라 object storage로 이해한다.
 - bucket, object, Region, public access block의 관계를 설명한다.

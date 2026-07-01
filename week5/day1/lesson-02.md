@@ -1,5 +1,7 @@
 # 2교시: AWS 계정 안전장치
 
+![AWS account safety map](./assets/lesson-02-account-safety.png)
+
 ## 수업 목표
 - root user와 IAM identity의 차이를 설명한다.
 - MFA, Budget, access key, billing permission을 실습 전 안전장치로 확인한다.

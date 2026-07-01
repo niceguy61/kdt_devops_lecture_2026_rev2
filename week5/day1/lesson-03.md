@@ -1,5 +1,7 @@
 # 3교시: Region/AZ와 장애 경계
 
+![AWS Region and Availability Zone map](./assets/lesson-03-region-az.png)
+
 ## 수업 목표
 - Region과 Availability Zone을 위치, 장애 경계, latency 관점으로 구분한다.
 - 서울 리전 `ap-northeast-2`를 실습 기본값으로 고정한다.

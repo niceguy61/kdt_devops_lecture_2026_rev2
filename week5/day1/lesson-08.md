@@ -1,5 +1,7 @@
 # 8교시: 구름 EXP 배움일기
 
+![AWS evidence and cleanup board](./assets/lesson-08-evidence-cleanup-board.png)
+
 ## 수업 목표
 - 오늘 배운 AWS 계정 안전장치와 운영 좌표계를 스스로 정리한다.
 - 다음 수업 EC2/ALB 실습 전에 필요한 질문을 남긴다.

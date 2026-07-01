@@ -26,3 +26,11 @@
 | Tag | resource metadata | cost allocation, owner, cleanup |
 | Stop | EC2 compute 과금은 멈추지만 EBS 등 일부 비용은 남을 수 있는 상태 | instance state, attached EBS |
 | Terminate | EC2 instance 삭제. 복구할 수 없는 영구 작업 | termination confirmation |
+| ALB | Application Load Balancer. HTTP/HTTPS traffic을 target group으로 분산한다 | listener, target group, DNS name |
+| Listener | ALB가 요청을 받을 protocol/port와 rule | HTTP 80, HTTPS 443 |
+| Target Group | ALB가 traffic을 보낼 대상 묶음 | registered targets, health check |
+| Health Check | target이 traffic을 받을 수 있는지 주기적으로 확인하는 설정 | healthy/unhealthy reason |
+| User Data | EC2 최초 부팅 때 실행할 bootstrap script | instance launch details, system log |
+| EC2 Instance Connect | browser 또는 CLI 기반 EC2 접속 방식 | EC2 Connect tab |
+| Public Subnet | route table에 internet gateway 경로가 있는 subnet | `0.0.0.0/0 -> igw-*` |
+| Private Subnet | internet gateway로 직접 route하지 않는 subnet | route table, NAT 필요 여부 |

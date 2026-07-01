@@ -1,5 +1,7 @@
 # 4교시: AWS 서비스 운영 지도
 
+![AWS service operating map](./assets/lesson-04-service-map.png)
+
 ## 수업 목표
 - AWS 주요 service를 computing spine에 매핑한다.
 - Docker/Kubernetes에서 배운 운영 질문이 AWS에서 어떤 service로 확장되는지 설명한다.

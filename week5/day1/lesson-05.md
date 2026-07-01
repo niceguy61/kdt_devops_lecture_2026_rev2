@@ -1,5 +1,7 @@
 # 5교시: VPC와 Security Group 기본
 
+![VPC and Security Group traffic map](./assets/lesson-05-vpc-security-group.png)
+
 ## 수업 목표
 - VPC, subnet, route table, internet gateway, security group의 역할을 구분한다.
 - Security Group을 EC2 접근 장애의 첫 번째 확인 지점으로 읽는다.
