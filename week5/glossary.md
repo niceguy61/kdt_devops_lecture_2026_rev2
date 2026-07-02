@@ -43,3 +43,27 @@
 | Container Port | container 안 process가 listen하는 port | task definition, target group |
 | Image Tag | image version을 가리키는 tag | `latest`, semantic tag, digest |
 | Rollback | 실패한 배포를 이전 정상 image/tag 또는 revision으로 되돌리는 작업 | previous task definition, deployment history |
+| Bucket Policy | S3 bucket에 붙는 resource 기반 접근 정책 | Permissions tab, policy JSON |
+| Object Key | S3 object를 식별하는 경로형 이름 | object detail, URL |
+| S3 Versioning | 같은 object key의 여러 version을 보존하는 기능 | bucket Properties, object versions |
+| Delete Marker | versioning이 켜진 bucket에서 삭제 상태를 표시하는 marker | object versions view |
+| Lifecycle Rule | S3 object 전환과 만료를 자동화하는 규칙 | Management tab, transition/expiration |
+| Storage Class | S3 object의 비용/접근 특성을 정하는 등급 | object details, lifecycle transition |
+| RDS | managed relational database service | DB instance, endpoint, backups |
+| DB Instance | RDS에서 database engine이 실행되는 관리 단위 | instance class, status, endpoint |
+| DB Subnet Group | RDS가 사용할 subnet 묶음 | RDS connectivity settings |
+| Automated Backup | RDS가 retention 기간 동안 관리하는 자동 백업 | Maintenance & backups |
+| Manual Snapshot | 사용자가 명시적으로 남기는 RDS 백업 지점 | RDS Snapshots |
+| Deletion Protection | RDS instance의 실수 삭제를 막는 설정 | DB instance configuration |
+| Final Snapshot | RDS 삭제 시 마지막으로 남길 수 있는 snapshot | delete database dialog |
+| Secrets Manager | secret 값을 저장, 접근 제어, rotation할 수 있는 AWS 서비스 | secret details, IAM permission |
+| Secret Rotation | credential을 주기적으로 교체하는 절차 | rotation configuration |
+| Cost Allocation Tag | 비용을 owner, course, purpose 등으로 분류하기 위한 tag | Billing tag activation, Cost Explorer |
+| Runbook | 반복 가능한 운영 절차를 정리한 문서 | trigger, action, verification, cleanup |
+| Incident | 서비스 영향이 있는 장애 또는 운영 이벤트 | symptom, scope, evidence, action |
+| Postmortem | 장애 후 원인, 영향, 대응, 예방책을 정리하는 리뷰 | timeline, contributing factors, follow-up |
+| Evidence Packet | 운영 판단을 뒷받침하는 screenshot, log, metric, event, cost 자료 묶음 | portfolio README, evidence folder |
+| Security Review | 접근 권한, 공개 범위, secret, audit 상태를 점검하는 절차 | MFA, IAM, SG, public endpoint, CloudTrail |
+| FinOps | cloud 비용을 owner, usage, value 기준으로 관리하는 운영 관점 | Budget, Cost Explorer, tag, forecast |
+| Handoff Note | 다음 운영자 또는 다음 수업으로 넘길 상태와 판단 기록 | retained resources, next action, owner |
+| Resource Inventory | 계정 안에 남아 있는 resource 목록과 상태 | service list, tag, cost 후보 |

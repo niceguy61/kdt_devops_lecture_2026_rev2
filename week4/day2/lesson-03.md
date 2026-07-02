@@ -91,13 +91,15 @@ Envoy Gateway Helm chart는 DockerHub OCI registry에 배포된다. `https://gat
 
 ```bash
 helm upgrade --install envoy-gateway oci://docker.io/envoyproxy/gateway-helm \
-  --version v1.8.0 \
+  --version v1.7.3 \
   --namespace envoy-gateway-system \
   --create-namespace \
   -f week4/day2/labs/envoy-gateway/values.yaml
 
 kubectl apply -f week4/day2/labs/envoy-gateway/gatewayclass.yaml
 ```
+
+`v1.8.x` chart는 최신 Gateway API CRD bundle에 `ValidatingAdmissionPolicy`/`ValidatingAdmissionPolicyBinding`을 포함할 수 있다. Kubernetes 1.27 계열 kind cluster에서는 `admissionregistration.k8s.io/v1`의 해당 resource를 지원하지 않아 CRD 설치가 실패할 수 있으므로, 수업에서는 `v1.7.3`으로 고정한다.
 
 예상 출력:
 ```text
@@ -212,6 +214,7 @@ curl -H "Host: paperclip.local" http://localhost:8080/
 | 증상 | 확인 |
 |---|---|
 | Helm chart를 못 찾음 | `helm repo list`, `helm repo update` |
+| `ValidatingAdmissionPolicy` CRD 오류 | Kubernetes server version과 Envoy Gateway chart version 확인, 수업 기준 `v1.7.3` 사용 |
 | controller Pod Pending | `kubectl -n envoy-gateway-system describe pod` |
 | GatewayClass 없음 | `kubectl get gatewayclass` |
 | Gateway가 Accepted 아님 | `kubectl -n week4 describe gateway paperclip-gateway` |

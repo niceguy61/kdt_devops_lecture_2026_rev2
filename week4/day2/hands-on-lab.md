@@ -41,13 +41,15 @@ helm v3.x 출력
 bash week4/scripts/ensure-kind-context.sh paperclip-w4d2
 
 helm upgrade --install envoy-gateway oci://docker.io/envoyproxy/gateway-helm \
-  --version v1.8.0 \
+  --version v1.7.3 \
   --namespace envoy-gateway-system \
   --create-namespace \
   -f week4/day2/labs/envoy-gateway/values.yaml
 
 kubectl apply -f week4/day2/labs/envoy-gateway/gatewayclass.yaml
 ```
+
+Kubernetes 1.27 계열 kind cluster에서는 Envoy Gateway `v1.8.x` chart의 Gateway API CRD 설치가 `ValidatingAdmissionPolicy` 관련 오류로 실패할 수 있다. 수업에서는 호환성을 위해 `v1.7.3`을 사용한다.
 
 확인:
 ```bash
