@@ -64,6 +64,17 @@
 
 오늘 resource를 만들지 않았다면 "생성 없음"이라고 남긴다. cloud 수업에서는 아무것도 만들지 않은 것도 좋은 evidence가 될 수 있다. 중요한 것은 현재 상태를 설명할 수 있는가다.
 
+## 구조로 보기
+```mermaid
+flowchart LR
+  Safety["Account safety"] --> Region["Region fixed"]
+  Region --> Map["AWS service map"]
+  Map --> Questions["Day2 questions"]
+  Safety --> Cleanup["Cleanup check"]
+  Cleanup --> Evidence["Evidence note"]
+  Evidence --> Day2["EC2/ALB readiness"]
+```
+
 ## 다음 수업 준비
 Day2는 EC2와 ALB를 더 구체적으로 다룬다. 다음 수업 전에 아래 질문을 답할 수 있으면 좋다.
 
@@ -109,6 +120,17 @@ Day2는 EC2와 ALB를 더 구체적으로 다룬다. 다음 수업 전에 아래
 - 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
 - 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
 - resource list, 삭제/보존 이유, 다음 날 준비 상태 중 최소 두 가지는 배움일기에 남긴다.
+
+## Evidence Note
+```markdown
+# W5D1S8 journal and cleanup
+- Account/Region:
+- 확인한 안전장치:
+- 오늘 만든 resource:
+- 삭제/유지 상태:
+- Day2 진입 전 질문:
+- 비용/권한 주의사항:
+```
 
 ## 혼자 다시 따라오기
 - 최소 재현 경로: lesson 02의 계정 안전 checklist와 lesson 03의 Region note를 먼저 채운다.

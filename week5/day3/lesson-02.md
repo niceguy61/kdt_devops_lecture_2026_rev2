@@ -75,6 +75,17 @@ ECR image도 저장 비용이 생길 수 있다. 실습 repository를 계속 유
 ## 캡처 가이드
 Repository URI와 Images tab의 tag 목록을 캡처한다. push command 화면을 캡처할 때 credential/token이 포함되지 않게 한다.
 
+## 구조로 보기
+```mermaid
+flowchart LR
+  Local["Local image"] --> Tag["Tag with ECR URI"]
+  Tag --> Auth["ECR auth"]
+  Auth --> Push["docker push"]
+  Push --> Repo["ECR repository"]
+  Repo --> Image["Image tag / digest"]
+  Image --> Service["ECS or App Runner pull"]
+```
+
 ## 운영 판단 연습
 | 판단 질문 | 확인 기준 |
 |---|---|

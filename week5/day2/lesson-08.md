@@ -77,6 +77,17 @@ Day3에서 같은 EC2를 이어 쓸 수는 있다. 하지만 유지한다면 다
 
 ALB는 특히 "잠깐 남겨둔다"가 비용으로 이어질 수 있다. 남기려면 사유와 삭제 예정 시각을 적는다.
 
+## 구조로 보기
+```mermaid
+flowchart TD
+  Traffic["Traffic evidence"] --> Journal["Learning journal"]
+  Journal --> Cleanup["Cleanup audit"]
+  Cleanup --> ALB["ALB / Target Group"]
+  Cleanup --> EC2["EC2 / EBS"]
+  Cleanup --> SG["Security Group / Key Pair"]
+  Cleanup --> Cost["Cost check"]
+  Cost --> Day3["Container readiness"]
+```
 
 ## cleanup audit가 중요한 이유
 cloud 실습은 종료 버튼을 누르는 순간 끝나지 않는다. ALB, EBS, Elastic IP, log group, snapshot, NAT Gateway처럼 눈에 잘 안 띄는 resource가 비용을 만든다. 그래서 cleanup은 별도 과제가 아니라 실습의 마지막 단계다.
@@ -113,6 +124,17 @@ D3에서는 EC2에 직접 설치한 app 대신 container image를 service가 실
 - 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
 - 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
 - 삭제 전 목록, 삭제 후 검색, Budget/Billing 확인 중 최소 두 가지는 배움일기에 남긴다.
+
+## Evidence Note
+```markdown
+# W5D2S8 cleanup journal
+- Region:
+- Traffic path evidence:
+- 장애 주입/복구 요약:
+- 삭제한 resource:
+- 유지한 resource와 사유:
+- Day3 연결 질문:
+```
 
 ## 혼자 다시 따라오기
 - 최소 재현 경로: 배움일기 템플릿의 traffic path와 cleanup 항목을 먼저 채운다.

@@ -48,6 +48,17 @@ Day2는 EC2 Instance Connect 또는 SSH 중 가능한 방식으로 접속한다.
 
 `0.0.0.0/0`은 모든 IPv4 source를 뜻한다. SSH 22를 전체 공개로 오래 유지하지 않는다.
 
+## 구조로 보기
+```mermaid
+flowchart LR
+  AMI["AMI"] --> Type["Instance type"]
+  Type --> Key["Key pair"]
+  Key --> Network["Subnet / Public IP"]
+  Network --> SG["Security Group"]
+  SG --> Launch["Launch EC2"]
+  Launch --> Connect["Connect / HTTP check"]
+  Connect --> Evidence["Evidence note"]
+```
 
 ## 생성 전 멈춤 지점
 EC2 launch 화면의 마지막 버튼을 누르기 전에 반드시 summary를 읽는다. 실무에서도 배포 전 review 단계가 있는 이유와 같다. AMI, type, subnet, public IP, SG, storage, tag 중 하나라도 설명하지 못하면 아직 launch할 준비가 되지 않은 것이다.

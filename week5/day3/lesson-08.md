@@ -68,6 +68,18 @@
 | CloudWatch Logs | retention 설정 |
 | IAM role | 실습용 role 잔여 여부 |
 
+## 구조로 보기
+```mermaid
+flowchart TD
+  Image["ECR image"] --> Service["ECS / App Runner service"]
+  Service --> Health["Health"]
+  Service --> Logs["CloudWatch logs"]
+  Health --> Journal["Learning journal"]
+  Logs --> Journal
+  Journal --> Cleanup["Cleanup audit"]
+  Cleanup --> Day4["Storage / DB / Secret questions"]
+```
+
 ## Day4로 이어지는 질문
 컨테이너 service가 실행되면 다음 질문은 data와 config다.
 
@@ -123,6 +135,17 @@ Cleanup: service deleted, ALB deleted, log retention 7 days
 - 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
 - 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
 - resource list, 보존 이유, Day4 질문 중 최소 두 가지는 배움일기에 남긴다.
+
+## Evidence Note
+```markdown
+# W5D3S8 container cleanup journal
+- 선택 경로:
+- ECR image/tag:
+- 실행 service 상태:
+- logs/metrics 확인:
+- 삭제/유지 resource:
+- Day4 data/secret 질문:
+```
 
 ## 혼자 다시 따라오기
 - 최소 재현 경로: ECR image tag, service health, CloudWatch log group을 하나의 표로 정리한다.

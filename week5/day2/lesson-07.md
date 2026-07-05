@@ -77,6 +77,18 @@ Security Group rule을 누가 바꿨는지는 CloudWatch Logs가 아니라 Cloud
 ## 캡처 가이드
 장애 분석 캡처는 전후가 있어야 한다. 실패 curl, unhealthy target, 수정한 설정, 성공 curl을 한 묶음으로 남긴다.
 
+## 구조로 보기
+```mermaid
+flowchart LR
+  User["User request"] --> ALB["ALB DNS"]
+  ALB --> TG["Target Group health"]
+  TG --> EC2["EC2 status checks"]
+  EC2 --> Logs["System logs"]
+  ALB --> Metrics["CloudWatch metrics"]
+  Logs --> Evidence["Operations evidence"]
+  Metrics --> Evidence
+```
+
 ## 운영 판단 연습
 | 판단 질문 | 확인 기준 |
 |---|---|
