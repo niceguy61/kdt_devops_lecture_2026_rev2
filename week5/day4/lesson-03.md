@@ -20,6 +20,13 @@
 ## 핵심 개념
 S3 비용은 bucket이 있다는 사실만으로 끝나지 않는다. object 크기, 요청 수, storage class, version 보존, lifecycle rule에 따라 달라진다. Versioning은 실수로 덮어쓴 파일을 복구할 수 있게 해주지만, 이전 version이 계속 남아 비용을 만들 수 있다. Lifecycle rule은 오래된 데이터를 더 저렴한 storage class로 전환하거나 만료시키는 자동화 장치지만, 업무상 다시 읽어야 하는 데이터를 너무 빨리 archive로 보내면 복구 시간과 비용이 생긴다.
 
+## AWS 문서 근거로 짚기
+AWS 문서는 object마다 storage class가 연결되며, 기본 storage class는 S3 Standard라고 설명한다. storage class는 "싸 보이는 것"을 고르는 항목이 아니라 사용 사례, 성능 요구, 접근 빈도, 가용성 요구를 기준으로 고르는 운영 결정이다.
+
+강의에서는 storage class를 네 가지 질문으로 나누어 읽는다. 자주 읽고 지연 시간이 중요하면 S3 Standard 계열을 우선 검토한다. 접근 패턴을 아직 모르면 S3 Intelligent-Tiering을 비용 최적화 후보로 본다. 가끔 읽는 데이터는 Standard-IA 또는 One Zone-IA처럼 infrequent access 계열을 검토하되 가용성 조건을 함께 본다. 장기 보관과 아카이브 목적이면 S3 Glacier 계열을 검토하되 복구 시간과 요청 비용을 evidence에 남긴다.
+
+AWS S3 개요 문서는 S3 Express One Zone처럼 낮은 지연 시간이 필요한 특수 storage class도 소개한다. 다만 이 수업에서는 먼저 Standard, Intelligent-Tiering, IA, Glacier 계열의 판단 기준을 익히고, Express One Zone은 latency-sensitive workload를 만났을 때 공식 문서로 다시 확인할 확장 주제로 둔다.
+
 ## 구조로 보기
 ```mermaid
 flowchart LR
@@ -81,6 +88,8 @@ Mermaid 흐름은 Console 화면을 외우기 위한 그림이 아니다. 어떤
 | Delete marker | 삭제 상태 표현 | 실제 version은 남아 있을 수 있다 |
 
 ## 공식 문서로 검증할 질문
+- object의 기본 storage class는 무엇이며 언제 바꾸는가?
+- 접근 패턴을 모를 때 S3 Intelligent-Tiering을 검토할 수 있는가?
 - Versioning을 suspend하면 기존 version은 어떻게 되는가?
 - Lifecycle transition과 expiration은 어떤 단위로 적용되는가?
 - archive storage class에서 다시 읽을 때 어떤 지연과 비용이 생길 수 있는가?

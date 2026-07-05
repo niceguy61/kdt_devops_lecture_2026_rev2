@@ -6,6 +6,9 @@ Storage와 database는 compute보다 운영 책임이 무겁다. EC2 instance나
 ## 공식 문서 읽기 키워드
 | 주제 | 공식 문서에서 확인할 키워드 | 수업에서 연결할 질문 |
 |---|---|---|
+| S3 core model | object storage, bucket, object, key, Region | S3를 서버 폴더가 아니라 resource 경계로 설명할 수 있는가 |
+| S3 storage classes | Standard, Intelligent-Tiering, Infrequent Access, Glacier, Express One Zone | 접근 빈도와 복구 시간에 맞는 storage class를 고르는가 |
+| S3 security best practices | Object Ownership, ACL disabled, IAM policy, bucket policy, VPC endpoint policy | ACL보다 policy 중심으로 접근 제어를 설명하는가 |
 | S3 Block Public Access | account-level, bucket-level, public policy, ACL | 공개가 필요한가, 아니면 임시 실습인가 |
 | S3 Versioning | version ID, delete marker, suspended | 삭제가 정말 삭제인가, 이전 버전은 남는가 |
 | S3 Lifecycle | transition, expiration, storage class | 오래된 object는 비용을 계속 만드는가 |
@@ -16,6 +19,10 @@ Storage와 database는 compute보다 운영 책임이 무겁다. EC2 instance나
 | Cost Explorer | service filter, tag filter, time range | 어떤 resource가 비용을 만들었는가 |
 
 ## AWS 공식 자료
+- What is Amazon S3?: https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html
+- General purpose buckets overview: https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html
+- Security best practices for Amazon S3: https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html
+- Understanding and managing Amazon S3 storage classes: https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html
 - Amazon S3 Block Public Access: https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html
 - Amazon S3 bucket policies: https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html
 - Amazon S3 Versioning: https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html

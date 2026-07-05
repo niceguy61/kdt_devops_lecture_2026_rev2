@@ -20,6 +20,13 @@
 ## 핵심 개념
 S3는 파일 서버처럼 보이지만 운영 모델은 다르다. bucket 이름은 전역적으로 고유해야 하고, object는 key를 가진 데이터다. 접근은 IAM identity policy, bucket policy, ACL, Block Public Access 같은 여러 계층의 영향을 받는다. 수업에서는 public website hosting을 깊게 만들기보다, 왜 기본적으로 public access를 막아야 하는지와 공개가 필요할 때 어떤 evidence를 남겨야 하는지에 집중한다.
 
+## AWS 문서 근거로 짚기
+AWS 문서는 S3를 확장성, 가용성, 보안, 성능을 제공하는 object storage로 설명한다. 따라서 이 교시에서는 S3를 "서버의 폴더"가 아니라 `bucket`, `object`, `key`, `Region`, `policy`가 결합된 resource로 읽는다.
+
+General purpose bucket 문서에서는 데이터를 S3에 업로드하려면 먼저 AWS Region 안에 bucket을 만들어야 하고, 모든 object는 bucket 안에 포함된다고 설명한다. object URL은 object를 주소로 표현하는 방법일 뿐이며, 실제 접근 가능 여부는 IAM, bucket policy, Block Public Access 같은 권한 경계가 함께 결정한다.
+
+보안 best practice 문서는 최신 S3 사용에서 ACL보다 policy 기반 접근 제어를 우선하도록 안내한다. 특히 Object Ownership의 bucket owner enforced 설정에서는 ACL이 비활성화되고, 접근 제어는 IAM user policy, S3 bucket policy, VPC endpoint policy 같은 정책으로 관리된다. 수업에서는 ACL을 먼저 만지는 대신 Block Public Access, bucket policy, IAM permission 순서로 evidence를 남긴다.
+
 ## 구조로 보기
 ```mermaid
 flowchart TD
@@ -81,6 +88,8 @@ Mermaid 흐름은 Console 화면을 외우기 위한 그림이 아니다. 어떤
 | 권한 판단이 어렵다 | IAM policy simulator 또는 access result | policy 범위를 줄여 다시 확인한다 |
 
 ## 공식 문서로 검증할 질문
+- S3는 왜 file storage가 아니라 object storage로 설명되는가?
+- bucket은 어느 Region에 만들어지고 object URL은 어떤 정보를 드러내는가?
 - Block Public Access가 bucket policy보다 어떤 방식으로 우선 동작하는가?
 - bucket policy 예시는 어떤 principal과 action을 허용하는가?
 - ACL과 policy를 동시에 사용할 때 운영 복잡도는 어떻게 늘어나는가?

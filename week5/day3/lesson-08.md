@@ -47,6 +47,7 @@
 
 ## 6. Cleanup
 - ECS/App Runner service:
+- EKS cluster/node/kubeconfig context:
 - ALB/Target Group:
 - ECR image/repository:
 - CloudWatch log retention:
@@ -63,6 +64,8 @@
 | ECS service | desired count 0 또는 delete |
 | ECS cluster | 실습용이면 delete 여부 |
 | App Runner service | pause/delete 또는 유지 사유 |
+| EKS cluster | 선택 심화 실습용이면 cluster/node/load balancer/log 잔여 여부 |
+| kubeconfig context | 실습 context 삭제 또는 유지 사유 |
 | ALB/Target Group | delete 여부 |
 | ECR repository/image | 유지 사유와 retention |
 | CloudWatch Logs | retention 설정 |
@@ -100,6 +103,8 @@ flowchart TD
 | ECR repository | Day4 이후 계속 쓸 image가 아니면 삭제 또는 retention 계획 |
 | ECS service | desired count 0 또는 delete |
 | App Runner service | pause/delete 또는 유지 사유 |
+| EKS cluster/node | 생성했다면 삭제 완료 또는 유지 사유 |
+| kubeconfig context | 다른 cluster 오조작 방지를 위해 context 확인 |
 | ALB/TG | ECS 연결 실습 후 삭제 |
 | CloudWatch Logs | retention 설정 |
 | IAM role | 실습용이면 잔여 권한 확인 |
@@ -149,9 +154,9 @@ Cleanup: service deleted, ALB deleted, log retention 7 days
 
 ## 혼자 다시 따라오기
 - 최소 재현 경로: ECR image tag, service health, CloudWatch log group을 하나의 표로 정리한다.
-- 공식 문서 키워드: `ECR repository`, `ECS service`, `App Runner service`, `CloudWatch Logs`, `CloudWatch Metrics`.
-- 스스로 확인할 화면: ECR Images, ECS/App Runner service detail, CloudWatch Logs/Metrics, Billing.
-- 흔한 실패 3개: service를 삭제하지 않음, ECR image가 계속 쌓임, log retention을 기본값으로 방치함.
+- 공식 문서 키워드: `ECR repository`, `ECS service`, `App Runner service`, `EKS kubeconfig`, `CloudWatch Logs`, `CloudWatch Metrics`.
+- 스스로 확인할 화면: ECR Images, ECS/App Runner service detail, EKS clusters, CloudWatch Logs/Metrics, Billing.
+- 흔한 실패 3개: service를 삭제하지 않음, ECR image가 계속 쌓임, EKS context가 남아 다른 cluster를 조작함.
 - 다음 준비 상태: Day4에서 S3/RDS/secret을 container app과 연결하는 질문을 말할 수 있어야 한다.
 
 ## 한 줄 요약

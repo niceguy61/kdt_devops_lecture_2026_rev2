@@ -633,6 +633,7 @@
 - 1교시 : Day2 강의 10분 요약 + 컨테이너 실행 서비스 매핑 - Docker/Kubernetes 관점에서 ECR, ECS, EKS, App Runner가 해결하는 문제 비교
 - 2교시 : ECR 실습 - repository 생성, image tag 규칙, push/pull 흐름, credential 주의
 - 3교시 : ECS 또는 App Runner 맛보기 - task/service 개념, image 실행, logs와 health 확인
+- 선택 심화 : EKS cluster와 `kubectl` 연결 - lab 전용 IAM user credential, 일단 `AdministratorAccess`로 랩 안정화 후 least privilege 축소, `aws eks update-kubeconfig`, `kubectl get nodes`, kubeconfig context, EKS cleanup evidence
 - 4교시 : Container service와 ALB 연결 - listener, target group, health check, container port, service desired count
 - 5교시 : 배포 변경과 rollback preview - 새 image tag, service update, 실패 시 이전 image로 복구
 - 6교시 : CloudWatch Logs 기본 - 로그 그룹, 로그 스트림, EC2/ECS/app 로그 수집 개념
