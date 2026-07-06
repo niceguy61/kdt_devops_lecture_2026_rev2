@@ -30,6 +30,38 @@ kubectl -n mesh-msa-demo logs deploy/bff -c istio-proxy --tail=20
 
 Kiali에서 `mesh-msa-demo` namespace를 선택하고 graph를 확인한다.
 
+## If Kiali Graph Is Empty
+The sample generates internal traffic automatically from the `frontend`
+deployment. First prove that traffic exists:
+
+```bash
+kubectl -n mesh-msa-demo logs deploy/frontend -c traffic-generator --tail=20
+kubectl -n mesh-msa-demo logs deploy/frontend -c istio-proxy --tail=20
+kubectl -n mesh-msa-demo logs deploy/bff -c istio-proxy --tail=20
+```
+
+If the proxy logs show requests but Kiali still has no graph, Prometheus is
+probably not scraping Istio sidecar metrics. Enable the scrape config:
+
+```bash
+bash week4/day5/labs/istio/enable-istio-prometheus-scrape.sh
+```
+
+Wait 30-60 seconds and verify that Istio metrics are present:
+
+```bash
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+```
+
+Open this Prometheus query:
+
+```text
+http://localhost:9090/api/v1/query?query=istio_requests_total
+```
+
+In Kiali, select namespace `mesh-msa-demo`, set the graph range to `Last 5m` or
+`Last 10m`, and refresh.
+
 ## Fault Injection Preview
 ```bash
 kubectl apply -f week4/day5/labs/mesh-msa-app/virtualservice-order-delay.yaml

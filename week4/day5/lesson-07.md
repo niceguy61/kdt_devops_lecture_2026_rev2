@@ -119,6 +119,43 @@ http://localhost:20001
 
 Graph가 안 보이면 frontend가 실제로 요청을 보내고 있는지 로그부터 확인한다.
 
+## Kiali graph가 비어 있을 때
+이 예제는 `frontend` Deployment 안의 `traffic-generator` 컨테이너가 내부 요청을 자동으로 만듭니다. 그래서 먼저 “트래픽이 없는 문제”와 “Prometheus 수집 문제”를 분리해서 봅니다.
+
+트래픽 생성 확인:
+```bash
+kubectl -n mesh-msa-demo logs deploy/frontend -c traffic-generator --tail=20
+kubectl -n mesh-msa-demo logs deploy/frontend -c istio-proxy --tail=20
+kubectl -n mesh-msa-demo logs deploy/bff -c istio-proxy --tail=20
+```
+
+proxy log에 `frontend -> bff`, `bff -> catalog/inventory/order` 요청이 보이는데 Kiali graph가 비어 있으면 Prometheus가 Istio sidecar metric을 scrape하지 못하는 상태일 수 있다. 이때 다음 helper를 적용한다.
+
+```bash
+bash week4/day5/labs/istio/enable-istio-prometheus-scrape.sh
+```
+
+30-60초 기다린 뒤 Prometheus metric을 확인한다.
+
+```bash
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+```
+
+Prometheus query:
+```text
+http://localhost:9090/api/v1/query?query=istio_requests_total
+```
+
+기대 evidence:
+```text
+frontend -> bff
+bff -> catalog
+bff -> inventory
+bff -> order
+```
+
+Kiali에서는 namespace를 `mesh-msa-demo`로 선택하고 graph range를 `Last 5m` 또는 `Last 10m`로 둔 뒤 refresh한다.
+
 ## MSA mesh sample 배포
 단순 예제가 보이면 MSA 샘플을 배포한다.
 
