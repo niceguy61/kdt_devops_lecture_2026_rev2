@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+src/aws_doc_research_agent/__init__.py
+src/aws_doc_research_agent/aws_docs_client.py
+src/aws_doc_research_agent/cli.py
+src/aws_doc_research_agent/mcp_server.py
+src/aws_doc_research_agent/models.py
+src/aws_doc_research_agent/tools.py
+src/aws_doc_research_agent.egg-info/PKG-INFO
+src/aws_doc_research_agent.egg-info/SOURCES.txt
+src/aws_doc_research_agent.egg-info/dependency_links.txt
+src/aws_doc_research_agent.egg-info/entry_points.txt
+src/aws_doc_research_agent.egg-info/requires.txt
+src/aws_doc_research_agent.egg-info/top_level.txt
+src/aws_doc_research_agent/adapters/__init__.py
+src/aws_doc_research_agent/adapters/strands_tools.py
+tests/test_tools.py

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aws-doc-research-agent"
+version = "0.1.0"
+description = "Local-first AWS documentation research tools for lecture production agents."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "paperclip" }]
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0.0"]
+
+[project.scripts]
+aws-doc-research = "aws_doc_research_agent.cli:main"
+aws-doc-research-mcp-remote = "aws_doc_research_agent.mcp_remote_server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

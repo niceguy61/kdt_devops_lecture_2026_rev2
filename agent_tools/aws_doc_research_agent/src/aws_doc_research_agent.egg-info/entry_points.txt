@@ -1,0 +1,2 @@
+[console_scripts]
+aws-doc-research = aws_doc_research_agent.cli:main

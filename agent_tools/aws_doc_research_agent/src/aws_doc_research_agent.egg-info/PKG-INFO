@@ -1,0 +1,88 @@
+Metadata-Version: 2.4
+Name: aws-doc-research-agent
+Version: 0.1.0
+Summary: Local-first AWS documentation research tools for lecture production agents.
+Author: paperclip
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Provides-Extra: mcp
+Requires-Dist: mcp>=1.0.0; extra == "mcp"
+
+# AWS Doc Research Agent
+
+Local-first research tools for lecture production agents.
+
+This package provides a small, dependency-light AWS documentation research
+agent that can run as:
+
+- a local CLI for quick testing;
+- an MCP server for Codex/Claude-style tool clients;
+- a tool module inside a Strands agent;
+- a deployable Python package for Amazon Bedrock AgentCore Runtime.
+
+The core module uses the public AWS documentation search endpoint and only
+depends on the Python standard library. Optional adapters add MCP or agent
+framework integration.
+
+## Quick Start
+
+```powershell
+cd D:\paperclip\agent_tools\aws_doc_research_agent
+python -m aws_doc_research_agent.cli search "EKS Pod Identity" --limit 5
+python -m aws_doc_research_agent.cli citation-pack "EKS IRSA vs Pod Identity" --limit 3
+python -m unittest discover -s tests
+```
+
+If running from a fresh shell without installing the package, set:
+
+```powershell
+$env:PYTHONPATH = "D:\paperclip\agent_tools\aws_doc_research_agent\src"
+```
+
+## Tool Contract
+
+The agent exposes these stable tool functions:
+
+- `search_aws_docs`: search AWS documentation for candidate sources.
+- `read_aws_doc`: fetch and normalize a docs page to compact text.
+- `make_citation_pack`: produce lecture-ready source evidence.
+
+All tool outputs are JSON-serializable dictionaries. Keep this contract stable;
+deployment adapters should wrap it rather than changing it.
+
+## MCP Server
+
+Install optional dependencies:
+
+```powershell
+pip install -e ".[mcp]"
+```
+
+Run locally:
+
+```powershell
+python -m aws_doc_research_agent.mcp_server
+```
+
+Example Codex MCP entry:
+
+```toml
+[mcp_servers.aws-doc-research-agent]
+command = "python"
+args = ["-m", "aws_doc_research_agent.mcp_server"]
+env = { PYTHONPATH = "D:\\paperclip\\agent_tools\\aws_doc_research_agent\\src" }
+startup_timeout_sec = 60
+```
+
+## Strands Adapter
+
+`src/aws_doc_research_agent/adapters/strands_tools.py` keeps the tool functions
+framework-neutral. Import these functions into a Strands agent and register them
+as tools according to the Strands version you are using.
+
+## Bedrock AgentCore Prep
+
+The `deployment/agentcore/` folder contains a minimal handler shim and packaging
+notes. The handler calls the same stable local tool contract, so deployment does
+not require rewriting research logic.
+

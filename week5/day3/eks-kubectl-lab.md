@@ -30,8 +30,8 @@
 | IAM user | IAM Console에서 lab 전용 user 생성 |
 | AdministratorAccess | lab 전용 user에 `AdministratorAccess` managed policy 연결 |
 | Access key | IAM user의 Security credentials 탭에서 access key 생성 |
-| AWS CLI profile | `aws configure --profile paperclip-eks-admin` |
-| 현재 identity | `aws sts get-caller-identity --profile paperclip-eks-admin` |
+| AWS CLI profile | `aws configure`로 `default` profile 설정 |
+| 현재 identity | `aws sts get-caller-identity` 또는 `aws sts get-caller-identity --profile default` |
 | AWS CLI version | `aws --version` |
 | kubectl version | `kubectl version --client` |
 | Region | `ap-northeast-2` 또는 강사가 지정한 Region |
@@ -58,11 +58,11 @@
 
 Secret access key는 다시 볼 수 없다. 노트, GitHub, README, screenshot, 메신저에 붙이지 않는다. 필요한 경우 AWS가 제공하는 CSV를 임시로 내려받되, 수업 종료 후 안전하게 삭제하거나 credential vault에 옮긴다.
 
-## AWS CLI profile 설정
-실습은 default profile을 덮어쓰지 않고 별도 profile을 사용한다.
+## AWS CLI default profile 설정
+실습은 일단 `default` profile을 사용한다. 이미 다른 실습 계정이 `default`에 들어 있다면 덮어쓰기 전에 `aws sts get-caller-identity`로 현재 계정을 확인한다.
 
 ```bash
-aws configure --profile paperclip-eks-admin
+aws configure
 ```
 
 입력값:
@@ -77,8 +77,8 @@ Default output format [None]: json
 설정 후 확인:
 
 ```bash
-aws sts get-caller-identity --profile paperclip-eks-admin
-aws configure list --profile paperclip-eks-admin
+aws sts get-caller-identity
+aws configure list
 ```
 
 확인할 것:
@@ -96,7 +96,7 @@ aws configure list --profile paperclip-eks-admin
 Bash 또는 macOS/Linux shell:
 
 ```bash
-export AWS_PROFILE=paperclip-eks-admin
+export AWS_PROFILE=default
 export AWS_REGION=ap-northeast-2
 export CLUSTER_NAME=paperclip-w5d3-eks
 ```
@@ -104,7 +104,7 @@ export CLUSTER_NAME=paperclip-w5d3-eks
 PowerShell:
 
 ```powershell
-$env:AWS_PROFILE="paperclip-eks-admin"
+$env:AWS_PROFILE="default"
 $env:AWS_REGION="ap-northeast-2"
 $env:CLUSTER_NAME="paperclip-w5d3-eks"
 ```
