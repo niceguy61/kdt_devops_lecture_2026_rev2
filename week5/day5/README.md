@@ -19,7 +19,7 @@ W5D5는 Week 5에서 다룬 AWS 계정, 네트워크, compute, container, storag
 |---|---|---|
 | 1교시 | Week 5 통합 운영 지도 | account, network, compute, observability, cost, runbook 연결 |
 | 2교시 | 운영 evidence dashboard | health, logs, metrics, alarm, CloudTrail, Cost Explorer |
-| 3교시 | Security review | MFA, IAM, SG, public endpoint, secret, audit |
+| 3교시 | AWS Security Review Dashboard | MFA, IAM, SG, public endpoint, S3 public access, secret, CloudTrail audit |
 | 4교시 | FinOps review | Budget, Cost Explorer, tag, forecast, cleanup decision |
 | 5교시 | 장애 분석 drill | symptom, scope, recent change, logs/metrics, rollback, verification |
 | 6교시 | AWS 운영 runbook 작성 | trigger, impact, owner, evidence, action, verify, cleanup |
@@ -31,6 +31,7 @@ W5D5는 Week 5에서 다룬 AWS 계정, 네트워크, compute, container, storag
 |---|---|
 | `academic-foundations.md` | 공식 문서 기반 개념 근거와 읽을 키워드 |
 | `lesson-01.md` ~ `lesson-08.md` | 교시별 강의 자료 |
+| `labs/security-review-dashboard/README.md` | W5D5S3 AWS Console 기반 security review dashboard 실습 템플릿 |
 | `assets/lesson-01-integrated-operations-map.png` | Week 5 통합 운영 지도 |
 | `assets/lesson-02-operations-evidence-dashboard.png` | 운영 evidence dashboard |
 | `assets/lesson-03-security-review-matrix.png` | Security review matrix |

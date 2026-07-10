@@ -1,104 +1,151 @@
-# 3교시: Security review
+# 3교시: AWS Security Review Dashboard
 
 ![Security review matrix](./assets/lesson-03-security-review-matrix.png)
 
-이 visual은 계정, 권한, 네트워크 노출, secret, audit을 보안 리뷰 표로 묶는 방식을 보여준다.
+이 시간은 "보안 중요함"을 말하는 시간이 아니다. AWS Console에서 실제로 확인할 수 있는 보안 증거를 모아 하나의 운영 대시보드로 만든다. 학생은 IAM, Security Group, S3, CloudTrail 화면을 직접 열고 `확인한 값 -> 위험 판단 -> 다음 조치`를 표로 남긴다.
 
 ## 수업 목표
-- MFA, IAM, Security Group, public endpoint, secret, CloudTrail을 최종 점검한다.
-- 보안 리뷰를 추상적 문장이 아니라 확인 가능한 항목으로 작성한다.
-- 최소 권한과 공개 범위를 evidence로 설명한다.
+- AWS 계정, 권한, 네트워크 공개, S3 공개, secret, 감사 로그를 하나의 security review dashboard로 정리한다.
+- 각 항목을 추상 체크가 아니라 Console 화면에서 확인 가능한 값으로 기록한다.
+- 보안 위험을 발견했을 때 바로 줄일 수 있는 조치와 수업 종료 전 cleanup 기준을 남긴다.
+
+## 오늘 만들 산출물
+| 산출물 | 형태 | 반드시 들어갈 값 |
+|---|---|---|
+| Security review dashboard | markdown 표 또는 스프레드시트 | 항목, Console 위치, 확인 값, 위험도, 다음 조치 |
+| Public exposure inventory | 표 | SG inbound, ALB/EC2 public endpoint, S3 public access |
+| Audit evidence note | 짧은 기록 | CloudTrail event name, event time, user, resource |
+| Secret hygiene note | 체크리스트 | access key, token, password, screenshot 노출 여부 |
+
+실습 템플릿은 `labs/security-review-dashboard/README.md`를 사용한다.
 
 ## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
+| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | AWS에서 확인할 화면 |
 |---|---|---|---|
-| MFA | 계정 탈취 위험을 줄이는 첫 안전장치다 | root/account 보호가 약해진다 | IAM/account security |
-| Least privilege | 필요한 권한만 허용한다 | 실습 user가 과도한 권한을 가진다 | IAM policy |
-| Exposure review | public endpoint와 SG source를 확인한다 | 의도치 않은 인터넷 노출이 남는다 | SG, ALB, S3 public |
-| Audit | 변경 이력을 확인한다 | 누가 바꿨는지 추적하지 못한다 | CloudTrail |
+| MFA | 계정 탈취 위험을 줄이는 첫 안전장치다 | root/account 보호가 약해진다 | IAM dashboard, Security credentials |
+| Least privilege | 필요한 권한만 허용한다 | 실습 identity가 과도한 권한을 가진다 | IAM user/role, attached policy |
+| Network exposure | 인터넷에서 들어오는 경로를 제한한다 | SSH/DB/Admin port가 전체 공개된다 | EC2 Security Groups, Load Balancers |
+| S3 public access | 파일 공개 여부를 명시적으로 판단한다 | 실습 파일이나 개인정보가 공개된다 | S3 bucket Permissions |
+| Secret hygiene | key/token/password를 자료에 남기지 않는다 | 유출된 credential로 비용/삭제 사고가 난다 | IAM access keys, screenshots, git diff |
+| Audit | 최근 변경 주체와 시각을 확인한다 | 누가 무엇을 바꿨는지 추적하지 못한다 | CloudTrail Event history |
 
 ## 핵심 개념
-Security review는 "보안이 중요하다"는 선언이 아니다. 누가 접근할 수 있고, 어디가 공개되어 있으며, 어떤 민감 정보가 노출되었고, 어떤 변경이 감사 로그에 남는지 확인하는 절차다. Week 5에서는 root MFA, IAM 권한, Security Group, ALB/서비스 URL, S3 public access, secret 값, CloudTrail event를 최소 점검 범위로 둔다.
+Security review는 보안 원칙을 외우는 일이 아니라 운영자가 확인 가능한 증거를 모으는 절차다. `안전함`이라고 쓰면 부족하다. `ap-northeast-2의 w5-web-sg inbound에 TCP 22 from 0.0.0.0/0이 있었고, 수업 종료 전 삭제했다`처럼 resource, Region, rule, 조치가 보여야 한다.
 
-## 구조로 보기
+이번 시간의 기본 경로는 추가 유료 보안 서비스를 켜지 않는다. 이미 Week 5에서 사용한 AWS Console 화면만으로 구현한다. Security Hub, GuardDuty, AWS Config는 계정/비용 정책이 확인된 경우에만 확장 옵션으로 다룬다.
+
+## Security Review Dashboard 구조
 ```mermaid
-flowchart LR
-  Identity["MFA / IAM"] --> Access["Least privilege"]
-  Access --> Network["Security Group"]
-  Network --> Public["Public endpoints"]
-  Public --> Secret["Secret exposure"]
-  Secret --> Audit["CloudTrail audit"]
-  Audit --> Review["Security review note"]
+flowchart TD
+  Account["Account and MFA"] --> Dashboard["Security review dashboard"]
+  IAM["IAM least privilege"] --> Dashboard
+  SG["Security Group exposure"] --> Dashboard
+  S3["S3 public access"] --> Dashboard
+  Secret["Secret hygiene"] --> Dashboard
+  Trail["CloudTrail audit"] --> Dashboard
+  Dashboard --> Decision["Reduce / Accept temporarily / Cleanup"]
 ```
 
-이 구조는 Console 화면을 암기하기 위한 그림이 아니다. 운영 질문이 들어왔을 때 어떤 evidence를 먼저 확인하고, 어떤 판단을 문서에 남길지 정하는 기준이다.
+이 구조의 각 노드는 실제 Console 화면 하나와 연결되어야 한다. 그림만 보고 넘어가면 실습이 아니다.
 
-## 공식 문서 확인 지점
-| 확인할 문서 키워드 | 읽을 때 볼 질문 |
-|---|---|
-| Well-Architected | 이 판단이 운영 우수성, 보안, 비용 중 어디에 해당하는가 |
-| CloudWatch 또는 CloudTrail | 상태와 변경 이력을 어떤 evidence로 확인하는가 |
-| IAM 또는 Security | 누가 접근할 수 있고 무엇이 공개되어 있는가 |
-| Billing 또는 Cost | 비용 원인과 owner를 설명할 수 있는가 |
+## 구현 경로 A: Console로 대시보드 만들기
+아래 순서대로 화면을 열고 `labs/security-review-dashboard/README.md`의 표를 채운다.
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 누가 접근 가능한가 | IAM user/role/policy와 MFA 상태를 확인한다 |
-| 어디가 공개되어 있는가 | public endpoint, SG source, bucket public access를 확인한다 |
-| 민감 정보가 남았는가 | screenshot, markdown, git diff에서 secret 값을 제거한다 |
+| 순서 | AWS Console 위치 | 확인할 값 | 위험 신호 | 즉시 조치 |
+|---|---|---|---|---|
+| 1 | IAM -> Dashboard 또는 Security credentials | root MFA, IAM user MFA | MFA not enabled | MFA 설정 또는 실습 중단 사유 기록 |
+| 2 | IAM -> Users/Roles -> Permissions | attached policy, AdministratorAccess 여부 | 수업용 identity가 관리자 권한을 계속 보유 | 필요한 실습 범위만 남기는 계획 기록 |
+| 3 | EC2 -> Security Groups -> Inbound rules | port, protocol, source | TCP 22/3389/3306/5432 from `0.0.0.0/0` 또는 `::/0` | 내 IP 제한 또는 rule 삭제 |
+| 4 | EC2 -> Load Balancers 또는 Instances | public DNS/IP, listener | 의도하지 않은 public endpoint | 삭제, stop, SG 제한 중 하나 선택 |
+| 5 | S3 -> Bucket -> Permissions | Block Public Access, bucket policy | public 경고, broad principal `*` | 공개 목적 확인, 아니면 block/policy 제거 |
+| 6 | IAM -> Users -> Security credentials | access key 존재, last used | 장기 key가 있고 목적이 불명확 | 비활성화/삭제 계획 기록 |
+| 7 | CloudTrail -> Event history | event name, user name, event time | 누가 SG/IAM/S3를 바꿨는지 모름 | 변경 시각과 resource를 note에 연결 |
+
+## 구현 경로 B: CloudTrail Event history로 감사 증거 만들기
+CloudTrail Event history는 기본적으로 최근 이벤트 조회에 사용할 수 있다. 오늘은 app log가 아니라 AWS API 변경 이력을 보는 연습을 한다.
+
+| 보고 싶은 변경 | CloudTrail filter 예시 | 확인할 질문 |
+|---|---|---|
+| Security Group rule 변경 | `AuthorizeSecurityGroupIngress`, `RevokeSecurityGroupIngress` | 누가 어떤 port/source를 열거나 닫았는가 |
+| IAM policy 변경 | `AttachUserPolicy`, `DetachUserPolicy`, `CreateAccessKey` | 권한이나 key가 언제 바뀌었는가 |
+| S3 공개 설정 변경 | `PutBucketPolicy`, `PutPublicAccessBlock` | bucket 공개 관련 설정이 바뀌었는가 |
+| Console 로그인 | `ConsoleLogin` | 어떤 identity가 언제 로그인했는가 |
+
+기록할 때는 전체 JSON을 붙이지 않는다. `eventTime`, `eventName`, `userIdentity.type`, `userIdentity.userName` 또는 role 이름, 관련 resource 이름만 남긴다.
+
+## 구현 경로 C: 선택 확장
+계정 정책과 비용 허용이 확인된 경우에만 확장한다.
+
+| 확장 서비스 | 수업에서 얻는 것 | 주의 |
+|---|---|---|
+| IAM Access Analyzer | 외부 접근 가능 policy 발견 | analyzer 생성 범위와 결과 해석 필요 |
+| AWS Config | resource 설정 변경 추적과 규칙 평가 | recorder/resource recording 설정과 비용 확인 필요 |
+| Security Hub | 여러 보안 finding 통합 | 표준 활성화와 finding 비용/범위 확인 필요 |
+| GuardDuty | threat detection finding 확인 | 계정별 활성화와 비용 확인 필요 |
+
+기본 수업 통과 조건은 확장 서비스 활성화가 아니라 Console 기반 dashboard 완성이다.
+
+## 실습 절차
+1. `labs/security-review-dashboard/README.md`를 열고 dashboard 표를 복사한다.
+2. 상단에 account alias 또는 account id 마지막 4자리, Region, 실습 identity를 적는다.
+3. IAM에서 MFA와 permission evidence를 채운다.
+4. EC2 Security Groups에서 public inbound rule을 모두 찾는다.
+5. S3 bucket Permissions에서 Block Public Access와 bucket policy 상태를 확인한다.
+6. IAM access key, screenshot, markdown, git diff에 secret 값이 남았는지 점검한다.
+7. CloudTrail Event history에서 오늘 변경한 IAM/SG/S3 이벤트 1개 이상을 찾아 기록한다.
+8. 각 항목에 `OK`, `Fix now`, `Accept until cleanup`, `Need owner decision` 중 하나를 붙인다.
+9. `Fix now`는 수업 시간 안에 조치하고 같은 화면으로 재확인한다.
+
+## 보안 판단 기준
+| 상태 | 의미 | 예시 |
+|---|---|---|
+| OK | 수업 기준에서 위험이 낮고 근거가 있다 | root MFA enabled, S3 Block Public Access on |
+| Fix now | 지금 줄일 수 있는 명확한 위험이다 | SSH 22 from `0.0.0.0/0`, secret 포함 screenshot |
+| Accept until cleanup | 실습 때문에 잠시 허용하지만 종료 시각이 있다 | HTTP 80 public for ALB test |
+| Need owner decision | 학생 혼자 바꾸면 안 되는 계정/팀 정책이다 | 공용 IAM policy, shared bucket policy |
 
 ## 흔한 실패와 첫 확인 위치
 | 흔한 실패 | 첫 확인 위치 |
 |---|---|
-| 보안 확인을 감으로 완료한다 | 각 항목마다 Console 위치와 확인 값을 남긴다 |
-
-## 실습/시뮬레이션 절차
-1. Week 5 evidence에서 이 교시 주제와 연결되는 화면을 2개 이상 고른다.
-2. 각 화면에 대해 resource name, Region, 상태값, owner/tag, 비용 또는 보안 영향을 적는다.
-3. 공식 문서 키워드와 Console 화면의 용어가 일치하는지 확인한다.
-4. 판단이 필요한 항목은 `확인한 값 -> 판단 -> 다음 행동` 형식으로 기록한다.
-5. 민감 정보가 보이는 screenshot은 폐기하거나 가린 뒤 다시 저장한다.
-
-## 복구와 정리 기준
-| 상황 | 먼저 볼 evidence | 다음 행동 |
-|---|---|---|
-| 상태가 불명확하다 | service detail, health, logs | 정상 기준과 비교한다 |
-| 최근 변경이 의심된다 | CloudTrail, deployment history | 변경 시각과 증상 시각을 비교한다 |
-| 비용이 남는다 | Cost Explorer, resource inventory | 삭제/중지/유지 판단을 남긴다 |
-| 공개 또는 권한이 의심된다 | IAM, SG, public endpoint, secret | 접근 범위를 줄이고 재확인한다 |
+| "보안 확인함" 한 줄로 끝낸다 | dashboard 표에 Console 위치와 확인 값을 강제로 적는다 |
+| public endpoint만 보고 SG source를 안 본다 | EC2 Security Groups inbound rules |
+| S3 object URL이 있으면 public이라고 착각한다 | S3 Permissions와 브라우저 접근 결과를 함께 확인한다 |
+| CloudTrail을 app error log로 착각한다 | Event history의 event source와 event name |
+| secret을 가리지 않은 캡처를 포트폴리오에 넣는다 | screenshot, markdown, git diff 최종 점검 |
 
 ## 화면 캡처 가이드
-- Region, resource name, 상태값, tag, policy, metric name처럼 재현 가능한 값을 남긴다.
-- account email, secret value, access key, token, password는 캡처하지 않는다.
-- 실패 화면은 error message만 자르지 말고 어떤 service와 설정에서 발생했는지 보이게 한다.
-- cleanup evidence는 삭제 버튼보다 삭제 후 검색 결과와 비용 후보 확인이 중요하다.
+- 남겨도 되는 값: resource name, Region, SG rule, MFA enabled 상태, Block Public Access 상태, CloudTrail event name.
+- 가려야 하는 값: account email, access key, secret value, token, password, MFA code, 결제 정보.
+- 위험 rule은 before/after를 모두 남긴다. 단, IP나 계정 식별자가 민감하면 일부를 가린다.
+- 삭제/수정 조치는 버튼 클릭 화면보다 조치 후 재조회 화면이 더 좋은 evidence다.
 
 ## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- MFA/IAM 확인, public exposure 목록, CloudTrail event 또는 secret 노출 없음 증거 중 최소 두 가지는 최종 패킷에 남긴다.
+- dashboard에 IAM, SG, S3, CloudTrail 항목이 모두 있다.
+- public exposure 항목은 port, source, resource name이 함께 적혀 있다.
+- `Fix now` 항목은 조치 후 재확인 값이 있다.
+- secret이 보이는 screenshot이나 markdown이 최종 패킷에 남지 않았다.
+- CloudTrail event 1개 이상이 보안 판단과 연결되어 있다.
 
 ## Evidence Note
 ```markdown
-# W5D5S3 security review
-- Region/account boundary:
-- Resource or evidence source:
-- 확인한 값:
-- 판단:
-- 다음 행동:
-- cleanup/handoff 상태:
+# W5D5S3 security review dashboard
+- Account/Region:
+- 실습 identity:
+- 가장 위험했던 항목:
+- 즉시 수정한 항목:
+- 실습 때문에 임시 허용한 항목과 cleanup 시각:
+- CloudTrail event evidence:
+- secret 노출 최종 점검:
 ```
 
 ## 혼자 다시 따라오기
-- 최소 재현 경로: MFA, IAM policy, SG inbound, public endpoint, secret exposure, CloudTrail event를 한 표로 점검한다.
-- 공식 문서 키워드: `IAM best practices`, `least privilege`, `security group`, `CloudTrail`, `detective controls`
-- 스스로 확인할 화면: IAM, EC2 Security Groups, Load Balancers, S3 Permissions, Secrets Manager, CloudTrail
-- 흔한 실패 3개: root로 실습, SG 0.0.0.0/0 방치, secret 값 캡처
-- 다음 준비 상태: 보안 리뷰 항목마다 확인 화면과 판단 결과가 있어야 한다.
+- 최소 재현 경로: IAM MFA, IAM permission, SG inbound, S3 Permissions, CloudTrail Event history를 하나의 dashboard 표로 채운다.
+- 공식 문서 키워드: `IAM best practices`, `least privilege`, `security group rules`, `S3 Block Public Access`, `CloudTrail Event history`.
+- 스스로 확인할 화면: IAM Dashboard, IAM Users/Roles, EC2 Security Groups, S3 Permissions, CloudTrail Event history.
+- 흔한 실패 3개: root로 실습, SG 0.0.0.0/0 방치, secret 값 캡처.
+- 다음 준비 상태: 보안 질문에 대해 "어느 화면에서 어떤 값을 봤고 무엇을 조치했는지" 설명할 수 있어야 한다.
 
 ## 한 줄 요약
 ```text
-보안 리뷰는 원칙 문장이 아니라 접근 주체, 공개 범위, 민감 정보, 감사 증거를 확인하는 표다.
+AWS 보안 리뷰는 원칙 암기가 아니라 IAM, SG, S3, CloudTrail evidence를 dashboard로 묶고 위험을 줄이는 실습이다.
 ```
