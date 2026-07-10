@@ -1,108 +1,128 @@
-# 2교시: 운영 evidence dashboard
+# 2교시: AWS Operations Evidence Dashboard
 
 ![Operations evidence dashboard](./assets/lesson-02-operations-evidence-dashboard.png)
 
-이 visual은 상태, 로그, 지표, 변경 이력, 비용 화면이 하나의 운영 판단으로 모이는 구조를 보여준다.
+이 시간은 예쁜 그래프를 만드는 시간이 아니다. AWS Console에서 health, logs, metrics, CloudTrail, cost 화면을 열고 운영 질문별로 어떤 evidence를 봐야 하는지 dashboard 표로 연결한다.
 
 ## 수업 목표
-- CloudWatch Logs/Metrics/Alarm, CloudTrail, Cost Explorer를 evidence dashboard로 묶는다.
-- 정상/장애/비용/변경 질문에 맞는 확인 화면을 선택한다.
-- dashboard가 예쁜 그래프가 아니라 운영 결정을 돕는 도구임을 이해한다.
+- CloudWatch Logs, CloudWatch Metrics/Alarms, CloudTrail Event history, Cost Explorer를 운영 질문에 연결한다.
+- 정상/장애/변경/비용 질문마다 첫 확인 화면을 다르게 고른다.
+- Week 5 최종 패킷에 넣을 evidence index를 만든다.
+
+## 오늘 만들 산출물
+| 산출물 | 형태 | 반드시 들어갈 값 |
+|---|---|---|
+| Operations evidence dashboard | markdown 표 또는 스프레드시트 | 질문, AWS 화면, 확인 값, 판단, 다음 행동 |
+| Evidence index | 표 | log/metric/event/cost evidence와 연결된 resource |
+| Screenshot shortlist | 목록 | 최종 패킷에 넣을 캡처와 제외할 캡처 |
+
+실습 템플릿은 `labs/operations-evidence-dashboard/README.md`를 사용한다.
 
 ## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
+| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | AWS에서 확인할 화면 |
 |---|---|---|---|
-| Logs | 무슨 일이 있었는지 event/text로 확인한다 | error 원인을 숫자 그래프에서만 찾는다 | CloudWatch Log group |
-| Metrics | 상태 변화를 수치로 본다 | 장애 규모와 추세를 놓친다 | CloudWatch Metrics |
-| CloudTrail | 누가 어떤 API 변경을 했는지 본다 | 최근 변경 원인을 못 찾는다 | Event history |
-| Cost Explorer | 비용 발생 원인을 service/tag 기준으로 본다 | 잔여 비용을 추측한다 | service filter |
+| Service health | 지금 resource가 정상인지 본다 | 로그부터 뒤져서 시간을 잃는다 | ALB target health, ECS/App Runner service, EC2 status |
+| Logs | 무슨 일이 있었는지 event/text로 확인한다 | 숫자 그래프만 보고 원인을 단정한다 | CloudWatch Log groups |
+| Metrics | 상태 변화와 규모를 수치로 본다 | 장애 추세와 범위를 놓친다 | CloudWatch Metrics, ALB/ECS/EC2 metrics |
+| CloudTrail | 누가 어떤 AWS API 변경을 했는지 본다 | 최근 변경 원인을 못 찾는다 | CloudTrail Event history |
+| Cost | 비용 발생 후보를 service 기준으로 본다 | cleanup 대상을 추측한다 | Cost Explorer, Billing dashboard |
 
 ## 핵심 개념
-운영 dashboard는 모든 화면을 한 번에 보여주는 장식이 아니다. 문제 질문에 맞는 evidence를 빠르게 찾는 지도다. 응답이 느리면 metric과 log를 보고, 갑자기 설정이 바뀌었으면 CloudTrail을 보며, 비용이 늘었으면 Cost Explorer와 tag를 본다. 같은 장애라도 질문이 다르면 첫 화면이 달라진다.
+운영 dashboard는 모든 화면을 한 번에 붙이는 장식이 아니다. 질문에 맞는 evidence를 빠르게 찾는 지도다. 응답이 느리면 health, metric, log를 보고, 갑자기 설정이 바뀌었으면 CloudTrail을 보며, 비용이 늘었으면 Cost Explorer와 resource inventory를 본다.
 
-## 구조로 보기
+## Evidence Dashboard 구조
 ```mermaid
 flowchart TD
   Question["Operations question"] --> Health["Service health"]
-  Question --> Logs["Logs"]
-  Question --> Metrics["Metrics"]
-  Question --> Trail["CloudTrail"]
+  Question --> Logs["CloudWatch Logs"]
+  Question --> Metrics["CloudWatch Metrics"]
+  Question --> Trail["CloudTrail Event history"]
   Question --> Cost["Cost Explorer"]
-  Health --> Decision["Decision"]
+  Health --> Decision["Decision / next action"]
   Logs --> Decision
   Metrics --> Decision
   Trail --> Decision
   Cost --> Decision
 ```
 
-이 구조는 Console 화면을 암기하기 위한 그림이 아니다. 운영 질문이 들어왔을 때 어떤 evidence를 먼저 확인하고, 어떤 판단을 문서에 남길지 정하는 기준이다.
+## 질문별 첫 확인 화면
+| 운영 질문 | 첫 화면 | 두 번째 화면 | 판단 |
+|---|---|---|---|
+| endpoint가 안 열린다 | ALB target health 또는 EC2 status | SG inbound, CloudWatch Logs | network/runtime 분리 |
+| 응답이 느리다 | CloudWatch Metrics | Logs, target health | resource pressure/error 확인 |
+| 방금 누가 설정을 바꿨나 | CloudTrail Event history | service detail 화면 | 변경 시각과 증상 시각 비교 |
+| 비용이 남는 것 같다 | Cost Explorer | EC2/EBS/ELB/RDS/S3 inventory | 삭제/중지/유지 결정 |
+| S3 object가 안 열린다 | S3 object URL result | S3 Permissions, CloudTrail | policy/BPA/key 문제 분리 |
+| 배포 후 실패했다 | ECS/App Runner events 또는 target health | CloudWatch Logs, CloudTrail | image/env/permission/change 확인 |
 
-## 공식 문서 확인 지점
-| 확인할 문서 키워드 | 읽을 때 볼 질문 |
-|---|---|
-| Well-Architected | 이 판단이 운영 우수성, 보안, 비용 중 어디에 해당하는가 |
-| CloudWatch 또는 CloudTrail | 상태와 변경 이력을 어떤 evidence로 확인하는가 |
-| IAM 또는 Security | 누가 접근할 수 있고 무엇이 공개되어 있는가 |
-| Billing 또는 Cost | 비용 원인과 owner를 설명할 수 있는가 |
+## 구현 경로 A: CloudWatch evidence
+| AWS Console 위치 | 확인할 값 | dashboard에 남길 문장 |
+|---|---|---|
+| CloudWatch -> Log groups | log group name, latest event time, error line | 어떤 resource의 어떤 event를 봤는가 |
+| CloudWatch -> Metrics | namespace, metric name, period | 어떤 수치가 정상/비정상 판단에 쓰였는가 |
+| CloudWatch -> Alarms | alarm name, state, threshold | 알림이 행동 가능한 조건인가 |
+| ALB Target groups -> Health | target status, reason | health check가 성공/실패했는가 |
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
+## 구현 경로 B: CloudTrail evidence
+CloudTrail은 application log가 아니라 AWS API 변경 이력이다.
+
+| 보고 싶은 일 | Event name 예시 |
 |---|---|
-| 사용자 장애인가 설정 변경인가 | health/log/metric과 CloudTrail을 나누어 본다 |
-| 비용 질문인가 성능 질문인가 | Cost Explorer와 CloudWatch Metrics를 구분한다 |
-| 알림이 필요한가 | 반복적이고 행동 가능한 metric에만 alarm 후보를 둔다 |
+| SG rule 변경 | `AuthorizeSecurityGroupIngress`, `RevokeSecurityGroupIngress` |
+| IAM 권한 변경 | `AttachUserPolicy`, `DetachUserPolicy`, `CreateAccessKey` |
+| S3 policy 변경 | `PutBucketPolicy`, `PutPublicAccessBlock` |
+| resource 생성/삭제 | `RunInstances`, `CreateLoadBalancer`, `DeleteLoadBalancer` |
+| Console 로그인 | `ConsoleLogin` |
+
+기록은 `eventTime`, `eventName`, `user`, `resource`, `판단`만 남긴다.
+
+## 구현 경로 C: Cost evidence
+Cost Explorer는 지연될 수 있으므로 화면 값과 service inventory를 함께 사용한다.
+
+| 화면 | 확인할 값 |
+|---|---|
+| Cost Explorer | 기간, group by Service, 보이는 비용 service |
+| Budgets | threshold, alert 상태 |
+| service inventory | EC2/EBS/ELB/RDS/S3/CloudWatch 잔여 resource |
+
+## 실습 절차
+1. `labs/operations-evidence-dashboard/README.md`의 dashboard 표를 복사한다.
+2. Week 5에서 만든 대표 resource 하나를 고른다. 예: EC2+ALB, ECS/App Runner, S3.
+3. health 화면을 먼저 확인하고 정상 기준을 적는다.
+4. CloudWatch Logs 또는 Metrics에서 해당 resource와 연결되는 evidence를 찾는다.
+5. CloudTrail Event history에서 오늘 변경 이벤트 1개를 찾는다.
+6. Cost Explorer 또는 service inventory에서 비용 후보를 찾는다.
+7. 각 evidence에 `이 값으로 어떤 판단을 했는지`를 한 줄로 적는다.
+8. 최종 패킷에 넣을 screenshot과 버릴 screenshot을 구분한다.
 
 ## 흔한 실패와 첫 확인 위치
 | 흔한 실패 | 첫 확인 위치 |
 |---|---|
-| CloudWatch에 그래프가 있으면 dashboard가 완성됐다고 생각한다 | 각 panel이 어떤 운영 질문에 답하는지 적는다 |
-
-## 실습/시뮬레이션 절차
-1. Week 5 evidence에서 이 교시 주제와 연결되는 화면을 2개 이상 고른다.
-2. 각 화면에 대해 resource name, Region, 상태값, owner/tag, 비용 또는 보안 영향을 적는다.
-3. 공식 문서 키워드와 Console 화면의 용어가 일치하는지 확인한다.
-4. 판단이 필요한 항목은 `확인한 값 -> 판단 -> 다음 행동` 형식으로 기록한다.
-5. 민감 정보가 보이는 screenshot은 폐기하거나 가린 뒤 다시 저장한다.
-
-## 복구와 정리 기준
-| 상황 | 먼저 볼 evidence | 다음 행동 |
-|---|---|---|
-| 상태가 불명확하다 | service detail, health, logs | 정상 기준과 비교한다 |
-| 최근 변경이 의심된다 | CloudTrail, deployment history | 변경 시각과 증상 시각을 비교한다 |
-| 비용이 남는다 | Cost Explorer, resource inventory | 삭제/중지/유지 판단을 남긴다 |
-| 공개 또는 권한이 의심된다 | IAM, SG, public endpoint, secret | 접근 범위를 줄이고 재확인한다 |
-
-## 화면 캡처 가이드
-- Region, resource name, 상태값, tag, policy, metric name처럼 재현 가능한 값을 남긴다.
-- account email, secret value, access key, token, password는 캡처하지 않는다.
-- 실패 화면은 error message만 자르지 말고 어떤 service와 설정에서 발생했는지 보이게 한다.
-- cleanup evidence는 삭제 버튼보다 삭제 후 검색 결과와 비용 후보 확인이 중요하다.
+| dashboard를 그래프 모음으로 만든다 | 질문 -> evidence -> 판단 구조로 다시 쓴다 |
+| CloudTrail을 app error log로 찾는다 | CloudTrail eventName과 eventSource |
+| metric 지연을 장애로 오해한다 | metric period와 latest datapoint time |
+| Cost Explorer 0원을 cleanup 완료로 착각한다 | service별 resource inventory |
 
 ## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- log group 또는 metric graph, CloudTrail event, Cost Explorer filter 중 최소 두 가지는 최종 패킷에 남긴다.
+- health, log 또는 metric, CloudTrail, cost evidence가 각각 하나 이상 있다.
+- 각 evidence마다 resource name, Region, 확인 값, 판단이 있다.
+- screenshot에는 secret/account email/access key가 보이지 않는다.
+- 다음 S3~S8에서 재사용할 evidence가 표시되어 있다.
 
 ## Evidence Note
 ```markdown
-# W5D5S2 evidence dashboard
-- Region/account boundary:
-- Resource or evidence source:
-- 확인한 값:
-- 판단:
+# W5D5S2 operations evidence dashboard
+- Account/Region:
+- 대표 resource:
+- Health evidence:
+- Log/metric evidence:
+- CloudTrail evidence:
+- Cost evidence:
+- 이 dashboard가 답하는 운영 질문:
 - 다음 행동:
-- cleanup/handoff 상태:
 ```
-
-## 혼자 다시 따라오기
-- 최소 재현 경로: 하나의 증상을 정하고 health, logs, metrics, CloudTrail, Cost 중 어떤 순서로 볼지 표로 만든다.
-- 공식 문서 키워드: `CloudWatch dashboards`, `CloudWatch alarms`, `CloudTrail Event history`, `Cost Explorer`
-- 스스로 확인할 화면: CloudWatch dashboard, Log groups, Metrics, CloudTrail Event history, Cost Explorer
-- 흔한 실패 3개: Region mismatch, metric 지연을 장애로 오해, CloudTrail을 app log로 착각
-- 다음 준비 상태: 운영 질문에 맞는 evidence 화면을 선택할 수 있어야 한다.
 
 ## 한 줄 요약
 ```text
-좋은 dashboard는 화면 수가 아니라 운영 질문에 답하는 evidence 연결로 평가한다.
+운영 evidence dashboard는 화면 모음이 아니라 질문별로 health, logs, metrics, CloudTrail, cost를 연결한 판단 지도다.
 ```

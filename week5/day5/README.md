@@ -18,20 +18,26 @@ W5D5는 Week 5에서 다룬 AWS 계정, 네트워크, compute, container, storag
 | 교시 | 주제 | 핵심 확인 |
 |---|---|---|
 | 1교시 | Week 5 통합 운영 지도 | account, network, compute, observability, cost, runbook 연결 |
-| 2교시 | 운영 evidence dashboard | health, logs, metrics, alarm, CloudTrail, Cost Explorer |
+| 2교시 | AWS Operations Evidence Dashboard | health, logs, metrics, CloudTrail, Cost Explorer |
 | 3교시 | AWS Security Review Dashboard | MFA, IAM, SG, public endpoint, S3 public access, secret, CloudTrail audit |
-| 4교시 | FinOps review | Budget, Cost Explorer, tag, forecast, cleanup decision |
-| 5교시 | 장애 분석 drill | symptom, scope, recent change, logs/metrics, rollback, verification |
-| 6교시 | AWS 운영 runbook 작성 | trigger, impact, owner, evidence, action, verify, cleanup |
-| 7교시 | Portfolio packet 구성 | architecture, evidence, incident note, security/cost/cleanup proof |
-| 8교시 | 최종 cleanup/handoff | resource inventory, retained reason, deleted proof, next step |
+| 4교시 | AWS FinOps Review Dashboard | Budget, Cost Explorer, service inventory, cleanup decision |
+| 5교시 | AWS Incident Drill | symptom, scope, recent change, evidence, action, verification |
+| 6교시 | AWS Operations Runbook | trigger, owner, evidence, action, verify, cleanup |
+| 7교시 | Cloud Operations Portfolio Packet | architecture, evidence, incident, security/cost/cleanup proof |
+| 8교시 | Final AWS Cleanup And Handoff | resource inventory, retained reason, deleted proof, Terraform handoff |
 
 ## Practice Files
 | 자료 | 용도 |
 |---|---|
 | `academic-foundations.md` | 공식 문서 기반 개념 근거와 읽을 키워드 |
 | `lesson-01.md` ~ `lesson-08.md` | 교시별 강의 자료 |
+| `labs/operations-evidence-dashboard/README.md` | W5D5S2 health/log/metric/CloudTrail/cost evidence dashboard 실습 템플릿 |
 | `labs/security-review-dashboard/README.md` | W5D5S3 AWS Console 기반 security review dashboard 실습 템플릿 |
+| `labs/finops-review/README.md` | W5D5S4 비용 후보 inventory와 cleanup decision 실습 템플릿 |
+| `labs/incident-drill/README.md` | W5D5S5 장애 주입/시뮬레이션 incident note 실습 템플릿 |
+| `labs/operations-runbook/README.md` | W5D5S6 운영 runbook 작성 템플릿 |
+| `labs/portfolio-packet/README.md` | W5D5S7 포트폴리오 패킷 README 템플릿 |
+| `labs/cleanup-handoff/README.md` | W5D5S8 최종 resource cleanup/handoff 템플릿 |
 | `assets/lesson-01-integrated-operations-map.png` | Week 5 통합 운영 지도 |
 | `assets/lesson-02-operations-evidence-dashboard.png` | 운영 evidence dashboard |
 | `assets/lesson-03-security-review-matrix.png` | Security review matrix |
@@ -64,13 +70,13 @@ W5D5는 Week 5에서 다룬 AWS 계정, 네트워크, compute, container, storag
 
 ## Deliverables
 - Week 5 integrated operations map
-- operations evidence dashboard note
-- security review checklist
-- FinOps review note
-- incident analysis note
+- operations evidence dashboard
+- security review dashboard
+- FinOps review dashboard
+- incident drill note
 - AWS operations runbook
 - portfolio packet README
-- final cleanup/handoff checklist
+- final cleanup/handoff inventory
 
 ## End Of Day Checklist
 - 남아 있는 resource inventory를 작성했는가

@@ -1,105 +1,90 @@
-# 5교시: 장애 분석 drill
+# 5교시: AWS Incident Drill
 
 ![Incident analysis flow](./assets/lesson-05-incident-analysis-flow.png)
 
-이 visual은 증상에서 evidence, 조치, 재확인으로 이어지는 장애 분석 순서를 보여준다.
+이 시간은 실제 AWS resource를 기준으로 작은 장애를 일부러 만들고, 증상에서 evidence, 조치, 재확인까지 incident note를 완성한다. 계정 상황에 따라 실제 장애 주입이 어렵다면 제공된 시나리오 중 하나를 선택해 Console evidence로 시뮬레이션한다.
 
 ## 수업 목표
 - 증상, 영향 범위, 최근 변경, evidence, 조치, 검증을 분리한다.
-- 로그와 metric, CloudTrail, network/security 확인을 순서화한다.
-- rollback과 cleanup까지 incident note에 남긴다.
+- CloudWatch, CloudTrail, Security Group, target health, S3 access result를 증상에 맞게 고른다.
+- 조치 후 같은 명령이나 같은 화면으로 복구를 증명한다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
+## 오늘 만들 산출물
+| 산출물 | 형태 | 반드시 들어갈 값 |
+|---|---|---|
+| Incident note | markdown | symptom, scope, recent change, evidence, action, verification |
+| Before/after evidence | screenshot 또는 command result | 실패와 복구를 같은 기준으로 비교 |
+| Timeline | 짧은 표 | 발견, 변경 확인, 조치, 복구 시각 |
+
+실습 템플릿은 `labs/incident-drill/README.md`를 사용한다.
+
+## 장애 시나리오 선택
+| 시나리오 | 실제 AWS에서 하는 일 | 확인할 evidence | 복구 |
 |---|---|---|---|
-| Symptom | 사용자가 보는 문제를 구체화한다 | 원인 추정부터 시작한다 | HTTP status, timeout, error |
-| Scope | 영향 범위를 정한다 | 전체 장애와 개인 환경 문제를 혼동한다 | service/Region/user range |
-| Recent change | 변경과 장애 시점을 비교한다 | 원인 후보를 놓친다 | CloudTrail, deployment history |
-| Verification | 조치 후 같은 기준으로 재확인한다 | 고쳤는지 증명하지 못한다 | same command/result |
+| A. SG HTTP 차단 | EC2/ALB HTTP inbound rule을 임시 제거 | curl timeout, SG inbound, CloudTrail | HTTP rule 복구 |
+| B. ALB target unhealthy | target group health를 확인하고 원인 후보 분류 | target health, service event, CloudWatch logs | task/instance/SG 복구 |
+| C. S3 AccessDenied | object URL 접근 결과와 Permissions 비교 | browser AccessDenied, Block Public Access | 공개 목적이면 policy 수정, 아니면 유지 |
+| D. 비용 급증 후보 | ALB/RDS/EBS 등 잔여 resource 발견 | Cost Explorer, service list | delete/stop/retain 결정 |
+
+공용 계정이거나 resource를 바꾸면 안 되는 상황이면 A를 실제로 주입하지 말고 B~D를 시뮬레이션으로 진행한다.
 
 ## 핵심 개념
-장애 분석은 추측 게임이 아니다. 먼저 사용자가 보는 증상을 적고, 영향 범위를 좁히며, 최근 변경과 evidence를 연결한다. 그 다음 network/security/runtime/data/cost 중 어느 경계에서 문제가 생겼는지 확인한다. 조치를 했다면 같은 명령이나 같은 화면으로 재확인해야 한다.
+장애 분석은 원인 맞히기가 아니다. 먼저 사용자가 보는 증상을 적고, 영향 범위를 좁히고, 최근 변경과 evidence를 연결한다. 그 다음 network, runtime, data, security, cost 중 어느 경계인지 판단한다. 복구했다고 말하려면 실패를 확인했던 같은 기준으로 다시 확인해야 한다.
 
-## 구조로 보기
+## Incident Drill 구조
 ```mermaid
 flowchart TD
   Symptom["Symptom"] --> Scope["Impact scope"]
   Scope --> Change["Recent change"]
-  Change --> Evidence["Logs / Metrics / CloudTrail"]
-  Evidence --> Boundary["Network / Runtime / Security"]
-  Boundary --> Action["Fix or Rollback"]
-  Action --> Verify["Verify"]
+  Change --> Evidence["CloudWatch / CloudTrail / SG / Health"]
+  Evidence --> Boundary["Network / Runtime / Data / Security / Cost"]
+  Boundary --> Action["Fix or rollback"]
+  Action --> Verify["Same check verification"]
   Verify --> Note["Incident note"]
 ```
 
-이 구조는 Console 화면을 암기하기 위한 그림이 아니다. 운영 질문이 들어왔을 때 어떤 evidence를 먼저 확인하고, 어떤 판단을 문서에 남길지 정하는 기준이다.
+## 구현 경로 A: Security Group HTTP 장애 주입
+1. EC2 -> Security Groups에서 실습용 web SG를 연다.
+2. 현재 HTTP rule을 기록한다. 예: `TCP 80 from 0.0.0.0/0`.
+3. browser 또는 `curl -m 5 -i http://<endpoint>/`로 정상 응답을 기록한다.
+4. HTTP inbound rule을 임시 제거한다.
+5. 같은 `curl` 명령으로 timeout 또는 실패를 기록한다.
+6. CloudTrail Event history에서 `RevokeSecurityGroupIngress` 이벤트를 찾는다.
+7. HTTP rule을 복구한다.
+8. 같은 `curl` 명령으로 정상 응답을 재확인한다.
 
-## 공식 문서 확인 지점
-| 확인할 문서 키워드 | 읽을 때 볼 질문 |
-|---|---|
-| Well-Architected | 이 판단이 운영 우수성, 보안, 비용 중 어디에 해당하는가 |
-| CloudWatch 또는 CloudTrail | 상태와 변경 이력을 어떤 evidence로 확인하는가 |
-| IAM 또는 Security | 누가 접근할 수 있고 무엇이 공개되어 있는가 |
-| Billing 또는 Cost | 비용 원인과 owner를 설명할 수 있는가 |
+## 구현 경로 B: 시뮬레이션 incident note
+실제 변경이 어렵다면 아래 중 하나를 선택한다.
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 첫 질문은 무엇인가 | 사용자 증상과 영향 범위를 먼저 고정한다 |
-| 어디서 evidence를 볼 것인가 | logs, metrics, CloudTrail, health, SG를 증상에 맞게 고른다 |
-| 조치 후 무엇을 비교할 것인가 | 실패를 확인했던 같은 명령/화면으로 재확인한다 |
-
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| 장애 원인을 바로 단정한다 | 증상, 범위, 최근 변경, evidence를 순서대로 채운다 |
-
-## 실습/시뮬레이션 절차
-1. Week 5 evidence에서 이 교시 주제와 연결되는 화면을 2개 이상 고른다.
-2. 각 화면에 대해 resource name, Region, 상태값, owner/tag, 비용 또는 보안 영향을 적는다.
-3. 공식 문서 키워드와 Console 화면의 용어가 일치하는지 확인한다.
-4. 판단이 필요한 항목은 `확인한 값 -> 판단 -> 다음 행동` 형식으로 기록한다.
-5. 민감 정보가 보이는 screenshot은 폐기하거나 가린 뒤 다시 저장한다.
-
-## 복구와 정리 기준
-| 상황 | 먼저 볼 evidence | 다음 행동 |
-|---|---|---|
-| 상태가 불명확하다 | service detail, health, logs | 정상 기준과 비교한다 |
-| 최근 변경이 의심된다 | CloudTrail, deployment history | 변경 시각과 증상 시각을 비교한다 |
-| 비용이 남는다 | Cost Explorer, resource inventory | 삭제/중지/유지 판단을 남긴다 |
-| 공개 또는 권한이 의심된다 | IAM, SG, public endpoint, secret | 접근 범위를 줄이고 재확인한다 |
-
-## 화면 캡처 가이드
-- Region, resource name, 상태값, tag, policy, metric name처럼 재현 가능한 값을 남긴다.
-- account email, secret value, access key, token, password는 캡처하지 않는다.
-- 실패 화면은 error message만 자르지 말고 어떤 service와 설정에서 발생했는지 보이게 한다.
-- cleanup evidence는 삭제 버튼보다 삭제 후 검색 결과와 비용 후보 확인이 중요하다.
+| 증상 | 첫 확인 화면 | 두 번째 확인 화면 | 판단 예시 |
+|---|---|---|---|
+| ALB 5xx | Target Groups -> Health | CloudWatch Logs/Metrics | target app 또는 health check 문제 |
+| S3 AccessDenied | S3 object URL | Bucket Permissions | policy/BPA/object key 문제 |
+| app 배포 후 오류 | ECS/App Runner events | CloudWatch Logs, CloudTrail | image/env/permission 변경 문제 |
+| 예상 비용 증가 | Cost Explorer | EC2/ELB/RDS/EBS inventory | cleanup 누락 문제 |
 
 ## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- symptom/scope 기록, recent change evidence, verify result 중 최소 두 가지는 최종 패킷에 남긴다.
+- symptom이 사용자 관점으로 적혀 있다. 예: `curl timeout`, `HTTP 503`, `AccessDenied`.
+- scope가 service, Region, endpoint 기준으로 적혀 있다.
+- recent change가 CloudTrail 또는 service event와 연결되어 있다.
+- action 전후가 같은 명령 또는 같은 화면으로 비교된다.
+- rollback 또는 cleanup 결정이 있다.
 
 ## Evidence Note
 ```markdown
 # W5D5S5 incident drill
-- Region/account boundary:
-- Resource or evidence source:
-- 확인한 값:
-- 판단:
-- 다음 행동:
-- cleanup/handoff 상태:
+- Scenario:
+- Symptom:
+- Scope:
+- Recent change:
+- Evidence:
+- Suspected boundary:
+- Action:
+- Verification:
+- Follow-up/cleanup:
 ```
-
-## 혼자 다시 따라오기
-- 최소 재현 경로: ALB 5xx, container unhealthy, S3 AccessDenied, 비용 급증 중 하나를 선택해 incident note를 작성한다.
-- 공식 문서 키워드: `CloudWatch Logs`, `CloudWatch metrics`, `CloudTrail`, `rollback`, `post-incident review`
-- 스스로 확인할 화면: ALB target health, service events, logs, metrics, CloudTrail, Cost Explorer
-- 흔한 실패 3개: 원인 단정, 재확인 누락, rollback 기준 없음
-- 다음 준비 상태: 장애 분석을 symptom -> evidence -> action -> verification 흐름으로 설명할 수 있어야 한다.
 
 ## 한 줄 요약
 ```text
-장애 분석은 빠른 추측보다 증상과 evidence를 분리해 같은 기준으로 재확인하는 절차다.
+Incident drill은 일부러 작게 고장내고 같은 기준으로 복구를 증명하는 운영 연습이다.
 ```

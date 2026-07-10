@@ -1,104 +1,109 @@
-# 4교시: FinOps review
+# 4교시: AWS FinOps Review Dashboard
 
 ![FinOps review board](./assets/lesson-04-finops-review-board.png)
 
-이 visual은 Budget, Cost Explorer, tag, forecast, cleanup decision이 비용 판단으로 연결되는 흐름을 보여준다.
+이 시간은 비용 그래프를 구경하는 시간이 아니다. AWS Billing, Cost Explorer, Budgets, Tag Editor, 각 service list를 열어 비용이 어디서 생길 수 있는지 찾고 `삭제 / 중지 / 유지` 결정을 남긴다.
 
 ## 수업 목표
-- Budget, Cost Explorer, tag, forecast, cleanup decision을 연결한다.
-- 비용 발생 원인을 service와 owner 기준으로 설명한다.
-- 삭제할 resource와 유지할 resource의 비용 근거를 남긴다.
+- Budget, Cost Explorer, tag, forecast, resource inventory를 하나의 FinOps dashboard로 묶는다.
+- 비용 원인을 service, owner, purpose, cleanup action 기준으로 설명한다.
+- 수업 종료 전에 비용이 남을 수 있는 resource를 찾아 삭제 또는 유지 사유를 기록한다.
+
+## 오늘 만들 산출물
+| 산출물 | 형태 | 반드시 들어갈 값 |
+|---|---|---|
+| FinOps review dashboard | markdown 표 또는 스프레드시트 | service, resource, owner/tag, 비용 후보, action |
+| Cost Explorer evidence | screenshot 또는 note | 기간, group by, service filter |
+| Budget evidence | screenshot 또는 note | budget 이름, threshold, 알림 상태 |
+| Cleanup decision table | 표 | Delete, Stop, Retain, Follow-up |
+
+실습 템플릿은 `labs/finops-review/README.md`를 사용한다.
 
 ## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
+| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | AWS에서 확인할 화면 |
 |---|---|---|---|
-| Budget | 비용 임계값 알림 기준이다 | 비용을 막아준다고 오해한다 | Budgets dashboard |
-| Cost Explorer | 서비스/기간/tag별 비용 분석이다 | 잔여 비용 원인을 못 찾는다 | filter, graph |
-| Tag | owner/purpose 기준 추적을 가능하게 한다 | 팀/학생별 비용 분리가 안 된다 | resource tags |
-| Cleanup decision | 삭제/유지 판단을 비용 근거와 연결한다 | 불필요한 resource가 남는다 | inventory |
+| Budget | 비용 임계값 알림 기준이다 | 비용을 막아준다고 오해한다 | Billing -> Budgets |
+| Cost Explorer | 서비스/기간/tag별 비용 분석이다 | 잔여 비용 원인을 추측한다 | Cost Explorer |
+| Tag | owner/purpose 기준 추적을 가능하게 한다 | 누가 만든 비용인지 모른다 | Resource Groups Tag Editor, resource tag tab |
+| Cost candidate | 삭제 후에도 남는 비용 후보를 찾는다 | EBS, snapshot, ALB, NAT, log, RDS 비용이 남는다 | 각 service list |
+| Cleanup decision | 삭제/중지/유지 판단을 비용 근거와 연결한다 | 불필요한 resource가 방치된다 | inventory table |
 
 ## 핵심 개념
-FinOps review는 비용을 아끼자는 구호가 아니라 비용의 원인을 설명할 수 있게 만드는 절차다. 실습에서는 작은 비용도 owner, purpose, service 기준으로 추적해야 한다. Budget은 알림이고 Cost Explorer는 분석 도구이며, tag는 비용을 의미 있는 단위로 묶는 기준이다. 마지막 판단은 삭제, 중지, 보존 중 하나로 남아야 한다.
+FinOps review는 "아껴 쓰자"가 아니라 비용의 원인과 책임을 설명하는 절차다. Budget은 알림이고, Cost Explorer는 분석이며, tag는 비용을 사람과 목적에 연결하는 기준이다. 마지막 산출물은 비용 그래프가 아니라 어떤 resource를 왜 지웠고 무엇을 왜 남겼는지 보여주는 decision table이다.
 
-## 구조로 보기
+## FinOps Dashboard 구조
 ```mermaid
 flowchart TD
-  Tags["Owner / Purpose tags"] --> Resources["AWS resources"]
-  Resources --> Cost["Cost Explorer"]
-  Cost --> Budget["Budget alert"]
-  Cost --> Forecast["Forecast"]
-  Forecast --> Decision["Delete / Stop / Retain"]
-  Decision --> Note["FinOps note"]
+  Inventory["Resource inventory"] --> Tags["Owner / Purpose tags"]
+  Tags --> CostExplorer["Cost Explorer"]
+  CostExplorer --> Budget["Budget threshold"]
+  Inventory --> Candidates["Cost candidates"]
+  Candidates --> Decision["Delete / Stop / Retain / Follow-up"]
+  Budget --> Decision
+  Decision --> Evidence["FinOps review note"]
 ```
 
-이 구조는 Console 화면을 암기하기 위한 그림이 아니다. 운영 질문이 들어왔을 때 어떤 evidence를 먼저 확인하고, 어떤 판단을 문서에 남길지 정하는 기준이다.
+## 구현 경로 A: Billing/Cost Console로 비용 증거 만들기
+| 순서 | AWS Console 위치 | 확인할 값 | 판단 |
+|---|---|---|---|
+| 1 | Billing and Cost Management -> Budgets | budget name, threshold, alert email | 알림만 있고 자동 차단은 아님 |
+| 2 | Cost Explorer | 기간: 이번 달, Group by: Service | 어떤 service 비용이 보이는지 확인 |
+| 3 | Cost Explorer filter | Region 또는 tag filter 가능 여부 | tag가 없으면 owner별 분석이 어려움 |
+| 4 | Billing dashboard | month-to-date, forecast | 실습 직후 데이터 지연 가능성 기록 |
 
-## 공식 문서 확인 지점
-| 확인할 문서 키워드 | 읽을 때 볼 질문 |
-|---|---|
-| Well-Architected | 이 판단이 운영 우수성, 보안, 비용 중 어디에 해당하는가 |
-| CloudWatch 또는 CloudTrail | 상태와 변경 이력을 어떤 evidence로 확인하는가 |
-| IAM 또는 Security | 누가 접근할 수 있고 무엇이 공개되어 있는가 |
-| Billing 또는 Cost | 비용 원인과 owner를 설명할 수 있는가 |
+Cost Explorer는 데이터 반영이 지연될 수 있다. 비용이 0으로 보인다고 resource 비용 후보가 없다는 뜻은 아니다.
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 비용이 어디서 발생했는가 | Cost Explorer service filter와 resource inventory를 비교한다 |
-| 누가 소유하는가 | Owner/Purpose tag가 있는지 확인한다 |
-| 무엇을 정리할 것인가 | 삭제/중지/유지 사유와 다음 확인 시각을 남긴다 |
+## 구현 경로 B: Service별 비용 후보 inventory
+| Service | 확인할 resource | 비용/잔여 후보 | 기본 조치 |
+|---|---|---|---|
+| EC2 | running/stopped instance | EBS volume은 stopped 후에도 비용 가능 | terminate 또는 EBS 확인 |
+| EBS | volumes, snapshots | unattached volume, snapshot | delete 또는 유지 사유 기록 |
+| ELB/ALB | load balancer, target group | traffic 없어도 시간 비용 가능 | delete |
+| ECS/App Runner | service, task, image | service running, image storage | stop/delete |
+| ECR | repositories/images | image storage | 필요 없으면 delete |
+| S3 | bucket/object/version | storage, request, version | empty/delete 또는 유지 사유 |
+| RDS | DB instance, snapshot | instance/storage/snapshot | delete, final snapshot 여부 기록 |
+| CloudWatch | log groups, alarms, dashboards | log retention/storage | retention 설정 또는 delete |
+| Secrets Manager | secrets | secret monthly charge 가능 | delete schedule 또는 유지 사유 |
+
+## 실습 절차
+1. `labs/finops-review/README.md`의 dashboard 표를 복사한다.
+2. Budget 화면에서 budget 이름, threshold, 알림 상태를 기록한다.
+3. Cost Explorer에서 이번 달 service별 비용 화면을 확인한다.
+4. Cost Explorer 데이터가 아직 없으면 "데이터 지연"이라고 적고 service inventory로 비용 후보를 찾는다.
+5. EC2, ELB, ECS/App Runner, ECR, S3, RDS, CloudWatch, Secrets Manager를 순서대로 확인한다.
+6. 각 resource에 owner/purpose tag가 있는지 본다.
+7. resource마다 `Delete`, `Stop`, `Retain`, `Follow-up` 중 하나를 결정한다.
+8. `Retain`은 owner, 목적, 예상 종료 시각을 반드시 적는다.
 
 ## 흔한 실패와 첫 확인 위치
 | 흔한 실패 | 첫 확인 위치 |
 |---|---|
-| Budget이 있으니 비용이 자동 차단된다고 생각한다 | Budget은 알림이고 resource 조치는 별도임을 확인한다 |
-
-## 실습/시뮬레이션 절차
-1. Week 5 evidence에서 이 교시 주제와 연결되는 화면을 2개 이상 고른다.
-2. 각 화면에 대해 resource name, Region, 상태값, owner/tag, 비용 또는 보안 영향을 적는다.
-3. 공식 문서 키워드와 Console 화면의 용어가 일치하는지 확인한다.
-4. 판단이 필요한 항목은 `확인한 값 -> 판단 -> 다음 행동` 형식으로 기록한다.
-5. 민감 정보가 보이는 screenshot은 폐기하거나 가린 뒤 다시 저장한다.
-
-## 복구와 정리 기준
-| 상황 | 먼저 볼 evidence | 다음 행동 |
-|---|---|---|
-| 상태가 불명확하다 | service detail, health, logs | 정상 기준과 비교한다 |
-| 최근 변경이 의심된다 | CloudTrail, deployment history | 변경 시각과 증상 시각을 비교한다 |
-| 비용이 남는다 | Cost Explorer, resource inventory | 삭제/중지/유지 판단을 남긴다 |
-| 공개 또는 권한이 의심된다 | IAM, SG, public endpoint, secret | 접근 범위를 줄이고 재확인한다 |
-
-## 화면 캡처 가이드
-- Region, resource name, 상태값, tag, policy, metric name처럼 재현 가능한 값을 남긴다.
-- account email, secret value, access key, token, password는 캡처하지 않는다.
-- 실패 화면은 error message만 자르지 말고 어떤 service와 설정에서 발생했는지 보이게 한다.
-- cleanup evidence는 삭제 버튼보다 삭제 후 검색 결과와 비용 후보 확인이 중요하다.
+| Budget이 비용을 자동 차단한다고 믿는다 | Budgets 설명과 resource cleanup table |
+| EC2만 지우고 ALB/EBS/Snapshot을 놓친다 | EC2, ELB, EBS 화면을 따로 확인 |
+| Cost Explorer가 0이라서 비용 후보가 없다고 판단한다 | 데이터 지연과 service inventory |
+| tag 없이 owner를 추측한다 | Resource Groups Tag Editor |
 
 ## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- Budget threshold, Cost Explorer filter, 삭제/유지 decision table 중 최소 두 가지는 최종 패킷에 남긴다.
+- Budget threshold 또는 접근 불가 사유가 있다.
+- Cost Explorer의 기간과 group 기준이 적혀 있다.
+- 비용 후보 inventory가 service별로 있다.
+- 삭제/중지/유지 결정과 재확인 방법이 있다.
+- 남긴 resource에는 owner, purpose, cleanup 예정 시각이 있다.
 
 ## Evidence Note
 ```markdown
-# W5D5S4 FinOps review
-- Region/account boundary:
-- Resource or evidence source:
-- 확인한 값:
-- 판단:
-- 다음 행동:
-- cleanup/handoff 상태:
+# W5D5S4 FinOps review dashboard
+- Account/Region:
+- Budget evidence:
+- Cost Explorer 기간/group 기준:
+- 가장 큰 비용 후보:
+- Delete/Stop 대상:
+- Retain 대상과 사유:
+- 다음 비용 재확인 시각:
 ```
-
-## 혼자 다시 따라오기
-- 최소 재현 경로: Cost Explorer에서 service별 비용을 보고, Week 5 resource inventory와 tag 기준으로 cleanup decision을 만든다.
-- 공식 문서 키워드: `AWS Budgets`, `Cost Explorer`, `cost allocation tags`, `forecast`, `resource cleanup`
-- 스스로 확인할 화면: Billing Budgets, Cost Explorer, Resource Groups Tag Editor, 각 service list
-- 흔한 실패 3개: Cost Explorer 지연을 모름, tag 누락, snapshot/log/ALB 비용 후보 누락
-- 다음 준비 상태: 비용 질문에 대해 service, owner, action 기준으로 답할 수 있어야 한다.
 
 ## 한 줄 요약
 ```text
-FinOps review는 비용 그래프를 보는 일이 아니라 비용 원인과 다음 조치를 연결하는 일이다.
+FinOps review는 비용 그래프가 아니라 비용 후보를 찾아 action과 owner를 붙이는 운영 실습이다.
 ```
