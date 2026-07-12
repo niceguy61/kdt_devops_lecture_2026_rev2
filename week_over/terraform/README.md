@@ -43,6 +43,7 @@
 - 비용, 보안, 권한, 변경 위험을 포함한 운영 인수인계 문서
 - [위험 민감 리소스 관리 가이드](./risk-sensitive-resources.md)를 이용한 Resource/Data Source/Import 소유권 판단표
 - [GitOps Drift 탐지와 제한적 자동 복구](./drift-remediation-guide.md) 설계 및 Slack 운영 보고서
+- [EKS + IRSA 실제 생성·검증·삭제 핸즈온](./eks-hands-on/README.md)
 
 ## Environment And Safety
 
