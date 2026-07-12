@@ -1,0 +1,76 @@
+name: Terraform drift detection
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-drift-foundation-domain
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: foundation/domain
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pin organization-approved action versions or commit SHAs in production.
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_PLAN_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - run: terraform init -input=false
+
+      - id: plan
+        name: Create drift plan without applying it
+        shell: bash
+        run: |
+          set +e
+          terraform plan -input=false -no-color -detailed-exitcode -out=tfplan > plan.txt 2>&1
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          terraform show -json tfplan > plan.json 2>/dev/null || true
+          exit 0
+
+      - name: Build change report
+        shell: bash
+        run: |
+          jq -r '[.resource_changes[]? | select(.change.actions != ["no-op"]) | {address, actions: .change.actions}]' plan.json > changes.json
+
+      - name: Upload address-and-action evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-drift-report
+          path: foundation/domain/changes.json
+          retention-days: 7
+
+      - name: Notify Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PLAN_EXIT_CODE: ${{ steps.plan.outputs.exit_code }}
+        working-directory: .
+        run: |
+          changes=$(jq -c '.' foundation/domain/changes.json 2>/dev/null || echo '[]')
+          payload=$(jq -n \
+            --arg code "$PLAN_EXIT_CODE" \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg sha "$GITHUB_SHA" \
+            --arg url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --arg changes "$changes" \
+            '{text: ("Terraform foundation/domain drift check\nexit=" + $code + "\nrepo=" + $repo + "\nsha=" + $sha + "\nchanges=" + $changes + "\nrun=" + $url)}')
+          curl --fail --silent --show-error -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
+
+      - name: Fail on plan error or detected drift
+        if: steps.plan.outputs.exit_code != '0'
+        run: exit 1
