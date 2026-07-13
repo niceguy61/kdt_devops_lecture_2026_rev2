@@ -30,6 +30,16 @@
 
 ## 실습 환경을 확인합니다
 
+설치가 안되어 있으면 설치를 해야 합니다.
+### Mac
+```bash
+brew install terraform
+```
+### WSL
+```bash
+sudo apt install terraform
+```
+
 저장소 루트에서 다음 명령을 실행합니다.
 
 ```bash
