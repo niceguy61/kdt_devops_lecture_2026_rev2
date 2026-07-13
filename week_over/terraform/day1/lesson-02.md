@@ -33,7 +33,8 @@
 설치가 안되어 있으면 설치를 해야 합니다.
 ### Mac
 ```bash
-brew install terraform
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
 ```
 ### WSL
 ```bash
