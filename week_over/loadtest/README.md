@@ -316,8 +316,8 @@ docker-compose.yml - 전체 Observability 스택 원클릭 실행
 
 ## 빠른 시작
 ```bash
-git clone https://github.com/niceguy61/k6-observability-lab.git
-cd k6-observability-lab
+git clone https://github.com/niceguy61/kdt_devops_lecture_2026_rev2.git
+cd week_over/loadtest
 docker-compose up -d
 # Smoke Test 10줄
 k6 run k6/smoke.js
