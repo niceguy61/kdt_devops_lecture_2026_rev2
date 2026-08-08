@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  app:
+    build: ./app/python
+    ports: ["8080:8080"]
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - LOKI_URL=http://loki:3100
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes: ["./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"]
+    ports: ["9090:9090"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml","--enable-feature=exemplar-storage"]
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports: ["3000:3000"]
+    environment:
+      - GF_FEATURE_TOGGLES_ENABLE=exemplars
+    volumes:
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+
+  loki:
+    image: grafana/loki:2.9.0
+    ports: ["3100:3100"]
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+
+  tempo:
+    image: grafana/tempo:2.4.0
+    ports: ["3200:3200","4317:4317"]
+    command: ["-config.file=/etc/tempo.yaml"]
+
+  k6:
+    image: grafana/k6:latest
+    volumes: ["./k6:/scripts"]
+    command: ["run","/scripts/smoke.js"]
+    profiles: ["load"]

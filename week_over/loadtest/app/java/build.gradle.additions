@@ -1,0 +1,28 @@
+// 기존 build.gradle에 추가 (3개 라이브러리)
+
+// 1. Prometheus + Observability
+dependencies {
+    implementation 'io.micrometer:micrometer-registry-prometheus:1.12.0'
+    implementation 'io.opentelemetry:opentelemetry-api:1.34.0'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp:1.34.0'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel:1.2.0'
+}
+
+// 2. application.yml에 추가
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health
+  metrics:
+    tags:
+      service: your-team-service
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+// 3. Prometheus가 스크랩할 엔드포인트 자동 열림: /actuator/prometheus
+// prometheus.yml 수정:
+//   - targets: ['your-java-app:8080'] -> 실제로는 actuator 경로: metrics_path: '/actuator/prometheus'
+
+// 4. Filter 복사: ObservabilityCommon.java -> src/main/java/com/yourteam/

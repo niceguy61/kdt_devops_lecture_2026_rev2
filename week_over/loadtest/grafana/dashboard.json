@@ -1,0 +1,113 @@
+{
+  "title": "부하테스트 + Observability 2교시",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "1. 지연시간 히스토그램 (경로별)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by(le,path)(rate(http_request_duration_seconds_bucket[1m])))"
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "2. 커스텀 오류 Top N (errorCode+HTTP status)",
+      "targets": [
+        {
+          "expr": "sum by(errorCode,status)(rate(app_logs_total{level='error'}[1m]))"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "3. Slow Query >1000ms",
+      "targets": [
+        {
+          "expr": "{service='order-api'} | json | latency > 1000"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "4. 사용자 여정 traceId",
+      "targets": [
+        {
+          "expr": "{service='order-api'} |= 'trc_'"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "5. 비정상 IP (>1000)",
+      "targets": [
+        {
+          "expr": "sum by(ip)(rate(http_requests_total[1m])) > 10"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "6. 비즈니스 KPI 결제실패율",
+      "targets": [
+        {
+          "expr": "sum(rate(app_logs_total{errorCode='E002'}[5m])) / sum(rate(http_requests_total[5m])) * 100"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "7. 캐시 미스 폭풍",
+      "targets": [
+        {
+          "expr": "rate(redis_cache_miss_total[1m])"
+        }
+      ]
+    },
+    {
+      "type": "geomap",
+      "title": "8. 외부 장애 지도",
+      "targets": [
+        {
+          "expr": "sum by(region)(rate(external_api_failed_total[1m]))"
+        }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "9. GC/OOM 전조",
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes / jvm_memory_max_bytes *100"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "10. 보안 이상 IP 401/403",
+      "targets": [
+        {
+          "expr": "sum by(ip)(rate(http_requests_total{status=~'401|403'}[1m]))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "11. 배포 상관관계 by version",
+      "targets": [
+        {
+          "expr": "sum by(version)(rate(http_req_failed[1m]))"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "12. 로그 볼륨 비용",
+      "targets": [
+        {
+          "expr": "sum(rate(loki_ingester_chunk_stored_bytes_total[5m]))"
+        }
+      ]
+    }
+  ]
+}

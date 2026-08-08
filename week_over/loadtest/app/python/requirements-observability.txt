@@ -1,0 +1,7 @@
+# 기존 requirements.txt에 아래 3줄만 추가
+structlog==24.1.0
+opentelemetry-api==1.24.0
+opentelemetry-sdk==1.24.0
+opentelemetry-exporter-otlp==1.24.0
+opentelemetry-instrumentation-fastapi==0.45b0
+prometheus-client==0.20.0

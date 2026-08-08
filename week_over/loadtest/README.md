@@ -301,3 +301,37 @@ sum by (app, level) (count_over_time({app=~".+"} | json [1m]))
 - 평균 Latency만 보고 "빠르다" 착각
 - 부하 발생기 모니터링 안함 (발생기가 병목)
 - 테스트 후 리소스 정리 안해서 비용 폭탄
+
+# k6 Observability Lab - 2교시 실습용
+
+## 구조
+```
+k6/ - smoke.js(10줄), load.js, ci-gate.js(p95<500ms)
+prometheus/ - prometheus.yml (exemplars 활성화)
+grafana/ - dashboard.json (12개 패널), datasource.yml (Exemplars -> Tempo 연동)
+app/python|java|typescript - JSON + traceId + errorCode 심기 샘플
+docker-compose.yml - 전체 Observability 스택 원클릭 실행
+.github/workflows/k6-ci.yml - p95 CI 게이트
+```
+
+## 빠른 시작
+```bash
+git clone https://github.com/niceguy61/k6-observability-lab.git
+cd k6-observability-lab
+docker-compose up -d
+# Smoke Test 10줄
+k6 run k6/smoke.js
+# Grafana: http://localhost:3000 (admin/admin) 대시보드 import grafana/dashboard.json
+```
+
+## 핵심 개념
+- 라벨은 적게, JSON 필드는 풍부하게
+- errorCode(E001~) + HTTP status(status) 동시 필터 - 커스텀 오류 Top N 핵심
+- Metric -> Trace -> Log 점프: Grafana Exemplars 활성화 + traceId 심기
+- p95<500ms: 평균이 아닌 95분위수로 CI 게이트
+
+## 체크리스트
+동일스펙? 웜업? Mock? ThinkTime? 중단기준?
+
+## 실수 Top5
+운영DB직격, 로컬1만VU, 평균만보기, 부하기 미모니터링, 비용폭탄
