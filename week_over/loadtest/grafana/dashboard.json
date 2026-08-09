@@ -1,113 +1,97 @@
 {
-  "title": "부하테스트 + Observability 2교시",
+  "uid": "loadtest-observability",
+  "title": "부하테스트 + Observability",
+  "schemaVersion": 39,
+  "version": 2,
+  "editable": true,
+  "refresh": "15s",
+  "time": {"from": "now-15m", "to": "now"},
   "panels": [
     {
+      "id": 1,
       "type": "timeseries",
-      "title": "1. 지연시간 히스토그램 (경로별)",
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum by(le,path)(rate(http_request_duration_seconds_bucket[1m])))"
-        }
-      ]
+      "title": "1. 지연시간 p95 (경로별)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by(le,path)(rate(http_request_duration_seconds_bucket[1m])))", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
     },
     {
+      "id": 2,
       "type": "barchart",
-      "title": "2. 커스텀 오류 Top N (errorCode+HTTP status)",
-      "targets": [
-        {
-          "expr": "sum by(errorCode,status)(rate(app_logs_total{level='error'}[1m]))"
-        }
-      ]
+      "title": "2. 애플리케이션 오류 Top N",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"expr": "sum by(errorCode,status)(rate(app_logs_total{level=\"error\"}[1m]))", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
     },
     {
+      "id": 3,
       "type": "logs",
-      "title": "3. Slow Query >1000ms",
-      "targets": [
-        {
-          "expr": "{service='order-api'} | json | latency > 1000"
-        }
-      ]
+      "title": "3. Slow Request >100ms",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"refId": "A", "editorMode": "code", "expr": "{service=\"order-api\"} | json | latency > 100", "queryType": "range", "maxLines": 1000, "datasource": {"type": "loki", "uid": "loki"}}]
     },
     {
-      "type": "table",
-      "title": "4. 사용자 여정 traceId",
-      "targets": [
-        {
-          "expr": "{service='order-api'} |= 'trc_'"
-        }
-      ]
+      "id": 4,
+      "type": "logs",
+      "title": "4. 사용자 여정 traceId (32hex)",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"refId": "A", "editorMode": "code", "expr": "{service=\"order-api\"} | json | traceId =~ \"^[0-9a-f]{32}$\"", "queryType": "range", "maxLines": 1000, "datasource": {"type": "loki", "uid": "loki"}}]
     },
     {
+      "id": 5,
       "type": "timeseries",
-      "title": "5. 비정상 IP (>1000)",
-      "targets": [
-        {
-          "expr": "sum by(ip)(rate(http_requests_total[1m])) > 10"
-        }
-      ]
+      "title": "5. HTTP 요청 수",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "targets": [{"expr": "sum by(path,status)(rate(http_requests_total[1m]))", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
     },
     {
+      "id": 6,
       "type": "stat",
-      "title": "6. 비즈니스 KPI 결제실패율",
-      "targets": [
-        {
-          "expr": "sum(rate(app_logs_total{errorCode='E002'}[5m])) / sum(rate(http_requests_total[5m])) * 100"
-        }
-      ]
+      "title": "6. 결제 실패율",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "targets": [{"expr": "100 * sum(rate(app_logs_total{errorCode=\"E002\"}[5m])) / sum(rate(http_requests_total[5m]))", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
     },
     {
+      "id": 7,
       "type": "timeseries",
-      "title": "7. 캐시 미스 폭풍",
-      "targets": [
-        {
-          "expr": "rate(redis_cache_miss_total[1m])"
-        }
-      ]
+      "title": "7. 호스트 CPU 사용률",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "targets": [{"expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
     },
     {
-      "type": "geomap",
-      "title": "8. 외부 장애 지도",
-      "targets": [
-        {
-          "expr": "sum by(region)(rate(external_api_failed_total[1m]))"
-        }
-      ]
-    },
-    {
-      "type": "gauge",
-      "title": "9. GC/OOM 전조",
-      "targets": [
-        {
-          "expr": "jvm_memory_used_bytes / jvm_memory_max_bytes *100"
-        }
-      ]
-    },
-    {
-      "type": "table",
-      "title": "10. 보안 이상 IP 401/403",
-      "targets": [
-        {
-          "expr": "sum by(ip)(rate(http_requests_total{status=~'401|403'}[1m]))"
-        }
-      ]
-    },
-    {
+      "id": 8,
       "type": "timeseries",
-      "title": "11. 배포 상관관계 by version",
-      "targets": [
-        {
-          "expr": "sum by(version)(rate(http_req_failed[1m]))"
-        }
-      ]
+      "title": "8. 호스트 메모리 사용률",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "targets": [{"expr": "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
     },
     {
-      "type": "stat",
-      "title": "12. 로그 볼륨 비용",
-      "targets": [
-        {
-          "expr": "sum(rate(loki_ingester_chunk_stored_bytes_total[5m]))"
-        }
-      ]
+      "id": 9,
+      "type": "timeseries",
+      "title": "9. 호스트 디스크 사용률",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+      "targets": [{"expr": "100 * (1 - sum(node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"}) / sum(node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"}))", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "10. Docker Compose 컨테이너 CPU 사용률",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+      "targets": [{"expr": "sum by(container)(rate(docker_container_cpu_usage_seconds_total[5m])) * 100", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "11. Docker Compose 컨테이너 메모리 사용량",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+      "targets": [{"expr": "sum by(container)(docker_container_memory_working_set_bytes)", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "12. Docker Compose 컨테이너 네트워크 수신량",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+      "targets": [{"expr": "sum by(container)(rate(docker_container_network_receive_bytes_total[5m]))", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
     }
   ]
 }
