@@ -723,6 +723,14 @@ trace ID 필터:
 
 현재 앱의 정상 요청 latency가 대략 50~200ms이므로, 실습에서는 `>100ms`가 결과를 확인하기 쉽다. `>1000ms`는 정상 실행에서 빈 결과가 될 수 있다.
 
+![Grafana를 쓴다면 1](./asset/loki-search1.png)
+
+*그림 9-1. Explorer > Loki*
+
+![Grafana를 쓴다면 2](./asset/loki-search2.png)
+
+*그림 9-2. Explorer > Loki*
+
 ### 9.2 로그에서 Tempo로 이동
 
 1. 먼저 `load.js` 또는 `/api/order` 요청을 실행한다.
