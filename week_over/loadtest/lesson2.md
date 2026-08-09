@@ -468,6 +468,173 @@ default ✓ [======================================] 0/5 VUs  20s
 ERRO[0020] thresholds on metrics 'http_req_failed' have been crossed 
 ```
 
+### 5.4 유저 플로우 기반 부하 테스트 케이스 설계
+
+부하 테스트는 엔드포인트 하나를 빠르게 반복하는 것보다, 사용자가 실제로 수행하는 작업의 순서를 재현하는 방식으로 설계하는 것이 좋다. 사용자는 보통 로그인한 뒤 상품을 검색하고, 상세 정보를 확인하고, 장바구니에 담은 다음 주문을 완료한다. 이 흐름을 그대로 테스트해야 각 단계의 지연, 세션·토큰 전달, 데이터 정합성, 최종 비즈니스 결과를 함께 확인할 수 있다.
+
+엔드포인트 단위 테스트만 사용하면 다음 문제를 놓치기 쉽다.
+
+- 로그인에서 받은 토큰을 다음 요청에 전달하지 못하는 문제
+- 검색 결과의 상품 ID와 상세·장바구니 요청의 상품 ID가 연결되지 않는 문제
+- 장바구니 수량이나 주문 금액이 다음 단계에서 달라지는 문제
+- 개별 요청은 빠르지만 전체 사용자 여정이 지나치게 긴 문제
+- 한 단계의 오류가 다음 단계에 어떤 영향을 주는지 알 수 없는 문제
+
+#### 5.4.1 테스트 케이스를 만드는 순서
+
+각자 프로젝트에서는 다음 순서로 테스트 케이스를 만든다.
+
+1. **사용자 목표를 정한다.** 예를 들어 “사용자가 상품을 검색해 주문을 완료한다”처럼 결과가 포함된 문장으로 작성한다.
+2. **사전 조건과 테스트 데이터를 정한다.** 테스트 계정, 상품 ID, 재고, 권한, 쿠폰, 결제 sandbox 여부를 기록한다.
+3. **정상 흐름과 주요 실패 분기를 나눈다.** 정상 로그인, 잘못된 비밀번호, 검색 결과 없음, 재고 부족, 결제 timeout 등을 별도 케이스로 구분한다.
+4. **각 단계의 요청과 상관관계를 기록한다.** 로그인 응답의 token, 검색 결과의 productId, 주문 응답의 orderId처럼 다음 단계에서 사용할 값을 명시한다.
+5. **기능·성능·관측 기준을 함께 작성한다.** 상태 코드만 보지 말고 응답 필드, p95/p99, 오류율, 로그, trace, 자원 사용량을 연결한다.
+6. **작은 Smoke로 시작해 Load로 확장한다.** 먼저 1 VU로 한 여정이 끝까지 성공하는지 확인하고, 같은 케이스에 VU와 duration을 늘린다.
+
+#### 5.4.2 프로젝트별 테스트 케이스 양식
+
+아래 표를 복사해 프로젝트의 API와 데이터에 맞게 채운다. `UF`는 User Flow의 약자이며, 케이스 ID는 프로젝트 전체에서 중복되지 않게 관리한다.
+
+| 항목 | 작성 내용 |
+|---|---|
+| Case ID | `UF-01`, `UF-02`처럼 고유한 식별자 |
+| 사용자 목표 | 사용자가 이루려는 최종 결과 |
+| 사전 조건/테스트 데이터 | 계정, 권한, 상품·주문 ID, 재고, 환경, sandbox 여부 |
+| 플로우 단계 | 사용자가 수행하는 순서와 각 단계의 입력·출력 |
+| 대상 엔드포인트 | HTTP method, URL, 주요 헤더·본문 |
+| 기능 체크 | 상태 코드, 응답 필드, 업무 규칙, 데이터 정합성 |
+| 부하 프로파일 | Smoke, Load, Stress, Spike, Soak 중 선택하고 VU·duration·ramp를 기록 |
+| 성공 기준 | 허용 p95/p99, 오류율, 체크 성공률, 업무 오류 허용 범위 |
+| 확인할 관측 데이터 | Grafana 패널, Prometheus PromQL, Loki LogQL, Tempo trace, 컨테이너 자원 |
+
+#### 5.4.3 예시: 유저 플로우 기반 5개 케이스
+
+다음 5개는 대부분의 웹·API 프로젝트에 적용할 수 있는 기본 골격이다. `login`, `search`, `cart`, `payment` 경로는 프로젝트마다 다르므로 실제 OpenAPI 문서나 라우팅 코드의 경로·본문·응답 필드로 교체한다.
+
+| Case ID | 사용자 플로우와 단계 | 대상 API 예시 | 핵심 체크·성공 기준 | 권장 프로파일 |
+|---|---|---|---|---|
+| `UF-01` | **서비스 진입/상태 확인**: 랜딩 페이지 또는 앱에 접속하고 서비스가 요청을 받을 수 있는지 확인한다. | `GET /api/health` 또는 `GET /` | HTTP 200, 응답의 `status`가 `ok`, 체크 성공률 99% 초과, p95 500ms 미만 | Smoke: 1 VU, 30초 |
+| `UF-02` | **로그인/세션 생성**: 로그인 정보를 제출하고 받은 token 또는 session cookie로 사용자 정보를 조회한다. | `POST /api/login` → `GET /api/me` | 로그인 200, token/session 존재, 다음 요청이 200, 다른 사용자의 데이터가 노출되지 않음 | Smoke 후 Load: 정상·실패 계정 분리 |
+| `UF-03` | **검색/목록 탐색**: 키워드나 필터를 입력하고 목록을 받은 뒤 결과를 선택한다. | `GET /api/products?keyword=...` → `GET /api/products/{productId}` | 목록 배열 형식, `productId` 존재, 상세 조회가 선택한 ID와 일치, 빈 검색 결과도 올바른 200/204 정책 준수 | Load: 검색어·필터를 VU별로 분산 |
+| `UF-04` | **상세 확인/장바구니 상호작용**: 상품 상세를 확인하고 수량을 지정해 장바구니에 추가·조회한다. | `GET /api/products/{productId}` → `POST /api/cart/items` → `GET /api/cart` | 추가 응답 200/201, 상품 ID·수량 일치, 장바구니 합계 정합성, 재고 부족 오류는 정의한 4xx로 처리 | Load 또는 Stress: 재고·수량 경계값 포함 |
+| `UF-05` | **주문/결제 완료**: 장바구니를 주문으로 전환하고 결제 결과와 주문 번호를 확인한다. | 일반 프로젝트: `POST /api/checkout` → `POST /api/payment` → `GET /api/orders/{orderId}` | 주문 번호·상태 존재, 결제 성공/실패 상태가 일치, 중복 주문 없음, p95/p99와 업무 오류율을 별도로 판정 | Load, Spike, 필요 시 Soak |
+
+이 저장소의 샘플 앱에 바로 적용하면 다음처럼 단순화한다.
+
+- `UF-01`은 `GET /api/health`와 `smoke.js`로 실행한다.
+- `UF-05`의 간소화된 주문 단계는 `GET /api/order`와 `load.js`로 실행한다. 정상 응답에는 `orderId`가 있어야 한다.
+- 샘플 앱에는 로그인, 검색, 장바구니, 실제 결제 엔드포인트가 없으므로 `UF-02`~`UF-04`와 일반적인 `POST /api/checkout`, `POST /api/payment` 경로는 **각자 프로젝트에서 실제 경로로 바꿔 사용하는 자리표시자**다.
+- `/api/order`는 실습을 위해 약 2%의 `E002` HTTP 500 오류를 주입한다. 따라서 연결성·성능 기준과 의도된 업무 오류율을 분리해 기록한다. `http_req_failed < 1%`가 실패해도 p95/p99가 통과하고 E002 비율이 예상 범위인지 함께 확인한다.
+
+#### 5.4.4 테스트 케이스를 k6 스크립트로 옮기는 방법
+
+한 케이스를 k6로 옮길 때는 한 iteration을 한 사용자의 여정으로 생각한다. `group()`으로 단계 이름을 남기고, 요청마다 `check()`를 작성하며, 사용자가 생각하는 시간을 `sleep()`으로 표현한다.
+
+```javascript
+import http from 'k6/http';
+import { check, group, sleep } from 'k6';
+
+const BASE_URL = __ENV.BASE_URL || 'http://app:8080';
+
+export default function () {
+  group('UF-05 주문 완료', function () {
+    const order = http.get(`${BASE_URL}/api/order`, { timeout: '5s' });
+
+    check(order, {
+      '주문 응답이 200이다': (r) => r.status === 200,
+      'orderId가 있다': (r) => r.status === 200 && r.json('orderId') !== undefined,
+    });
+
+    // 실제 사용자의 다음 행동 간격을 모델링한다.
+    sleep(0.5);
+  });
+}
+```
+
+로그인·검색·장바구니가 있는 프로젝트는 응답 값을 다음 요청에 연결한다. 아래 코드는 구조를 보여주는 예시이며, 실제 필드명과 API 경로로 바꿔야 한다.
+
+```javascript
+const login = http.post(`${BASE_URL}/api/login`, JSON.stringify({
+  email: user.email,
+  password: user.password,
+}), { headers: { 'Content-Type': 'application/json' } });
+
+check(login, { '로그인이 성공한다': (r) => r.status === 200 });
+const token = login.json('token');
+const headers = { headers: { Authorization: `Bearer ${token}` } };
+
+const results = http.get(`${BASE_URL}/api/products?keyword=${user.keyword}`, headers);
+const productId = results.json('items.0.id');
+http.post(`${BASE_URL}/api/cart/items`, JSON.stringify({ productId, quantity: 1 }), {
+  ...headers,
+  headers: { ...headers.headers, 'Content-Type': 'application/json' },
+});
+```
+
+테스트 데이터와 실행별 값을 섞지 않도록 다음 방법을 사용한다.
+
+- **고정된 소규모 데이터**: 스크립트 옆의 JSON/CSV를 읽고 `SharedArray`로 VU 간 데이터를 공유한다. 모든 VU가 같은 사용자·검색어·캐시 키만 쓰지 않도록 `__VU`와 `__ITER`로 분산한다.
+- **실행 전에 준비할 데이터**: `setup()`에서 테스트용 계정이나 상품을 준비하고, 반환한 값을 각 VU에 전달한다. 데이터 생성 API가 있으면 종료 후 정리 절차도 케이스에 기록한다.
+- **응답에서 얻는 데이터**: token, session cookie, productId, orderId를 변수에 저장해 다음 요청에 전달한다. 이를 correlation이라고 하며, 이전 응답의 값을 하드코딩하지 않는 것이 핵심이다.
+- **CSV 데이터**: k6 기본 파일 읽기와 CSV 파싱 또는 프로젝트에서 승인한 데이터 모듈을 사용한다. 비밀번호·토큰·실제 개인정보가 들어 있는 CSV는 저장소에 커밋하지 않는다.
+
+예를 들어 JSON fixture를 VU별로 나누는 형태는 다음과 같다.
+
+```javascript
+import { SharedArray } from 'k6/data';
+
+const users = new SharedArray('test users', () =>
+  JSON.parse(open('./data/users.json'))
+);
+
+export function setup() {
+  return { runId: `load-${Date.now()}` };
+}
+
+export default function (data) {
+  const user = users[(__VU - 1) % users.length];
+  // data.runId를 요청 헤더나 테스트 데이터 식별자에 사용한다.
+}
+```
+
+#### 5.4.5 테스트 프로파일 선택
+
+같은 테스트 케이스라도 목적에 따라 부하 프로파일을 바꾼다.
+
+| 프로파일 | 목적 | 예시 |
+|---|---|---|
+| Smoke | 스크립트·URL·기본 응답·데이터가 정상인지 빠르게 확인 | 1 VU, 30초, `UF-01` 또는 전체 여정 1회 |
+| Load | 예상 정상 사용량에서 성능과 오류율 확인 | 10 → 50 VU, 2분, 현재 `load.js` |
+| Stress | 한계점을 찾고 어느 자원에서 병목이 생기는지 확인 | 목표 VU를 단계적으로 증가, p95/p99와 CPU·메모리 기록 |
+| Spike | 갑작스러운 트래픽 증가와 회복 여부 확인 | 5 VU에서 짧은 시간에 100 VU로 증가 후 원복 |
+| Soak | 장시간 실행 중 메모리 누수·로그 증가·커넥션 고갈 확인 | 낮은 일정 부하를 수십 분~수 시간 유지 |
+| CI gate | 배포 전 최소 성능 기준을 자동 판정 | 짧은 실행, p95·HTTP 오류율·핵심 check threshold |
+
+현재 샘플의 `smoke.js`는 `UF-01`, `load.js`는 간소화된 `UF-05`, `ci-gate.js`는 CI gate 예시로 볼 수 있다. 실제 서비스에서는 결제 sandbox 오류처럼 예상된 업무 실패를 기술적 장애와 같은 threshold로 묶지 말고 별도 metric과 성공 기준으로 관리한다.
+
+#### 5.4.6 테스트 데이터와 안전 수칙
+
+- 실제 결제·문자·메일·외부 파트너 호출을 부하 테스트에 연결하지 말고 sandbox 또는 mock을 사용한다.
+- 운영 데이터가 아닌 staging 전용 계정·상품·주문을 사용하고, 테스트 시작·종료와 정리 담당자를 기록한다.
+- VU마다 고유한 사용자·주문·멱등성 키를 사용해 중복 주문과 서로의 장바구니 오염을 막는다.
+- 모든 VU가 같은 캐시 키를 사용하면 실제 사용 패턴과 다른 결과가 나오므로 검색어·상품·페이지를 분산한다.
+- 비밀번호, access token, 실제 개인정보, 카드 번호를 코드·CSV·로그·스크린샷에 남기지 않는다.
+- 주문·결제 테스트는 테스트 금액과 sandbox 상태를 확인하고, 실패 시 자동 재시도로 실제 주문이 중복 생성되지 않게 한다.
+- 부하 중에는 Grafana의 Loki·Tempo에 민감한 요청 본문이 전송되지 않는지 확인한다.
+
+#### 5.4.7 이번 실습의 제출 과제
+
+각자 프로젝트의 API를 기준으로 다음 결과물을 만든다.
+
+1. 위 양식으로 `UF-01`~`UF-05` 다섯 개의 케이스 매트릭스를 작성한다. 엔드포인트가 없는 단계는 실제 프로젝트의 경로로 대체하고, 없으면 “미구현”으로 표시한다.
+2. 다섯 케이스 중 하나를 선택해 1 VU Smoke를 구현한다. 정상 응답뿐 아니라 핵심 응답 필드와 상관관계를 검사한다.
+3. 같은 케이스를 Load 프로파일로 확장한다. VU, ramp, think time, 테스트 데이터 분산 방식을 기록한다.
+4. p95/p99, HTTP 오류율, 업무 오류율, check 성공률의 threshold를 정하고 예상 오류와 실제 장애를 구분한다.
+5. 실행 결과의 k6 요약, `docker compose ps`, Prometheus 메트릭, Grafana 대시보드, Loki slow request, Tempo trace를 캡처한다.
+6. 실패한 케이스는 “어느 단계에서”, “어떤 응답·로그·trace로”, “어떤 자원 메트릭과 함께” 실패했는지 원인을 설명한다.
+
+이 과정을 마치면 단순히 `/api/order`를 반복한 결과가 아니라, 사용자 목표와 시스템 관측 데이터를 연결한 재현 가능한 부하 테스트 케이스가 된다.
+
 ---
 
 ## 6. Docker Compose 안에서 k6 실행하기
