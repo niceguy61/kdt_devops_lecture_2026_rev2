@@ -402,6 +402,72 @@ http_req_failed: ['rate<0.01']
 
 실제 서비스의 성능 게이트를 실험할 때는 오류 주입을 끄거나, 의도된 오류율을 별도 기준으로 분리하는 것이 좋다.
 
+```
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /scripts/load.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 5 max VUs, 50s max duration (incl. graceful stop):
+              * default: Up to 5 looping VUs for 20s over 3 stages (gracefulRampDown: 30s, gracefulStop: 30s)
+
+
+
+  █ THRESHOLDS 
+
+    checks
+    ✓ 'rate>0.95' rate=96.34%
+
+    http_req_duration
+    ✓ 'p(95)<500' p(95)=194.84ms
+    ✓ 'p(99)<1000' p(99)=203.41ms
+
+    http_req_failed
+    ✗ 'rate<0.01' rate=3.65%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 164    8.003438/s
+    checks_succeeded...: 96.34% 158 out of 164
+    checks_failed......: 3.65%  6 out of 164
+
+    ✗ HTTP status is 200
+      ↳  96% — ✓ 79 / ✗ 3
+    ✗ application response has orderId
+      ↳  96% — ✓ 79 / ✗ 3
+
+    HTTP
+    http_req_duration..............: avg=135.54ms min=53.8ms   med=136.23ms max=204.91ms p(90)=189.98ms p(95)=194.84ms
+      { expected_response:true }...: avg=134.73ms min=53.8ms   med=133.8ms  max=204.91ms p(90)=190.47ms p(95)=195.23ms
+    http_req_failed................: 3.65%  3 out of 82
+    http_reqs......................: 82     4.001719/s
+
+    EXECUTION
+    iteration_duration.............: avg=636.38ms min=554.77ms med=637.58ms max=705.77ms p(90)=691.03ms p(95)=695.99ms
+    iterations.....................: 82     4.001719/s
+    vus............................: 1      min=1       max=5
+    vus_max........................: 5      min=5       max=5
+
+    NETWORK
+    data_received..................: 15 kB  750 B/s
+    data_sent......................: 8.9 kB 434 B/s
+
+
+
+
+running (20.5s), 0/5 VUs, 82 complete and 0 interrupted iterations
+default ✓ [======================================] 0/5 VUs  20s
+ERRO[0020] thresholds on metrics 'http_req_failed' have been crossed 
+```
+
 ---
 
 ## 6. Docker Compose 안에서 k6 실행하기
