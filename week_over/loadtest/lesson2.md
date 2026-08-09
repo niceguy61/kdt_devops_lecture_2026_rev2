@@ -535,13 +535,13 @@ k6가 부하를 발생시키는 동안 별도 터미널에서 Prometheus를 확�
 
 ### 7.0 실습 결과 캡처
 
-아래 캡처는 이번 실습에서 확인할 결과 화면이다. PNG 파일을 `loadtest/asset` 폴더에 저장하면 문서에서 자동으로 표시된다.
+아래 PNG는 이번 실습에서 확인한 결과를 한 장으로 합친 캡처다. 위쪽에는 Grafana traceId 패널 오류와 Inspect > Error 화면이 있고, 아래쪽에는 Prometheus Targets 상태가 있다.
 
-![Prometheus Targets 상태](./asset/prometheus-targets.png)
+![Prometheus와 Grafana 실습 결과 캡처](./asset/prometheus-targets.png)
 
-*그림 7-1. Prometheus Targets에서 app·cAdvisor·node-exporter는 UP이지만 docker-exporter가 DOWN인 상태를 확인한 화면*
+*그림 7-1. Grafana의 LogQL/Prometheus datasource 오류와 Prometheus Targets에서 docker-exporter가 DOWN인 상태를 함께 확인한 화면*
 
-> 그림 7-2와 그림 7-3의 `unexpected character: '|'` 오류는 Prometheus에 Loki LogQL을 보낸 경우 발생한다. traceId 패널의 datasource는 `Prometheus`가 아니라 `Loki`여야 한다. 해결 절차는 [Grafana에서 `unexpected character: '|'`가 보일 때](#10-grafana에서-unexpected-character가-보일-때)를 참고한다.
+> Grafana의 `unexpected character: '|'` 오류는 Prometheus에 Loki LogQL을 보낸 경우 발생한다. traceId 패널의 datasource는 `Prometheus`가 아니라 `Loki`여야 한다. 해결 절차는 [Grafana에서 `unexpected character: '|'`가 보일 때](#10-grafana에서-unexpected-character가-보일-때)를 참고한다.
 
 ### 7.1 Target 상태
 
@@ -653,6 +653,22 @@ http://localhost:3000
 ```text
 http://localhost:3000/d/loadtest-observability
 ```
+
+### 8.1 Grafana 대시보드 캡처
+
+실행 중인 Grafana 대시보드 화면은 다음 캡처로 확인한다.
+
+![Grafana 대시보드 캡처 1](./asset/grafana-dashboard1.png)
+
+*그림 8-1. Grafana 대시보드 화면 1*
+
+![Grafana 대시보드 캡처 2](./asset/grafana-dashboard2.png)
+
+*그림 8-2. Grafana 대시보드 화면 2*
+
+![Grafana 대시보드 캡처 3](./asset/grafana-dashboard3.png)
+
+*그림 8-3. Grafana 대시보드 화면 3*
 
 현재 대시보드는 12개 패널을 2열로 배치한다.
 
