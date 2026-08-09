@@ -531,7 +531,17 @@ docker compose --profile load run --rm k6 run /scripts/ci-gate.js
 
 ## 7. Prometheus에서 메트릭 확인
 
-k6가 부하를 발생시키는 동안 별도 PowerShell에서 Prometheus를 확인한다.
+k6가 부하를 발생시키는 동안 별도 터미널에서 Prometheus를 확인한다.
+
+### 7.0 실습 결과 캡처
+
+아래 캡처는 이번 실습에서 확인할 결과 화면이다. PNG 파일을 `loadtest/asset` 폴더에 저장하면 문서에서 자동으로 표시된다.
+
+![Prometheus Targets 상태](./asset/prometheus-targets.png)
+
+*그림 7-1. Prometheus Targets에서 app·cAdvisor·node-exporter는 UP이지만 docker-exporter가 DOWN인 상태를 확인한 화면*
+
+> 그림 7-2와 그림 7-3의 `unexpected character: '|'` 오류는 Prometheus에 Loki LogQL을 보낸 경우 발생한다. traceId 패널의 datasource는 `Prometheus`가 아니라 `Loki`여야 한다. 해결 절차는 [Grafana에서 `unexpected character: '|'`가 보일 때](#10-grafana에서-unexpected-character가-보일-때)를 참고한다.
 
 ### 7.1 Target 상태
 
@@ -823,16 +833,16 @@ status=ok
 
 ### 11.2 이미지 삽입 예시
 
-`week_over/assets/lesson2/` 폴더를 만들고 캡처 파일을 넣었다고 가정하면 다음처럼 작성할 수 있다.
+`week_over/loadtest/asset/` 폴더에 캡처 파일을 넣고 다음처럼 작성한다.
 
 ```markdown
-![Smoke Test 결과](./assets/lesson2/smoke-result.png)
+![Smoke Test 결과](./asset/smoke-result.png)
 
-![Load Test 결과](./assets/lesson2/load-result.png)
+![Load Test 결과](./asset/load-result.png)
 
-![Grafana 대시보드](./assets/lesson2/grafana-dashboard.png)
+![Grafana 대시보드](./asset/grafana-dashboard.png)
 
-![Loki에서 Tempo로 이동](./assets/lesson2/loki-tempo-trace.png)
+![Loki에서 Tempo로 이동](./asset/loki-tempo-trace.png)
 ```
 
 캡처에는 가능하면 다음 정보가 함께 보이도록 한다.
