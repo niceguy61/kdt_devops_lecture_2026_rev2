@@ -160,3 +160,16 @@ kubectl delete namespace kyverno
 ```text
 W4D4의 산출물은 보안 이론 암기가 아니라 권한 실패와 정책 실패를 구분하는 운영 evidence다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- RBAC Forbidden과 admission denied를 어떤 evidence로 구분했나?
+- 오늘 가장 중요한 subject·policy·event 기록은 무엇인가?
+### 오늘 반드시 가져갈 것
+- 배움일기는 권한 scope와 admission rule, 실제 결과를 분리해 남긴다.
+- 성공은 허용된 요청과 차단된 요청의 이유가 재현되는 상태다.
+### 최소 복구 경로
+- ServiceAccount/Binding을 기록한다 → `can-i` 결과를 남긴다 → policy violation과 event message를 기록한다.
+- 성공 판정은 다른 사람이 두 장애 유형을 재현하는 것이다. 첫 실패는 Forbidden 또는 admission event에서 확인한다.
+- 다음 lesson 진입 조건은 GitOps desired state와 policy gate 질문을 작성하는 것이다.

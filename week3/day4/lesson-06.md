@@ -78,3 +78,16 @@ Week4: Kubernetes object와 운영 패턴 확장
 - kind limitation:
 - config file path:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Kubernetes의 desired/current state와 증거 루프는 무엇이었나?
+- kind의 단일 control-plane 환경에서 실제 운영과 다른 점은 무엇인가?
+### 오늘 반드시 가져갈 것
+- kind는 개념·API·workload evidence를 빠르게 재현하는 학습 환경이다.
+- local cluster 성공을 production HA 증거로 과장하지 않는다.
+### 최소 복구 경로
+- Docker 자원을 확인한다 → kind cluster를 생성한다 → context/node/cluster-info를 확인한다.
+- 성공 판정은 API 접근과 node Ready다. 첫 실패는 kind output와 Docker resource 상태에서 찾는다.
+- 다음 lesson 진입 조건은 설치 증거를 재현하는 것이다.

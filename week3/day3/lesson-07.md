@@ -307,3 +307,19 @@ CI가 image를 build했다는 것과 registry에 push되어 pull/run 가능하�
 - platforms:
 - failure evidence:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- CI gate 실패를 로컬 수정과 재실행으로 연결하는 증거는 무엇인가?
+- GitHub Secret, Docker Hub image, Kubernetes imagePull은 각각 어떤 책임 경계인가?
+### 오늘 반드시 가져갈 것
+- CI는 기준 commit을 검증하고 registry는 검증된 artifact를 보존한다.
+- secret 미출력과 pull/run 결과가 push 성공보다 중요한 운영 증거다.
+### 최소 복구 경로
+- branch/PR을 만든다 → CI 실패 step과 secret scope 증거를 남긴다 → 로컬 수정/재실행한다 → 통과 후에만 registry pull/run을 기록한다.
+- 성공 판정은 image tag, pull, health 응답이 일치하는 것이다. 첫 실패는 workflow login/push log와 registry 상태에서 찾는다.
+- 다음 lesson 진입 조건은 통과 commit과 image tag를 연결하는 것이다.
+
+### W3D3 필수 흐름
+`branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`이 필수다. Docker Hub push, multi-arch, rebase/tag 비교는 필수 흐름 완료 후 선택 심화다.

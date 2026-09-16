@@ -103,3 +103,16 @@ queue + worker
 - lost evidence:
 - required design:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- backlog가 줄어드는 것과 모든 메시지가 정상 처리되는 것은 어떻게 다른가?
+- poison message를 일반 retry와 DLQ로 처리할 때 책임은 어떻게 달라지는가?
+### 오늘 반드시 가져갈 것
+- 반복 실패 메시지는 처리량 문제가 아니라 격리·재처리·알림 책임의 문제다.
+- DLQ는 실패를 숨기는 곳이 아니라 복구 가능한 증거를 보존하는 곳이다.
+### 최소 복구 경로
+- malformed message를 재현한다 → 소비 logs와 retry 횟수를 확인한다 → DLQ 이동과 재처리 기준을 확인한다.
+- 성공 판정은 정상 메시지와 poison message를 분리하는 것이다. 첫 실패는 consumer logs와 message payload 검증에서 찾는다.
+- 다음 lesson 진입 조건은 DLQ에서 안전하게 복구할 조건을 말하는 것이다.

@@ -132,3 +132,16 @@ docker compose config
 
 ## 핵심 포인트
 토폴로지는 그림을 예쁘게 그리는 일이 아니다. 요청이 어디로 흐르고, 어느 지점이 실패하면 어떤 service log를 봐야 하는지 결정하는 운영 지도다.
+
+
+## 학습 제어
+### 시작 3분 회상
+- service contract에서 dependency와 health는 각각 무엇을 보장하는가?
+- frontend→api→db와 worker→api 경로의 장애 전파 차이는 무엇인가?
+### 오늘 반드시 가져갈 것
+- Compose 파일은 서비스 토폴로지와 실행 책임을 코드로 고정한다.
+- volume, network, health는 데이터 지속성·연결·준비 상태의 서로 다른 증거다.
+### 최소 복구 경로
+- compose의 service/network/volume을 확인한다 → `config`와 health를 검토한다 → frontend/API/DB 경로를 한 번 실행한다.
+- 성공 판정은 각 연결의 방향과 증거를 말하는 것이다. 첫 실패는 compose config와 dependency logs에서 확인한다.
+- 다음 lesson 진입 조건은 전체 stack의 baseline 확인 순서를 제시하는 것이다.

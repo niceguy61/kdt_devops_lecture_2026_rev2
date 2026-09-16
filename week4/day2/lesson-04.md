@@ -193,3 +193,16 @@ HTTPRoute /api
 ```text
 Gateway는 traffic을 받을 문이고, HTTPRoute는 host/path 조건에 따라 Service backend를 고르는 routing 계약이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Gateway controller와 data plane은 어떤 상태를 각각 증명하는가?
+- HTTPRoute의 host/path와 backend Service port는 어떤 계약으로 연결되는가?
+### 오늘 반드시 가져갈 것
+- HTTPRoute는 요청 조건과 backend 선택의 desired state다.
+- route Accepted/ResolvedRefs와 backend Ready는 별도 증거다.
+### 최소 복구 경로
+- host/path/backendRef를 읽는다 → Route conditions를 확인한다 → Service/EndpointSlice/HTTP 응답을 확인한다.
+- 성공 판정은 route 조건과 backend 응답이 모두 맞는 것이다. 첫 실패는 ResolvedRefs 또는 EndpointSlice에서 찾는다.
+- 다음 lesson 진입 조건은 404/503/refused/timeout을 증거별로 분류하는 것이다.

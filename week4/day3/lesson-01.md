@@ -179,3 +179,16 @@ increase(kube_pod_container_status_restarts_total[10m])
 ```text
 observability는 화면을 예쁘게 만드는 일이 아니라, 장애 질문을 증거로 좁히는 방식이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Gateway/Service/EndpointSlice/Ready Pod 경로에서 각 증거를 어떻게 나눴나?
+- metric/log/event는 어떤 장애 질문에 각각 답하는가?
+### 오늘 반드시 가져갈 것
+- 관찰은 신호 수집이 아니라 질문·증거·판정의 연결이다.
+- metric은 추세, log는 사건, event는 Kubernetes 상태 변화의 증거다.
+### 최소 복구 경로
+- 장애 질문을 한 문장으로 쓴다 → metric/log/event를 각각 확인한다 → 시간축으로 상관분석한다.
+- 성공 판정은 세 신호가 같은 사건을 가리키는 것이다. 첫 실패는 가장 이른 event/log와 metric 변화를 대조한다.
+- 다음 lesson 진입 조건은 Prometheus stack의 수집 경계를 설명하는 것이다.

@@ -121,3 +121,16 @@ Service
 - control plane이 필요한 이유:
 - 오늘 가장 중요한 문장:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- MSA에서 장애 전파를 추적할 때 service topology와 증거 루프를 어떻게 사용했나?
+- container 여러 개를 운영하려면 어떤 책임이 추가되는가?
+### 오늘 반드시 가져갈 것
+- Kubernetes는 컨테이너 명령 모음이 아니라 cluster 상태를 지속 관리하는 control plane이다.
+- API와 증거를 통해 실행 책임을 분리한다.
+### 최소 복구 경로
+- cluster 구성 요소를 그린다 → API 요청과 node 실행을 나눈다 → `get/describe/events`로 상태를 확인한다.
+- 성공 판정은 control plane과 workload 책임을 구분하는 것이다. 첫 실패는 API object와 events에서 찾는다.
+- 다음 lesson 진입 조건은 cluster 운영 문제가 왜 생겼는지 설명하는 것이다.

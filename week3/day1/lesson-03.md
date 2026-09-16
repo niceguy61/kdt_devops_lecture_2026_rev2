@@ -100,3 +100,16 @@ docker compose config > /tmp/w3d1-compose-config.txt
 
 ## 핵심 포인트
 MSA에서 인프라 엔지니어가 먼저 작성해야 하는 문서는 멋진 아키텍처 소개가 아니라 service contract 표다. 이 표가 있어야 장애 상황에서 어디를 먼저 볼지 결정할 수 있다.
+
+
+## 학습 제어
+### 시작 3분 회상
+- monolith와 MSA의 장애 범위 차이는 무엇이었나?
+- 서비스가 통신하려면 image, port, env, dependency 중 무엇을 계약으로 고정해야 하는가?
+### 오늘 반드시 가져갈 것
+- service contract는 명령 목록이 아니라 실행 조건·책임·검증 증거의 약속이다.
+- health와 logs는 서비스가 살아 있음과 업무 요청이 성공함을 각각 증명한다.
+### 최소 복구 경로
+- 한 서비스의 image/port/env/dependency/health/log 항목을 채운다 → 실제 설정과 비교한다 → HTTP와 logs를 확인한다.
+- 성공 판정은 계약 항목별 확인 증거가 있는 것이다. 첫 실패는 container inspect와 서비스 logs에서 찾는다.
+- 다음 lesson 진입 조건은 계약만 보고 실행 전 실패 가능성을 예측하는 것이다.

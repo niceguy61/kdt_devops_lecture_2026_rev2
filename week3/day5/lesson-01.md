@@ -120,3 +120,16 @@ Day5의 핵심은 manifest를 많이 쓰는 것이 아니라,
 - 오늘 가장 자주 쓸 명령:
 - context 확인을 생략하면 생길 수 있는 위험:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Kubernetes API에 요청한 것과 실제 workload Ready를 어떻게 구분했나?
+- `get→describe→logs/events` 운영 루프의 순서는 왜 필요한가?
+### 오늘 반드시 가져갈 것
+- kubectl은 API 상태, events, logs를 서로 다른 증거로 읽는 도구다.
+- Running/Ready와 증상/원인을 섞지 않는다.
+### 최소 복구 경로
+- context를 확인한다 → get으로 목록을 본다 → describe/events/logs로 첫 실패를 좁힌다.
+- 성공 판정은 상태·이벤트·로그의 역할을 설명하는 것이다. 첫 실패는 events와 해당 container logs에서 찾는다.
+- 다음 lesson 진입 조건은 Pod evidence 루프를 재현하는 것이다.

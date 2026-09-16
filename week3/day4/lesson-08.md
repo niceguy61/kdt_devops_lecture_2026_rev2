@@ -145,3 +145,16 @@ control plane과 node가 그 상태에 가까워지도록 조정하는 platform�
 - 오늘 막힌 점:
 - Day5에서 확인할 질문:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- kubectl context와 API server 증거는 왜 함께 확인해야 하는가?
+- 오늘 cluster 생성에서 가장 먼저 실패한 지점은 무엇이었나?
+### 오늘 반드시 가져갈 것
+- 배움일기는 명령보다 context·node·cluster-info의 증거와 해석을 남긴다.
+- kind 성공과 production Kubernetes readiness를 구분한다.
+### 최소 복구 경로
+- Docker/context를 확인한다 → cluster를 생성한다 → node와 cluster-info 결과를 배움일기에 기록한다.
+- 성공 판정은 다른 사람이 같은 context에서 cluster를 확인하는 것이다. 첫 실패는 kind output와 Docker 상태에서 찾는다.
+- 다음 lesson 진입 조건은 Kubernetes API/desired state에 대한 질문을 남기는 것이다.

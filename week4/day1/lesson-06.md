@@ -277,3 +277,16 @@ CPU limit이 낮음
 ```text
 requests는 배치 약속이고, limits는 사용 상한이며, 둘 다 비용과 장애 양상을 바꾼다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- readiness와 liveness는 각각 traffic과 restart에 어떤 영향을 주는가?
+- requests와 limits는 scheduler, OOM, throttling에서 어떤 기준 상태인가?
+### 오늘 반드시 가져갈 것
+- request는 배치 보장 기준, limit은 실행 상한이며 둘은 비용·성능 증거와 연결된다.
+- OOMKilled와 CPU throttling은 서로 다른 resource failure다.
+### 최소 복구 경로
+- request/limit을 확인한다 → Pod placement와 events를 본다 → metrics/logs에서 압박 증거를 찾는다.
+- 성공 판정은 scheduling과 runtime 증거를 구분하는 것이다. 첫 실패는 events와 container termination reason에서 찾는다.
+- 다음 lesson 진입 조건은 metrics API와 workload 상태를 연결하는 것이다.

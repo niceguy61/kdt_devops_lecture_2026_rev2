@@ -182,3 +182,16 @@ Kubernetes에서도 이 원칙은 같다. Service가 있다고 해서 모두에�
 ```text
 내부 통신은 Service DNS로 하고, Service port와 targetPort를 구분해야 장애를 빨리 찾는다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Gateway path에서 Service와 EndpointSlice는 각각 무엇을 증명하는가?
+- frontend/api/db 내부 통신에서 Service DNS와 port/targetPort의 책임은 무엇인가?
+### 오늘 반드시 가져갈 것
+- Service DNS는 이름 안정성, EndpointSlice는 현재 Ready backend, port mapping은 전달 계약이다.
+- HTTP 실패를 DNS·Service·EndpointSlice·애플리케이션 로그로 분해한다.
+### 최소 복구 경로
+- DNS를 확인한다 → Service port/targetPort를 본다 → EndpointSlice와 Pod Ready를 확인하고 내부 curl을 실행한다.
+- 성공 판정은 호출 경로와 응답 evidence가 맞는 것이다. 첫 실패는 DNS/EndpointSlice에서 찾는다.
+- 다음 lesson 진입 조건은 Gateway API controller의 역할을 말하는 것이다.

@@ -220,3 +220,16 @@ runtime-api   <none>      2m
 ```text
 Kubernetes에서 앱을 띄우는 것과 운영 가능한 workload를 만드는 것은 다르다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- W3에서 Pod/Deployment/Service/rollout을 어떤 evidence로 구분했나?
+- Running/Ready와 logs/events/metrics는 각각 어떤 운영 질문에 답하는가?
+### 오늘 반드시 가져갈 것
+- 운영 가능한 workload는 실행뿐 아니라 config/probe/resource/observability 책임을 가진다.
+- 상태와 증거를 분리해야 자동화된 복구를 안전하게 해석할 수 있다.
+### 최소 복구 경로
+- workload의 config/probe/resource를 확인한다 → Running/Ready를 본다 → logs/events/metrics를 대조한다.
+- 성공 판정은 네 책임의 evidence가 있는 것이다. 첫 실패는 Pod conditions와 events에서 찾는다.
+- 다음 lesson 진입 조건은 Helm이 이 운영 기준을 어떻게 포장하는지 설명하는 것이다.

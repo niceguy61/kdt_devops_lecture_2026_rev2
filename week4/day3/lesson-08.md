@@ -169,3 +169,16 @@ kubectl delete namespace monitoring
 ```text
 W4D3의 산출물은 dashboard 캡처가 아니라 장애를 좁히는 metric 질문과 runbook이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 오늘 metric/log/event 중 어떤 신호가 첫 실패를 가장 잘 보여줬나?
+- dashboard를 원인으로 단정하지 않고 어떤 증거를 추가했나?
+### 오늘 반드시 가져갈 것
+- 배움일기는 dashboard 감상이 아니라 질문·증거·판정·runbook action의 기록이다.
+- alert 상태와 실제 workload health를 분리한다.
+### 최소 복구 경로
+- 장애 질문을 적는다 → metric/log/event 결과를 표로 남긴다 → 첫 실패·성공 기준·handoff를 작성한다.
+- 성공 판정은 재현 가능한 runbook 한 개다. 첫 실패는 기록한 최초 event/log/metric에서 확인한다.
+- 다음 lesson 진입 조건은 RBAC와 admission의 권한 질문을 남기는 것이다.

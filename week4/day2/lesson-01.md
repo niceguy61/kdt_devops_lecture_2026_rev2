@@ -213,3 +213,16 @@ Pod IP 변경
 ```text
 Kubernetes traffic 장애는 Gateway, HTTPRoute, Service, Endpoint, Pod readiness를 순서대로 좁혀야 한다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- W4D1에서 Running/Ready와 probe/resource/metrics를 어떻게 구분했나?
+- Gateway→HTTPRoute→Service→EndpointSlice→Ready Pod는 어떤 책임 경계인가?
+### 오늘 반드시 가져갈 것
+- Kubernetes network path는 routing object와 backend readiness의 연결이다.
+- Service 존재와 EndpointSlice 존재, Pod Ready는 서로 다른 증거다.
+### 최소 복구 경로
+- Gateway/Route condition을 본다 → Service와 EndpointSlice를 확인한다 → Pod readiness와 HTTP를 대조한다.
+- 성공 판정은 외부 요청이 Ready endpoint까지 도달하는 것이다. 첫 실패는 object condition 또는 EndpointSlice에서 찾는다.
+- 다음 lesson 진입 조건은 Service DNS와 내부 호출 경로를 설명하는 것이다.

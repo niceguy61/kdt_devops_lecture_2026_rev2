@@ -25,7 +25,7 @@ W4D5는 W3D4부터 이어진 Kubernetes 7일 탐험의 마지막 날이다. GitH
 | 4교시 | drift와 sync | OutOfSync, manual sync, prune/self-heal |
 | 5교시 | Istio 개념 preview | sidecar, Envoy, mTLS, traffic policy |
 | 6교시 | Istio/Kiali 설치 | istio-base, istiod, gateway, Kiali |
-| 7교시 | mesh traffic 확인 | sidecar injection, MSA graph, Kiali graph, delay preview |
+| 7교시 | mesh traffic 선택 preview | sidecar 2/2와 app/proxy log 필수 preview, MSA graph/Kiali/fault injection 중 하나 선택 |
 | 8교시 | 구름 EXP 배움일기 | GitOps/mesh evidence와 Kubernetes 7일 회고 |
 
 ## Practice Files
@@ -48,3 +48,29 @@ W4D5는 W3D4부터 이어진 Kubernetes 7일 탐험의 마지막 날이다. GitH
 | Istio Helm Install | https://istio.io/latest/docs/setup/install/helm/ |
 | Kiali Installation | https://kiali.io/docs/installation/ |
 | Istio Traffic Management | https://istio.io/latest/docs/concepts/traffic-management/ |
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+W4D4의 RBAC과 Kyverno를 자료 없이 비교한다. 하나는 “누가 요청할 수 있는가”, 다른 하나는 “요청 내용이 정책에 맞는가”라는 차이를 적는다.
+
+### 오늘 반드시 가져갈 것
+1. GitOps의 기준은 Git desired state이며, Argo CD는 이를 cluster state와 비교한다.
+2. `Synced`와 `Healthy`는 다르다. sync 성공만으로 사용자 서비스 정상이라고 결론 내리지 않는다.
+3. Istio/Kiali는 오늘의 필수 운영 모델이 아니라 GitOps 이후의 선택 관찰 preview다.
+
+### 필수 경로와 선택 심화
+필수 경로는 `Git manifest → Argo CD Application → sync → drift → 원인 확인`이다. Istio, sidecar, mTLS, Kiali graph, fault injection은 시간이 남을 때 수행하는 선택 심화이며, GitOps 필수 경로의 증거를 남긴 뒤 시작한다.
+
+### 최소 복구 경로
+`kubectl config current-context` → Argo CD Pod/Service → Application의 sync/health → Git path/revision → 대상 namespace의 `get/describe/events` 순서로 복구한다. 다음 날로 넘어가기 전 drift와 sync failure의 원인을 각각 한 문장으로 설명할 수 있어야 한다.
+
+## 인지 부하를 줄이는 범위 경계
+
+W4D5의 필수 학습 경로는 GitOps 하나로 고정한다.
+
+```text
+Git manifest → Argo CD Application → Sync/Health 확인 → Drift 재현 → 원인별 복구
+```
+
+Istio/Kiali는 Kubernetes 운영을 확장하는 선택 심화 preview다. sidecar, mTLS, traffic graph, fault injection은 Argo CD의 sync/health evidence를 완성한 뒤 다룬다. 시간이 부족하면 mesh 설치보다 GitOps drift 진단을 완료하는 것을 우선한다.

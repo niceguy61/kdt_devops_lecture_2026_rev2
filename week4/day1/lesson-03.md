@@ -216,3 +216,16 @@ REVISION  UPDATED                  STATUS      CHART                   APP VERSI
 ```text
 Helm 설치는 install 명령 하나가 아니라 repo, values, release, kubectl 검증까지 이어지는 반복 루프다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Helm release 성공과 Pod Ready는 어떻게 다른가?
+- repo→values→install/upgrade→release/kubectl 검증 순서의 책임은 무엇인가?
+### 오늘 반드시 가져갈 것
+- Helm은 desired configuration을 release 이력으로 반영하고 kubectl은 current evidence를 확인한다.
+- upgrade는 변경 전후 diff와 health를 함께 봐야 한다.
+### 최소 복구 경로
+- repo와 values를 고정한다 → install/upgrade한다 → release status와 Pod Ready/logs/events를 확인한다.
+- 성공 판정은 release와 current state가 맞는 것이다. 첫 실패는 Helm history와 events에서 찾는다.
+- 다음 lesson 진입 조건은 runtime configuration 경계를 설명하는 것이다.

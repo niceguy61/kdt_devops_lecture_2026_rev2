@@ -88,3 +88,19 @@ tag는 릴리스 지점을 고정한다. Docker image tag와 연결될 수 있�
 - tag:
 - rollback target:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 동일 commit/image promotion이 drift를 줄이는 이유는 무엇인가?
+- merge, rebase, revert, tag는 이력/복구에서 어떤 책임을 갖는가?
+### 오늘 반드시 가져갈 것
+- Git 이력 rollback과 artifact/deployment rollback은 서로 다른 기준 상태를 되돌린다.
+- 공유 branch rebase보다 재현 가능한 revert와 tag 증거가 운영 복구에 중요하다.
+### 최소 복구 경로
+- sandbox branch에서 충돌을 재현한다 → 실패/abort 증거를 남긴다 → revert와 tag 결과를 확인한다.
+- 성공 판정은 Git·image·Kubernetes rollback을 구분하는 것이다. 첫 실패는 conflict output와 status에서 찾는다.
+- 다음 lesson 진입 조건은 CI가 어떤 commit을 검증하는지 설명하는 것이다.
+
+### W3D3 필수 흐름
+`branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`을 필수로 한다. rebase와 tag는 기본 흐름 뒤 선택 심화이며, Docker Hub push는 lesson-07에서 선택 심화로 다룬다.

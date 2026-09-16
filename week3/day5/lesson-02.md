@@ -117,3 +117,16 @@ Pod는 container 실행 단위가 아니라 Kubernetes가 스케줄링하고 상
 - exec로 확인한 값:
 - 직접 Pod의 한계:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- kubectl 운영 루프에서 events와 logs는 각각 무엇을 증명하는가?
+- Pod의 desired state와 실제 container Ready는 어떻게 다른가?
+### 오늘 반드시 가져갈 것
+- Pod manifest는 원하는 실행 상태를 선언하고 get/describe/logs가 현재 상태의 증거를 만든다.
+- Pod 하나의 실행과 서비스 제공은 별도 책임이다.
+### 최소 복구 경로
+- manifest를 apply한다 → Running/Ready를 확인한다 → describe/events/logs/exec를 순서대로 본다.
+- 성공 판정은 Pod와 container 상태를 증명하는 것이다. 첫 실패는 events와 logs에서 찾는다.
+- 다음 lesson 진입 조건은 Pod 장애 증상을 증거로 구분하는 것이다.

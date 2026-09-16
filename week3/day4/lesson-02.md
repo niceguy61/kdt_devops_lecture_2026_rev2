@@ -7,6 +7,18 @@
 - `kubectl apply`가 실제로 container를 바로 실행하는 명령이 아니라 API object를 저장하는 요청임을 이해한다.
 - API Server, etcd, Scheduler, Controller Manager가 서로 어떻게 이어지는지 설명한다.
 
+## 수업 순서와 필수 범위
+
+처음에는 세 층만 구분한다.
+
+```text
+kubectl = API client
+API Server = 요청을 받고 검증하는 입구
+etcd = cluster 상태 저장소
+```
+
+그 다음에 Scheduler는 배치, Controller는 상태 수렴, kubelet은 node 실행이라는 책임을 하나씩 추가한다. control plane node 선택 기준, etcd quorum, managed Kubernetes 비교는 운영 확장 설명이며 첫 번째 `kubectl apply` 흐름을 이해한 뒤 읽는다. 오늘의 첫 성공 기준은 container 실행이 아니라 “object 제출과 상태 저장을 구분해 설명하는 것”이다.
+
 ## Control Plane이란
 control plane은 cluster의 두뇌라기보다 "상태 저장, 요청 접수, 배치 결정, 조정 loop"를 담당하는 관리 계층이다.
 
@@ -270,3 +282,16 @@ API Server는 입구, etcd는 기억, Scheduler는 배치, Controller는 조정,
 - kubelet과 control plane의 경계:
 - kubectl apply 흐름:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Kubernetes가 컨테이너 운영에서 맡는 상태 관리 책임은 무엇인가?
+- API Server, etcd, Scheduler, Controller는 desired state를 어떤 순서로 다루는가?
+### 오늘 반드시 가져갈 것
+- API Server는 기준 진입점, etcd는 상태 저장, controller는 수렴 책임, scheduler는 배치 책임이다.
+- apply 성공은 요청 수락 증거이지 workload Ready 증거가 아니다.
+### 최소 복구 경로
+- manifest를 API에 적용한다 → object 상태와 events를 확인한다 → controller/scheduler 결과를 대조한다.
+- 성공 판정은 요청·저장·배치·수렴 evidence를 나누는 것이다. 첫 실패는 API object conditions/events에서 찾는다.
+- 다음 lesson 진입 조건은 apply와 Ready를 구분하는 것이다.

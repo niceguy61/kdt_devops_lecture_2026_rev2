@@ -7,6 +7,16 @@
 - Kiali graph에서 service-to-service traffic을 확인한다.
 - VirtualService로 지연 주입을 걸고 관찰 지점을 정리한다.
 
+## 수업 순서와 필수·선택 경계
+
+필수 실습은 작은 경로 하나로 닫는다.
+
+```text
+namespace injection → Pod 2/2 확인 → frontend → api 요청 → app log와 proxy log 비교
+```
+
+이 경로를 완료한 뒤에만 선택 심화를 연다. MSA 6-service graph, Prometheus scrape helper, Kiali graph 확장, VirtualService fault injection은 모두 선택 preview이며 lesson 통과 조건이 아니다. 선택 심화도 한 번에 모두 수행하지 않고 다음 중 하나만 고른다: `Kiali graph`, `MSA graph`, `fault injection`.
+
 ## sample app 구조
 먼저 아주 단순한 구조로 sidecar와 graph가 보이는지 확인한다.
 
@@ -272,3 +282,19 @@ kubectl delete namespace mesh-msa-demo --ignore-not-found
 ```text
 Mesh traffic 확인은 Pod 2/2, app log, proxy log, MSA graph, traffic policy 효과를 순서대로 보는 것이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- GitOps drift 복구 evidence를 먼저 확보했는가?
+- mesh traffic에서 app log와 istio-proxy log, Kiali graph는 각각 무엇을 증명하는가?
+### 오늘 반드시 가져갈 것
+- app log는 업무 처리, proxy log는 network request, Kiali graph는 관찰된 edge의 evidence다.
+- fault injection은 mesh 운영 질문을 실험하는 선택 preview이지 GitOps 복구 기준이 아니다.
+### 최소 복구 경로
+- Git desired state/Application sync/health/drift 복구를 먼저 확인한다 → 선택으로 Pod 2/2와 app/proxy logs를 본다 → traffic/Kiali/fault 효과를 비교한다.
+- 성공 판정은 각 log 성격과 traffic edge를 구분하는 것이다. 첫 실패는 GitOps conditions, mesh는 traffic generator와 proxy logs에서 찾는다.
+- 다음 lesson 진입 조건은 필수와 선택 결과를 별도 표로 기록하는 것이다.
+
+### W4D5 범위 경계
+lesson 5~7 mesh 주제는 **GitOps 필수 경로 완료 후 선택 심화**다. Istio/Kiali/sidecar/mTLS/fault injection을 완료하지 않아도 GitOps 필수 학습은 통과할 수 있다.

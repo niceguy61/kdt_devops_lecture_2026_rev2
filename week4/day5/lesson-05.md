@@ -128,3 +128,19 @@ Compose의 네트워크 이해가 Kubernetes Service 이해로 이어지고, Kub
 ```text
 Istio는 서비스 간 요청 경로에 proxy를 넣어 traffic을 관찰하고 제어하는 서비스 메시다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- GitOps drift와 복구를 완료했다는 증거는 무엇인가?
+- Kubernetes Service와 Istio sidecar/data plane/control plane은 어떤 책임 차이가 있는가?
+### 오늘 반드시 가져갈 것
+- Service는 기본 discovery, sidecar는 proxy traffic 책임, istiod는 control-plane 설정 배포 책임이다.
+- Pod `1/1`과 `2/2`는 injection 여부의 evidence이지 앱 health 전체의 판정이 아니다.
+### 최소 복구 경로
+- 먼저 GitOps sync/health/drift 복구를 확인한다 → 그 뒤 선택 preview로 sidecar와 proxy 경로를 확인한다.
+- 성공 판정은 필수 GitOps 경로와 mesh preview를 분리해 기록하는 것이다. 첫 실패는 GitOps conditions, 이후 mesh는 Pod/container 상태에서 찾는다.
+- 다음 lesson 진입 조건은 GitOps 필수 경로 완료 후 mesh 설치를 선택할 수 있는 상태다.
+
+### W4D5 범위 경계
+이 lesson부터 day5 lesson 5~7은 **GitOps 필수 경로 완료 후 선택 심화**다. Istio/Kiali/sidecar/mTLS/fault injection은 필수 완료 조건이 아니다.

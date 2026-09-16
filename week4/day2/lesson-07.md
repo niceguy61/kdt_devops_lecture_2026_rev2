@@ -203,3 +203,16 @@ rollout 실습 후 v1으로 되돌릴지 v2로 남길지 결정한다.
 ```text
 rollout은 Pod 교체이고, Gateway 외부 응답은 Service endpoint에 들어온 Ready Pod 기준으로 바뀐다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- NetworkPolicy가 적용되어도 Service/EndpointSlice 증거를 봐야 하는 이유는 무엇인가?
+- rollout에서 새 Pod Ready가 외부 Gateway 응답에 어떻게 반영되는가?
+### 오늘 반드시 가져갈 것
+- 외부 traffic은 Gateway/Route→Service→EndpointSlice→Ready Pod 경로를 따른다.
+- rollout 성공은 Pod 상태뿐 아니라 endpoint 교체와 실제 응답까지 포함한다.
+### 최소 복구 경로
+- rollout status를 본다 → EndpointSlice의 backend 변화를 확인한다 → Gateway 응답과 logs를 비교한다.
+- 성공 판정은 새 endpoint가 Ready이고 요청이 정상 처리되는 것이다. 첫 실패는 EndpointSlice 또는 route condition에서 찾는다.
+- 다음 lesson 진입 조건은 외부 traffic evidence를 배움일기에 기록하는 것이다.

@@ -41,7 +41,7 @@ external client
 |---|---|---|
 | 1교시 | Day1 요약 + Kubernetes networking 다시 잡기 | Pod IP, Service, EndpointSlice, DNS, selector |
 | 2교시 | MSA 앱 내부 통신 | frontend/api/db Service DNS와 targetPort |
-| 3교시 | Gateway API와 Envoy Gateway 설치 | Helm release, GatewayClass, controller Pod |
+| 3교시 | Gateway API와 Envoy Gateway 설치 | 선언 경로와 반영 경로, Helm/controller/GatewayClass; routing 성공은 별도 검증 |
 | 4교시 | HTTPRoute 작성 | host/path routing, `/`, `/api`, curl/browser |
 | 5교시 | Gateway/HTTPRoute 장애 분석 | GatewayClass, parentRefs, backendRefs, endpoint |
 | 6교시 | NetworkPolicy와 Cilium preview | traffic 허용선, DNS egress, CNI/eBPF 관찰 |
@@ -76,3 +76,16 @@ external client
 - [ ] Gateway 장애에서 class, parentRefs, backendRefs, selector, endpoint, readiness를 구분했다.
 - [ ] NetworkPolicy와 Cilium/Hubble이 해결하는 문제가 무엇인지 설명했다.
 - [ ] rollout이 외부 경로에 어떤 영향을 주는지 확인했다.
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+W4D1의 `Running`, `Ready`, `endpoint`를 자료 없이 비교한다. 어느 상태가 사용자 traffic과 직접 연결되는지도 적는다.
+
+### 오늘 반드시 가져갈 것
+1. Service는 안정적인 발견 지점이고, EndpointSlice는 실제 대상 Pod를 보여준다.
+2. Gateway/HTTPRoute는 외부 경로를 나누며 Service를 대체하지 않는다.
+3. 404/503/timeout은 class·route·backend·endpoint·readiness를 서로 다른 순서로 확인해야 한다.
+
+### 최소 복구 경로
+`kubectl get gatewayclass,gateway,httproute` → `kubectl get svc,endpointslice` → `curl` → 관련 `describe` 순서로 외부 경로를 회복한다. 다음 날로 넘어가기 전 요청이 Gateway에서 Ready Pod까지 가는 경로를 그릴 수 있어야 한다.

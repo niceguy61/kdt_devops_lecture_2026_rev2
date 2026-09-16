@@ -122,3 +122,16 @@ Rollout은 image 변경을 단순 교체가 아니라 revision, ReplicaSet, 상�
 - Service response after undo:
 - image tag 운영 기준:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Service가 있어도 EndpointSlice가 비어 있을 수 있는 이유는 무엇인가?
+- image 변경에서 ReplicaSet, rollout status, history, undo는 어떤 증거를 남기는가?
+### 오늘 반드시 가져갈 것
+- rollout은 desired image를 새 ReplicaSet으로 수렴시키는 과정이다.
+- 응답 성공은 rollout 상태와 Service endpoint의 증거를 함께 봐야 한다.
+### 최소 복구 경로
+- image를 변경한다 → rollout status/history를 본다 → Ready endpoint와 HTTP 응답을 확인한다 → 필요하면 이전 revision 기준을 기록한다.
+- 성공 판정은 새 Pod Ready·endpoint 연결·응답 성공이다. 첫 실패는 rollout events와 EndpointSlice에서 찾는다.
+- 다음 lesson 진입 조건은 배포 상태와 사용자 응답을 함께 설명하는 것이다.

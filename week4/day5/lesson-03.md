@@ -138,3 +138,19 @@ Synced와 Healthy는 다르다. Git과 일치해도 Pod가 죽으면 Healthy가 
 ```text
 Argo CD Application은 Git path와 Kubernetes destination을 연결하는 GitOps 배포 단위다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Argo CD controller 권한과 UI 접속은 어떤 증거 차이가 있는가?
+- repoURL/targetRevision/path와 destination이 Application desired state를 어떻게 만든다?
+### 오늘 반드시 가져갈 것
+- Application은 Git revision/path와 cluster namespace를 연결하는 선언이다.
+- Synced는 Git 반영, Healthy는 runtime 상태라는 별도 판정이다.
+### 최소 복구 경로
+- repo/path/revision을 확인한다 → destination을 확인한다 → sync status/health와 object events를 비교한다.
+- 성공 판정은 Application이 올바른 revision을 sync하고 workload가 Healthy인 것이다. 첫 실패는 conditions와 sync log에서 찾는다.
+- 다음 lesson 진입 조건은 직접 변경으로 drift를 재현하는 것이다.
+
+### W4D5 필수/선택 경계
+`Git desired state → Application → sync/health → drift → 복구`가 필수다. Istio/Kiali/sidecar/mTLS/fault injection은 선택 심화 preview다.

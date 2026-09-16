@@ -84,3 +84,19 @@ branch는 환경을 표현할 수도 있지만, 항상 좋은 답은 아니다. 
 - drift risk:
 - image tag policy:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- protected branch와 status check는 변경 기준을 어떻게 지키는가?
+- dev/stage/prod branch와 main+Environment에서 promotion 기준은 무엇인가?
+### 오늘 반드시 가져갈 것
+- branch 전략의 핵심은 같은 commit/image가 gate를 거쳐 환경으로 승격되는지다.
+- 환경 이름과 실제 배포 기준 상태를 혼동하면 drift가 생긴다.
+### 최소 복구 경로
+- 전략 두 가지를 같은 commit 기준으로 비교한다 → PR/CI gate를 표시한다 → 환경별 상태 증거를 기록한다.
+- 성공 판정은 promotion과 drift의 차이를 설명하는 것이다. 첫 실패는 branch diff와 workflow environment log에서 찾는다.
+- 다음 lesson 진입 조건은 선택 전략의 trade-off를 말하는 것이다.
+
+### W3D3 필수 흐름
+`branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`이 필수다. rebase, tag, progressive delivery는 선택 심화다.

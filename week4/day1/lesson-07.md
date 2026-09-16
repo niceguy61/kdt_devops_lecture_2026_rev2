@@ -347,3 +347,16 @@ request를 선언하지 않으면 HPA가 기대대로 동작하지 않을 수 �
 ```text
 metrics-server는 kubectl top과 HPA의 resource metric 기반이며, Prometheus/Grafana와 목적이 다르다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- request/limit과 OOM/throttling의 차이는 무엇인가?
+- metrics-server가 제공하는 metrics와 Prometheus가 제공하는 metrics는 어떻게 다른가?
+### 오늘 반드시 가져갈 것
+- `kubectl top`은 현재 resource 관찰, Prometheus는 시간축·질의·알림의 증거다.
+- metric은 logs/events와 결합할 때 원인 분석이 된다.
+### 최소 복구 경로
+- metrics-server 상태를 확인한다 → Metrics API와 `top`을 실행한다 → Pod Ready/logs/events와 수치를 비교한다.
+- 성공 판정은 metric source와 운영 질문을 매칭하는 것이다. 첫 실패는 APIService 상태와 metrics-server logs에서 찾는다.
+- 다음 lesson 진입 조건은 측정 결과를 workload runbook으로 기록하는 것이다.

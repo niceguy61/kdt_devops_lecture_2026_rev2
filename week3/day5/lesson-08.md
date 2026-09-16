@@ -112,3 +112,16 @@ Week4는 오늘 만든 기본 object 위에 운영 도구를 하나씩 얹는다
 - 다시 재현할 장애:
 - Week4에서 기대하는 plugin/add-on:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Pod/Deployment/Service/rollout 각각의 핵심 evidence는 무엇이었나?
+- Running/Ready와 Service/EndpointSlice를 혼동하면 어떤 결론이 틀리는가?
+### 오늘 반드시 가져갈 것
+- 배움일기는 Kubernetes API desired state와 실제 증거 루프를 연결하는 기록이다.
+- rollout 성공은 Pod Ready, EndpointSlice, 사용자 응답을 함께 확인한 상태다.
+### 최소 복구 경로
+- context를 확인한다 → Deployment/Pod 상태와 events/logs를 기록한다 → Service/EndpointSlice와 rollout 결과를 배움일기에 적는다.
+- 성공 판정은 명령·결과·해석·다음 질문이 남은 것이다. 첫 실패는 events 또는 EndpointSlice에서 확인한다.
+- 다음 lesson 진입 조건은 W4에서 Helm/workload 운영 기준으로 이어질 질문을 작성하는 것이다.

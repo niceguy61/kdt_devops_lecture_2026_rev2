@@ -110,3 +110,19 @@ Kiali graph가 비어 있을 때는 Kiali 설치 실패라고 단정하지 않�
 ```text
 오늘은 Kubernetes 운영을 Git 기준으로 배포하고, service mesh 기준으로 traffic을 관찰하는 첫 연결점을 만든 날이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Git desired state→Application→sync/health→drift→복구를 어떤 증거로 완료했나?
+- 선택 mesh preview에서 app log, proxy log, Kiali graph를 어떻게 구분했나?
+### 오늘 반드시 가져갈 것
+- 배움일기는 GitOps 필수 경로와 mesh 선택 심화를 별도 표로 남긴다.
+- Synced/Healthy, drift/recovery, app/proxy log, graph empty/traffic 없음은 서로 다른 상태다.
+### 최소 복구 경로
+- Git revision과 Application 상태를 기록한다 → drift/diff와 복구를 기록한다 → 필수 완료 후 선택 mesh 결과를 기록한다.
+- 성공 판정은 명령·화면 결과·해석·다음 조치가 분리된 것이다. 첫 실패는 Application conditions/sync log에서 확인하고 mesh는 traffic/proxy logs에서 확인한다.
+- 다음 lesson 진입 조건은 필수 GitOps evidence와 선택 preview evidence를 혼동하지 않는 회고를 완성하는 것이다.
+
+### W4D5 범위 경계
+배움일기의 기본 통과 경로는 **GitOps 필수 경로 완료 후 선택 심화** 원칙을 따른다. Istio/Kiali/sidecar/mTLS/fault injection은 선택 심화 preview로 기록한다.

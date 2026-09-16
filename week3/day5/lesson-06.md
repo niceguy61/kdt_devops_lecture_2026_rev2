@@ -180,3 +180,16 @@ Service는 Pod IP를 숨기고 selector로 Ready Pod endpoint를 찾아주는 �
 - selector 장애 시 endpoint:
 - 복구 후 endpoint:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Deployment selector와 Pod label은 어떤 책임을 연결하는가?
+- Service, Endpoint, Ready Pod의 차이는 무엇인가?
+### 오늘 반드시 가져갈 것
+- Service는 stable name/port를 제공하고 Endpoint는 Ready 조건을 통과한 backend 목록이다.
+- Service가 존재해도 Endpoint가 비어 있으면 사용자 요청은 도달하지 않는다.
+### 최소 복구 경로
+- Service selector를 확인한다 → EndpointSlice/Ready Pod를 확인한다 → DNS와 port/targetPort를 검증한다.
+- 성공 판정은 Service→EndpointSlice→Pod 경로가 연결된 것이다. 첫 실패는 EndpointSlice와 readiness에서 찾는다.
+- 다음 lesson 진입 조건은 rollout 중 endpoint 변화와 응답을 연결하는 것이다.

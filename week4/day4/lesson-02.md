@@ -197,3 +197,16 @@ subject와 roleRef가 맞아야 권한이 연결된다.
 ```text
 RBAC은 권한을 추측하는 것이 아니라 can-i와 forbidden 메시지로 subject, verb, resource, scope를 확인하는 작업이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- RBAC와 admission denied는 어떤 증거로 구분하는가?
+- Role/RoleBinding의 subject·verb·resource·scope는 어떤 권한 기준인가?
+### 오늘 반드시 가져갈 것
+- 최소 권한은 필요한 동작·리소스·범위만 허용하는 desired state다.
+- `can-i`는 권한 판단 증거이지 실제 object health 증거가 아니다.
+### 최소 복구 경로
+- 주체와 namespace를 정한다 → Role/Binding을 읽는다 → `can-i`와 실제 요청 결과를 비교한다.
+- 성공 판정은 허용/거부 범위가 의도와 맞는 것이다. 첫 실패는 `can-i`와 API response에서 찾는다.
+- 다음 lesson 진입 조건은 Pod ServiceAccount identity를 설명하는 것이다.

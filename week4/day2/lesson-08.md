@@ -211,3 +211,16 @@ W4D3에서는 같은 traffic을 dashboard와 metric으로 본다. 오늘의 evid
 ```text
 W4D2의 핵심은 외부 traffic을 Gateway에서 Pod endpoint까지 층별 증거로 추적하는 것이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 외부 traffic이 Gateway에서 Ready Pod까지 가는 다섯 계층은 무엇이었나?
+- Service와 EndpointSlice, logs/events/metrics 중 오늘 가장 결정적인 증거는 무엇이었나?
+### 오늘 반드시 가져갈 것
+- 배움일기는 routing intent와 실제 backend evidence를 연결한다.
+- HTTP 응답 코드는 object condition·endpoint·readiness 증거와 함께 해석한다.
+### 최소 복구 경로
+- Gateway/HTTPRoute 상태를 적는다 → Service/EndpointSlice/Pod Ready를 기록한다 → HTTP/logs 결과와 첫 실패를 남긴다.
+- 성공 판정은 다른 사람이 path를 따라가 재현할 수 있는 기록이다. 첫 실패는 condition 또는 EndpointSlice에서 확인한다.
+- 다음 lesson 진입 조건은 metric/log/event를 장애 질문과 연결하는 것이다.

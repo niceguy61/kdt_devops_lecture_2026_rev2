@@ -223,3 +223,16 @@ manifest 수정
 ```text
 readiness는 traffic 기준이고, liveness는 restart 기준이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- ConfigMap/Secret은 어떤 책임 경계를 나누는가?
+- startup/readiness/liveness가 Running/Ready와 traffic/restart에 미치는 차이는 무엇인가?
+### 오늘 반드시 가져갈 것
+- startup은 시작 보호, readiness는 traffic 수용, liveness는 재시작 판단이다.
+- Running이어도 Ready가 아니면 Service endpoint에 들어가지 않을 수 있다.
+### 최소 복구 경로
+- probe 목적과 endpoint를 확인한다 → Pod conditions를 본다 → events/logs와 EndpointSlice를 대조한다.
+- 성공 판정은 probe별 상태·영향을 설명하는 것이다. 첫 실패는 events와 probe response에서 찾는다.
+- 다음 lesson 진입 조건은 request/limit이 scheduling과 실행을 어떻게 바꾸는지 말하는 것이다.

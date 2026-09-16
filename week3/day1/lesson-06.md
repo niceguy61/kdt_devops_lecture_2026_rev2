@@ -201,3 +201,16 @@ order-worker는 redis queue에서 이벤트를 꺼내 db:5432에 처리 결과�
 
 ## 핵심 포인트
 MSA의 통신 확인은 `curl 한 번 성공`이 아니다. 사용자 경로, service 내부 경로, background 경로를 나눠서 각각의 증거를 잡는 것이다.
+
+
+## 학습 제어
+### 시작 3분 회상
+- 전체 stack baseline에서 Running/health/HTTP/logs는 각각 무엇을 증명했는가?
+- host port와 container port를 혼동하면 어느 연결이 실패하는가?
+### 오늘 반드시 가져갈 것
+- 서비스 간 통신은 호출자·목적지·포트·증거를 한 세트로 봐야 한다.
+- request ID와 logs는 장애 전파를 시간순으로 연결하는 증거다.
+### 최소 복구 경로
+- frontend→api, api→db, worker→api를 순서대로 호출한다 → 각 logs에서 request ID를 찾는다 → host/container 주소를 대조한다.
+- 성공 판정은 세 경로의 성공과 로그 상관관계를 설명하는 것이다. 첫 실패는 호출자 logs와 목적지 inspect에서 찾는다.
+- 다음 lesson 진입 조건은 경로별 첫 실패 위치를 구분하는 것이다.

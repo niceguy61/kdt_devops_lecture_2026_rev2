@@ -71,3 +71,19 @@ issue 확인
 - review point:
 - status check:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- commit/branch가 변경 이력의 기준을 어떻게 보존하는가?
+- issue→branch→commit/push→PR→review→status check→merge 중 PR 뒤의 증거는 무엇인가?
+### 오늘 반드시 가져갈 것
+- PR은 코드 전달이 아니라 review와 CI 기준 상태를 함께 만드는 협업 계약이다.
+- merge의 안전성은 status check와 review evidence로 판단한다.
+### 최소 복구 경로
+- branch를 만들고 작은 commit을 push한다 → PR을 연다 → 실패 check의 로그를 기록한다.
+- 성공 판정은 review·check·merge 상태를 설명하는 것이다. 첫 실패는 PR check detail과 workflow log에서 찾는다.
+- 다음 lesson 진입 조건은 실패 증거를 로컬 수정으로 연결할 수 있는 것이다.
+
+### W3D3 필수 흐름
+`branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`을 필수로 수행한다. rebase/tag는 선택 심화다.

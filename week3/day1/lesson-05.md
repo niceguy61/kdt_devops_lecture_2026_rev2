@@ -7,6 +7,19 @@
 - 실행 직후 baseline을 수집한다.
 - container running, health, HTTP response, logs를 구분한다.
 
+## 수업 순서와 성공 기준
+
+명령을 실행하기 전에 정상의 의미를 네 질문으로 나눈다.
+
+| 질문 | 증거 |
+|---|---|
+| process가 실행 중인가? | `docker compose ps` |
+| dependency가 준비됐는가? | healthcheck |
+| 사용자 경로가 응답하는가? | `curl`/HTTP status |
+| 내부에 오류가 없는가? | service logs |
+
+`docker compose up`은 준비 단계이며 성공 판정이 아니다. 학생은 위 네 증거를 먼저 예상한 뒤 명령을 실행하고 baseline 표를 채운다.
+
 ## 실행 전 준비
 ```bash
 cd week3/day1/labs/msa-demo
@@ -122,3 +135,16 @@ docker compose down -v
 
 ## 핵심 포인트
 MSA 실습에서 baseline은 선택이 아니다. 정상 baseline이 있어야 Day2에서 장애 전파와 부분 장애를 비교할 수 있다.
+
+
+## 학습 제어
+### 시작 3분 회상
+- Compose 토폴로지에서 network와 health는 어떤 책임을 갖는가?
+- 컨테이너가 Running인 것과 HTTP 요청이 성공하는 것은 어떻게 다른가?
+### 오늘 반드시 가져갈 것
+- Running은 프로세스 상태, health는 준비 상태, HTTP는 사용자 경로의 증거다.
+- baseline을 먼저 기록해야 장애 뒤 변화를 비교할 수 있다.
+### 최소 복구 경로
+- 전체 stack을 실행한다 → `ps`에서 Running/health를 확인한다 → HTTP와 logs를 각각 기록한다.
+- 성공 판정은 세 증거가 모두 기준값을 갖는 것이다. 첫 실패는 `docker ps`와 해당 container logs에서 확인한다.
+- 다음 lesson 진입 조건은 정상 baseline을 재현하고 기록하는 것이다.

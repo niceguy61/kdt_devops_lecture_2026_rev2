@@ -25,3 +25,6 @@ bash week4/scripts/delete-kind-cluster.sh paperclip-w4d2
 | Day3 | 장애와 성능 관찰 | kube-prometheus-stack, Prometheus target, Grafana dashboard |
 | Day4 | 권한과 정책 | RBAC, Kyverno admission policy |
 | Day5 | GitOps와 mesh preview | Argo CD, Istio, Kiali preview |
+
+## Glossary
+Week 4 핵심 용어는 [glossary.md](./glossary.md)를 기준으로 회상한다. 정의를 읽기 전에 Running/Ready, traffic 경로, 관찰 증거, 권한 실패, GitOps drift 중 하나를 자신의 말로 설명해 본다.

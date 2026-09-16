@@ -103,3 +103,16 @@ Service가 필요한 이유는 무엇인가?
 - what should stay managed/external:
 - reference question:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- reconciliation이 cluster 상태를 수렴시키는 증거는 무엇인가?
+- Kubernetes 도입으로 얻는 자동화와 증가하는 운영 복잡성은 무엇인가?
+### 오늘 반드시 가져갈 것
+- Kubernetes의 가치는 workload 규모와 운영 책임이 맞을 때 생긴다.
+- 자동화된 상태 관리도 API·권한·관찰 비용을 만든다.
+### 최소 복구 경로
+- workload 요구를 적는다 → Kubernetes가 해결할 운영 문제를 표시한다 → 도입 비용과 증거를 비교한다.
+- 성공 판정은 적용/비적용 조건을 설명하는 것이다. 첫 실패는 요구사항과 실제 운영 제약에서 찾는다.
+- 다음 lesson 진입 조건은 kind 선택 이유를 말하는 것이다.

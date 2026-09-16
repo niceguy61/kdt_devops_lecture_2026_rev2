@@ -116,3 +116,16 @@ outbox/idempotency/runbook 필요성을 도출한다.
 - evidence to compare:
 - expected operational question:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Day1 baseline에서 정상 상태를 증명한 세 가지 evidence는 무엇이었나?
+- 서비스 topology에서 장애 전파와 첫 실패를 어떻게 구분했나?
+### 오늘 반드시 가져갈 것
+- 사고 분석의 기준은 정상 baseline과 현재 증거의 차이다.
+- 증상, 원인, 책임 서비스를 분리해야 복구 순서를 정할 수 있다.
+### 최소 복구 경로
+- baseline을 다시 확인한다 → client/API/DB/queue 상태를 나눈다 → 첫 실패 evidence를 기록한다.
+- 성공 판정은 원인 후보와 반증할 증거를 함께 말하는 것이다. 첫 실패는 logs와 상태 조회에서 찾는다.
+- 다음 lesson 진입 조건은 baseline 대비 변화 1개를 설명하는 것이다.

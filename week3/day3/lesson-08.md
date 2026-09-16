@@ -267,3 +267,19 @@ branch -> PR -> CI -> image push -> registry 확인 -> deploy
 - 아직 어렵다면 다음에 보강하고 싶은 점:
 - Kubernetes question:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 오늘 workflow의 실패 증거와 로컬 수정 결과를 어떻게 연결했나?
+- 통과한 commit과 Docker Hub image tag를 어떻게 확인했나?
+### 오늘 반드시 가져갈 것
+- 배움일기는 branch/PR·CI·artifact의 기준 상태와 증거를 시간순으로 남긴다.
+- 성공은 workflow green만이 아니라 pull/run health와 step 시간까지 확인한 상태다.
+### 최소 복구 경로
+- 개인 repo에서 branch/PR을 만든다 → CI 실패 step을 기록한다 → 로컬 수정 후 재실행한다 → 통과 commit/image tag/pull 결과를 배움일기에 적는다.
+- 성공 판정은 통과 기록과 실제 image health가 모두 있는 것이다. 첫 실패는 Actions step detail에서 확인한다.
+- 다음 lesson 진입 조건은 기록만 보고 재현 가능한 최소 증거표를 완성하는 것이다.
+
+### W3D3 필수 흐름
+배움일기도 `branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`을 필수로 기록한다. rebase/tag/SAST/DAST/Docker Hub push의 추가 분석은 필수 흐름 완료 후 선택 심화로 명시한다.

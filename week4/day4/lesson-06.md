@@ -167,3 +167,16 @@ volumes:
 ```text
 privileged와 hostPath는 일반 application namespace에서 막아야 할 대표적인 node 영향 위험이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Audit과 Enforce의 증거 차이는 무엇인가?
+- privileged와 hostPath가 node 책임에 미치는 위험은 무엇인가?
+### 오늘 반드시 가져갈 것
+- privileged/hostPath 제한은 Pod 설정이 node 경계에 미치는 영향을 통제한다.
+- policy anchor와 selector가 틀리면 의도한 차단이 아닌 다른 결과가 나온다.
+### 최소 복구 경로
+- 위험 field를 확인한다 → policy match/anchor를 읽는다 → 정상/위반 manifest의 admission 결과를 비교한다.
+- 성공 판정은 위반이 재현되고 의도한 message가 남는 것이다. 첫 실패는 policy event와 webhook logs에서 찾는다.
+- 다음 lesson 진입 조건은 Forbidden과 admission denied runbook을 분리하는 것이다.

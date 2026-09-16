@@ -7,6 +7,18 @@
 - Helm values file로 Prometheus/Grafana/Alertmanager를 설치한다.
 - 설치 후 release, Pod, Service, CRD를 검증한다.
 
+## 수업 순서와 범위
+
+설치 전에 먼저 관찰 질문을 분리한다.
+
+| 질문 | 오늘 처음 확인할 증거 |
+|---|---|
+| 지금 실행 중인가? | Helm release와 monitoring Pod 상태 |
+| 무엇을 수집하는가? | Prometheus target 하나 |
+| 어떤 화면으로 보는가? | Grafana는 후속 lesson에서 확인 |
+
+필수 경로는 `context/node 확인 → 최소 stack 설치 → release와 Pod Ready 확인`이다. ServiceMonitor/PodMonitor selector, retention, Alertmanager routing, resource 튜닝은 각각 필요한 후속 lesson 또는 선택 troubleshooting으로 둔다. `STATUS=deployed`, Pod `Ready`, target `UP`은 서로 다른 성공 기준이다.
+
 ## 구성요소
 | 구성요소 | 역할 |
 |---|---|
@@ -210,3 +222,16 @@ OOMKilled
 ```text
 kube-prometheus-stack은 Prometheus/Grafana만이 아니라 operator, exporter, rule, alert를 묶은 monitoring stack이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- metric/log/event의 책임 차이는 무엇인가?
+- Operator, exporter, Prometheus, Grafana, rule/alert는 어떤 상태와 증거를 만든다?
+### 오늘 반드시 가져갈 것
+- Prometheus가 수집하고 Grafana가 보여주며 rule/alert가 판정 기준을 자동화한다.
+- 설치 release/Pod Ready와 실제 target UP은 별도 확인이다.
+### 최소 복구 경로
+- release와 Pod를 확인한다 → ServiceMonitor/target을 확인한다 → Grafana query와 sample metric을 본다.
+- 성공 판정은 수집 경로가 UP인 것이다. 첫 실패는 target status와 Prometheus/operator logs에서 찾는다.
+- 다음 lesson 진입 조건은 target discovery를 설명하는 것이다.

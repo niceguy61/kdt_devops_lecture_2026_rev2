@@ -18,7 +18,7 @@ W4D3는 W4D2에서 만든 traffic 경로를 관찰 가능한 운영 시스템으
 | 교시 | 주제 | 핵심 확인 |
 |---|---|---|
 | 1교시 | Day2 요약 + observability 기준 | logs/events/metrics/traces 차이 |
-| 2교시 | kube-prometheus-stack 설치 | Helm release, Prometheus, Grafana, Alertmanager |
+| 2교시 | kube-prometheus-stack 최소 설치 | context, release, monitoring Pod Ready; target/selector/alert 상세는 후속 lesson |
 | 3교시 | Prometheus target 확인 | scrape target, ServiceMonitor, target down |
 | 4교시 | Grafana dashboard 확인 | node/pod CPU/memory/restart |
 | 5교시 | 장애와 metric 연결 | readiness, rollout, restart, resource 압박 |
@@ -60,3 +60,22 @@ Prometheus에서는 `Week4ObservePodRestarting` alert가 firing되는 것까지 
 | Prometheus Operator API | https://prometheus-operator.dev/docs/api-reference/api/ |
 | kube-prometheus-stack chart | https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack |
 | Prometheus community Helm charts | https://github.com/prometheus-community/helm-charts |
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+자료를 보지 않고 아래 세 질문에 도구를 연결한다.
+
+| 질문 | 우선 증거 |
+|---|---|
+| 지금 정상인가? | `get/describe/kubectl top` |
+| 언제부터 변했는가? | Prometheus/Grafana metric |
+| 왜 실패했는가? | logs/events와 변경 이력 |
+
+### 오늘 반드시 가져갈 것
+1. logs/events는 원인 단서, metrics는 시간 흐름과 범위를 보여준다.
+2. target이 수집되지 않으면 dashboard와 alert를 신뢰할 수 없다.
+3. metric 하나만으로 원인을 확정하지 않고 다른 증거와 교차 확인한다.
+
+### 최소 복구 경로
+context와 node 확인 → monitoring Pod 상태 → Prometheus target `UP/DOWN` → 단일 metric query → 관련 Pod logs/events 순서로 관찰을 회복한다. 다음 날로 넘어가기 전 “현재 상태/시간 추세/원인 단서”를 각각 하나씩 제시할 수 있어야 한다.

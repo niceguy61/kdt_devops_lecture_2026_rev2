@@ -116,3 +116,16 @@ Kubernetes는 명령을 한 번 실행하는 시스템이 아니라,
 - self-healing explanation:
 - rollout/scale connection:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Pod Running과 Ready의 차이는 무엇인가?
+- desired state와 current state의 차이를 controller loop가 어떻게 줄이는가?
+### 오늘 반드시 가져갈 것
+- 선언적 API는 목표를 적고 reconciliation이 실제 상태를 목표로 수렴시킨다.
+- self-healing은 상태 복구이며 애플리케이션 데이터 일관성까지 보장하지 않는다.
+### 최소 복구 경로
+- desired spec과 현재 object를 비교한다 → controller events를 확인한다 → Ready/replica 결과를 기록한다.
+- 성공 판정은 drift와 수렴 증거를 설명하는 것이다. 첫 실패는 object conditions와 events에서 찾는다.
+- 다음 lesson 진입 조건은 선언적 운영의 장단점을 말하는 것이다.

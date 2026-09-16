@@ -80,3 +80,19 @@ Day 2에서는 evidence를 "정상 확인" 용도로 쓰지 않는다. evidence�
 - [ ] duplicate request에서 request id와 idempotency key의 차이를 설명했다.
 - [ ] 사고 타임라인을 request id, DB, audit, log로 재구성했다.
 - [ ] Kubernetes/observability 필요성을 사고 사례에서 끌어냈다.
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+자료를 다시 보지 않고 다음 질문에 답한다.
+- 어제의 서비스 topology에서 가장 좁은 장애 경계는 어디였는가?
+- timeout과 retry를 함께 늘리면 어떤 부작용이 생기는가?
+- 로그 한 줄만으로 원인을 확정하면 안 되는 이유는 무엇인가?
+
+### 오늘 반드시 가져갈 것
+1. 장애 전파는 호출 방향과 의존성 그래프로 범위를 좁힌다.
+2. health, timeout, retry, queue는 각각 다른 실패 완화 장치다.
+3. correlation/request ID는 여러 서비스의 로그를 하나의 요청 흐름으로 묶는 증거다.
+
+### 최소 복구 경로
+증상을 한 문장으로 쓰고, 호출 graph에서 영향 범위를 표시한 뒤, client 응답·서비스 로그·의존성 health를 각각 한 번 확인한다. 다음 날로 넘어가기 전 `증상/영향/증거/다음 확인` 4칸을 채울 수 있어야 한다.

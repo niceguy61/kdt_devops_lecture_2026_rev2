@@ -111,3 +111,16 @@ MSA에서는 네트워크와 외부 dependency가 분리되어 있으므로 중�
 - operational risk:
 - remediation:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- baseline과 현재 상태를 비교할 때 client 실패와 DB 상태는 왜 따로 봐야 하는가?
+- Redis 장애가 주문 상태에 남기는 ghost pending 경로는 무엇인가?
+### 오늘 반드시 가져갈 것
+- 요청 실패와 데이터 잔존은 서로 다른 책임·증거이며 reconciliation이 둘을 다시 맞춘다.
+- outbox는 전달 보장 모델이지 모든 업무 일관성을 자동 보장하지 않는다.
+### 최소 복구 경로
+- client 응답과 DB row를 각각 확인한다 → Redis/queue logs를 본다 → pending 상태의 복구 기준을 적는다.
+- 성공 판정은 ghost pending의 발생과 복구 증거를 설명하는 것이다. 첫 실패는 dependency logs와 DB 상태에서 찾는다.
+- 다음 lesson 진입 조건은 불일치 상태를 안전하게 재처리하는 조건을 말하는 것이다.

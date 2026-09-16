@@ -152,3 +152,16 @@ Evidence:
 ```text
 Kubernetes 보안 troubleshooting은 RBAC에서 막혔는지, admission policy에서 막혔는지를 분리하는 것에서 시작한다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- W4D3의 metric/log/event는 각각 어떤 증거였나?
+- RBAC와 admission은 요청 처리 과정에서 어떤 책임 단계인가?
+### 오늘 반드시 가져갈 것
+- authentication, authorization, admission은 서로 다른 API 책임이다.
+- RBAC는 누가 무엇을 할 수 있는지, policy admission은 어떤 object를 허용할지 결정한다.
+### 최소 복구 경로
+- 요청 주체를 확인한다 → `can-i`로 RBAC를 확인한다 → admission policy와 events를 본다.
+- 성공 판정은 Forbidden과 admission denied를 구분하는 것이다. 첫 실패는 API response/events에서 찾는다.
+- 다음 lesson 진입 조건은 최소 권한을 subject·verb·resource·scope로 표현하는 것이다.

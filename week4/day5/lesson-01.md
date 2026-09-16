@@ -170,3 +170,19 @@ Kyverno가 deny하면 Argo CD는 sync 실패를 보여준다. 이때 Argo CD 문
 ```text
 GitOps는 Kubernetes 배포의 기준을 사람의 터미널이 아니라 Git repository로 옮기는 운영 방식이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- RBAC Forbidden과 admission denied는 어떤 책임 계층의 실패였나?
+- Git desired state→Application→sync/health→drift→복구 흐름에서 각 증거는 무엇인가?
+### 오늘 반드시 가져갈 것
+- Git은 배포 desired state, Argo CD는 sync controller, Kubernetes health는 current runtime evidence다.
+- Synced와 Healthy는 같은 상태가 아니며 drift는 복구 기준을 요구한다.
+### 최소 복구 경로
+- Git revision/path를 확인한다 → Application sync/health를 본다 → cluster object와 drift를 비교한다 → Git 기준으로 복구한다.
+- 성공 판정은 desired/current/health evidence가 맞는 것이다. 첫 실패는 Application conditions와 sync log에서 찾는다.
+- 다음 lesson 진입 조건은 Argo CD 설치와 controller 권한을 설명하는 것이다.
+
+### W4D5 필수/선택 경계
+`Git desired state → Application → sync/health → drift → 복구`가 필수 경로다. Istio/Kiali/sidecar/mTLS/fault injection은 이 경로 완료 후 선택 심화 preview다.

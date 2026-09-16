@@ -129,3 +129,16 @@ recovery command
 - immediate action:
 - long-term fix:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- request ID와 idempotency key의 차이는 incident timeline에서 어떻게 보이는가?
+- client/API/DB/queue/worker evidence를 시간순으로 묶는 이유는 무엇인가?
+### 오늘 반드시 가져갈 것
+- 타임라인은 사실과 해석을 분리해 첫 실패와 복구 순서를 고정한다.
+- runbook은 명령 모음이 아니라 증상→확인→판정→복구→handoff의 책임 흐름이다.
+### 최소 복구 경로
+- timestamp와 request ID로 사건을 정렬한다 → 첫 실패를 찾는다 → 복구 성공 기준과 handoff를 적는다.
+- 성공 판정은 다른 사람이 같은 증거 루프를 재현하는 것이다. 첫 실패는 가장 이른 오류 logs/metric에서 찾는다.
+- 다음 lesson 진입 조건은 5단계 timeline과 복구 조건을 남기는 것이다.

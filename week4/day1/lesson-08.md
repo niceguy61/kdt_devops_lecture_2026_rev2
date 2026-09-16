@@ -192,3 +192,16 @@ OOMKilled는 memory limit 초과로 발생할 수 있고, Pending은 scheduler e
 ```text
 오늘의 산출물은 manifest보다 운영 판단 기준과 evidence다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 오늘 Running/Ready, probe, resource, metrics의 차이는 무엇이었나?
+- 가장 유용했던 logs/events/metrics 증거와 다음 질문은 무엇인가?
+### 오늘 반드시 가져갈 것
+- 배움일기는 workload의 상태·책임·증거를 연결하는 운영 기록이다.
+- Helm 성공은 release만이 아니라 Pod Ready와 관찰 가능성까지 포함한다.
+### 최소 복구 경로
+- release와 Pod 상태를 기록한다 → probe/resource/metrics evidence를 표로 쓴다 → 실패 위치와 다음 질문을 남긴다.
+- 성공 판정은 재현 가능한 확인 순서가 있는 것이다. 첫 실패는 events 또는 metrics-server logs에서 확인한다.
+- 다음 lesson 진입 조건은 Service/EndpointSlice 네트워크 질문을 작성하는 것이다.

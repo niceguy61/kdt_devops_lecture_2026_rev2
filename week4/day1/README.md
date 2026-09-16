@@ -19,7 +19,7 @@ W4D1은 W3D4~W3D5에서 배운 Kubernetes 기본 요소를 운영 가능한 work
 | 교시 | 주제 | 핵심 확인 |
 |---|---|---|
 | 1교시 | Week3 Kubernetes 2일 요약 + 운영 가능한 workload 기준 | config, secret, health, resource, metric 기준 |
-| 2교시 | Helm 기본 개념 | chart, repository, release, values, upgrade, rollback, uninstall |
+| 2교시 | Helm 기본 개념과 release 검증 | chart, repository, release, values, status; metrics-server TLS와 `kubectl top`은 선택 troubleshooting |
 | 3교시 | Helm 공통 설치 루프 | repo add/update, upgrade --install, list/status, uninstall |
 | 4교시 | ConfigMap과 Secret | `.env`, runtime config, Secret base64와 보안 주의 |
 | 5교시 | probe와 readiness | liveness/readiness/startup, endpoint, restart |
@@ -67,3 +67,16 @@ W4D1은 W3D4~W3D5에서 배운 Kubernetes 기본 요소를 운영 가능한 work
 - [ ] requests/limits가 scheduling과 장애 양상에 미치는 영향을 설명했다.
 - [ ] metrics-server를 Helm으로 설치하고 `kubectl top` 결과를 확인했다.
 
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+W3D5 내용을 다시 보지 않고 `Pod`, `Deployment`, `Service`의 책임을 각각 한 문장으로 설명한다. 이어서 `Running`과 `Ready`의 차이를 적는다.
+
+### 오늘 반드시 가져갈 것
+1. Running은 process 실행에 가깝고, Ready는 traffic 수용 기준을 통과했다는 뜻이다.
+2. readiness/liveness/startup probe는 서로 다른 질문에 답한다.
+3. requests/limits는 scheduling·장애·자원 판단을 연결한다.
+
+### 최소 복구 경로
+`kubectl config current-context` → `kubectl -n week4 get pod,svc,endpoints` → `describe pod` → `logs` → `kubectl top` 순서로 운영 가능성의 빈 증거를 찾는다. 다음 날로 넘어가기 전 Running/Ready/endpoint의 관계를 설명할 수 있어야 한다.

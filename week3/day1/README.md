@@ -17,7 +17,7 @@ Day 1은 Week 2 Compose 경험을 MSA 운영 토폴로지로 확장한다. 표�
 | 2교시 | Monolith vs MSA | 배포 단위, 장애 영향 범위, 네트워크 의존성, 운영 복잡도 비교 |
 | 3교시 | 인프라 엔지니어가 MSA에서 알아야 할 것 | 서비스 목록, 포트, 프로토콜, 의존성, 설정, health, 로그 위치 |
 | 4교시 | 표준 MSA 실습 앱 토폴로지 | frontend, api, worker, database 역할과 요청 흐름 |
-| 5교시 | Compose로 전체 서비스 실행 | `compose up`, `ps`, `logs`, 브라우저 접속, 서비스 상태 확인 |
+| 5교시 | Compose로 전체 서비스 실행 | 실행 전 성공 기준, `ps`/health/HTTP/log baseline, cleanup |
 | 6교시 | 서비스 간 통신 확인 | frontend -> api, api -> db, worker -> api 흐름을 로그와 상태로 추적 |
 | 7교시 | 장애 시나리오 1 | API URL 오류, DB host 오류, 환경변수 누락을 logs/inspect/exec로 분리 |
 | 8교시 | 구름 EXP 배움일기 | MSA 토폴로지, 서비스별 실행 조건, 연결 실패에서 먼저 볼 증거 |
@@ -50,3 +50,19 @@ Day 1은 Week 2 Compose 경험을 MSA 운영 토폴로지로 확장한다. 표�
 - [ ] 명령 실행 결과를 evidence로 남겼다.
 - [ ] 실패 로그 또는 이벤트를 하나 이상 읽었다.
 - [ ] 다음 교시 또는 Week 4로 넘길 질문을 적었다.
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+자료를 다시 보지 않고 다음 질문에 답한다.
+- MSA에서 서비스 경계와 의존성은 어떻게 다른가?
+- 요청 실패가 발생했을 때 첫 번째 증거는 무엇인가?
+- `service name`, `port`, `health` 중 무엇이 바뀌면 통신이 깨지는가?
+
+### 오늘 반드시 가져갈 것
+1. 서비스 경계는 코드 분할이 아니라 책임·데이터·장애 영향 범위의 경계다.
+2. 서비스가 `Running`이어도 의존성·health·timeout을 확인해야 한다.
+3. 모든 장애 기록은 증상 → 영향 범위 → 증거 → 가설 → 복구 → 재확인 순서로 남긴다.
+
+### 최소 복구 경로
+`docker compose ps` → 관련 서비스 `logs` → health endpoint `curl` → 의존 서비스 이름/port 확인 순서로 최소 한 건의 실패를 다시 분류한다. 다음 날로 넘어가기 전 frontend/api/worker/db의 역할과 호출 방향을 한 줄씩 설명할 수 있어야 한다.

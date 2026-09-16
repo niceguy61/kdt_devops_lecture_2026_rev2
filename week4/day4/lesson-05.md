@@ -171,3 +171,16 @@ Do not use image tag latest. Match the web application version or release tag.
 ```text
 Audit는 위반을 보이게 만들고, Enforce는 위반 배포를 막는다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- admission webhook과 operator reconciliation의 차이는 무엇인가?
+- latest 금지와 required label은 어떤 desired policy 상태인가?
+### 오늘 반드시 가져갈 것
+- Audit은 위반 증거를 남기고 Enforce는 API 요청을 차단한다.
+- label/tag 정책은 배포 추적성과 artifact 기준을 보호한다.
+### 최소 복구 경로
+- policy rule을 읽는다 → 위반 manifest를 적용한다 → admission response/events와 policy report를 확인한다.
+- 성공 판정은 Audit/Enforce 결과가 예상과 맞는 것이다. 첫 실패는 admission message와 policy report에서 찾는다.
+- 다음 lesson 진입 조건은 node 영향이 큰 privileged/hostPath 정책을 설명하는 것이다.

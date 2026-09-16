@@ -62,3 +62,19 @@ Dockerfile에 secret COPY 금지
 - workflow owner:
 - audit evidence:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- PR의 review와 status check는 각각 무엇을 증명하는가?
+- IaC/workflow/secret/protected branch 중 Git 기준 상태를 보호하는 것은 무엇인가?
+### 오늘 반드시 가져갈 것
+- GitHub 운영은 코드뿐 아니라 workflow·manifest·secret 접근·audit trail의 책임을 관리한다.
+- secret은 값이 아니라 권한과 노출 경로까지 통제해야 하는 증거다.
+### 최소 복구 경로
+- 보호 branch와 workflow를 확인한다 → secret이 로그에 없는지 확인한다 → PR check 실패를 기록한다.
+- 성공 판정은 변경 권한·검증 gate·감사 증거를 분리해 설명하는 것이다. 첫 실패는 check log와 repository settings에서 찾는다.
+- 다음 lesson 진입 조건은 기준 상태가 우회되지 않는 이유를 말하는 것이다.
+
+### W3D3 필수 흐름
+`branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`을 필수로 연결한다. SAST/DAST·tag·rebase는 기본 흐름 완료 후 선택 심화로 확인한다.

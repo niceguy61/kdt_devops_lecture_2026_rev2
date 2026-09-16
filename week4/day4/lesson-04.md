@@ -8,6 +8,10 @@
 - 설치 실패와 policy 실패를 구분한다.
 - External Secrets Operator가 admission controller가 아니라 reconciliation operator라는 점을 구분한다.
 
+## 수업 순서와 범위
+
+필수 경로는 **Kyverno 설치 상태 확인 → webhook 확인 → policy 적용 전 설치 정상 판정**이다. External Secrets Operator는 오늘 실행해야 하는 보안 도구가 아니라, Kyverno와 책임 계층을 비교하기 위한 선택 읽을거리다. AWS credential과 ServiceAccount 권한이 없는 환경에서는 ESO Helm 설치와 object 생성을 수행하지 않는다.
+
 ## Kyverno를 왜 쓰는가
 RBAC은 사용자의 권한을 제한한다. 하지만 권한이 있는 사람이 나쁜 manifest를 배포하는 것은 별개의 문제다.
 
@@ -237,3 +241,16 @@ AWS provider에서는 Secrets Manager와 SSM Parameter Store를 연결할 수 �
 ```text
 Kyverno는 admission 단계에서 배포를 막고, External Secrets Operator는 외부 secret을 Kubernetes Secret으로 동기화하는 reconciliation controller다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- ServiceAccount token과 RBAC 허용은 어떻게 다른가?
+- Kyverno admission policy와 External Secrets Operator reconciliation은 각각 언제 동작하는가?
+### 오늘 반드시 가져갈 것
+- admission은 API 요청을 허용/거부하고 operator는 desired state를 지속 수렴시킨다.
+- 설치 Running/Ready와 정책 적용 evidence를 분리한다.
+### 최소 복구 경로
+- webhook/operator Pod를 확인한다 → policy/CR을 읽는다 → 허용·거부 요청과 events를 비교한다.
+- 성공 판정은 API admission과 reconciliation 책임을 설명하는 것이다. 첫 실패는 webhook/operator logs에서 찾는다.
+- 다음 lesson 진입 조건은 Audit/Enforce 정책 결과를 구분하는 것이다.

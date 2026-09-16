@@ -149,3 +149,19 @@ kubectl -n argocd logs <pod-name> --tail=80
 ```text
 Argo CD 설치 검증은 UI가 뜨는 것에서 끝나지 않고 controller, repo-server, Application sync 준비 상태까지 확인해야 한다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Git desired state와 cluster current state, Synced와 Healthy는 어떻게 다른가?
+- Argo CD server/repo-server/application-controller와 target namespace RBAC의 책임은 무엇인가?
+### 오늘 반드시 가져갈 것
+- Helm 설치 성공은 Argo CD Pod Running/Ready와 controller의 API 권한까지 확인한 상태다.
+- UI 접속은 GitOps 동작이나 application health 자체의 증거가 아니다.
+### 최소 복구 경로
+- release/Pod를 확인한다 → controller ServiceAccount/RBAC를 확인한다 → admin UI/port-forward와 logs를 확인한다.
+- 성공 판정은 controller가 target namespace를 볼 권한이 있는 것이다. 첫 실패는 Pod events/logs와 RBAC에서 찾는다.
+- 다음 lesson 진입 조건은 Application의 repo/path/destination을 설명하는 것이다.
+
+### W4D5 필수/선택 경계
+필수는 Git desired state→Application→sync/health→drift→복구다. Istio/Kiali/sidecar/mTLS/fault injection은 필수 완료 후 선택 심화 preview다.

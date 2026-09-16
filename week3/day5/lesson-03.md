@@ -149,3 +149,16 @@ CrashLoopBackOff는 process가 시작했다가 죽는 것이다.
 - `logs --previous`가 필요한 경우:
 - k9s로 확인한 resource와 대응 kubectl 명령:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Pod가 Running이 아니거나 Ready가 아니면 어느 evidence를 먼저 보는가?
+- ImagePullBackOff와 CrashLoopBackOff는 원인 책임이 어떻게 다른가?
+### 오늘 반드시 가져갈 것
+- ImagePullBackOff는 image 접근/이름 경계, CrashLoopBackOff는 실행 후 반복 실패 경계다.
+- events는 scheduling/image 증거, logs는 프로세스 증거다.
+### 최소 복구 경로
+- `get pods`로 상태를 본다 → describe/events를 확인한다 → 현재/previous logs를 비교한다.
+- 성공 판정은 두 장애를 올바른 증거에 매핑하는 것이다. 첫 실패는 Pod events에서 찾는다.
+- 다음 lesson 진입 조건은 장애별 복구 위치를 말하는 것이다.

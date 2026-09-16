@@ -39,7 +39,7 @@ Git 이론
 | 3교시 | 인프라 엔지니어의 GitHub 관리 전략 | IaC repo, protected branch, required check, secret 정책 |
 | 4교시 | Branch 전략: dev/stage/prod | environment branch와 promotion 전략 비교 |
 | 5교시 | PR, merge, rebase, revert, tag 운영 | sandbox conflict/revert/tag |
-| 6교시 | GitHub Actions 1: 코드, workflow 작성, runner computing | workflow YAML 작성법, runner, cache, unit test, SAST, DAST, local build |
+| 6교시 | GitHub Actions 1: 최소 workflow와 실패 증거 | local unit test, 최소 workflow, 실패→수정→재실행; runner/cache는 선택 심화 |
 | 7교시 | GitHub Actions 2: Secrets, Docker Hub push, 대체 도구 | secrets, buildx, push, Docker Hub 확인, Jenkins/TeamCity/CodePipeline |
 | 8교시 | 개인 repo Docker Hub push 회고 | workflow 작성, step 시간 분석, 보강 포인트 정리 |
 
@@ -112,3 +112,35 @@ docker logout
 - [ ] private Docker Hub image는 pull 전 `docker login`이 필요하다는 점을 설명했다.
 - [ ] 본인 GitHub repo에서 Actions step별 실행 시간을 확인했다.
 - [ ] unit test, SAST, DAST, build, push 중 시간이 많이 걸린 단계를 분석했다.
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+자료를 다시 보지 않고 아래 빈칸을 채운다.
+
+| 질문 | Git | GitHub Actions |
+|---|---|---|
+| 기준 상태는 어디에 남는가? | | |
+| 변경을 확정하는 단위는 무엇인가? | | |
+| 실패 증거는 어디에서 보는가? | | |
+
+### 오늘 반드시 가져갈 것
+1. Git은 변경 이력과 기준 commit을 추적한다.
+2. CI는 commit을 검증하고, 통과/실패 증거를 남긴다.
+3. Secret은 workflow에 값을 출력하지 않고 필요한 단계에만 주입한다.
+
+### 필수 경로와 선택 심화
+필수는 `branch → PR → CI 실패 → 수정 → 통과` 한 흐름이다. `rebase`, `tag`, SAST/DAST의 세부 도구, Docker Hub push와 대체 CI 도구 비교는 선택 심화로 남긴다. 필수 흐름을 완료하지 못한 상태에서 심화 항목으로 이동하지 않는다.
+
+### 최소 복구 경로
+`git status -sb` → 최근 commit 확인 → workflow 실패 step 확인 → 로컬에서 같은 check 재실행 → 수정 commit 후 재검증 순서로 복구한다. 다음 날로 넘어가기 전 Git의 기준 commit과 CI의 검증 결과를 서로 다른 증거로 설명할 수 있어야 한다.
+
+## 인지 부하를 줄이는 범위 경계
+
+W3D3의 공통 필수 산출물은 하나의 흐름이다.
+
+```text
+PR 생성 → CI 실패 증거 읽기 → 로컬 수정 → 재실행 → 통과 결과 기록
+```
+
+`rebase`, `tag`, SAST/DAST 세부 설정, Docker Hub push, Jenkins/TeamCity/CodePipeline 비교는 이 흐름을 이해한 뒤 선택 심화로 다룬다. 수업 시간에 모든 도구를 같은 깊이로 완료하려고 하지 않는다. 평가도 명령 종류의 수가 아니라 실패 원인을 증거로 설명하고 수정 결과를 재확인했는지를 우선한다.

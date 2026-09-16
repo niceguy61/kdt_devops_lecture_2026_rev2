@@ -211,3 +211,16 @@ kubectl -n week4-security describe pod token-mounted-demo
 ```text
 ServiceAccount는 Pod의 identity이고, token mount는 앱이 Kubernetes API에 접근할 수 있는 문을 열지 결정하는 설정이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- RoleBinding이 허용하는 subject와 verb/resource/scope는 무엇인가?
+- Pod identity와 ServiceAccount token은 API 접근에서 어떤 책임인가?
+### 오늘 반드시 가져갈 것
+- Pod는 사용자 계정이 아니라 ServiceAccount identity로 API에 요청한다.
+- token 존재와 실제 RBAC 허용은 별도 증거다.
+### 최소 복구 경로
+- Pod의 ServiceAccount를 확인한다 → RoleBinding을 찾는다 → `can-i`와 API 요청 결과를 확인한다.
+- 성공 판정은 identity→binding→허용 요청 경로가 맞는 것이다. 첫 실패는 ServiceAccount/Binding과 Forbidden response에서 찾는다.
+- 다음 lesson 진입 조건은 RBAC와 admission operator를 구분하는 것이다.

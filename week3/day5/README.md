@@ -73,3 +73,22 @@ Day5에는 Helm add-on을 설치하지 않는다. 대신 Week4에서 아래 흐�
 - [ ] Service selector와 endpoint가 연결되는 것을 확인했다.
 - [ ] rollout 실패와 undo 흐름을 설명했다.
 - [ ] Week4에서 Helm add-on으로 확장할 질문을 남겼다.
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+자료를 다시 보지 않고 다음 운영 루프를 설명한다.
+
+```text
+manifest → apply → get → describe/events → logs → 복구 → delete
+```
+
+각 단계가 답하는 질문을 한 문장씩 적는다.
+
+### 오늘 반드시 가져갈 것
+1. `kubectl`은 node가 아니라 API Server에 요청한다.
+2. `get`은 현재 상태 요약, `describe/events/logs`는 상태의 이유를 찾는 증거다.
+3. Pod·Deployment·Service는 실행·유지·발견이라는 서로 다른 책임을 가진다.
+
+### 최소 복구 경로
+`kubectl config current-context` → `kubectl get nodes` → namespace 확인 → `kubectl get pods` → 문제 Pod의 `describe`와 `logs` 순서로 회복한다. 다음 날로 넘어가기 전 `ImagePullBackOff`, `CrashLoopBackOff`, `Pending` 각각의 첫 확인 명령을 말할 수 있어야 한다.

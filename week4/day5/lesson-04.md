@@ -111,3 +111,19 @@ Application OutOfSync
 ```text
 GitOps에서 drift는 Git과 cluster가 다르다는 신호이며, sync는 어느 쪽을 기준으로 복구할지 결정하는 운영 행위다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Synced와 Healthy의 차이는 무엇인가?
+- cluster 직접 scale로 drift를 만들었을 때 sync, prune, self-heal, Git rollback의 책임은 무엇인가?
+### 오늘 반드시 가져갈 것
+- drift는 Git과 cluster가 다르다는 evidence이고 sync는 Git 기준 복구 행위다.
+- 장기 rollback은 Git revision을 바꾸며 `kubectl rollout undo`만으로 기준 상태가 되지 않는다.
+### 최소 복구 경로
+- 직접 scale한다 → OutOfSync/Diff를 확인한다 → manual sync와 health를 본다 → Git revert/이전 revision으로 복구한다.
+- 성공 판정은 drift 전후 diff와 복구 revision이 기록된 것이다. 첫 실패는 Application diff/conditions와 admission event에서 찾는다.
+- 다음 lesson 진입 조건은 GitOps 필수 경로를 완료했다고 말할 수 있는 것이다.
+
+### W4D5 필수/선택 경계
+필수는 `Git desired state → Application → sync/health → drift → 복구`다. Istio/Kiali/sidecar/mTLS/fault injection은 GitOps 필수 경로 완료 후 선택 심화 preview다.

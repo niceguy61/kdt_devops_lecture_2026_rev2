@@ -7,6 +7,10 @@
 - `kubectl apply -f remote-url` 방식이 왜 설치 표준으로 부족한지 설명한다.
 - Week4 add-on 설치 표준을 `helm upgrade --install`로 통일한다.
 
+## 수업 순서와 범위
+
+필수 경로는 `chart/repository/values` 이해 → `helm template` 또는 values 확인 → release 설치 → `helm list/status` → Kubernetes Pod Ready 확인이다. 아래 metrics-server의 TLS 우회 옵션과 `kubectl top` 검증은 **local kind에서 metric이 나오지 않을 때만 여는 선택 troubleshooting**이다. `--kubelet-insecure-tls`를 운영 환경의 기본 보안 설정으로 기억하지 않는다.
+
 ## Helm을 왜 쓰는가
 Kubernetes add-on은 보통 리소스 하나가 아니다. metrics-server만 해도 Deployment, Service, ServiceAccount, RBAC, APIService 같은 리소스가 함께 필요하다. ingress-nginx, kube-prometheus-stack, Argo CD, Istio는 더 복잡하다.
 
@@ -299,3 +303,16 @@ Helm은 강력하지만 다음 오해를 조심한다.
 ```text
 Helm은 Kubernetes add-on을 설치하는 명령이 아니라, 설치 설정과 변경 이력을 남기는 운영 표준이다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 운영 workload의 Running/Ready와 logs/events/metrics 차이는 무엇인가?
+- Helm의 chart, release, values, repository는 각각 어떤 기준 상태인가?
+### 오늘 반드시 가져갈 것
+- Chart는 패키지, values는 입력, release는 cluster에 기록된 설치 이력이다.
+- Helm 성공은 release 상태와 Kubernetes Ready를 함께 확인해야 한다.
+### 최소 복구 경로
+- chart/values를 확인한다 → install/upgrade를 수행한다 → release와 Pod status/logs를 확인한다.
+- 성공 판정은 Helm release와 실제 workload가 일치하는 것이다. 첫 실패는 Helm output과 events에서 찾는다.
+- 다음 lesson 진입 조건은 공통 설치 루프를 재현하는 것이다.

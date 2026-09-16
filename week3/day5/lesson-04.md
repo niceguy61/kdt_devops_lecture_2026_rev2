@@ -183,3 +183,16 @@ Pod template과 replica 수를 원하는 상태로 유지하는 controller 단�
 - newly created Pod:
 - self-healing evidence:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Pod 단독 실행의 복구 한계는 무엇인가?
+- Deployment→ReplicaSet→Pod 소유 관계가 self-healing을 어떻게 만든다?
+### 오늘 반드시 가져갈 것
+- Deployment는 Pod가 아니라 원하는 replica와 rollout 상태의 책임자다.
+- self-healing은 Pod 실행 상태를 복구하지만 앱 업무 성공을 보장하지 않는다.
+### 최소 복구 경로
+- Deployment를 apply한다 → ReplicaSet/Pod owner를 확인한다 → replica와 Ready를 비교한다.
+- 성공 판정은 소유 관계와 복구 evidence를 설명하는 것이다. 첫 실패는 Deployment conditions/events에서 찾는다.
+- 다음 lesson 진입 조건은 manifest 구조를 live state와 비교하는 것이다.

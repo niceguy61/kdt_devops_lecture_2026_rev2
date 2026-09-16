@@ -195,3 +195,16 @@ legend 예:
 ```text
 Grafana dashboard는 kubectl의 현재 상태를 시간 축으로 확장해 장애의 시작점과 범위를 찾게 해준다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- target UP과 workload Ready는 어떤 점에서 다른가?
+- Grafana 시간축 dashboard와 kubectl 상태를 어떻게 상관분석하는가?
+### 오늘 반드시 가져갈 것
+- dashboard는 시간축의 패턴을 보여주고 kubectl/logs/events가 원인 증거를 보강한다.
+- 시각화는 판정 자체가 아니라 질문을 좁히는 도구다.
+### 최소 복구 경로
+- dashboard 시간 범위를 고정한다 → 해당 시각의 Pod/events/logs를 확인한다 → metric 변화와 상태를 기록한다.
+- 성공 판정은 dashboard와 object evidence의 시간축이 맞는 것이다. 첫 실패는 최초 metric 변화 시점에서 찾는다.
+- 다음 lesson 진입 조건은 장애 유형별 metric 연결을 말하는 것이다.

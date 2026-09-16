@@ -313,3 +313,16 @@ unknown pod -> api/db 실패
 ```text
 NetworkPolicy는 namespace 자동 격리가 아니라 label 기반 허용선이며, Cilium/Hubble은 그 허용선과 실제 network flow를 더 깊게 관찰하는 선택지다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 503과 timeout을 EndpointSlice/readiness 관점에서 어떻게 구분했나?
+- NetworkPolicy의 label/DNS egress와 CNI enforcement는 어떤 책임인가?
+### 오늘 반드시 가져갈 것
+- NetworkPolicy는 허용선의 desired state이고 CNI는 이를 실제 packet path에 enforcement한다.
+- flow observability는 차단 원인의 증거이지 정책 자체가 아니다.
+### 최소 복구 경로
+- selector와 ingress/egress를 읽는다 → Pod label/DNS 경로를 확인한다 → flow/logs와 HTTP를 대조한다.
+- 성공 판정은 허용/차단 방향과 증거를 말하는 것이다. 첫 실패는 policy/CNI flow에서 찾는다.
+- 다음 lesson 진입 조건은 rollout 중 Ready endpoint 변경을 설명하는 것이다.

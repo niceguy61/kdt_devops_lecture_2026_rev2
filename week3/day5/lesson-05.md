@@ -158,3 +158,16 @@ selector와 template label이 controller의 소유 관계를 만든다.
 - current image:
 - live status에서 확인한 condition:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Deployment가 Pod 대신 desired replica를 책임지는 이유는 무엇인가?
+- `spec.replicas`, selector, template은 live state와 어떻게 연결되는가?
+### 오늘 반드시 가져갈 것
+- selector와 template label은 소유·연결 기준이며 임의로 다르면 수렴하지 않는다.
+- manifest의 desired state와 API의 current state를 비교해야 한다.
+### 최소 복구 경로
+- apiVersion/kind/metadata/spec를 읽는다 → replicas/selector/template을 대조한다 → get/describe로 live state를 확인한다.
+- 성공 판정은 선언과 실제 상태의 차이를 말하는 것이다. 첫 실패는 conditions/events와 selector에서 찾는다.
+- 다음 lesson 진입 조건은 Service가 Ready Pod를 선택하는 원리를 설명하는 것이다.

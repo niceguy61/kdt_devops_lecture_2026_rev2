@@ -9,6 +9,16 @@
 - Docker image를 로컬에서 build/run하여 Actions 전에 검증한다.
 - GitHub Actions workflow YAML을 직접 작성하는 기본 절차를 익힌다.
 
+## 수업 순서와 범위
+
+오늘의 필수 경로는 다음 한 가지다.
+
+```text
+local unit test → 최소 workflow(on/jobs/steps) → 실패 로그 확인 → 로컬 수정 → 재실행
+```
+
+먼저 이 경로를 완료한 뒤에 SAST/DAST, Docker build, runner 종류를 하나씩 연결한다. `GHA cache`, self-hosted runner, Docker Hub push, multi-platform build는 이 lesson의 필수 성공 조건이 아닌 선택 심화다. 학생은 모든 도구를 한 번에 구성하지 않고, 각 단계가 어떤 실패 증거를 추가하는지 확인한다.
+
 ## Sample App 구조
 ```bash
 find week3/day3/labs/dockerhub-app -maxdepth 2 -type f | sort
@@ -313,3 +323,19 @@ unit test -> SAST -> docker build -> DAST -> push
 - DAST:
 - workflow file:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Git rollback과 deployment rollback의 기준은 어떻게 다른가?
+- unit/SAST/DAST와 Docker build는 각각 어떤 증거를 만드는가?
+### 오늘 반드시 가져갈 것
+- CI의 기준 상태는 branch/PR의 commit이며 각 gate는 서로 다른 실패 책임을 증명한다.
+- 실패 로그를 읽고 로컬에서 수정한 뒤 같은 gate를 재실행해야 통과가 의미 있다.
+### 최소 복구 경로
+- branch/PR을 만든다 → CI 실패 증거를 저장한다 → 로컬 unit/SAST/DAST와 build를 수정·재실행한다 → 통과 기록을 PR에 남긴다.
+- 성공 판정은 각 step의 pass와 artifact/health evidence다. 첫 실패는 Actions step log에서 확인한다.
+- 다음 lesson 진입 조건은 실패를 재현하고 통과한 commit을 식별하는 것이다.
+
+### W3D3 필수 흐름
+모든 실습은 `branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`으로 연결한다. SAST/DAST·rebase·tag·Docker Hub push는 기본 흐름 완료 후 선택 심화로 명시한다.

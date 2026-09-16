@@ -155,3 +155,19 @@ Istio와 Kiali는 local cluster에서 무겁다.
 ```text
 Istio/Kiali 설치는 Helm release, Pod 상태, Prometheus 연결, UI 접속까지 함께 확인해야 한다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Service와 sidecar의 책임 차이, Pod 1/1과 2/2의 의미는 무엇인가?
+- Istio base→istiod→gateway와 Kiali/Prometheus는 어떤 증거 경로인가?
+### 오늘 반드시 가져갈 것
+- GitOps desired state와 mesh 설치 상태는 별도 운영 기준이다.
+- Kiali graph empty는 traffic 없음·Prometheus scrape·namespace 선택을 분리해 확인해야 한다.
+### 최소 복구 경로
+- GitOps sync/health/drift 복구를 먼저 기록한다 → 선택으로 Helm release/Pod Ready를 확인한다 → Prometheus/Kiali UI와 traffic을 확인한다.
+- 성공 판정은 설치·scrape·traffic evidence가 모두 있는 것이다. 첫 실패는 필수 GitOps conditions, mesh는 release/Pod/logs에서 찾는다.
+- 다음 lesson 진입 조건은 필수 경로 완료와 선택 preview 범위를 구분하는 것이다.
+
+### W4D5 범위 경계
+lesson 5~7의 Istio/Kiali/sidecar/mTLS/fault injection은 **GitOps 필수 경로 완료 후 선택 심화**이며 GitOps sync/health/drift 복구를 대체하지 않는다.

@@ -108,3 +108,16 @@ retry without idempotency
 - request_id role:
 - idempotency design:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- poison message를 격리해야 하는 이유는 무엇인가?
+- request ID와 idempotency key는 각각 추적과 중복 방지 중 무엇을 담당하는가?
+### 오늘 반드시 가져갈 것
+- retry는 중복 실행을 만들 수 있으므로 idempotency가 업무 상태의 안전장치다.
+- request ID는 원인 추적용 증거이고 idempotency key는 처리 책임의 기준이다.
+### 최소 복구 경로
+- 같은 요청을 두 번 보낸다 → request ID와 key를 각각 추적한다 → DB row와 retry logs를 비교한다.
+- 성공 판정은 중복 row가 생기지 않는 기준을 설명하는 것이다. 첫 실패는 application logs와 DB unique/idempotency 증거에서 찾는다.
+- 다음 lesson 진입 조건은 duplicate request의 복구 절차를 말하는 것이다.

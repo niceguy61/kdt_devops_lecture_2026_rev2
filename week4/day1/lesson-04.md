@@ -270,3 +270,16 @@ ConfigMap과 Secret을 쓰는 이유는 깔끔한 YAML을 만들기 위해서가
 ```text
 ConfigMap과 Secret은 image를 환경에 종속시키지 않기 위한 runtime config 경계다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Helm values와 Kubernetes current state를 어떤 증거로 비교했나?
+- ConfigMap과 Secret은 설정·민감정보 책임이 어떻게 다른가?
+### 오늘 반드시 가져갈 것
+- ConfigMap은 일반 runtime 설정, Secret은 접근·노출 통제가 필요한 민감정보다.
+- Pod 환경 반영은 object 존재와 실제 container 환경을 따로 검증한다.
+### 최소 복구 경로
+- key/value와 민감도 경계를 정한다 → object를 확인한다 → Pod rollout 후 logs/events와 주입 결과를 검증한다.
+- 성공 판정은 값의 존재·비노출·반영 evidence다. 첫 실패는 object describe와 Pod events에서 찾는다.
+- 다음 lesson 진입 조건은 probe가 traffic과 restart를 어떻게 바꾸는지 설명하는 것이다.

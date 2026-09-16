@@ -34,7 +34,7 @@ Kubernetes 탄생 배경
 | 교시 | 주제 | 핵심 산출 |
 |---|---|---|
 | 1교시 | Kubernetes 탄생 배경과 cluster 운영 문제 | Borg/cluster scheduler/orchestrator 관점 |
-| 2교시 | Control Plane 밑바닥 | API Server, etcd, Scheduler, Controller Manager |
+| 2교시 | Control Plane 밑바닥 | API client/API Server/etcd부터 시작해 Scheduler·Controller·kubelet을 단계적으로 연결 |
 | 3교시 | Node와 workload 실행 구조 | Node, kubelet, container runtime, Pod |
 | 4교시 | 선언적 API와 reconciliation | desired state, controller loop, self-healing |
 | 5교시 | 장점/단점과 사용 분야 | 표준화, 운영 비용, MSA/SaaS/platform team |
@@ -99,3 +99,22 @@ Day4에서 최소한 다음 문장은 말할 수 있어야 한다.
 - [ ] kind cluster를 생성하고 `kubectl get nodes` 결과를 확인했다.
 - [ ] context가 잘못되었을 때 생길 위험을 설명했다.
 - [ ] Day5에서 Pod/Deployment/Service로 이어질 질문을 남겼다.
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+자료를 다시 보지 않고 아래 비교를 완성한다.
+
+| 질문 | Docker Compose | Kubernetes |
+|---|---|---|
+| 기준 상태는 어디에 표현되는가? | | |
+| 실행 상태를 누가 유지하는가? | | |
+| 실패 증거는 어디에서 보는가? | | |
+
+### 오늘 반드시 가져갈 것
+1. Kubernetes는 container 실행 명령 모음이 아니라 cluster 운영 API다.
+2. API Server는 요청의 입구이고, control plane은 상태를 저장·조정한다.
+3. Pod는 container와 같은 말이 아니라 Kubernetes의 배치 단위다.
+
+### 최소 복구 경로
+`docker version` → `kubectl version --client` → `kind version` → `kind create cluster` → `kubectl config current-context` → `kubectl get nodes` 순서로 환경을 회복한다. node가 `Ready`가 되지 않으면 새 명령을 추가하지 말고 context, Docker daemon, cluster 상태부터 확인한다.

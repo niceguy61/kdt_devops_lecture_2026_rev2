@@ -98,3 +98,16 @@ Apple Silicon/Intel 차이는 Homebrew가 보통 처리하지만, `which kubectl
 - install issue:
 - resolved by:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- kind가 제공하는 evidence와 제공하지 않는 production 증거는 무엇인가?
+- kubectl, kind, Docker는 각각 어떤 상태를 확인하는가?
+### 오늘 반드시 가져갈 것
+- 설치 성공은 version 출력이 아니라 kubectl→API→node Ready의 연결이다.
+- OS 차이는 명령보다 경로·Docker daemon·context 증거에서 드러난다.
+### 최소 복구 경로
+- Docker를 확인한다 → version을 출력한다 → kind 생성 후 context/node/cluster-info를 확인한다.
+- 성공 판정은 모든 도구가 같은 cluster를 가리키는 것이다. 첫 실패는 context와 Docker daemon에서 찾는다.
+- 다음 lesson 진입 조건은 clean cluster evidence를 남기는 것이다.

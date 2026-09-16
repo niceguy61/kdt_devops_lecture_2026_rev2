@@ -105,3 +105,16 @@ K8s: 이 운영 문제 중 일부를 플랫폼 수준에서 다루기 시작한�
 - Kubernetes helps with:
 - application must solve:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 오늘 incident evidence에서 Kubernetes가 해결할 수 있는 범위와 application 책임은 무엇이었나?
+- 가장 중요한 첫 실패와 복구 기준은 무엇이었나?
+### 오늘 반드시 가져갈 것
+- 플랫폼은 실행·관찰·복구 루프를 돕지만 업무 일관성과 idempotency 책임을 대신하지 않는다.
+- 배움일기는 증거와 책임 경계를 남겨 다음 플랫폼 학습 질문을 만든다.
+### 최소 복구 경로
+- 사고 timeline을 다시 읽는다 → platform/app 책임을 두 칸으로 나눈다 → 다음 질문을 한 개 작성한다.
+- 성공 판정은 명령·결과·해석·다음 조치가 기록된 것이다. 첫 실패는 timeline의 최초 evidence에서 확인한다.
+- 다음 lesson 진입 조건은 Kubernetes API/desired state에 연결할 질문을 남기는 것이다.

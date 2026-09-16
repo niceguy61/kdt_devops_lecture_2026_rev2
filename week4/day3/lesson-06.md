@@ -186,3 +186,16 @@ alert는 많을수록 좋은 것이 아니라 적절할수록 좋다.
 ```text
 좋은 alert는 metric 조건이 아니라 사람이 지금 해야 할 행동과 연결되어야 한다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- CrashLoop/readiness/CPU pressure의 첫 확인 위치는 어디였나?
+- PromQL 결과의 pending/firing/resolved는 어떤 운영 상태인가?
+### 오늘 반드시 가져갈 것
+- alert는 metric 조건의 상태이며 실제 장애 판정과 runbook action은 별도 책임이다.
+- noise를 줄이는 것은 silence가 아니라 적절한 threshold와 증거 연결이다.
+### 최소 복구 경로
+- rule을 읽는다 → query와 시간 범위를 확인한다 → alert 상태와 logs/events를 대조한다.
+- 성공 판정은 firing 원인과 대응 action이 기록된 것이다. 첫 실패는 query result와 target 상태에서 찾는다.
+- 다음 lesson 진입 조건은 관찰 runbook을 작성하는 것이다.

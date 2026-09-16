@@ -115,3 +115,16 @@ container runtime은 container process를 실행한다.
 - Pod lifecycle 상태:
 - kind node 확인 명령:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- API Server와 controller의 책임은 어떻게 다른가?
+- Scheduler 이후 kubelet/runtime/Pod가 각각 무엇을 증명하는가?
+### 오늘 반드시 가져갈 것
+- scheduler는 배치하고 kubelet은 node에서 원하는 Pod 실행을 보장한다.
+- Pod의 Running과 container Ready는 다른 상태 증거다.
+### 최소 복구 경로
+- Pod를 생성한다 → node assignment를 확인한다 → describe/events/logs로 runtime과 Ready를 확인한다.
+- 성공 판정은 API 상태와 node 실행 evidence가 맞는 것이다. 첫 실패는 Pod events와 container logs에서 찾는다.
+- 다음 lesson 진입 조건은 Pod 실행 경계를 설명하는 것이다.

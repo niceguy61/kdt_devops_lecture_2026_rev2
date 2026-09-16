@@ -250,3 +250,16 @@ kubectl -n week4 get endpointslice
 ```text
 Gateway API 장애는 Gateway, HTTPRoute, Service, EndpointSlice, readiness를 층별로 나누어 확인한다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- HTTPRoute가 Accepted여도 backend 응답이 실패할 수 있는 이유는 무엇인가?
+- 404/503/refused/timeout은 Gateway condition, Service, EndpointSlice, readiness 중 어디를 우선 보는가?
+### 오늘 반드시 가져갈 것
+- 404는 route match, 503은 backend availability, refused/timeout은 연결·프로세스·네트워크 증거로 분리한다.
+- Service와 EndpointSlice를 확인하지 않고 Gateway만 고치지 않는다.
+### 최소 복구 경로
+- 응답 코드를 분류한다 → Route condition을 본다 → Service/EndpointSlice/Pod Ready와 logs를 확인한다.
+- 성공 판정은 오류 유형과 첫 실패 계층이 일치하는 것이다. 첫 실패는 가장 낮은 실패 계층의 evidence에서 찾는다.
+- 다음 lesson 진입 조건은 NetworkPolicy/CNI enforcement 경계를 설명하는 것이다.

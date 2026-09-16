@@ -67,3 +67,19 @@ Git 이력을 이해하지 못하면 GitHub Actions와 배포 자동화도 흔�
 - latest commit:
 - tag use case:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- incident timeline에서 사실과 해석을 어떻게 분리했나?
+- Git의 working tree→staging→commit→branch→remote는 각각 어떤 기준 상태를 뜻하나?
+### 오늘 반드시 가져갈 것
+- Git은 파일 명령 모음이 아니라 변경 기준 상태와 이력의 모델이다.
+- commit은 복구 가능한 증거이고 branch는 협업 중인 변경의 경계다.
+### 최소 복구 경로
+- 상태를 확인한다 → 작은 변경을 commit한다 → branch/remote 이력을 비교한다.
+- 성공 판정은 변경이 어떤 commit에 있고 remote에 어떻게 반영됐는지 설명하는 것이다. 첫 실패는 `git status`와 log에서 찾는다.
+- 다음 lesson 진입 조건은 branch 기준 변경 이력을 재현하는 것이다.
+
+### W3D3 필수 흐름
+`branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`을 기본 경로로 삼는다. rebase와 tag는 선택 심화다.

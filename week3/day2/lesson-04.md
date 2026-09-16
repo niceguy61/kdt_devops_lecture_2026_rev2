@@ -132,3 +132,16 @@ API success + queue backlog 증가 = 업무 지연 가능성
 - final processed count:
 - scaling question:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- readiness가 정상이어도 업무 일관성이 깨질 수 있는 이유는 무엇인가?
+- worker 중지 시 queue backlog와 drain은 어떤 상태를 뜻하는가?
+### 오늘 반드시 가져갈 것
+- backlog는 처리되지 않은 일의 양이고 drain은 복구 후 처리 속도다.
+- scale-out은 처리량을 높일 수 있지만 중복 처리와 순서 책임을 함께 만든다.
+### 최소 복구 경로
+- queue depth와 worker 상태를 확인한다 → 재시작 후 처리량과 drain을 관찰한다 → 중복 여부를 확인한다.
+- 성공 판정은 backlog 감소와 처리 증거를 보여주는 것이다. 첫 실패는 worker logs와 queue metrics에서 찾는다.
+- 다음 lesson 진입 조건은 복구 속도와 중복 위험을 함께 말하는 것이다.

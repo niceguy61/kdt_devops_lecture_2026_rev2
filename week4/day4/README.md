@@ -21,7 +21,7 @@ W4D4는 Kubernetes 운영에서 "누가 무엇을 할 수 있는가"와 "무엇�
 | 1교시 | Day3 요약 + Kubernetes 권한 모델 | subject, verb, resource, scope |
 | 2교시 | RBAC 최소 권한 실습 | ServiceAccount, Role, RoleBinding, forbidden |
 | 3교시 | app Pod와 ServiceAccount | default SA, token mount, workload identity preview |
-| 4교시 | Kyverno Helm 설치 | admission controller, webhook, policy CRD |
+| 4교시 | Kyverno Helm 설치 | Kyverno admission/webhook/CRD 필수; External Secrets Operator는 선택 읽을거리 |
 | 5교시 | Kyverno policy 1 | latest tag 금지, required label, Audit/Enforce |
 | 6교시 | Kyverno policy 2 | privileged, hostPath 제한과 admission deny |
 | 7교시 | 권한/정책 장애 분석 | RBAC forbidden vs Kyverno deny |
@@ -57,3 +57,16 @@ good-versioned-owner Pod는 Running 또는 Completed 전 단계까지 생성
 | Admission Controllers | https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/ |
 | Kyverno Installation | https://kyverno.io/docs/installation/ |
 | Kyverno Policies | https://kyverno.io/policies/ |
+
+## 학습 제어: 회상·핵심·복구
+
+### 시작 5분 회상
+W4D3의 logs/events/metrics 차이를 자료 없이 구분하고, 각 증거가 답하지 못하는 질문도 하나씩 적는다.
+
+### 오늘 반드시 가져갈 것
+1. RBAC은 API 요청의 주체·동사·resource·scope를 제한한다.
+2. Kyverno는 admission 단계에서 manifest를 허용하거나 거부한다.
+3. `forbidden`과 `admission denied`는 서로 다른 실패 계층이다.
+
+### 최소 복구 경로
+`kubectl auth can-i` → 대상 ServiceAccount/Role/Binding 확인 → manifest 정책 위반 여부 확인 → admission/controller 로그 확인 순서로 복구한다. 다음 날로 넘어가기 전 권한 실패와 정책 실패의 첫 확인 위치를 각각 말할 수 있어야 한다.

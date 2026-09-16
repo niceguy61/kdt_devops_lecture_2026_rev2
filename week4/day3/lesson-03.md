@@ -193,3 +193,16 @@ kubectl -n monitoring logs deploy/kube-prometheus-stack-operator
 ```text
 Prometheus target이 없거나 DOWN이면 dashboard보다 먼저 discovery, Service, Endpoint, port를 확인한다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- Prometheus 설치 성공과 target UP은 어떻게 다른가?
+- ServiceMonitor, Service, Endpoint, port가 target discovery에서 맡는 책임은 무엇인가?
+### 오늘 반드시 가져갈 것
+- discovery는 selector와 endpoint/port 계약이 맞아야 scrape target을 만든다.
+- UP은 scrape 가능성이지 애플리케이션 업무 성공의 증거가 아니다.
+### 최소 복구 경로
+- ServiceMonitor를 읽는다 → Service/Endpoint/port를 대조한다 → Prometheus targets에서 UP/DOWN을 확인한다.
+- 성공 판정은 target과 metric sample이 존재하는 것이다. 첫 실패는 target error와 Endpoint에서 찾는다.
+- 다음 lesson 진입 조건은 dashboard를 kubectl 상태와 연결하는 것이다.

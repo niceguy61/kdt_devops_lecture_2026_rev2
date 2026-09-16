@@ -183,3 +183,16 @@ kubectl apply -f week4/day4/labs/kyverno/bad-pod-privileged-hostpath.yaml
 ```text
 Forbidden은 권한 문제이고, admission denied는 object 내용이 정책을 위반했다는 신호다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- privileged policy 위반과 RBAC Forbidden은 어느 계층에서 실패하는가?
+- 권한·정책 장애의 첫 확인 위치는 무엇인가?
+### 오늘 반드시 가져갈 것
+- Forbidden은 authorization 증거, admission denied는 policy validation 증거다.
+- 장애 대응은 주체·요청·policy message를 함께 기록해야 한다.
+### 최소 복구 경로
+- response를 분류한다 → `can-i`와 RoleBinding을 본다 → policy/report/events를 확인한다.
+- 성공 판정은 두 실패 유형의 복구 경로를 분리하는 것이다. 첫 실패는 API response와 event에서 찾는다.
+- 다음 lesson 진입 조건은 GitOps sync에서 권한·policy 실패를 연결하는 것이다.

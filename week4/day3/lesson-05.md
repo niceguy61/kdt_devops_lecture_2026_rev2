@@ -216,3 +216,16 @@ kubectl delete namespace week4-observe
 ```text
 metric은 장애의 시간과 범위를 보여주고, logs/events는 원인을 좁히는 증거다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- dashboard 패턴을 원인으로 단정하면 안 되는 이유는 무엇인가?
+- CrashLoop, readiness failure, CPU pressure는 metric/log/event에서 어떻게 구분되는가?
+### 오늘 반드시 가져갈 것
+- 같은 증상도 logs/events/metrics의 교차 증거로 원인을 좁힌다.
+- CPU 압박과 application crash는 서로 다른 복구 책임이다.
+### 최소 복구 경로
+- 증상을 기록한다 → Pod conditions/events/logs를 본다 → CPU/memory/time-series를 대조한다.
+- 성공 판정은 원인·증상·증거가 일치하는 것이다. 첫 실패는 최초 event/log 또는 metric 급변에서 찾는다.
+- 다음 lesson 진입 조건은 alert 상태와 runbook action을 연결하는 것이다.

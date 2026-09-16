@@ -123,3 +123,16 @@ recoverability는 깨진 상태를 다시 수습할 수 있는 성질
 - Kubernetes helps:
 - application must solve:
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- ghost pending은 client 실패와 DB 상태 중 어느 증거의 불일치인가?
+- readiness와 transaction boundary는 각각 무엇을 보장하지 않는가?
+### 오늘 반드시 가져갈 것
+- Readiness는 트래픽 수용 가능성, transaction은 업무 상태 일관성의 경계다.
+- health가 정상이어도 ghost state가 남을 수 있으므로 업무 evidence를 별도로 본다.
+### 최소 복구 경로
+- readiness/health와 업무 row를 각각 확인한다 → transaction 시작·완료 지점을 표시한다 → 불일치 복구 조건을 적는다.
+- 성공 판정은 두 경계를 혼동하지 않는 것이다. 첫 실패는 probe 결과와 DB/audit evidence에서 확인한다.
+- 다음 lesson 진입 조건은 readiness 성공을 업무 성공으로 해석하지 않는 이유를 설명하는 것이다.

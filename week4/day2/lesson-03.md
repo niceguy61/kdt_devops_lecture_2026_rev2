@@ -7,6 +7,17 @@
 - Envoy Gateway를 Helm으로 설치하고 controller Pod, GatewayClass, CRD를 확인한다.
 - Docker reverse proxy 감각이 Kubernetes controller/data plane 구조로 어떻게 확장되는지 설명한다.
 
+## 수업 순서와 필수 vertical slice
+
+먼저 다음 두 흐름을 분리해서 읽는다.
+
+```text
+선언 경로: HTTPRoute → Service → EndpointSlice → Ready Pod
+반영 경로: Gateway controller → Envoy data plane
+```
+
+Gateway API object는 proxy 자체가 아니며, controller가 선언을 data plane 설정으로 반영한다. 필수 실습 순서는 `GatewayClass/controller 확인 → 최소 Gateway와 HTTPRoute 의미 확인 → 설치 상태 검증 → Gateway/Route condition → Service/EndpointSlice → curl`이다. Route를 아직 만들지 않은 단계의 404는 controller 실패가 아니라 route 부재일 수 있으므로, 설치 성공과 routing 성공을 별도 증거로 기록한다.
+
 ## Docker reverse proxy에서 Kubernetes Gateway로
 Docker Compose에서는 NGINX container 하나를 reverse proxy로 세우고 설정 파일에 route를 적는 방식이 흔했다.
 
@@ -237,3 +248,16 @@ curl -H "Host: paperclip.local" http://localhost:8080/
 ```text
 Gateway API는 traffic 의도를 선언하고, Envoy Gateway는 그 의도를 Envoy data plane으로 반영하는 controller다.
 ```
+
+
+## 학습 제어
+### 시작 3분 회상
+- 내부 Service DNS 호출과 외부 Gateway 호출의 증거 차이는 무엇인가?
+- GatewayClass, Gateway, controller, Envoy data plane의 책임은 무엇인가?
+### 오늘 반드시 가져갈 것
+- Gateway API object는 의도를 선언하고 controller/data plane이 실제 traffic 경로를 만든다.
+- 설치 성공은 release/Pod Ready와 Gateway condition을 함께 확인하는 것이다.
+### 최소 복구 경로
+- GatewayClass/controller를 확인한다 → Gateway status를 본다 → Service/EndpointSlice와 HTTP를 대조한다.
+- 성공 판정은 controller가 object를 Accepted/Programmed 상태로 만든 것이다. 첫 실패는 conditions와 controller logs에서 찾는다.
+- 다음 lesson 진입 조건은 HTTPRoute host/path 계약을 작성하는 것이다.
