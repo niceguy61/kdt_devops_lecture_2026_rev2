@@ -1,0 +1,24 @@
+# 2교시 · 당직자(oncall)는 devmart에서 '재시작'까지 — 장애 때 rollout restart만 허락
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: devmart-oncall
+  namespace: devmart
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]   # rollout restart는 읽고 나서 annotation을 patch한다
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devmart-oncall
+  namespace: devmart
+subjects:
+  - kind: User
+    name: minsu
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: devmart-oncall
+  apiGroup: rbac.authorization.k8s.io

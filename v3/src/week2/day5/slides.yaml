@@ -1,0 +1,403 @@
+meta:
+  footer: "2주차 5일차 · Docker Compose와 GitHub 협업"
+  title: "2주차 5일차 — Docker Compose와 GitHub 협업"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 2주차 핸즈온"
+    title: "Docker Compose와 GitHub 협업"
+    subtitle: "2주차 5일차 · compose.yaml · up/ps/logs/down · 헬스 체크 · 확장 · 브랜치 · Pull Request · 리뷰 · 충돌 · 2주차 회고"
+    notes: "오전: 어제의 명령 6개를 파일 하나로. 오후: 그 파일을 동료와 함께 고친다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "compose.yaml 읽기"]
+      - ["2교시", "2", "up · ps · logs · down과 헬스 체크"]
+      - ["3교시", "3", "Compose로 하는 일상 작업"]
+      - ["4교시", "4", "Git 브랜치"]
+      - ["5교시", "5", "Pull Request와 코드 리뷰 (짝)"]
+      - ["6교시", "6", "충돌 해결"]
+      - ["7교시", "7", "2주차 회고와 정리 + 배움일기"]
+    notes: "4교시 전에 짝을 정하고 GitHub 아이디를 교환하게 한다."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "compose.yaml 읽기"
+    goals: ["명령형 vs 선언형", "YAML 5분", "run 옵션 → compose", "config로 문법 검사"]
+    notes: "어제 스크립트의 한계에서 출발."
+
+  - type: compare
+    title: "명령형과 선언형 — 길 안내와 목적지"
+    left: ["명령형 (어제의 스크립트)", ["어떻게 — 명령과 순서", "두 번 실행하면 '이미 있다' 오류", "무엇을 다시 할지 내가 판단"]]
+    right: ["선언형 (오늘의 Compose)", ["무엇을 — 있어야 할 상태", "이미 그 상태면 아무것도 안 함 (멱등성)", "도구가 차이만 찾아 고친다", "K8s · ArgoCD · Terraform도 이 방식"]]
+    notes: "학술: CFEngine (Burgess 1993/1995) — 원하는 상태로 수렴. K8s 조정 루프의 뿌리."
+
+  - type: table
+    title: "YAML 5분"
+    head: ["규칙", "예", "주의"]
+    rows:
+      - ["이름: 값", "image: postgres:18", "콜론 뒤 공백 한 칸"]
+      - ["들여쓰기 = 소속", "services: → db: → image:", "공백 2칸, Tab 금지"]
+      - ["- 목록", "- \"8080:80\"", "-를 빠뜨리면 must be a list"]
+      - ["# 주석", "# 비밀번호는 .env에서", ""]
+    colw: [3.0, 4.8, 4.3]
+    mono_col: 1
+    callout: "YAML 오류의 90%는 들여쓰기 — VS Code 상태 표시줄의 Spaces: 2 확인"
+    notes: "3주차의 GitHub Actions와 Kubernetes도 모두 YAML."
+
+  - type: image
+    title: "어제의 docker run 옵션 → 오늘의 compose.yaml"
+    img: week2/day5/w2d5-run-to-compose.png
+    notes: "네트워크를 적지 않는다 — devmart_default 자동. 서비스 이름이 DNS 이름이라 nginx 설정과 DB_HOST를 고치지 않는다."
+
+  - type: code
+    title: "실습 1 · compose.yaml (db · catalog-api)"
+    shell: "VS Code — devmart/compose.yaml"
+    code: |
+      name: devmart
+      services:
+        db:
+          image: postgres:18
+          environment:
+            POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env 파일에 적어 주세요}
+          volumes:
+            - db-data:/var/lib/postgresql
+            - ./db/init:/docker-entrypoint-initdb.d:ro
+          healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U devmart -d devmart"]
+        catalog-api:
+          build: ./catalog-api
+          image: devmart/catalog-api:dev
+          depends_on:
+            db: { condition: service_healthy }
+    points:
+      - [":?", ".env에 없으면 멈춘다"]
+      - ["build:", "이미지가 없으면 직접 빌드"]
+      - ["ports 없음", "API와 DB는 바깥에 안 연다"]
+    notes: "슬라이드는 일부 생략. 전체는 교재. web 서비스는 ports 8080:80, 바인드 2개, depends_on catalog-api. 맨 아래 volumes: db-data:."
+
+  - type: statement
+    icon: History
+    title: "트렌드 — 오래된 Compose 예제 알아보기"
+    text: "version: \"3.8\" · docker-compose.yml · docker-compose (하이픈)\n→ 옛 자료의 세 가지 표시"
+    sub: "지금은 version 줄 없음 · compose.yaml · docker compose (CLI 플러그인) — Compose Specification 공개 표준"
+    notes: "docker compose config --quiet && echo '문법 OK'. --quiet 없이 실행하면 비밀번호가 채워진 결과가 화면에 나온다."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "up · ps · logs · down과 헬스 체크"
+    goals: ["한 줄로 띄우기", "이름 규칙", "로그와 exec", "down vs down -v"]
+    notes: "어제 6개 명령 → 오늘 1개."
+
+  - type: code
+    title: "실습 2 · 한 줄로 띄우기"
+    code: |
+      cd ~/devops-lab/devmart
+      docker compose up -d --build
+      docker compose ps
+    out: |
+      ✔ Network devmart_default          Created
+      ✔ Volume devmart_db-data           Created
+      ✔ Container devmart-db-1           Healthy
+      ✔ Container devmart-catalog-api-1  Started
+      ✔ Container devmart-web-1          Started
+    points:
+      - ["순서", "네트워크·볼륨 → db(healthy) → api → web"]
+      - ["에코백 12,000원", "새 볼륨 devmart_db-data — 초기화부터"]
+      - ["env compose", "APP_ENV: compose"]
+    notes: "순서를 적은 적이 없는데 depends_on을 보고 Compose가 정했다."
+
+  - type: table
+    title: "Compose가 붙이는 이름 — 프로젝트가 앞에"
+    head: ["대상", "규칙", "예"]
+    rows:
+      - ["컨테이너", "프로젝트-서비스-번호", "devmart-db-1"]
+      - ["네트워크", "프로젝트_default", "devmart_default"]
+      - ["볼륨", "프로젝트_볼륨", "devmart_db-data"]
+      - ["이미지 (build)", "image:에 적은 이름", "devmart/catalog-api:dev"]
+    colw: [2.6, 4.6, 4.9]
+    mono_col: 2
+    callout: "logs · exec · ps는 서비스 이름으로 — docker compose exec db psql -U devmart -d devmart"
+    notes: "docker compose logs -f catalog-api — HTTP/1.0은 nginx가 대신 요청했기 때문."
+
+  - type: compare
+    title: "실습 3~4 · 헬스 체크와 down"
+    left: ["stop db → start db", ["API는 503 (어제 5교시)", "(health: starting) → (healthy)", "depends_on은 시작 순서만", "실행 중 회복은 앱의 몫"]]
+    right: ["down vs down -v", ["stop: 멈춤, 모두 남음", "down: 컨테이너·네트워크 삭제, 볼륨 남음", "down -v: 볼륨(데이터)까지 삭제", "-v는 의도할 때만"]]
+    notes: "학술: Nygard 『Release It!』 — 통합 지점, Fail Fast, 타임아웃. 트렌드: Compose Bridge, Kompose — 그래도 3주차는 K8s 방식으로 다시 이해."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "Compose로 하는 일상 작업"
+    goals: ["무엇을 고쳤나", "바뀐 서비스만", "API 3개로", "어제 vs 오늘"]
+    notes: "'고쳤는데 왜 안 바뀌지?'의 답."
+
+  - type: image
+    title: "무엇을 고쳤느냐에 따라 할 일이 다르다"
+    img: week2/day5/w2d5-change-flow.png
+    notes: "웹 파일 → 새로 고침, 환경 변수 → up -d, 코드 → up -d --build, 초기화 SQL → down -v."
+
+  - type: code
+    title: "실습 5 · 설정과 코드 바꾸기"
+    code: |
+      # compose.yaml: APP_VERSION: 1.1.0-dev 추가
+      docker compose up -d
+      # app.py: owner="내아이디", 추가
+      docker compose up -d                  # owner 없음!
+      docker compose up -d --build catalog-api
+      curl -s http://localhost:8080/api/info
+    out: |
+      ✔ Image devmart/catalog-api:dev    Built
+      ✔ Container devmart-catalog-api-1  Recreated
+      {"env":"compose","owner":"내아이디","version":"1.1.0-dev",…}
+    points:
+      - ["catalog-api만", "db · web은 Running 그대로"]
+      - ["--build", "코드는 이미지 안"]
+      - ["502?", "docker compose restart web"]
+    notes: "nginx는 upstream 이름을 시작할 때 한 번만 찾는다. 운영은 resolver 설정 또는 K8s Service."
+
+  - type: code
+    title: "실습 6 · API를 3개로"
+    code: |
+      docker compose up -d --scale catalog-api=3
+      docker compose restart web
+      for i in 1 2 3 4 5 6; do
+        curl -s http://localhost:8080/api/info | grep -o '"hostname":"[^"]*"'
+      done
+      docker compose up -d --scale catalog-api=1
+    out: |
+      "hostname":"c2022e9bc2d7"
+      "hostname":"226fefc99f9e"
+      "hostname":"d8ec2f24f936"
+    points:
+      - ["ports 없음", "그래서 3개도 충돌 없이"]
+      - ["DNS 라운드 로빈", "이름 하나에 IP 3개"]
+      - ["한 대의 컴퓨터", "죽으면 그대로 → 3주차 K8s"]
+    notes: "학술: RFC 1794 (Brisco 1995) DNS 부하 분산 — 죽은 서버를 모르고, 클라이언트가 주소를 기억하면 반영 못 함. 트렌드: Compose Watch."
+
+  - type: table
+    title: "어제 vs 오늘"
+    head: ["하고 싶은 것", "어제 (손 명령)", "오늘 (Compose)"]
+    rows:
+      - ["전부 띄우기", "명령 6개 + 순서 기억", "docker compose up -d"]
+      - ["API만 새 코드로", "rm → build → run (옵션 다시)", "up -d --build catalog-api"]
+      - ["API 3개로", "run 3번, 이름 3개", "--scale catalog-api=3"]
+      - ["로그", "컨테이너마다", "docker compose logs"]
+      - ["동료에게 전달", "명령을 메신저로", "compose.yaml을 Git으로"]
+    colw: [3.0, 4.4, 4.7]
+    callout: "실행 방법이 파일이 되었다 → 버전 관리 · 리뷰 · 함께 고치기 (오후)"
+    callout_color: orange
+    notes: "git add devmart/compose.yaml devmart/catalog-api/app.py — .env가 없는지 확인 후 커밋."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "Git 브랜치"
+    goals: ["모두가 main에?", "브랜치 = 이름표", "switch · merge · branch -d", "짧게, 자주"]
+    notes: "원고와 연습장 비유."
+
+  - type: image
+    title: "브랜치 — 갈라져 작업하고 다시 합친다"
+    img: week2/day5/w2d5-branch.png
+    notes: "Git 브랜치는 파일을 복사하지 않는다 — 마지막 커밋을 가리키는 이름표 (1일차 3교시 내용 주소)."
+
+  - type: code
+    title: "실습 7 · 브랜치에서 바닥글 달기"
+    code: |
+      git switch -c feature/footer
+      # index.html: </main> 아래 <footer>…</footer>
+      git commit -am "웹: 바닥글 추가"
+      git switch main && grep -c footer devmart/web/index.html
+      git merge feature/footer && git push
+      git branch -d feature/footer
+    out: |
+      0
+      Updating 7dbcc1a..db271c8
+      Fast-forward
+      Deleted branch feature/footer (was db271c8).
+    points:
+      - ["0", "main에는 아직 없다 — 파일이 바뀐다"]
+      - ["Fast-forward", "main 이름표를 앞으로 옮기기만"]
+      - ["switch 전에", "git status가 clean인지"]
+    notes: "checkout -b = switch -c (Git 2.23부터 switch/restore로 분리)."
+
+  - type: table
+    title: "브랜치 전략 — 이 과정은 GitHub Flow"
+    head: ["방식", "모양", "특징"]
+    rows:
+      - ["GitHub Flow", "main + 짧은 feature/…", "브랜치 → PR → 리뷰 → 병합 → 배포"]
+      - ["트렁크 기반", "아주 짧은 브랜치를 하루 안에", "고성과 팀의 특징 (Accelerate)"]
+      - ["Git Flow", "main · develop · release · hotfix", "정해진 날 배포하는 제품, 브랜치가 오래 산다"]
+    colw: [2.6, 4.6, 4.9]
+    callout: "학술: Forsgren · Humble · Kim (2018) — 브랜치 3개 이하, 하루 이내 병합 · 트렌드: 머지 큐"
+    notes: "오래 사는 브랜치일수록 충돌이 커진다(6교시)."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "Pull Request와 코드 리뷰"
+    goals: ["PR = 결재 요청서", "협업자 초대", "PR 열기 · 리뷰 · 병합", "좋은 리뷰 코멘트"]
+    notes: "짝 실습. A와 B가 역할을 바꿔 두 번."
+
+  - type: image
+    title: "GitHub Flow — PR의 한 바퀴"
+    img: week2/day5/w2d5-pr-flow.png
+    notes: "GitLab은 Merge Request(MR). 내 PR은 내가 승인할 수 없다."
+
+  - type: steps
+    title: "실습 8 · 짝 실습 준비"
+    steps:
+      - ["협업자 초대 (A)", "저장소 Settings → Collaborators → Add people → 짝 아이디"]
+      - ["초대 수락 (B)", "알림 또는 github.com/A/devops-lab/invitations → Accept"]
+      - ["PR 템플릿", ".github/pull_request_template.md — 무엇을 · 왜 · 어떻게 확인 · 봐 줄 곳"]
+    notes: "협업자는 쓰기 권한. 실습 후 빼도 된다. 회사는 Organization과 팀으로."
+
+  - type: code
+    title: "실습 9~11 · PR 열고, 리뷰하고, 병합"
+    code: |
+      git switch -c feature/add-socks          # A: 01-schema.sql에 ('양말 세트', 9000)
+      docker compose down -v && docker compose up -d
+      git commit -am "상품: 양말 세트 추가" && git push -u origin feature/add-socks
+      gh pr create --web                        # 템플릿 채우고 Reviewer = 짝
+      gh pr view 1 -R A아이디/devops-lab --web    # B: Files changed → + 코멘트
+      gh pr review 1 -R A아이디/devops-lab --approve -b "확인했습니다. 승인!"
+      gh pr merge 1 --squash --delete-branch      # A
+    out: |
+      ✓ Squashed and merged pull request 내아이디/devops-lab#1 (상품: 양말 세트 추가)
+      ✓ Deleted local branch feature/add-socks and switched to branch main
+    points:
+      - ["같은 브랜치에 push", "PR이 자동 갱신"]
+      - ["(#1)", "커밋에서 PR 대화로 거슬러 간다"]
+      - ["도전", "Rulesets — main에 PR 필수"]
+    notes: "-u = upstream 연결. 역할을 바꿔 B는 목도리(15,000원)."
+
+  - type: table
+    title: "좋은 리뷰 코멘트"
+    head: ["덜 좋은", "더 좋은"]
+    rows:
+      - ["이상해요", "9,000원이 에코백보다 싼데 의도한 가격인지 궁금합니다"]
+      - ["이렇게 하면 안 됩니다", "; 가 두 번 들어가면 SQL 오류가 날 것 같아요. 확인 부탁드려요"]
+      - ["(말 없이 Approve)", "down -v → up으로 카드 6개 확인했습니다. 승인!"]
+      - ["제 스타일은 이게 아니에요", "(사소) '양말 3종 세트'가 더 구체적일 것 같아요. 그대로도 OK"]
+    colw: [3.8, 8.3]
+    callout: "코드를 말하고 · 질문으로 · 중요도를 밝혀서 — 1주차 5일차의 비난 없는 문화"
+    notes: "학술: Sadowski et al. (ICSE 2018) 구글 — 작은 변경, 리뷰어 한 명, 몇 시간 안 응답, 가치는 지식 공유. 'Approve once it improves overall code health.' 트렌드: CI · 보안 도구 · AI 리뷰어, CODEOWNERS."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "충돌 해결"
+    goals: ["언제 충돌하나", "PR 두 개로 만들기", "표시 읽고 풀기", "줄이는 습관"]
+    notes: "같은 문장에 다른 빨간 펜."
+
+  - type: table
+    title: "충돌은 언제 생기나"
+    head: ["상황", "결과"]
+    rows:
+      - ["다른 파일을 고침", "자동 병합"]
+      - ["같은 파일, 다른 줄", "자동 병합"]
+      - ["같은 파일, 같은 줄을 다르게", "충돌 — 사람이 골라야 함"]
+      - ["한쪽은 고치고, 한쪽은 지움", "충돌"]
+    colw: [6.0, 6.1]
+    notes: "충돌 = 여러 사람이 동시에 일한다는 증거. 잘못이 아니다."
+
+  - type: image
+    title: "같은 줄, 다른 변경 — Git이 두 버전을 나란히 적는다"
+    img: week2/day5/w2d5-conflict.png
+    notes: "feature/title-cart(🛒)를 먼저 병합 → feature/title-sale PR에 'This branch has conflicts'."
+
+  - type: code
+    title: "실습 12~13 · 충돌 만들고 풀기"
+    code: |
+      git switch main && git pull
+      git switch feature/title-sale
+      git merge main
+      code devmart/web/index.html        # 표시 줄 삭제, 한 줄로
+      grep -n "<<<<<<<\|>>>>>>>\|=======" devmart/web/index.html || echo "충돌 표시 없음"
+      git add devmart/web/index.html && git commit --no-edit && git push
+      gh pr merge feature/title-sale --squash --delete-branch
+    out: |
+      CONFLICT (content): Merge conflict in devmart/web/index.html
+      충돌 표시 없음
+    points:
+      - ["HEAD", "지금 내 브랜치"]
+      - ["main", "들어오는 쪽"]
+      - ["--abort", "처음부터 다시"]
+    notes: "결과: <h1>DevMart 🛒 — 겨울 세일</h1>. --no-edit를 빼먹으면 vim → Esc :wq."
+
+  - type: compare
+    title: "충돌을 줄이는 습관 · 충돌 없음 ≠ 문제 없음"
+    left: ["습관", ["시작 전 switch main && pull", "브랜치는 작게, 짧게", "오래 걸리면 중간에 merge main", "같은 파일을 크게 고치기 전 공유"]]
+    right: ["고차 충돌 (Brun et al. 2011)", ["글자는 깨끗이 합쳐져도", "함수 이름 변경 + 옛 이름 호출 → 실행 실패", "합친 결과를 실행해서 확인", "3주차부터 CI가 자동으로"]]
+    notes: "트렌드: VS Code 3-way 병합 편집기(Resolve in Merge Editor). AI 제안도 판단과 실행 확인은 사람."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "2주차 회고와 정리"
+    goals: ["한 장 요약", "동료의 DevMart 실행", "KPT 회고", "디스크 정리 · 3주차 예고"]
+    notes: "결론: clone + .env + compose up = 어디서든 같은 DevMart."
+
+  - type: image
+    title: "2주차 한 장 요약"
+    img: week2/day5/w2d5-week2-map.png
+    notes: "실습 14: 짝 저장소 clone → cp .env.example .env → compose up. 내 DevMart를 먼저 down (8080 충돌)."
+
+  - type: table
+    title: "실습 15 · KPT 회고"
+    head: ["", "질문", "예"]
+    rows:
+      - ["Keep", "잘된 것, 계속할 것", "에러가 나면 로그부터 보는 습관"]
+      - ["Problem", "아쉬운 것, 막혔던 것", "YAML 들여쓰기로 20분 (사람이 아니라 상황으로)"]
+      - ["Try", "다음 주에 해 볼 것 — 구체적으로", "커밋 전 docker compose config --quiet"]
+    colw: [1.8, 4.2, 6.1]
+    callout: "retro/week2.md → 브랜치 → PR → 짝 리뷰 → 병합 · 최우선 지침(Kerth 2001): 모두 그때 최선을 다했다"
+    notes: "학술: Kerth Prime Directive, Derby & Larsen 애자일 회고. 트렌드: DORA 지표를 회고에 — PR 리드 타임, 리뷰 대기."
+
+  - type: code
+    title: "정리 — 노트북 비우기"
+    code: |
+      docker system df
+      docker compose down
+      docker volume rm devmart-db
+      docker image rm hello-go:single
+      docker image prune
+      docker builder prune
+    out: |
+      TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+      Images          14        3         3.1GB     2.0GB (64%)
+      Local Volumes   3         1         180MB     95MB (52%)
+      Build Cache     41        0         820MB     820MB
+    points:
+      - ["남길 것", "catalog-api 이미지 · postgres · nginx · devmart_db-data"]
+      - ["쓰지 않기", "system prune -a --volumes"]
+    notes: "짝을 협업자에서 빼도 된다(3주차 짝 실습 예정이면 유지)."
+
+  - type: table
+    title: "3주차 예고 — Compose에서 Kubernetes로"
+    head: ["2주차 (Compose)", "3주차 (Kubernetes)"]
+    rows:
+      - ["서비스 catalog-api", "Deployment + Service"]
+      - ["--scale catalog-api=3", "replicas: 3 — 죽으면 자동으로 다시"]
+      - ["environment / .env", "ConfigMap / Secret"]
+      - ["볼륨 db-data", "PersistentVolumeClaim"]
+      - ["healthcheck", "readiness / liveness probe"]
+      - ["nginx 프록시 · PR 사람 리뷰", "Ingress · PR마다 GitHub Actions CI"]
+    colw: [5.0, 7.1]
+    notes: "오늘의 catalog-api 이미지와 compose.yaml 구조가 3주차 출발점."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "compose.yaml — 어떻게가 아니라 무엇을 (선언형)"]
+      - ["2교시", "up · ps · logs · exec · down — db(healthy) → api → web"]
+      - ["3교시", "설정은 up, 코드는 --build, --scale로 3개"]
+      - ["4교시", "브랜치 = 이름표, 짧게 자주"]
+      - ["5교시", "PR → 리뷰 → 승인 → 병합 (짝과)"]
+      - ["6~7교시", "충돌 풀기 · KPT 회고 · 동료의 DevMart를 내 노트북에서"]
+    diary: "배움일기 — compose 한 서비스를 어제의 run 옵션과 연결 · 선언형을 내 비유로 · 기억에 남는 리뷰 코멘트 · 충돌에서 양쪽 의도 확인법 · 2주차에 할 수 있게 된 것 세 가지"
+    notes: "수고했습니다. 3주차는 Kubernetes와 CI."

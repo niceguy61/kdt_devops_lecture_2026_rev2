@@ -1,0 +1,13 @@
+# EBS gp3를 기본 StorageClass로 — PVC를 만들면 EBS CSI 드라이버가 볼륨을 만든다
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer # Pod가 놓일 AZ가 정해진 뒤에 볼륨을 만든다
+reclaimPolicy: Delete                    # PVC를 지우면 EBS도 지운다
+parameters:
+  type: gp3
+  encrypted: "true"

@@ -1,0 +1,451 @@
+meta:
+  footer: "2주차 1일차 · 개발 환경 세팅과 Git 첫걸음"
+  title: "2주차 1일차 — 개발 환경 세팅과 Git 첫걸음"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 2주차 첫 핸즈온"
+    title: "개발 환경 세팅과 Git 첫걸음"
+    subtitle: "2주차 1일차 · WSL2 · VS Code · Git · GitHub 인증 · 첫 push · Docker Desktop · 설치 점검"
+    notes: "오늘의 목표: 하루가 끝날 때 모두의 노트북에서 hello-world가 성공하고, GitHub에 첫 커밋이 올라가 있는 것. 설치는 개인차가 크니 먼저 끝난 학생이 옆 학생을 돕게 한다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "1주차 요약 + WSL2 / Mac 터미널"]
+      - ["2교시", "2", "터미널과 VS Code"]
+      - ["3교시", "3", "Git 설치와 설정"]
+      - ["4교시", "4", "GitHub 계정과 인증 (gh)"]
+      - ["5교시", "5", "첫 저장소 — commit과 push"]
+      - ["6교시", "6", "Docker Desktop 설치"]
+      - ["7교시", "7", "설치 점검과 문제 해결 + 배움일기"]
+    notes: "8교시는 배움일기."
+
+  - type: cards
+    title: "핸즈온을 대하는 다섯 가지 약속"
+    cards:
+      - [Footprints, teal, "한 단계씩", "실행 → 확인 박스와 비교 → 다음"]
+      - [Bug, orange, "에러는 정상", "'막혔다면' 표 → 다섯 줄 질문"]
+      - [BookOpen, violet, "읽고 붙여 넣기", "무엇을 하는 명령인지 한 번 읽는다"]
+      - [KeyRound, red, "비밀값 금지", "채팅·스크린샷·저장소·AI 어디에도"]
+      - [Trash2, green, "끝나면 정리", "실습마다 정리 박스"]
+    notes: "이 다섯 가지는 4주 내내 반복해서 말한다."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "1주차 요약 + 작업 환경 준비"
+    goals: ["1주차 10분 요약", "2주차 흐름 — DevMart", "Windows: WSL2 + Ubuntu", "Mac: 터미널 + Homebrew"]
+    notes: "Mac 사용자는 Windows 실습 동안 Homebrew 설치를 먼저 진행."
+
+  - type: table
+    title: "1주차 10분 요약"
+    head: ["일차", "한 문장", "오늘부터 쓰는 곳"]
+    rows:
+      - ["1일차", "클라우드는 남의 컴퓨터를 쓴 만큼 빌린다", "5주차 AWS"]
+      - ["2일차", "컨테이너 = 격리된 프로세스", "이번 주 내내"]
+      - ["3일차", "IP는 건물, 포트는 호실, DNS는 전화번호부", "-p 8080:80"]
+      - ["4일차", "애플리케이션 = 코드 + 실행 조건", "Dockerfile"]
+      - ["5일차", "Git으로 기록, PR로 협업, 문서로 남긴다", "오늘 5교시"]
+    colw: [1.8, 6.4, 3.9]
+    notes: "학생에게 먼저 말해 보게 하기."
+
+  - type: image
+    title: "2주차의 흐름 — 앱 하나의 여행"
+    img: week2/day1/w2d1-week-flow.png
+    notes: "DevMart는 1주차 4일차 '상품 페이지 분해' 그림을 실제 코드로 만든 것. 3주차 MSA, 4주차 K8s, 5주차 AWS까지 같은 앱이 이동한다."
+
+  - type: image
+    title: "오늘 만들 작업 환경"
+    img: week2/day1/w2d1-workbench.png
+    callout: "Windows에서 Linux를 쓰는 이유 — 서버와 컨테이너가 Linux이고, 교재·현업 문서와 같은 명령을 쓰기 위해"
+    notes: "WSL2는 Windows 안에 진짜 Linux 커널을 띄운다(1주차 2일차 하이퍼바이저)."
+
+  - type: table
+    title: "명령은 어느 창에? — PowerShell과 bash"
+    head: ["창", "프롬프트", "언제"]
+    rows:
+      - ["PowerShell (Windows)", "PS C:\\Users\\me>", "WSL 설치 · winget으로 Windows 앱 설치 — 몇 번뿐"]
+      - ["bash (WSL Ubuntu · Mac 터미널)", "me@PC:~$  ·  me@Mac ~ %", "나머지 전부 — 5주 내내"]
+      - ["CLI 도구 설치", "bash", "Windows도 WSL 안에 (winget판은 PowerShell에서만 보임)"]
+    notes: "코드 블록 오른쪽 위 표시로 창을 구분한다. 치기 전에 프롬프트를 본다: PS면 PowerShell, $면 bash. Homebrew · winget · 직접 다운로드 등 다른 설치 방법은 부록 A 도구 설치 가이드."
+
+  - type: code
+    title: "실습 1 · WSL2와 Ubuntu 설치 (Windows)"
+    shell: "PowerShell (관리자) → Ubuntu"
+    code: |
+      # 0) 작업 관리자 → 성능 → CPU → '가상화: 사용' 확인
+      # 1) 관리자 PowerShell
+      wsl --install -d Ubuntu-24.04
+      # 2) 재시작 → Ubuntu 사용자 이름·비밀번호 만들기
+      wsl -l -v
+      # 3) Ubuntu 터미널
+      whoami
+      uname -r
+      sudo apt update && sudo apt upgrade -y
+    out: |
+      * Ubuntu-24.04    Running    2
+      devops
+      6.6.87.2-microsoft-standard-WSL2
+    points:
+      - ["VERSION 2", "1이면 wsl --set-version Ubuntu-24.04 2"]
+      - ["비밀번호", "입력할 때 화면에 안 보이는 것이 정상"]
+      - ["&&", "앞 명령이 성공(종료 코드 0)일 때만 뒤를 실행"]
+    notes: "0x80370102 = 가상화 꺼짐 → 강사에게. Invalid distribution name → wsl --update. sudo 비밀번호 분실 → wsl -u root → passwd 사용자명."
+
+  - type: code
+    title: "실습 2 · Mac — 터미널과 Homebrew"
+    shell: "터미널 (zsh)"
+    code: |
+      # Command + Space → '터미널'
+      whoami
+      uname -m          # arm64 = Apple Silicon, x86_64 = Intel
+      # brew.sh 첫 화면의 설치 명령을 그대로 복사해 실행
+      # 설치 끝의 'Next steps' 두 줄도 실행
+      brew --version
+    out: |
+      arm64
+      Homebrew 4.x.x
+    points:
+      - ["칩 확인", "Docker Desktop을 받을 때 고른다 (1주차 ARM vs x86)"]
+      - ["공식 페이지에서 복사", "설치 명령은 바뀔 수 있다"]
+    notes: "Next steps를 빼먹으면 brew: command not found."
+
+  - type: statement
+    icon: Lightbulb
+    title: "학술 노트 — 생산적 실패 (Kapur, 2008)"
+    text: "먼저 시도하다 실패한 뒤 정리한 학생이\n개념을 더 깊이 이해하고 더 잘 응용한다"
+    sub: "핵심은 실패 후 '왜 실패했는지' 정리하는 단계 — 그래서 모든 실습에 '막혔다면' 표가 있고, 7교시에는 일부러 실패해 본다"
+    notes: "Kapur (2008) Cognition and Instruction; Kapur (2016) Educational Psychologist."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "터미널과 VS Code"
+    goals: ["기본 명령 손에 익히기", "~/devops-lab 만들기", "VS Code + WSL 확장", "code . 과 내장 터미널"]
+    notes: "1주차 2일차 5교시 시연을 이제 직접."
+
+  - type: table
+    title: "터미널 기본 명령"
+    head: ["명령", "뜻", "기억하는 법"]
+    rows:
+      - ["pwd", "지금 있는 폴더", "print working directory"]
+      - ["ls -la", "숨김 파일까지 자세히", "list"]
+      - ["cd ~ / cd ..", "홈으로 / 한 칸 위로", "change directory"]
+      - ["mkdir -p 경로", "폴더 만들기 (중간까지)", "make directory"]
+      - ["echo \"글\" > 파일", "파일에 쓰기 (>>는 덧붙이기)", "출력 방향 바꾸기"]
+      - ["cat 파일", "파일 내용 보기", "concatenate"]
+    colw: [3.2, 4.6, 4.3]
+    mono_col: 0
+    callout: "Tab = 자동 완성 (오타 방지) · ↑ = 이전 명령 다시 불러오기"
+    notes: "손으로 직접 쳐 보게 한다."
+
+  - type: code
+    title: "실습 3 · 작업 폴더 만들기"
+    code: |
+      cd ~
+      pwd
+      mkdir -p ~/devops-lab
+      cd ~/devops-lab
+      echo "안녕, DevOps" > hello.txt
+      cat hello.txt
+      ls -la
+    out: |
+      /home/devops
+      안녕, DevOps
+      -rw-r--r-- 1 devops devops   17 Nov 30 10:12 hello.txt
+    points:
+      - ["~ = 홈", "Mac은 /Users/내이름"]
+      - ["-rw-r--r--", "1주차 2일차의 권한 표기"]
+      - ["/mnt/c 금지", "Windows 쪽에 두면 Docker·Git이 느려지고 꼬인다"]
+    notes: "Windows 탐색기로 보고 싶으면 explorer.exe ."
+
+  - type: code
+    title: "실습 4 · VS Code와 연결"
+    code: |
+      # 1) code.visualstudio.com 에서 설치 (Windows는 Windows에)
+      # 2) 확장: WSL (Windows만), Container Tools
+      # 3) Mac만: Command+Shift+P → Shell Command: Install 'code'
+      cd ~/devops-lab
+      code .
+      # VS Code 안 터미널: Ctrl + `
+      pwd
+    out: |
+      /home/devops/devops-lab
+    points:
+      - ["code .", ". = 지금 폴더를 연다"]
+      - ["왼쪽 아래 WSL 표시", "WSL: Ubuntu-24.04 가 보여야 Linux 파일을 직접 다룬다"]
+      - ["처음엔 느림", "WSL 안에 VS Code 서버 설치 중 (1~2분)"]
+    notes: "code: command not found → 설치 시 PATH 추가 확인, 재로그인."
+
+  - type: compare
+    title: "학술 노트 · 트렌드 — 셸과 편집기"
+    left: ["셸은 왜 아직도 (Bourne, 1979)", ["본 셸 = 명령 도구이자 프로그래밍 언어", "bash(1989), zsh의 조상", "명령은 파일에 적으면 스크립트", "→ 런북, Dockerfile, CI는 명령의 목록"]]
+    right: ["편집기 안으로 들어온 AI", ["코드 제안, 명령 대신 실행", "여러 파일을 고치는 코딩 에이전트", "AI가 실행할 명령을 읽고 허락", "비밀값은 AI 대화창에 붙여 넣지 않기"]]
+    notes: "Bourne (1978) Bell System Technical Journal. Stack Overflow 2026: AI 사용자 다수가 코딩 에이전트 사용."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "Git 설치와 설정"
+    goals: ["Git 설치", "이름 · 이메일", "기본 브랜치 · 편집기", "설정은 파일이다"]
+    notes: "커밋의 '누가'를 Git에게 알려 주는 시간."
+
+  - type: code
+    title: "실습 5 · Git 설치와 설정"
+    code: |
+      sudo apt install -y git          # Mac: brew install git
+      git --version
+      git config --global user.name "홍길동"
+      git config --global user.email "gildong@example.com"
+      git config --global init.defaultBranch main
+      git config --global core.editor "code --wait"
+      git config --global core.autocrlf input   # Windows WSL만
+      git config --global --list
+      cat ~/.gitconfig
+    out: |
+      user.name=홍길동
+      user.email=gildong@example.com
+      init.defaultbranch=main
+    points:
+      - ["이름·이메일", "모든 커밋에 영구히, 공개적으로 남는다"]
+      - ["noreply 이메일", "GitHub Settings → Emails에서 가림용 주소"]
+      - ["autocrlf input", "줄바꿈을 LF로 — 컨테이너 스크립트 에러 방지"]
+    notes: "Mac에서 xcode-select 창이 뜨면 설치 후 다시."
+
+  - type: table
+    title: "설정의 세 범위 — 좁은 범위가 이긴다"
+    head: ["범위", "옵션", "저장 위치"]
+    rows:
+      - ["시스템", "--system", "/etc/gitconfig"]
+      - ["사용자", "--global", "~/.gitconfig"]
+      - ["저장소", "(없음)", "저장소 안 .git/config"]
+    colw: [2.6, 3.4, 6.1]
+    mono_col: 2
+    callout: "회사 저장소에서만 회사 이메일 → 그 저장소 안에서 --global 없이 설정"
+    notes: "git config 명령은 결국 텍스트 파일 하나를 고치는 것."
+
+  - type: statement
+    icon: Fingerprint
+    title: "학술 노트 — 내용으로 이름 짓기"
+    text: "Git은 파일을 '내용의 지문(해시)'으로 저장한다\n한 글자만 바뀌어도 이름이 완전히 바뀐다"
+    sub: "같은 내용은 한 번만 저장 · 몰래 바뀌면 들통 · 비교가 빠르다 — 내일 Docker 이미지 레이어, 3일차 다이제스트(sha256:…)도 같은 원리"
+    notes: "Content-addressable storage. Merkle (1987). 트렌드: SSH 키로 커밋 서명 → GitHub Verified 표시."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "GitHub 계정과 인증"
+    goals: ["계정과 2단계 인증", "비밀번호 대신 토큰", "gh auth login", "토큰은 어디에 저장되나"]
+    notes: "GitHub은 2021년 8월부터 Git 작업에서 비밀번호를 받지 않는다."
+
+  - type: table
+    title: "비밀번호 대신 토큰"
+    head: ["방식", "비유", "특징"]
+    rows:
+      - ["계정 비밀번호", "집 열쇠 원본", "유출되면 모든 것이 열린다 → Git에서 사용 불가"]
+      - ["토큰 (PAT)", "용도·기간이 정해진 출입증", "범위·만료일 지정, 언제든 폐기"]
+      - ["SSH 키", "전용 열쇠 쌍", "편하지만 첫 설정이 조금 어렵다"]
+    colw: [2.6, 3.6, 5.9]
+    callout: "토큰 = 로그인된 상태 그 자체 — 채팅·스크린샷·코드·AI 대화창에 절대 붙여 넣지 않는다"
+    callout_color: orange
+    notes: "오늘은 gh가 브라우저 로그인으로 토큰을 받아 저장하고 Git에 연결하게 한다 — 복사·붙여넣기 노출 사고를 줄이는 길."
+
+  - type: code
+    title: "실습 6~7 · 계정, 2FA, gh 로그인"
+    code: |
+      # github.com 가입 → Settings → Password and authentication
+      #   → Two-factor authentication 켜기, 복구 코드 보관
+      sudo apt install -y gh            # Mac: brew install gh
+      gh auth login
+      #   GitHub.com → HTTPS → Yes → Login with a web browser
+      #   github.com/login/device 에 8자리 코드 입력
+      gh auth status
+      git config --global --list | grep credential
+    out: |
+      ✓ Logged in to github.com account 내아이디
+      - Token: gho_************************************
+      credential.https://github.com.helper=!/usr/bin/gh auth git-credential
+    points:
+      - ["username", "포트폴리오 주소가 된다"]
+      - ["브라우저가 안 열리면", "직접 github.com/login/device"]
+      - ["WSL의 토큰", "~/.config/gh/hosts.yml (평문) — 공유 금지"]
+    notes: "credential 줄이 없으면 gh auth setup-git. code expired면 처음부터."
+
+  - type: compare
+    title: "학술 노트 · 트렌드 — 비밀번호의 오래된 문제"
+    left: ["Morris & Thompson (1979)", ["실제 비밀번호 상당수가 추측 가능", "해시 + 솔트로 저장하기를 퍼뜨림", "인증 요소: 아는 것·가진 것·나 자신", "2FA = 아는 것 + 가진 것"]]
+    right: ["패스키와 짧게 사는 토큰", ["패스키 — 입력할 비밀번호 자체가 없다", "피싱에 강하다", "서버 간에는 몇 분짜리 임시 토큰", "→ 3주차 Actions, 5주차 AWS의 OIDC"]]
+    notes: "Morris & Thompson (1979) CACM 22(11). NIST SP 800-63B-4 (2024)."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "첫 저장소 — commit과 push"
+    goals: ["git init과 status", "README · .gitignore · 첫 커밋", "gh repo create --push", "한 바퀴 더"]
+    notes: "앞으로 수백 번 돌 바퀴."
+
+  - type: image
+    title: "Git 한 바퀴"
+    img: week2/day1/w2d1-git-loop.png
+    notes: "막히면 언제나 git status. Git이 다음에 할 명령을 알려 준다."
+
+  - type: code
+    title: "실습 8 · 첫 커밋"
+    code: |
+      cd ~/devops-lab
+      git init
+      git status
+      # VS Code: README.md, .gitignore 만들기 (교재 내용 붙여 넣기)
+      git add README.md .gitignore hello.txt
+      git commit -m "실습 저장소 시작: README와 .gitignore 추가"
+      git log --oneline
+    out: |
+      Initialized empty Git repository in /home/devops/devops-lab/.git/
+      [main (root-commit) 3f2a1c9] 실습 저장소 시작: README와 .gitignore 추가
+       3 files changed, 22 insertions(+)
+    points:
+      - [".git", "저장소의 모든 기록 — 건드리지 않는다"]
+      - ["Untracked", "아직 Git이 지켜보지 않는 파일"]
+      - [".gitignore", ".env, *.pem, *.key — 첫 커밋부터 막는다"]
+    notes: "3f2a1c9 = 커밋의 해시, 사람마다 다르다."
+
+  - type: code
+    title: "실습 9~10 · GitHub에 올리고 한 바퀴 더"
+    code: |
+      gh repo create devops-lab --public --source=. --remote=origin --push
+      git remote -v
+      gh repo view --web
+      # README 표에 한 줄 추가 → 저장
+      git status
+      git diff
+      git add README.md
+      git commit -m "README에 실습 기록 추가"
+      git push
+    out: |
+      ✓ Created repository 내아이디/devops-lab on github.com
+      ✓ Pushed commits to https://github.com/내아이디/devops-lab.git
+         3f2a1c9..8b7e4d2  main -> main
+    points:
+      - ["--public", "전 세계 공개 — push 전 30초 점검"]
+      - ["git diff", "+ 추가, - 삭제 · q로 빠져나오기"]
+      - ["origin", "원격 저장소의 관례적인 별명"]
+    notes: "Authentication failed → gh auth setup-git. rejected (fetch first) → git pull 후 push (5일차)."
+
+  - type: compare
+    title: "학술 노트 · 트렌드 — 좋은 커밋"
+    left: ["작은 커밋 (Bacchelli & Bird, 2013)", ["리뷰어가 가장 어려운 것 = 맥락 파악", "한 커밋에 한 가지 변경", "git bisect로 원인 커밋 찾기 쉬움", "'방금 무엇이 바뀌었나'에 빨리 답한다"]]
+    right: ["Conventional Commits", ["feat: / fix: / docs: 로 종류 표시", "CHANGELOG·버전 자동화", "AI가 메시지를 제안해 주기도", "'왜'는 사람만 안다 — 꼭 확인"]]
+    notes: "Bacchelli & Bird (2013) ICSE. conventionalcommits.org"
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "Docker Desktop 설치"
+    goals: ["Docker의 부품", "Windows: 설치 + WSL 연동", "Mac: 칩에 맞게 설치", "docker version — Client와 Server"]
+    notes: "Linux 노트북 수강생은 교재의 Docker Engine 설치 절차."
+
+  - type: image
+    title: "Docker는 무엇으로 이루어져 있나"
+    img: week2/day1/w2d1-docker-arch.png
+    callout: "Windows·Mac 커널에는 컨테이너 기능이 없다 → Docker Desktop이 숨은 Linux VM을 띄운다"
+    notes: "CLI=주문서, Engine=주방, containerd·runc=조리 도구, 레지스트리=창고."
+
+  - type: code
+    title: "실습 11 · Windows — Docker Desktop + WSL 연동"
+    shell: "Windows → Ubuntu"
+    code: |
+      # 1) Docker Desktop for Windows 설치
+      #    'Use WSL 2 instead of Hyper-V' 체크 → 재로그인
+      # 2) 실행 → 약관 동의 → 로그인 Skip → Engine running
+      # 3) Settings → Resources → WSL integration
+      #    → Ubuntu-24.04 켜기 → Apply & restart
+      # 4) 새 Ubuntu 터미널
+      docker version
+    out: |
+      Client:
+       Version:           29.x.x
+      Server: Docker Desktop 4.x.x
+       Engine:
+        Version:          29.x.x
+    points:
+      - ["WSL 안에 또 설치 금지", "apt install docker.io 하면 충돌"]
+      - ["Client + Server", "둘 다 나와야 성공"]
+    notes: "Mac: 칩에 맞는 파일(arm64=Apple silicon) → Applications → 실행 → docker version. Linux: docker 그룹 = root급 권한."
+
+  - type: table
+    title: "막혔다면 — Docker 설치"
+    head: ["증상", "해결"]
+    rows:
+      - ["docker: command not found (WSL)", "WSL integration에서 Ubuntu 켜기 → 새 터미널"]
+      - ["failed to connect to the docker API", "Docker Desktop 켜고 Engine running 대기"]
+      - ["WSL update failed", "PowerShell에서 wsl --update"]
+      - ["Virtualization support not detected", "BIOS 가상화 — 강사에게"]
+      - ["(Linux) permission denied … docker.sock", "로그아웃 후 재로그인 또는 newgrp docker"]
+    colw: [5.4, 6.7]
+    mono_col: 0
+    notes: "노트북이 느려지면 Mac은 Settings → Resources, Windows는 .wslconfig (강사와 함께)."
+
+  - type: compare
+    title: "학술 노트 · 트렌드 — Docker의 탄생과 지금"
+    left: ["5분짜리 발표 (2013) → OCI (2015)", ["Hykes, PyCon 2013 라이트닝 토크", "새 격리 기술이 아니라 '이미지 포장 + 쉬운 명령'", "2015 OCI — 이미지·실행 방식 중립 표준", "→ K8s가 Docker 없이 우리 이미지를 실행"]]
+    right: ["AI 에이전트의 울타리", ["Stack Overflow 2026: 가장 쓰고 싶은 도구 1위 (38.4%)", "AI 에이전트를 컨테이너 안에서만 실행", "실수·악성 코드가 바깥으로 번지지 않게", "격리(네임스페이스)가 새 이유로 중요해짐"]]
+    notes: "Merkel (2014) Linux Journal. opencontainers.org."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "설치 점검과 문제 해결"
+    goals: ["hello-world", "점검 스크립트 실행·커밋", "일부러 실패해 보기", "에러 메시지 읽는 법"]
+    notes: "실패 0개가 목표. 안 되는 학생은 8교시 전까지 개별 지원."
+
+  - type: image
+    title: "실습 13 · hello-world가 실행되는 네 단계"
+    img: week2/day1/w2d1-hello-flow.png
+    notes: "docker run hello-world. 출력에 4단계가 영어로 나온다 — 6교시 그림과 맞춰 읽기. 두 번째 실행에는 Pulling이 없다."
+
+  - type: code
+    title: "실습 14 · 설치 점검표 만들고 올리기"
+    code: |
+      # VS Code: tools/check-env.sh 만들기 (교재 내용)
+      cd ~/devops-lab
+      bash tools/check-env.sh
+      bash tools/check-env.sh > tools/check-env-result.txt
+      echo "종료 코드: $?"
+      git add tools/
+      git commit -m "설치 점검 스크립트와 결과 추가"
+      git push
+    out: |
+      == 2주차 설치 점검 (2026-11-30 16:40) ==
+        [ OK ] git              git version 2.43.0
+        [ OK ] gh login         logged in
+        [ OK ] docker server    server 29.x.x
+      == 결과: 실패 0개 ==
+      종료 코드: 0
+    points:
+      - ["exit \"$FAILED\"", "실패 0개면 종료 코드 0 — 자동화가 읽는 숫자"]
+      - ["$?", "방금 명령의 종료 코드"]
+    notes: "[FAIL]이 있으면 해당 교시 막혔다면 표로."
+
+  - type: table
+    title: "실습 15 · 일부러 실패해 보기"
+    head: ["한 일", "보이는 에러", "뜻"]
+    rows:
+      - ["Docker Desktop 종료 후 docker ps", "failed to connect to the docker API", "주방이 문을 닫았다"]
+      - ["docker run hello-wrold", "pull access denied, repository does not exist", "이름 오타 — 창고에 없다"]
+      - ["docker rnu hello-world", "unknown command", "명령 오타 — docker --help"]
+    colw: [4.0, 4.8, 3.3]
+    callout: "에러는 마지막 줄부터 · 모르는 단어 하나만 검색 · 다섯 줄 질문으로 정리"
+    notes: "WSL에서는 Docker Desktop을 끄면 'The command docker could not be found in this WSL 2 distro'가 나온다."
+
+  - type: summary
+    title: "오늘 만든 작업대"
+    items:
+      - ["1교시", "Windows는 WSL2 + Ubuntu 24.04, Mac은 터미널 + Homebrew"]
+      - ["2교시", "~/devops-lab을 code . 로 — 파일은 Linux 쪽에"]
+      - ["3교시", "Git의 '누가' — 설정은 ~/.gitconfig 텍스트 파일"]
+      - ["4교시", "비밀번호 대신 토큰, gh auth login, 2FA"]
+      - ["5교시", "status → add → commit → push 한 바퀴"]
+      - ["6~7교시", "docker version의 Client + Server, hello-world 성공"]
+    diary: "배움일기 — 막혔던 곳과 푼 방법 · hello-world 4단계를 내 말로 · 내 저장소 주소와 커밋 수 · 내일 알고 싶은 것"
+    notes: "내일은 Docker 기본. hello-world 컨테이너가 아직 남아 있으니 내일 보고 지운다."

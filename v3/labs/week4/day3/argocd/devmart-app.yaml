@@ -1,0 +1,15 @@
+# 4교시 · Argo CD에게 맡기는 첫 앱 — 아직 자동 동기화 없음 (손으로 Sync)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devmart
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ID/devmart-deploy.git   # 배포 저장소 (2교시에 만든다)
+    targetRevision: main                                  # 이 브랜치의
+    path: devmart                                  # 이 폴더를
+  destination:
+    server: https://kubernetes.default.svc                # 이 클러스터의
+    namespace: devmart                                    # 이 네임스페이스에

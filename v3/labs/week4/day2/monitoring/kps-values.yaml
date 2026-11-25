@@ -1,0 +1,42 @@
+# kube-prometheus-stack — kind 실습용. 기본값에서 바꾸는 것만 적는다.
+fullnameOverride: kps
+
+# kind의 컨트롤 플레인 부품은 127.0.0.1에서만 지표를 내보내 밖에서 긁을 수 없다 (2교시)
+kubeControllerManager: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeEtcd: { enabled: false }
+kubeProxy: { enabled: false }
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 15s
+    retention: 2d
+    # 이 차트가 만든 것뿐 아니라 클러스터의 모든 ServiceMonitor · PodMonitor · PrometheusRule을 읽는다
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { memory: 1536Mi }
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { memory: 128Mi }
+
+grafana:
+  # 관리자 비밀번호는 values에 적지 않는다 — 2교시에 Secret으로 만든다 (3주차 5일차)
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  defaultDashboardsTimezone: Asia/Seoul
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL      # 어느 네임스페이스의 대시보드 ConfigMap이든 읽는다 (4교시)
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 384Mi }

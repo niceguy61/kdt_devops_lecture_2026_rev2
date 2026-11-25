@@ -1,0 +1,18 @@
+# 4교시 · catalog-api Pod로 '직접' 오는 연결은 ztunnel이 검사한다 (Pod IP 우회로 막기)
+# waypoint(L7 검사를 마친 것)와 입구(Envoy Gateway)만 들어올 수 있다
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: catalog-api-l4
+  namespace: devmart
+spec:
+  selector:
+    matchLabels: { app: catalog-api }
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/devmart/sa/waypoint"]
+    - from:
+        - source:
+            namespaces: ["envoy-gateway-system"]

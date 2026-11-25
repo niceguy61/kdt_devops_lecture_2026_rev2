@@ -1,0 +1,14 @@
+# 4교시 · devmart 네임스페이스의 L7 프록시 (Gateway API 리소스 — 1일차 Gateway와 같은 종류, 클래스만 다르다)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: waypoint
+  namespace: devmart
+  labels:
+    istio.io/waypoint-for: service       # Service로 가는 트래픽을 맡는다
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+    - name: mesh
+      port: 15008
+      protocol: HBONE

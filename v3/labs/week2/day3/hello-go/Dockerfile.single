@@ -1,0 +1,7 @@
+# 한 단계(single-stage): 빌드 도구가 든 큰 이미지를 그대로 실행에 쓴다
+FROM golang:1.27
+WORKDIR /src
+COPY go.mod main.go ./
+RUN go build -o /hello .
+EXPOSE 8080
+CMD ["/hello"]

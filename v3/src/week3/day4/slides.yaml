@@ -1,0 +1,277 @@
+meta:
+  footer: "3주차 4일차 · Pod · Deployment · Service"
+  title: "3주차 4일차 — Pod · Deployment · Service"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 3주차 MSA + Kubernetes"
+    title: "Pod · Deployment · Service"
+    subtitle: "3주차 4일차 · kubectl 루프 · 첫 Pod · Pod 장애 읽기 · Deployment · 자가 치유 · Service와 DNS · 롤링 업데이트와 되돌리기"
+    notes: "어제 만든 devmart 클러스터 위에, 2일차 GHCR에 올린 catalog-api 이미지를 올린다. 바꾸는 명령 전에는 kind-devmart인지 확인하는 습관."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "3일차 요약 + kubectl 루프"]
+      - ["2교시", "2", "첫 Pod"]
+      - ["3교시", "3", "Pod 장애 읽기"]
+      - ["4교시", "4", "Deployment"]
+      - ["5교시", "5", "ReplicaSet과 자가 치유"]
+      - ["6교시", "6", "Service와 DNS"]
+      - ["7교시", "7", "롤링 업데이트와 되돌리기 + 배움일기"]
+    notes: "시작 전: kubectl get nodes 세 대 Ready, GHCR 패키지 Public, gh auth refresh -s read:packages."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "3일차 요약 + kubectl 루프"
+    goals: ["클러스터 살아 있나", "이미지 주소 확인", "kubectl 동사", "출력 옵션"]
+    notes: "재부팅했다면 docker start로 노드 셋을 켠다."
+
+  - type: code
+    title: "실습 1 · 오늘 올릴 이미지"
+    code: |
+      GH=$(gh api user --jq .login | tr 'A-Z' 'a-z')
+      gh api /user/packages/container/devmart-catalog-api/versions \
+        --jq '.[0].metadata.container.tags'
+      SHA=sha-7f3c2e1
+      sed -i "s/YOUR_ID/$GH/g; s/YOUR_SHA/$SHA/g" *.yaml
+    out: |
+      ["sha-7f3c2e1","latest"]
+    points:
+      - ["소문자", "이미지 주소 규칙"]
+      - ["SHA 태그", "클러스터 = 이 커밋"]
+      - ["403", "gh auth refresh -s read:packages"]
+    notes: "latest는 병합마다 옮겨 붙는다 — 같은 매니페스트가 다른 코드를 띄울 수 있다. 7교시 되돌리기와 4주차 GitOps가 SHA 태그에 기댄다."
+
+  - type: image
+    title: "kubectl 루프 — 쓰기 · 보기 · 읽기 · 듣기 · 고치기"
+    img: week3/day4/w3d4-kubectl-loop.png
+    notes: "비유: get = 대기실 전광판, describe = 진료 기록, logs = 환자 본인의 말. 옵션: -n -A -l -o wide -o yaml -w. explain은 내 클러스터 버전의 설명서. 학술: 관찰 가능성(Kalman 1960). 트렌드: k9s, Headlamp — 결국 같은 API."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "첫 Pod"
+    goals: ["Pod 매니페스트", "상태 변화 지켜보기", "port-forward · exec", "지우면 끝"]
+    notes: "containerPort는 정보용 — 포트를 여는 게 아니다(EXPOSE와 같은 성격)."
+
+  - type: code
+    title: "실습 2 · Pod 만들고 지켜보기"
+    code: |
+      kubectl get pods -w          # 터미널 A
+      kubectl apply -f pod.yaml    # 터미널 B
+      kubectl describe pod catalog-api | tail -6
+    out: |
+      catalog-api   0/1   Pending             0   0s
+      catalog-api   0/1   ContainerCreating   0   0s
+      catalog-api   1/1   Running             0   9s
+      Normal  Scheduled  default-scheduler  … to devmart-worker2
+      Normal  Pulled     kubelet            Successfully pulled image …
+      Normal  Started    kubelet            Started container catalog-api
+    points:
+      - ["Pending ×2", "저장 → 노드 결정"]
+      - ["From", "결정은 본부, 실행은 현장"]
+      - ["Events", "기본 1시간 뒤 사라짐"]
+    notes: "get -o wide: IP 10.244.x.y, NODE는 워커. logs: gunicorn 시작 네 줄."
+
+  - type: code
+    title: "실습 3~4 · 접속하고, 들여다보고, 지우기"
+    code: |
+      kubectl port-forward pod/catalog-api 8000:8000
+      curl -s localhost:8000/api/info
+      curl -s localhost:8000/api/products
+      kubectl delete pod catalog-api && kubectl get pods
+    out: |
+      {"env":"local","hostname":"catalog-api","service":"catalog-api","version":"2.0.0"}
+      {"detail":"KeyError","error":"database unavailable"}
+      No resources found in default namespace.
+    points:
+      - ["hostname", "= Pod 이름"]
+      - ["503", "Running인데 기능 실패 — DB는 내일"]
+      - ["지우면 끝", "지켜 주는 컨트롤러가 없다"]
+    notes: "port-forward는 디버깅용 개인 통로. exec env에서 KUBERNETES_SERVICE_HOST=10.96.0.1. 학술: Pod마다 IP — NAT 없는 네트워크 모델. 트렌드: kubectl debug 임시 컨테이너."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "Pod 장애 읽기"
+    goals: ["몇 단계에서 멈췄나", "ImagePullBackOff", "CrashLoopBackOff", "Pending"]
+    notes: "세 Pod를 한꺼번에 apply하고 30초 뒤 get pods."
+
+  - type: image
+    title: "Pod 장애 지도"
+    img: week3/day4/w3d4-pod-troubleshoot.png
+    notes: "3 Pending · 5 Image · 6 이후 Crash. BackOff = 2일차 지수 백오프와 같은 생각."
+
+  - type: code
+    title: "장애 셋 — 근거가 된 한 줄"
+    code: |
+      kubectl describe pod broken-image | tail -3
+      kubectl logs worker-crash --previous | tail -1
+      kubectl describe pod too-big | tail -1
+    out: |
+      Failed to pull image "…:sha-0000000": … not found
+      Error: ImagePullBackOff
+      ValueError: could not convert string to float: 'abc'
+      FailedScheduling  0/3 nodes are available: 1 node(s) had untolerated taint
+        {node-role.kubernetes.io/control-plane: }, 2 Insufficient memory.
+    points:
+      - ["kubelet", "이미지 — 5단계"]
+      - ["--previous", "죽은 컨테이너의 유언"]
+      - ["scheduler", "거르기 — 3단계"]
+    notes: "ImagePullBackOff 원인은 메시지 끝: not found / 401 / no match for platform / timeout. CrashLoop = 2일차 크래시 루프와 같은 원인, 재시작으로 안 고쳐진다. Exit Code 1 vs 137(OOMKilled). Pending이 1분 넘으면 기다려도 안 풀린다. 학술: Barroso 외 — 장애의 큰 몫은 설정·배포. 트렌드: kubeconform · Kyverno로 PR에서 막기."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "Deployment"
+    goals: ["매니페스트 읽기", "× 3", "사슬 따라가기", "scale vs apply"]
+    notes: "Pod 매니페스트를 template 아래 넣고 replicas와 selector를 얹은 모양. selector는 바꿀 수 없다."
+
+  - type: image
+    title: "Deployment → ReplicaSet → Pod"
+    img: week3/day4/w3d4-ownership.png
+    notes: "이름 규칙: catalog-api / catalog-api-템플릿해시 / -임의5글자. ownerReferences로 주인 확인 — 주인을 지우면 딸린 것도. pod-template-hash 라벨은 Deployment가 붙인다. ReplicaSet은 개수, Deployment는 버전 교체."
+
+  - type: compare
+    title: "실습 8 · 늘리고 줄이기"
+    left: ["명령형 — kubectl scale", ["--replicas=5 → 5개", "같은 ReplicaSet (해시 그대로)", "파일에 남지 않는다", "장애 중 급한 대응일 때만"]]
+    right: ["선언형 — 파일 고치고 apply", ["파일의 replicas: 3 → 다시 3개", "scale로 바꾼 것이 조용히 사라진다", "파일 = 지금 상태", "어긋남 = 드리프트 → 4주차 GitOps"]]
+    notes: "학술: Deployment(가축) vs StatefulSet(이름표 단 소, db-0 · db-1). 트렌드: HPA, v1.37에서 scale to zero 베타 기본 활성화."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "ReplicaSet과 자가 치유"
+    goals: ["Pod 지우기", "컨테이너 죽이기", "라벨 떼기", "노드 끄기"]
+    notes: "실험마다: 무엇이 바뀌었나 · 누가 고쳤나 · 얼마나 걸렸나."
+
+  - type: table
+    title: "Pod 교체 vs 컨테이너 재시작"
+    head: ["", "Pod 삭제", "컨테이너 종료"]
+    rows:
+      - ["고친 주체", "ReplicaSet 컨트롤러", "kubelet"]
+      - ["결과", "새 Pod — 이름 · IP 바뀜", "같은 Pod — RESTARTS +1"]
+      - ["범위", "클러스터 어디든", "그 노드 안에서만"]
+      - ["라벨을 떼면", "ReplicaSet이 놓아주고 새로 하나 더", "—"]
+    colw: [2.6, 5.0, 4.5]
+    callout: "CrashLoopBackOff도 '있는' Pod — 자가 치유는 일시적 고장만 메운다, 틀린 설정은 못 고친다"
+    callout_color: red
+    notes: "라벨 떼기 = 이상한 Pod 격리 기술 (Service에서도 빠진다). 학술: MTBF → MTTR, Candea & Fox 2003 Crash-Only Software."
+
+  - type: code
+    title: "실험 4 · 노드를 끄면"
+    code: |
+      docker stop devmart-worker2
+      kubectl get pods -l app=catalog-api -o wide -w
+    out: |
+      …-r7n2k   1/1   Terminating         devmart-worker2
+      …-k8d4s   0/1   Pending             devmart-worker
+      …-k8d4s   1/1   Running             devmart-worker
+    points:
+      - ["NotReady", "하트비트 40~50초"]
+      - ["+ 30초", "실습용 toleration (기본 300초)"]
+      - ["Terminating", "확인 못 해 멈춤"]
+    notes: "돌아와도 다시 나누지 않는다 — 스케줄러는 새 Pod만. rollout restart, Descheduler, topologySpreadConstraints. 트렌드: Chaos Mesh · LitmusChaos."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "Service와 DNS"
+    goals: ["바뀌지 않는 이름", "EndpointSlice", "클러스터 안 DNS", "브라우저 30080"]
+    notes: "어제 질문: Pod IP가 매번 바뀌면 order-api는 catalog-api를 어떻게 찾나? 비유: 회사 대표 전화번호."
+
+  - type: image
+    title: "Service — 고정된 대표 창구"
+    img: week3/day4/w3d4-service.png
+    notes: "selector로 Pod를 찾는다(Deployment를 모른다). port 80 → targetPort 8000. kubernetes Service 10.96.0.1 = apiserver 자신. endpoints는 v1.33부터 폐기 예정 → endpointslices."
+
+  - type: code
+    title: "실습 11~12 · 이름으로 부르고, 브라우저로 열기"
+    code: |
+      kubectl run tmp --rm -it --restart=Never --image=busybox:1.37 -- sh
+      nslookup catalog-api.default.svc.cluster.local
+      for i in 1 2 3 4; do wget -qO- http://catalog-api/api/info; echo; done
+      kubectl apply -f service-nodeport.yaml    # → localhost:30080/api/info
+    out: |
+      Server:    10.96.0.10
+      Name:      catalog-api.default.svc.cluster.local
+      Address:   10.96.142.87
+      {"env":"kind","hostname":"catalog-api-6b8f7c9d5c-w5j9d",…}
+      {"env":"kind","hostname":"catalog-api-6b8f7c9d5c-hz5rp",…}
+    points:
+      - ["답은 Service IP", "Pod IP가 아니다"]
+      - ["search", "같은 네임스페이스는 이름만"]
+      - ["hostname이 바뀐다", "세 Pod로 나뉜다"]
+    notes: "kube-proxy가 iptables/nftables 규칙으로 가상 IP → Pod IP. ping은 안 되는 게 정상. 경로: localhost:30080 → kind extraPortMappings → 노드 30080 → Pod. Service 종류: ClusterIP · NodePort · LoadBalancer(5주차) · Gateway API(4주차)."
+
+  - type: statement
+    icon: Unplug
+    title: "실습 13 · 셀렉터 오타 — 이름은 있는데 받는 사람이 없다"
+    text: "Connection refused ≠ Name or service not known"
+    sub: "첫 확인: kubectl get endpointslices — 비었으면 셀렉터와 Pod 라벨 비교 · 되돌리기는 apply -f service.yaml"
+    notes: "학술: 이름과 주소 분리 — DNS RFC 1034, Saltzer RFC 1498 naming & binding. CoreDNS가 이름 → 가상 IP, kube-proxy가 가상 IP → Pod IP. 트렌드: nftables 정식(v1.33), eBPF(Cilium)."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "롤링 업데이트와 되돌리기"
+    goals: ["조금씩 교체", "두 ReplicaSet", "멈춘 배포", "undo와 파일"]
+    notes: "replicas 3: maxSurge 1, maxUnavailable 0 — 새 것 하나 띄우고, 준비되면 옛것 하나 내리기. 비유: 달리는 열차의 바퀴 갈기."
+
+  - type: image
+    title: "성공한 교체와 멈춘 교체"
+    img: week3/day4/w3d4-rolling.png
+    notes: "옛 ReplicaSet은 0개로 남는다(revisionHistoryLimit 10) — 되돌리기 재료."
+
+  - type: code
+    title: "실습 14 · APP_VERSION 2.0.0 → 2.1.0"
+    code: |
+      sed -i 's/value: "2.0.0"/value: "2.1.0"/' deployment.yaml
+      kubectl apply -f deployment.yaml
+      kubectl annotate deployment/catalog-api kubernetes.io/change-cause="APP_VERSION 2.1.0"
+      kubectl rollout status deployment/catalog-api
+    out: |
+      "version":"2.0.0"
+      "version":"2.1.0"
+      "version":"2.0.0"
+      FAIL
+      "version":"2.1.0"
+    points:
+      - ["섞인다", "두 버전이 함께 받는다"]
+      - ["FAIL 한두 줄", "'준비됨'을 모른다"]
+      - ["내일", "readiness probe"]
+    notes: "터미널 A에서 0.3초마다 curl localhost:30080/api/info. 오해: 롤링이면 저절로 무중단 — 아니다."
+
+  - type: code
+    title: "실습 15 · 망가진 배포와 되돌리기"
+    code: |
+      kubectl set image deployment/catalog-api catalog-api=ghcr.io/$GH/devmart-catalog-api:sha-0000000
+      kubectl rollout status deployment/catalog-api --timeout=60s
+      kubectl rollout undo deployment/catalog-api
+      kubectl rollout history deployment/catalog-api
+    out: |
+      error: timed out waiting for the condition
+      deployment.apps/catalog-api rolled back
+      REVISION  CHANGE-CAUSE
+      1         <none>
+      3         잘못된 태그 sha-0000000
+      4         APP_VERSION 2.1.0
+    points:
+      - ["사용자는 모른다", "옛 Pod를 안 내렸다"]
+      - ["멈춘 배포", "스스로 안 되돌린다"]
+      - ["undo 뒤", "파일(Git)도 되돌린다"]
+    notes: "progressDeadlineSeconds 600 → ProgressDeadlineExceeded 표시만. undo는 옛 ReplicaSet을 다시 키우기 — 그래서 몇 초. rollout restart로 노드에 다시 고르게. 학술: SRE 8장 릴리스 엔지니어링, 작은 배치. 트렌드: Argo Rollouts · Flagger — 지표 보고 자동 되돌리기."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "SHA 태그 이미지 주소 · kubectl 루프 (apply · get · describe · logs)"]
+      - ["2교시", "첫 Pod — 상태 변화 · Events · port-forward · 지우면 끝"]
+      - ["3교시", "Pending(스케줄러) · ImagePullBackOff(kubelet) · CrashLoopBackOff(--previous)"]
+      - ["4~5교시", "Deployment → ReplicaSet → Pod · 지우고 죽이고 떼고 꺼도 3개"]
+      - ["6교시", "Service = 고정 이름 + 가상 IP · EndpointSlice · localhost:30080"]
+      - ["7교시", "롤링 업데이트 · 멈춘 배포 · rollout undo · 파일도 되돌리기"]
+    diary: "배움일기 — 가장 많이 쓴 동사 · 장애 하나의 진단 순서 · 가장 의외였던 자가 치유 · 라벨로 잇는 네 리소스 · FAIL 몇 번 · DB 비밀번호와 데이터는 어떻게?"
+    notes: "Deployment와 Service는 지우지 않는다 — 내일 아침 정리하고 DevMart 전체로. 내일: Namespace · ConfigMap/Secret · probe · requests/limits · MSA 배포 · 장애 연습."

@@ -1,0 +1,9 @@
+# 6교시 · devmart로 들어오는 연결은 반드시 mTLS (메시 밖에서 평문으로 오면 거절)
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: strict
+  namespace: devmart
+spec:
+  mtls:
+    mode: STRICT

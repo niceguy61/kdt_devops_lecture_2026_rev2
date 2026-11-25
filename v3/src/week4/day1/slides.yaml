@@ -1,0 +1,255 @@
+meta:
+  footer: "4주차 1일차 · Helm + Gateway API"
+  title: "4주차 1일차 — Helm + Gateway API"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 4주차 Kubernetes 운영"
+    title: "Helm + Gateway API"
+    subtitle: "4주차 1일차 · Helm 개념 · 설치 루프 · Ingress의 역사와 ingress-nginx 은퇴 · Gateway API 구조 · Envoy Gateway · HTTPRoute · 장애 분석"
+    notes: "남이 만든 수백 개짜리 매니페스트는 Helm으로. DevMart의 입구를 nginx NodePort에서 Gateway API로. ingress-nginx는 2026년 3월 은퇴."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "3주차 요약 + Helm 개념"]
+      - ["2교시", "2", "Helm 설치 루프"]
+      - ["3교시", "3", "Ingress의 역사와 ingress-nginx 은퇴"]
+      - ["4교시", "4", "Gateway API 구조"]
+      - ["5교시", "5", "Envoy Gateway 설치와 Gateway"]
+      - ["6교시", "6", "HTTPRoute — 경로 · Host · 가중치"]
+      - ["7교시", "7", "장애 분석 + 배움일기"]
+    notes: "주말에 껐다면 docker start 노드 셋 → 40초. values 파일이 원하는 상태 — --set은 쓰지 않는다."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "3주차 요약 + Helm 개념"
+    goals: ["클러스터 되살리기", "남이 만든 것 설치하기", "네 낱말", "Helm 4 설치"]
+    notes: "생각 실험: 3000줄 설치 YAML — 고치기, 새 버전, 되돌리기, 무엇이 깔려 있나."
+
+  - type: image
+    title: "차트 + 내 values → 릴리스"
+    img: week4/day1/w4d1-helm.png
+    notes: "차트 = .deb, values = 설정, 릴리스 = 설치된 한 벌(이력), 저장소 = OCI 레지스트리. 비유: 서식 문서와 주소록. 오해: Helm을 쓰면 YAML을 몰라도 된다 — 반대."
+
+  - type: compare
+    title: "Kustomize와 Helm"
+    left: ["Kustomize (3주차 5일차)", ["완성된 YAML 위에 덧칠", "설치 기록 없음 — 되돌리기는 Git", "내가 만든 앱의 환경별 변형", "kubectl에 내장"]]
+    right: ["Helm", ["빈칸 뚫린 템플릿을 채움", "릴리스와 버전 이력을 클러스터에", "남이 만든 도구의 설치 · 업그레이드", "helm 실행 파일 — 오늘 v4"]]
+    notes: "원칙: add-on은 Helm + values 파일, DevMart는 Kustomize. 설치: get-helm-4 스크립트를 받아 읽고 실행 / brew install helm. 학술: Mancinelli 외 2006 — 의존성 설치는 NP-완전. 트렌드: Helm 4(2025.11) — 새 릴리스는 server-side apply, --atomic → --rollback-on-failure, Helm 3 보안 패치는 2027년 2월까지."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "Helm 설치 루프"
+    goals: ["살펴보기 · 렌더링", "설치 · 확인", "바꾸기 · 망가뜨리기", "되돌리기 · 지우기"]
+    notes: "podinfo — Stefan Prodan의 연습용 앱, 차트 6.14.0, cosign 서명."
+
+  - type: code
+    title: "실습 2~3 · 살펴보고, 렌더링하고, 설치하기"
+    code: |
+      CHART=oci://ghcr.io/stefanprodan/charts/podinfo
+      helm show values $CHART --version 6.14.0 | head
+      helm template podinfo $CHART --version 6.14.0 -f helm/podinfo-values.yaml | grep -A1 PODINFO_UI_MESSAGE
+      helm install podinfo $CHART --version 6.14.0 -f helm/podinfo-values.yaml --wait
+      kubectl get secret -l owner=helm
+    out: |2
+                  - name: PODINFO_UI_MESSAGE
+                    value: "DevMart 4주차 — Helm으로 설치했습니다"
+      STATUS: deployed
+      REVISION: 1
+      sh.helm.release.v1.podinfo.v1   helm.sh/release.v1   1   40s
+    points:
+      - ["version 고정", "SHA 태그와 같은 이유"]
+      - ["template", "values → 어느 칸?"]
+      - ["Secret", "이력은 클러스터에"]
+    notes: "version = 차트, appVersion = 앱. 내 values에는 바꾸는 것만. helm list · status · get values. 만들어진 것은 3주차의 Deployment · Service."
+
+  - type: code
+    title: "실습 4 · 바꾸기 · 망가뜨리기 · 되돌리기"
+    code: |
+      helm upgrade podinfo $CHART --version 6.14.0 -f helm/podinfo-values.yaml --wait
+      helm upgrade podinfo $CHART --version 6.14.0 -f helm/podinfo-values.yaml \
+        --set image.tag=0.0.0-nope --wait --timeout 60s
+      helm rollback podinfo 2 --wait
+      helm history podinfo
+    out: |2
+      Error: UPGRADE FAILED: … context deadline exceeded
+      REVISION  STATUS      DESCRIPTION
+      1         superseded  Install complete
+      2         superseded  Upgrade complete
+      3         failed      Upgrade "podinfo" failed: …
+      4         deployed    Rollback to 2
+    points:
+      - ["실패 ≠ 장애", "멈춘 배포 — 옛 Pod가 일함"]
+      - ["rollback도", "새 revision"]
+      - ["--set", "파일에 안 남는다"]
+    notes: "rollout undo는 Deployment 하나, helm rollback은 릴리스 전체(ConfigMap · Service 포함). helm uninstall은 이력 Secret까지. 학술: 트랜잭션의 원자성(Gray & Reuter) — Helm 업그레이드는 원자적이지 않다. 트렌드: 차트 서명 · 검증, Bitnami 정책 변화."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "Ingress의 역사와 ingress-nginx 은퇴"
+    goals: ["Service로 직접", "Ingress와 어노테이션", "은퇴의 뜻", "Gateway API로"]
+    notes: "NodePort는 :30080, LoadBalancer는 Service마다 하나 — 둘 다 L4라 경로로 못 나눈다."
+
+  - type: image
+    title: "입구의 역사"
+    img: week4/day1/w4d1-ingress-history.png
+    notes: "Ingress spec은 호스트 · 경로 · TLS 정도 — 나머지는 컨트롤러별 어노테이션. 다른 컨트롤러로 바꾸면 조용히 무시된다 = 어노테이션 지옥."
+
+  - type: table
+    title: "2026년 3월 — 무엇이 끝났나"
+    head: ["끝난 것", "끝나지 않은 것"]
+    rows:
+      - ["커뮤니티 ingress-nginx 컨트롤러의 유지보수", "NGINX 웹 서버 자체"]
+      - ["새 릴리스 · 버그 수정 · 보안 패치", "F5 NGINX Ingress Controller (다른 프로젝트)"]
+      - ["", "Kubernetes Ingress API 자체"]
+      - ["", "이미 설치된 ingress-nginx — 계속 돈다, 그래서 더 위험"]
+    colw: [6.0, 6.1]
+    callout: "클라우드 네이티브 환경의 약 절반이 의존 · 관리자는 한두 명의 자원봉사자 · 바로 대체할 것은 없다"
+    callout_color: red
+    notes: "2025년 3월 IngressNightmare, 2025년 11월 은퇴 예고, 2026년 1월 공동 성명. 조사 첫 명령: get pods -l app.kubernetes.io/name=ingress-nginx, get ingressclass, get ingress -A. 학술: Eghbal 2016 Roads and Bridges — 디지털 공공 기반 시설. 트렌드: 옮기는 해, ingress2gateway는 어노테이션의 뜻까지는 못 옮긴다."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "Gateway API 구조"
+    goals: ["세 사람, 세 리소스", "붙기와 보내기", "우선순위", "CRD"]
+    notes: "비유: 건물 안내판(Ingress) vs 건물 관리 규정 자체를 다시 씀."
+
+  - type: image
+    title: "GatewayClass · Gateway · HTTPRoute"
+    img: week4/day1/w4d1-gateway-roles.png
+    notes: "nginx의 location /api/orders { proxy_pass … } 한 줄이 표준 리소스 하나. 허락 둘: allowedRoutes(붙기, Gateway 주인), ReferenceGrant(다른 칸으로 보내기, Service 주인)."
+
+  - type: table
+    title: "요청 하나는 어느 규칙에 걸리나"
+    head: ["요청", "가는 곳", "이유"]
+    rows:
+      - ["GET /api/orders", "order-api", "가장 긴 앞부분 일치"]
+      - ["GET /api/products/3", "catalog-api", "/api/ > /"]
+      - ["GET /index.html", "web", "/만 맞는다"]
+      - ["Host: podinfo.localhost  /", "podinfo", "Host가 지정된 라우트가 더 구체적"]
+      - ["Host: podinfo.localhost  /api/orders", "podinfo (404)", "Host가 먼저 갈린다 — 함정"]
+    colw: [4.6, 2.6, 4.9]
+    mono_col: 0
+    notes: "순서: Host 구체성 → Exact > Prefix → 긴 Prefix → 조건 많은 것 → 오래된 것. nginx처럼 location 순서를 신경 쓰지 않는다."
+
+  - type: statement
+    icon: Puzzle
+    title: "실습 6 · CRD — Kubernetes가 모르는 리소스"
+    text: "no matches for kind \"GatewayClass\" — ensure CRDs are installed first"
+    sub: "CRD = 새 리소스 종류 · CRD만으로는 아무 일도 안 일어난다 — 컨트롤러가 함께 · Gateway API는 Kubernetes와 따로 릴리스"
+    notes: "채널: Standard(v1.6: TCPRoute · UDPRoute까지) vs Experimental. 적합성 시험 — '어느 버전의 어느 기능'. 학술: Dijkstra 관심사의 분리, Conway의 법칙. 트렌드: GAMMA — 메시에도 같은 HTTPRoute."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "Envoy Gateway 설치와 Gateway"
+    goals: ["30080 비우기", "Helm으로 설치", "CRD 두 묶음", "문 만들기"]
+    notes: "Envoy = 안내원(프록시, Lyft 2016, CNCF 졸업), Envoy Gateway = 관리소(컨트롤러). xDS — 재시작 없이 설정."
+
+  - type: code
+    title: "실습 7~8 · 비우고, 설치하기"
+    code: |
+      sed -i 's/type: NodePort/type: ClusterIP/; /nodePort: 30080/d' devmart/web.yaml
+      kubectl apply -k devmart/
+      helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.10.0 \
+        -n envoy-gateway-system --create-namespace -f gateway/envoy-gateway-values.yaml
+      kubectl api-resources | grep -E 'gateway.networking|gateway.envoyproxy'
+    out: |2
+      gatewayclasses   gateway.networking.k8s.io/v1     GatewayClass
+      gateways         gateway.networking.k8s.io/v1     Gateway
+      httproutes       gateway.networking.k8s.io/v1     HTTPRoute
+      envoyproxies     gateway.envoyproxy.io/v1alpha1   EnvoyProxy
+    points:
+      - ["v1.10", "2026.11 · K8s 1.34~1.37"]
+      - ["Gateway API v1.6.1", "차트가 함께 설치"]
+      - ["확장도 리소스", "어노테이션이 아니다"]
+    notes: "6교시까지 DevMart는 브라우저로 안 열린다. 실무라면 새 입구를 먼저 세워 시험하고 옮긴다."
+
+  - type: image
+    title: "컨트롤러와 프록시는 따로"
+    img: week4/day1/w4d1-devmart-gateway.png
+    notes: "GatewayClass ACCEPTED True → EnvoyProxy(NodePort 30080, kind 전용 — EKS는 기본 LoadBalancer = NLB) → Gateway PROGRAMMED True. envoy-gateway 1/1(컨트롤러), envoy-devmart-devmart-… 2/2(Envoy + shutdown-manager). curl → 404: 문은 열렸는데 길이 없다. 학술: OpenFlow(McKeown 외 2008) 제어와 전달의 분리. 트렌드: AI Gateway, Inference Extension."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "HTTPRoute"
+    goals: ["DevMart 경로 셋", "status 읽기", "Host로 나누기", "80:20 카나리"]
+    notes: "서비스마다 자기 라우트 — 팀 사이의 역할 분리."
+
+  - type: code
+    title: "실습 10 · DevMart를 Gateway 뒤로"
+    code: |
+      kubectl apply -f gateway/devmart-routes.yaml
+      kubectl describe httproute orders -n devmart | grep -E 'Type:|Status:'
+      curl -s -X POST localhost:30080/api/orders -H 'Content-Type: application/json' -d '{"product_id": 1}'
+    out: |2
+          Status:  True
+          Type:    Accepted
+          Status:  True
+          Type:    ResolvedRefs
+      {"order_id":61,"request_id":"5b2e8f3c-9d41-4a7b-b6e0-2c8f1d9a7e54",…}
+    points:
+      - ["Accepted", "문에 붙었다"]
+      - ["ResolvedRefs", "보낼 곳을 찾았다"]
+      - ["UUID", "이제 Envoy가 x-request-id"]
+    notes: "Controller Name이 누가 썼는지. 요청 ID 모양이 바뀌어도 앱은 헤더 이름만 본다 — 코드 변경 없음. nginx는 이제 정적 파일만."
+
+  - type: code
+    title: "실습 11~12 · Host로, 가중치로"
+    code: |
+      kubectl apply -f gateway/podinfo-route.yaml
+      curl -s -H 'Host: podinfo.localhost' localhost:30080/api/orders
+      helm install podinfo-canary $CHART --version 6.14.0 -f helm/podinfo-canary-values.yaml --wait
+      kubectl apply -f gateway/podinfo-split.yaml        # weight 80 / 20
+      for i in $(seq 50); do curl -s -H 'Host: podinfo.localhost' localhost:30080 \
+        | grep -o '"message": "[^"]*"'; done | sort | uniq -c
+    out: |2
+      404 page not found
+           41 "message": "upgrade로 바꿨습니다"
+            9 "message": "카나리 — 새 버전"
+    points:
+      - ["allowedRoutes: All", "default의 라우트도 붙는다"]
+      - ["Host 먼저", "4교시의 함정"]
+      - ["확률", "요청이 적으면 비율도 흔들린다"]
+    notes: "브라우저는 Host에 :30080을 붙여 안 맞을 수 있다 — curl -H로. 카나리 되돌리기는 Envoy 설정 한 줄 → 1초. 타임아웃도 표준 필드(timeouts.request). 학술: SRE Workbook 16장 Canarying Releases. 트렌드: 문 하나에 여러 앱, ListenerSet(v1.5 표준)."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "장애 분석"
+    goals: ["응답 코드가 층을", "status 읽기", "200인데 틀린 것", "ReferenceGrant"]
+    notes: "3주차의 바깥에서 안으로에 Gateway 층이 하나 더."
+
+  - type: image
+    title: "무엇이 틀렸나 → status → 응답 코드"
+    img: week4/day1/w4d1-route-status.png
+    notes: "응답 없음 = 문 없음, 404 = 길 없음, 500 = 끝이 막힘, 503 = 준비된 Pod 없음, 앱 JSON 오류 = 3주차 진단으로."
+
+  - type: table
+    title: "실습 14 · 장애 넷"
+    head: ["장애", "증상", "단서", "배운 것"]
+    rows:
+      - ["1 parentRefs 오타", "/ 404", "그 이름의 status가 없다", "아무도 맡지 않으면 조용하다"]
+      - ["2 backendRefs 오타", "/api/products 500", "ResolvedRefs False · BackendNotFound", "주문은 멀쩡 — 입구와 안쪽은 별개"]
+      - ["3 Host 오타", "DevMart HTML 200", "모든 status True", "엉뚱한 곳이 정상인 척"]
+      - ["4 다른 칸 Service", "500", "RefNotPermitted", "허락은 Service 쪽에 ReferenceGrant"]
+    colw: [2.6, 2.4, 3.9, 3.2]
+    notes: "정리: devmart-routes · podinfo-split 다시 apply. 오늘 것은 지우지 않는다 — 5분 복구 순서에 helm install eg → apply gateway/ 추가. 학술: Gray Failure(Huang 외 HotOS 2017). 트렌드: egctl x translate, CEL 검증, 배포 뒤 스모크 테스트."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1~2교시", "Helm 4 · podinfo install → upgrade → 실패 → rollback (rev 4)"]
+      - ["3교시", "Ingress의 어노테이션 지옥 · ingress-nginx 2026년 3월 은퇴"]
+      - ["4교시", "GatewayClass · Gateway · HTTPRoute — 세 사람의 몫 · CRD"]
+      - ["5교시", "Envoy Gateway v1.10 · NodePort 30080의 Gateway"]
+      - ["6교시", "DevMart 경로 셋 · Host로 podinfo · 80:20 카나리"]
+      - ["7교시", "404는 길 없음, 500은 끝이 막힘 · ReferenceGrant"]
+    diary: "배움일기 — Helm을 앱 스토어에 빗대어 · rollback vs rollout undo · 은퇴는 기술 탓? 사람 탓? · 세 리소스를 세 사람에게 · 응답 코드만 봤다면 놓친 장애 · 하루 100만 요청의 카나리는 누가 세나?"
+    notes: "내일: Observability — kube-prometheus-stack, Grafana, k6 부하 테스트, 알림."

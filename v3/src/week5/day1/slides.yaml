@@ -1,0 +1,168 @@
+meta:
+  footer: "5주차 1일차 · AWS 계정과 VPC"
+  title: "5주차 1일차 — AWS 계정과 VPC"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 5주차 AWS + Terraform + EKS"
+    title: "AWS 계정과 VPC"
+    subtitle: "5주차 1일차 · 노트북에서 클라우드로 · 루트 지키기 · 예산 · IAM · aws login · VPC · 보안 그룹"
+    notes: "4주차 마지막 질문: 클라우드의 클러스터는 누가, 어떤 네트워크 위에, 얼마로? 오늘은 누가(계정 · 신원), 어떤 네트워크(VPC), 얼마(비용 장치)."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "4주차 요약 + 노트북에서 클라우드로"]
+      - ["2교시", "2", "계정 만들기와 루트 지키기"]
+      - ["3교시", "3", "IAM — 사용자 · 그룹 · 역할 · 정책"]
+      - ["4교시", "4", "AWS CLI와 aws login"]
+      - ["5교시", "5", "VPC의 구성 요소"]
+      - ["6교시", "6", "콘솔로 VPC 만들기"]
+      - ["7교시", "7", "보안 그룹 · NACL + 비용 점검 + 배움일기"]
+    notes: "본인 카드 · 휴대폰 · 인증 앱. 나만의 새 계정. 그날 만든 것은 그날 지운다."
+
+  - type: section
+    num: "1교시"
+    title: "노트북에서 클라우드로"
+    goals: ["바뀌는 것", "그대로인 것", "비용 계산표", "리전"]
+    notes: "그대로: 이미지(GHCR) · 배포 저장소 · Argo CD · Helm · kubectl."
+
+  - type: table
+    title: "이번 주 비용 계산표 (서울, 약)"
+    head: ["자원", "단가", "언제"]
+    rows:
+      - ["VPC · 서브넷 · 보안 그룹", "무료", "오늘 ~ 금"]
+      - ["EC2 t3.micro · 공인 IPv4", "$0.013/h · $0.005/h", "2일차"]
+      - ["ALB", "$0.0225/h + 사용량", "2일차"]
+      - ["NAT 게이트웨이", "$0.059/h + 처리량", "4 · 5일차"]
+      - ["EKS 클러스터", "$0.10/h", "4 · 5일차"]
+      - ["EC2 t3.medium × 2 (노드)", "$0.052/h × 2", "4 · 5일차"]
+    colw: [4.6, 4.2, 3.0]
+    notes: "계획대로면 이번 주 약 $5 — 크레딧으로 0. 잊으면 EKS+NAT+노드 한 달 약 $190. 규칙: 그날 지운다 · 매일 확인 · 예산 알림 먼저. 오해: 클라우드는 비싸다/싸다 — 쓴 만큼. 학술: 공유지의 비극(Hardin 1968), FinOps. 트렌드: PR에 비용 댓글(Infracost)."
+
+  - type: section
+    num: "2교시"
+    title: "계정과 루트"
+    goals: ["Free vs Paid 플랜", "루트 MFA", "예산 알림 둘", "기본 리전 · 크레딧"]
+    notes: "Free 플랜: $100 + 활동 최대 $100, 6개월, 넘으면 청구 대신 멈춤. EKS도 Free 플랜에서 된다. 가입 화면이 2026 가을부터 바뀌는 중."
+
+  - type: steps
+    title: "실습 1~4 · 계정을 안전하게"
+    steps:
+      - ["가입", "개인 이메일(=루트) · Free 플랜 · Basic 지원"]
+      - ["루트 MFA", "패스키 또는 인증 앱 · 루트 액세스 키는 절대 만들지 않는다"]
+      - ["예산", "zero-spend + monthly-20 (50% 실제 · 100% 예상)"]
+      - ["리전 · 크레딧", "서울을 기본으로 · 결제 → 크레딧 화면"]
+    notes: "루트는 어떤 정책으로도 막을 수 없다 → 금고에. 예산은 알림이지 차단이 아니고 몇 시간 늦다. 오해: Free Tier면 다 공짜 — EKS는 크레딧에서. 학술: 이중 통제 · break-glass, CIS Benchmark. 트렌드: 루트 MFA 의무화, 패스키."
+
+  - type: section
+    num: "3교시"
+    title: "IAM"
+    goals: ["네 가지", "정책 읽기", "devops-admin", "역할 — 키 없는 신원"]
+    notes: "사용자 = User, 그룹 = Group, 역할 = ServiceAccount, 정책 = Role rules, 붙이기 = RoleBinding."
+
+  - type: image
+    title: "루트 · 사용자 · 역할"
+    img: week5/day1/w5d1-identities.png
+    notes: "사람은 사용자로, 프로그램은 역할로. 역할 = 신뢰 정책(누가 맡나) + 권한 정책(무엇을). STS가 짧은 자격 증명."
+
+  - type: code
+    title: "정책 JSON — 한 줄씩"
+    shell: "s3-read-only-policy.json"
+    code: |
+      { "Effect": "Allow",
+        "Action": ["s3:GetObject", "s3:ListBucket"],
+        "Resource": ["arn:aws:s3:::devmart-assets-YOUR_ID",
+                     "arn:aws:s3:::devmart-assets-YOUR_ID/*"] },
+      { "Effect": "Deny",
+        "Action": ["s3:DeleteObject", "s3:DeleteBucket"],
+        "Resource": "*" }
+    out: |2
+      평가 순서: 기본 거절 → 명시적 Deny가 있으면 거절 → Allow가 있으면 허가
+      나중에 AdministratorAccess를 더 붙여도 삭제는 여전히 거절
+    points:
+      - ["ARN", "자원의 전체 주소"]
+      - ["Deny", "언제나 이긴다"]
+      - ["그룹", "사람에게 직접 붙이지 않는다"]
+    notes: "실습 5~6: 루트의 마지막 일 — admins 그룹(AdministratorAccess) · devops-admin · 계정 별칭 · MFA. 오해: 서버에 접속 키 — 키는 새고 만료되지 않는다. 학술: Zelkova(SMT, FMCAD 2018). 트렌드: 사람은 로그인, 기계는 역할, 영구 키 없음."
+
+  - type: section
+    num: "4교시"
+    title: "AWS CLI와 aws login"
+    goals: ["v2 설치 (2.32+)", "aws login", "get-caller-identity", "--query"]
+    notes: "WSL은 aws login --remote."
+
+  - type: code
+    title: "실습 8 · 키 없이 로그인"
+    code: |
+      aws login --region ap-northeast-2
+      aws sts get-caller-identity
+      ls ~/.aws/
+      aws ec2 describe-vpcs --query 'Vpcs[].[VpcId,CidrBlock,IsDefault]' --output table
+    out: |2
+      "Arn": "arn:aws:iam::123456789012:user/devops-admin"
+      config  login                 ← credentials 파일이 없다
+      | vpc-0a1b2c3d4e5f6a7b8 | 172.31.0.0/16 | True |   ← 기본 VPC
+    points:
+      - [":root면", "다시 로그인"]
+      - ["15분", "자동 교체"]
+      - ["export-credentials", "오래된 도구용"]
+    notes: "aws configure = 영구 키를 파일에. aws login = 콘솔 로그인(MFA)으로 짧은 자격 증명. 학술: Kerberos(1988) 티켓 모델. 트렌드: 코딩 에이전트에 넘기는 자격 증명을 좁힌다."
+
+  - type: section
+    num: "5교시"
+    title: "VPC의 구성 요소"
+    goals: ["VPC = 내 사설망", "서브넷 · 라우팅 · IGW · NAT", "public vs private", "종이 설계"]
+    notes: "1주차 3일차의 공유기 사설망을 리전 크기로."
+
+  - type: image
+    title: "devmart-vpc 설계"
+    img: week5/day1/w5d1-vpc.png
+    notes: "public/private를 가르는 것은 라우팅 테이블의 0.0.0.0/0. 앱 · EKS 노드 · DB는 private — 입구는 하나. AZ 둘 — EKS가 요구. CIDR은 넉넉하게, 겹치지 않게. 기본 VPC는 쓰지 않는다. 오해: private면 안전 — 심층 방어. 학술: VLAN · VXLAN · SDN. 트렌드: 공인 IPv4 요금(2024~), IPv6."
+
+  - type: section
+    num: "6교시"
+    title: "콘솔로 VPC 만들기"
+    goals: ["VPC 등 마법사", "리소스 맵", "CLI로 검증", "클릭의 대가"]
+    notes: "NAT 없음 반드시 확인, S3 게이트웨이 엔드포인트(무료), DNS 두 옵션 체크."
+
+  - type: code
+    title: "실습 13 · 설계표와 맞춰 보기"
+    code: |
+      aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC \
+        --query 'sort_by(Subnets,&CidrBlock)[].[Tags[?Key==`Name`]|[0].Value,AvailabilityZone,CidrBlock]' --output table
+    out: |2
+      devmart-subnet-public1-ap-northeast-2a    ap-northeast-2a  10.0.0.0/20
+      devmart-subnet-public2-ap-northeast-2c    ap-northeast-2c  10.0.16.0/20
+      devmart-subnet-private1-ap-northeast-2a   ap-northeast-2a  10.0.128.0/20
+      devmart-subnet-private2-ap-northeast-2c   ap-northeast-2c  10.0.144.0/20
+      devmart-rtb-public       10.0.0.0/16 local, 0.0.0.0/0 igw-…
+      devmart-rtb-private1-…   10.0.0.0/16 local, pl-… vpce-…   ← 0.0.0.0/0 없음
+    points:
+      - ["local", "VPC 안은 언제나 닿는다"]
+      - ["vpce", "S3 샛길"]
+      - ["CloudTrail", "누가 만들었나"]
+    notes: "클릭 20번 — 다시 만들기 · 어긋남 · 기록 · 지우는 순서. 3일차 Terraform으로. 학술: 눈송이 서버(Morris). 트렌드: 콘솔 → 코드 내보내기, terraform query."
+
+  - type: section
+    num: "7교시"
+    title: "보안 그룹 · 비용 점검"
+    goals: ["보안 그룹 vs NACL", "SG를 출발지로", "check-account.sh", "태그"]
+    notes: "SSH 22를 0.0.0.0/0에 열지 않는다 — 내일 Session Manager."
+
+  - type: image
+    title: "두 겹의 방화벽"
+    img: week5/day1/w5d1-sg-nacl.png
+    notes: "web-sg: HTTP 80 from 0.0.0.0/0. app-sg: 9898 from web-sg (podinfo). 학술: 상태 저장 검사(FireWall-1 1994, Cheswick & Bellovin). 트렌드: Reachability Analyzer, PR 정책 검사."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "kind → AWS: 바뀌는 것 · 그대로인 것 · 비용 계산표"]
+      - ["2교시", "계정 · 루트 MFA · 예산 알림 둘"]
+      - ["3교시", "admins 그룹 · devops-admin · 정책 JSON 읽기 · 역할"]
+      - ["4교시", "aws login — 키 없는 CLI"]
+      - ["5~6교시", "devmart-vpc — 서브넷 4 · 라우팅 3 · IGW · S3 엔드포인트"]
+      - ["7교시", "web-sg · app-sg · 남은 것 확인 (NAT · EIP · LB 없음)"]
+    diary: "배움일기 — 바뀌는 것 · 그대로인 것 · 루트/사용자/역할 · Deny의 일 · 내 VPC 그림 · 가장 무서운 비용 줄 · 서버를 띄우고 늘리고 죽어도 모르게 하려면?"
+    notes: "VPC는 무료라 내일까지 둔다. 내일: EC2 · ALB · Auto Scaling · S3 — 콘솔로."

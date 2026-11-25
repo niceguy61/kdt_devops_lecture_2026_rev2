@@ -1,0 +1,15 @@
+# Kiali — 메시 지도. 어제의 Prometheus를 그대로 쓴다
+auth:
+  strategy: anonymous               # 실습용 — 로그인 없이 (운영은 openid 등)
+deployment:
+  view_only_mode: true              # 보기만 — 설정 변경은 Git으로 (3일차)
+  resources:
+    requests: { cpu: 10m, memory: 64Mi }
+    limits: { memory: 512Mi }
+external_services:
+  prometheus:
+    url: http://kps-prometheus.monitoring:9090
+  grafana:
+    enabled: false
+  tracing:
+    enabled: false

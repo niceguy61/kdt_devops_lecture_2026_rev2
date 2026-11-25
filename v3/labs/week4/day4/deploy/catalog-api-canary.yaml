@@ -1,0 +1,61 @@
+# 4교시 · catalog-api 카나리 — 같은 이미지, 버전 표시만 다르게
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-api-canary
+  namespace: devmart
+  labels: { app: catalog-api-canary }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: catalog-api-canary }
+  template:
+    metadata:
+      labels: { app: catalog-api-canary }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: catalog-api
+          image: ghcr.io/YOUR_ID/devmart-catalog-api:YOUR_SHA   # 태그는 kustomization의 images:가 정한다
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: { name: devmart-config }
+          env:
+            - name: APP_VERSION
+              value: "2.1.0-canary"
+            - name: DB_NAME
+              value: catalog
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: devmart-db, key: DB_PASSWORD }
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+# 카나리 Pod만 고르는 Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-api-canary
+  namespace: devmart
+spec:
+  selector: { app: catalog-api-canary }
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+# 기존 Pod만 고르는 Service (catalog-api와 같은 Pod, 이름만 다르다)
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-api-stable
+  namespace: devmart
+spec:
+  selector: { app: catalog-api }
+  ports:
+    - port: 8000
+      targetPort: 8000

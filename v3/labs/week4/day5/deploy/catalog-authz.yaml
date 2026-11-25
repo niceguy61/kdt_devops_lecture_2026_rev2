@@ -1,0 +1,16 @@
+# 4교시 · catalog-api(Service)는 order-api만 부를 수 있다 — 네임스페이스가 아니라 서비스 신원으로
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: catalog-api-allow
+  namespace: devmart
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: catalog-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/devmart/sa/order-api"]

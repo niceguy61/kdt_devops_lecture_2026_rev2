@@ -1,0 +1,6 @@
+# 4교시 · 콘솔로 만든 보안 그룹(1일차 devmart-web-sg)을 코드로 데려오기
+# import.tf 로 복사하고 sg-… 를 내 값으로 바꾼다
+import {
+  to = aws_security_group.console_web
+  id = "sg-REPLACE_ME"
+}

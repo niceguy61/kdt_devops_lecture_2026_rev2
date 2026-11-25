@@ -1,0 +1,395 @@
+meta:
+  footer: "1주차 2일차 · 컴퓨터와 운영체제, 가상화"
+  title: "1주차 2일차 — 컴퓨터와 운영체제, 가상화"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 기초 이론 과정"
+    title: "컴퓨터와 운영체제, 가상화"
+    subtitle: "1주차 2일차 · 하드웨어 · 운영체제 · 프로세스 · 파일 · Linux · 하이퍼바이저 · 컨테이너 예고"
+    notes: "오늘은 어제 배운 '빌려 쓰는 서버'의 안쪽을 여는 날. 컨테이너도 파드도 결국 프로세스라는 결론으로 간다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "컴퓨터는 무엇으로 이루어져 있나"]
+      - ["2교시", "2", "운영체제가 하는 일"]
+      - ["3교시", "3", "프로그램 · 프로세스 · 스레드"]
+      - ["4교시", "4", "파일과 저장소"]
+      - ["5교시", "5", "Linux 명령어 맛보기 (강사 시연)"]
+      - ["6교시", "6", "가상화와 하이퍼바이저"]
+      - ["7교시", "7", "VM에서 컨테이너로 + 배움일기"]
+    notes: "8교시는 배움일기."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "컴퓨터는 무엇으로 이루어져 있나"
+    goals: ["어제 10분 요약", "CPU · 메모리 · 디스크 · NIC", "부품 사이 속도 차이", "CPU 트렌드 — ARM과 AI 칩"]
+    notes: "어제 핵심: 클라우드=셀프서비스로 쓴 만큼, 가상화, IaaS/PaaS/SaaS, 공유 책임."
+
+  - type: table
+    title: "어제 10분 요약"
+    head: ["어제 배운 것", "한 문장"]
+    rows:
+      - ["클라우드", "가상화된 자원을 셀프서비스로, 쓴 만큼 빌려주는 방식"]
+      - ["가상화", "하이퍼바이저가 물리 서버 한 대를 여러 VM으로 나눈다"]
+      - ["IaaS · PaaS · SaaS", "내가 관리하는 층이 어디까지인가의 차이"]
+      - ["공유 책임", "AWS는 클라우드 '자체', 고객은 클라우드 '안'을 책임진다"]
+    colw: [3.4, 8.7]
+    callout: "EC2 인스턴스 = AWS 물리 서버 위의 VM 하나 — 그 VM도 결국 '컴퓨터'다. 오늘은 그 안을 연다"
+    notes: "학생에게 한 줄씩 먼저 말해 보게 하면 인출 연습이 된다."
+
+  - type: image
+    title: "컴퓨터의 네 가지 핵심 부품"
+    img: week1/day2/w1d2-computer-parts.png
+    callout: "성능 문제의 대부분 = 요리사가 느린가 · 조리대가 좁은가 · 창고가 먼가 · 창구가 막혔나"
+    notes: "vCPU: Intel/AMD에서는 보통 하드웨어 스레드 1개. 메모리는 휘발성, 초과 시 OOM Kill(4주차 OOMKilled). 서버 표준 디스크는 NVMe SSD."
+
+  - type: image
+    title: "속도의 차이 — 메모리 계층"
+    img: week1/day2/w1d2-memory-hierarchy.png
+    notes: "1ns를 1초로 늘리면 RAM 1.5분, SSD 수 시간~하루, HDD 수개월, 대륙 간 왕복 수년. 교훈: 자주 쓰는 데이터는 캐시에(4일차), 멀리 있는 서버는 비싸다(3일차), MSA는 함수 호출보다 수천 배 느린 호출을 만든다(3주차). Jeff Dean의 'Latency Numbers Every Programmer Should Know'."
+
+  - type: compare
+    title: "학술 노트 — 폰 노이만 구조 (1945)"
+    left: ["핵심 아이디어", ["프로그램과 데이터를 같은 메모리에", "명령을 가져와(fetch) 해석하고(decode) 실행(execute)", "하드웨어 대신 소프트웨어를 바꿔 다른 일을 시킨다"]]
+    right: ["폰 노이만 병목", ["CPU는 빨라지는데 메모리는 그만큼 못 따라감", "CPU가 메모리를 기다리며 논다", "캐시 계층은 이 병목을 줄이기 위한 장치 (Backus, 1977)"]]
+    notes: "von Neumann (1945) First Draft of a Report on the EDVAC. 같은 물리 서버로 수많은 고객의 다른 프로그램을 돌리는 클라우드도 이 원리 위에 있다."
+
+  - type: cards
+    title: "트렌드 — CPU 전쟁과 AI 칩"
+    cards:
+      - [Cpu, teal, "ARM 서버 CPU", "AWS 신규 CPU 용량의 절반 이상이 3년 연속 Graviton (re:Invent 2025)"]
+      - [Users, teal, "98%", "EC2 상위 1,000개 고객 중 Graviton 사용 비율"]
+      - [TriangleAlert, orange, "아키텍처 차이", "ARM Mac에서 만든 이미지가 x86 서버에서 안 돌 수 있다 → 2주차 linux/arm64"]
+      - [Sparkles, violet, "GPU · AI 칩", "같은 계산을 수천 번 동시에 — Trainium · TPU 등 자체 칩 경쟁"]
+    notes: "Graviton5: 192코어, 2025년 12월 발표. 초보자에게 중요한 포인트는 '아키텍처가 다르면 실행 파일·이미지가 달라질 수 있다'."
+
+  - type: quiz
+    title: "1교시 확인 문제"
+    questions:
+      - "전원이 꺼지면 내용이 사라지는 부품은?"
+      - "메모리 읽기와 HDD 읽기는 대략 몇 배 차이?"
+      - "메모리를 너무 써서 OS가 강제로 종료하는 것은?"
+      - "Mac(ARM)에서 만든 이미지가 Intel 서버에서 안 도는 이유는?"
+    answers: "1) 메모리(RAM)  2) 약 5만~10만 배  3) OOM Kill  4) CPU 아키텍처 차이(ARM vs x86)"
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "운영체제가 하는 일"
+    goals: ["커널과 사용자 영역", "시스템 콜", "왜 서버는 Linux인가", "Unix 철학"]
+    notes: "비유: 빌딩 관리소. 회사들은 관리소에 신청서(시스템 콜)를 내서 자원을 쓴다."
+
+  - type: image
+    title: "커널 · 시스템 콜 · 사용자 영역"
+    img: week1/day2/w1d2-os-layers.png
+    notes: "파일 읽기: open() 시스템 콜 → 커널이 권한 확인 → 파일시스템·드라이버로 읽음 → read()로 전달. CPU의 사용자 모드/커널 모드 구분이 격리의 바탕 — 오늘 6~7교시와 4주차 보안에서 반복."
+
+  - type: table
+    title: "운영체제의 다섯 가지 일"
+    head: ["일", "설명", "다시 만나는 곳"]
+    rows:
+      - ["프로세스 관리", "어떤 프로그램을 언제 CPU에서 돌릴지", "3교시, K8s 스케줄링"]
+      - ["메모리 관리", "프로그램마다 메모리를 나누고 침범 방지", "컨테이너 메모리 제한, OOMKilled"]
+      - ["파일시스템", "디스크 데이터를 파일·폴더로", "4교시, Docker 볼륨"]
+      - ["네트워크", "데이터를 패킷으로 주고받기", "3일차, Docker 네트워크"]
+      - ["보안 · 권한", "누가 무엇을 할 수 있는지", "파일 권한, IAM, RBAC"]
+    colw: [2.6, 5.4, 4.1]
+    notes: "다섯 가지가 이 과정 전체에 걸쳐 다시 등장한다는 점을 강조."
+
+  - type: cards
+    title: "왜 서버는 Linux인가"
+    cards:
+      - [BadgeDollarSign, teal, "무료 · 오픈소스", "수천 대에 설치해도 라이선스 비용 없음"]
+      - [Feather, teal, "가볍고 안정적", "GUI 없이 필요한 것만, 오래 켜 둔다"]
+      - [Bot, orange, "자동화", "모든 작업을 명령·스크립트로"]
+      - [Container, violet, "컨테이너의 기반", "네임스페이스·cgroups는 Linux 커널 기능"]
+    callout: "TOP500 슈퍼컴퓨터는 2017년 11월부터 500대 모두 Linux · Windows에도 진짜 Linux 커널(WSL2)"
+    notes: "배포판: Ubuntu(WSL2 기본), Debian(이미지 기반), Amazon Linux(5주차), RHEL 계열(국내 대기업·공공), Alpine(작은 이미지)."
+
+  - type: compare
+    title: "학술 노트 — Unix의 탄생과 Unix 철학"
+    left: ["역사", ["1969 벨 연구소 톰프슨·리치가 Unix 제작", "Unix를 위해 C 언어 탄생 → 이식성", "1974 CACM 논문, 1983 튜링상", "1991 리누스 토르발스의 Linux"]]
+    right: ["Unix 철학 (McIlroy, 1978)", ["한 가지 일을 잘하는 프로그램", "프로그램들이 함께 일하게", "텍스트를 공통 언어로", "→ 50년 뒤 MSA로 다시 등장"]]
+    notes: "Ritchie & Thompson (1974). The UNIX Time-Sharing System. CACM 17(7). 5교시 파이프가 이 철학의 결과."
+
+  - type: statement
+    icon: Microscope
+    title: "트렌드 — eBPF: 커널을 안전하게 프로그래밍하기"
+    text: "커널을 고치거나 재부팅하지 않고\n검증된 작은 프로그램을 커널 안에서 실행한다"
+    sub: "4주차의 Cilium(네트워크)과 Hubble(관찰)이 eBPF 기반입니다 — '건드리기 무서운 커널'에서 '프로그래밍하는 커널'로"
+    notes: "시스템 콜은 커널 모드 진입 비용이 있어 버퍼링으로 횟수를 줄인다는 점도 언급."
+
+  - type: quiz
+    title: "2교시 확인 문제"
+    questions:
+      - "하드웨어를 직접 다룰 수 있는 OS의 핵심 부분은?"
+      - "프로그램이 파일을 읽으려면 커널에 무엇을 통해 요청하나?"
+      - "Docker와 Kubernetes가 Linux 기반인 이유 하나는?"
+      - "Unix 철학 세 가지 중 하나는?"
+    answers: "1) 커널  2) 시스템 콜  3) 네임스페이스·cgroups가 Linux 커널 기능  4) 한 가지 일을 잘하라 / 함께 일하게 / 텍스트로"
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "프로그램 · 프로세스 · 스레드"
+    goals: ["프로그램 vs 프로세스", "프로세스와 스레드", "생명주기와 스케줄러", "종료 코드와 PID 1"]
+    notes: "비유: 레시피(프로그램)와 지금 요리 중인 상태(프로세스)."
+
+  - type: table
+    title: "프로그램 · 프로세스 · 스레드"
+    head: ["개념", "어디에 있나", "예시", "확인 방법"]
+    rows:
+      - ["프로그램", "디스크의 파일", "/usr/sbin/nginx", "ls, which"]
+      - ["프로세스", "메모리에서 실행 중", "PID 1234 nginx", "ps, top"]
+      - ["스레드", "프로세스 안의 실행 흐름", "워커의 처리 흐름들", "top -H"]
+    colw: [2.2, 3.7, 3.4, 2.8]
+    callout: "같은 레시피(프로그램)로 요리(프로세스)를 여러 번 — 각 요리는 자기 냄비(메모리)를 따로 쓴다"
+    notes: "프로세스가 가진 것: PID, PPID, 메모리 공간, 열린 파일·연결, UID, 환경 변수, 상태."
+
+  - type: image
+    title: "프로세스와 스레드"
+    img: week1/day2/w1d2-process-thread.png
+    notes: "경쟁 상태 실제 사례: 2025년 10월 AWS us-east-1 장애의 근본 원인은 DynamoDB DNS 관리 자동화의 잠재적 경쟁 상태 — 빈 DNS 레코드가 만들어졌다(AWS 공식 사후 보고서). 3일차 DNS에서 다시."
+
+  - type: image
+    title: "프로세스의 생명주기"
+    img: week1/day2/w1d2-process-lifecycle.png
+    notes: "문맥 교환. Linux 스케줄러는 2007년부터 CFS, 2023년 커널 6.6부터 EEVDF(1995년 Stoica 논문 기반)로 교체."
+
+  - type: table
+    title: "종료 코드 — 자동화의 언어"
+    head: ["코드", "관례상 의미", "어디서 보나"]
+    rows:
+      - ["0", "성공", "CI가 다음 단계로 진행"]
+      - ["1", "일반적인 실패", "테스트 실패 → 배포 중단"]
+      - ["127", "명령을 찾을 수 없음", "오타, 설치 안 됨"]
+      - ["130", "Ctrl+C로 중단", "사람이 멈춤"]
+      - ["137", "강제 종료 (흔히 OOM Kill)", "K8s 'Exit Code: 137' → 메모리 의심"]
+    colw: [1.4, 4.5, 6.2]
+    notes: "시연: ls /tmp; echo $? → 0, ls /없는폴더; echo $? → 2, nginxx; echo $? → 127. 1주차는 숫자 읽는 법만."
+
+  - type: statement
+    icon: Box
+    title: "컨테이너와 PID 1"
+    text: "컨테이너 안에서 내 앱은 PID 1번\nPID 1이 끝나면 컨테이너도 끝난다"
+    sub: "'컨테이너가 바로 꺼져요'의 대부분은 메인 프로세스가 곧바로 종료된 것 — 종료 코드를 보면 이유가 보입니다"
+    notes: "모든 프로세스는 fork/exec로 부모를 가지며, 거슬러 올라가면 PID 1(systemd). 학술 노트: 프로세스 개념은 Multics·시분할에서, Dijkstra의 세마포어(1965~68)."
+
+  - type: quiz
+    title: "3교시 확인 문제"
+    questions:
+      - "nginx를 3번 실행하면 프로세스는 몇 개?"
+      - "같은 프로세스의 스레드끼리 공유하는 것은?"
+      - "종료 코드 127이면 무엇을 의심?"
+      - "Kubernetes에서 Exit Code 137의 흔한 원인은?"
+    answers: "1) 3개  2) 메모리  3) 오타·미설치(command not found)  4) 메모리 상한 초과로 OOM Kill"
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "파일과 저장소"
+    goals: ["Linux 디렉터리 구조", "파일 권한 rwx", "사라지는 데이터 vs 남는 데이터", "블록 · 파일 · 객체 스토리지"]
+    notes: "Windows는 드라이브마다 시작점, Linux는 / 하나."
+
+  - type: image
+    title: "Linux의 디렉터리 구조"
+    img: week1/day2/w1d2-fs-tree.png
+    notes: "절대 경로(/부터)와 상대 경로(현재 위치 기준), ., .., ~. 'No such file' 오류 상당수는 현재 위치 착각 → pwd. 'Everything is a file' 원칙."
+
+  - type: image
+    title: "파일 권한 읽기"
+    img: week1/day2/w1d2-permissions.png
+    notes: "ls -l 출력 예시 -rwxr-xr-- student dev deploy.sh. 5주차 SSH 키는 600이 아니면 SSH가 접속을 거부한다."
+
+  - type: statement
+    icon: KeyRound
+    title: "학술 노트 — 최소 권한 원칙 (Saltzer & Schroeder, 1975)"
+    text: "모든 프로그램과 사용자는\n일에 꼭 필요한 최소한의 권한만 가져야 한다"
+    sub: "50년 전 원칙이 오늘의 Linux 권한 · Kubernetes RBAC · AWS IAM · AI 에이전트 권한에 그대로 쓰입니다"
+    notes: "Saltzer & Schroeder (1975). The protection of information in computer systems. Proc. IEEE 63(9). chmod 777은 문제를 덮는 것이지 해결이 아니다."
+
+  - type: table
+    title: "사라지는 데이터와 남는 데이터"
+    head: ["위치", "재부팅하면", "서버·컨테이너를 지우면"]
+    rows:
+      - ["메모리", "사라짐", "사라짐"]
+      - ["/tmp", "사라질 수 있음", "사라짐"]
+      - ["컨테이너 내부 파일", "남음 (재시작 시)", "사라짐"]
+      - ["Docker 볼륨 / EBS", "남음", "따로 지우기 전까지 남음"]
+      - ["S3 (객체 스토리지)", "남음", "남음 (별개 서비스)"]
+    colw: [3.8, 3.6, 4.7]
+    callout: "2주차 첫 실험: DB 컨테이너를 지웠다 다시 만들면 데이터는? — 이 표로 미리 예측해 보세요"
+    notes: "초보자 사고 1위 '데이터가 사라졌어요'의 예방."
+
+  - type: image
+    title: "스토리지의 세 가지 종류"
+    img: week1/day2/w1d2-storage-types.png
+    notes: "DB 디스크→EBS, 여러 웹 서버 공유 업로드→EFS, 사진·백업·로그→S3. 트렌드: 저장과 계산의 분리 — 데이터는 S3에, 연산은 필요할 때."
+
+  - type: quiz
+    title: "4교시 확인 문제"
+    questions:
+      - "nginx 설정과 로그는 보통 어느 디렉터리에?"
+      - "rw-r--r--를 숫자로 바꾸면?"
+      - "SSH 개인 키에 알맞은 권한은?"
+      - "사용자 프로필 사진 수백만 장을 저장할 AWS 서비스는?"
+    answers: "1) /etc/nginx, /var/log/nginx  2) 644  3) 600  4) S3 (객체 스토리지)"
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "Linux 명령어 맛보기 (강사 시연)"
+    goals: ["터미널 · 셸 · 프롬프트", "명령 · 옵션 · 인자로 읽기", "질문별 기본 명령", "파이프로 이어 붙이기"]
+    notes: "오늘은 따라 치지 않는다. 출력 읽는 법에 집중. 2주차 1일차에 직접 실행."
+
+  - type: image
+    title: "명령어 한 줄 읽는 법"
+    img: week1/day2/w1d2-terminal-anatomy.png
+    notes: "$ 일반 사용자, # 관리자(root) — #가 보이면 한 번 더 조심."
+
+  - type: table
+    title: "질문별로 정리한 기본 명령"
+    head: ["질문", "명령", "볼 것"]
+    rows:
+      - ["나는 어디에 있나?", "pwd", "현재 경로"]
+      - ["여기에 무엇이 있고 권한은?", "ls -l", "rwx, 소유자"]
+      - ["무엇이 돌고 있나?", "ps aux / top", "PID, CPU%, MEM%"]
+      - ["디스크·메모리는 충분한가?", "df -h / free -h", "Use%, available"]
+      - ["로그가 어떻게 쌓이나?", "tail -f 파일", "실시간 출력"]
+      - ["이 주소는 응답하나?", "curl URL", "HTTP 상태 코드 (3일차)"]
+      - ["어떤 포트가 열려 있나?", "ss -tlnp", "포트 충돌 (3일차)"]
+    colw: [4.4, 3.4, 4.3]
+    mono_col: 1
+    notes: "시연 — 서버 건강 검진 5분: cat /etc/os-release → uptime → free -h → df -h → ps aux --sort=-%cpu | head -5. Grafana가 하는 일을 글자로."
+
+  - type: statement
+    icon: Workflow
+    title: "파이프 — 작은 명령을 이어 붙이기"
+    text: "cat access.log | grep \" 500 \" | wc -l\n→ 읽기 · 거르기 · 세기 = 오늘 500 에러는 몇 번?"
+    sub: "학술 노트: 매클로이의 1964년 메모 '프로그램을 호스처럼 연결하자' → 1973년 Unix 파이프 → 오늘의 CI/CD 파이프라인"
+    notes: "Unix 철학이 실제로 동작하는 모습."
+
+  - type: table
+    title: "위험한 명령, 오늘 배운 것으로 다시 읽기"
+    head: ["명령", "해석"]
+    rows:
+      - ["rm -rf /", "루트(/) 아래 모든 것을 확인 없이(-f) 하위까지(-r) 삭제"]
+      - ["chmod -R 777 /var/www", "웹 폴더 전체를 누구나 쓰고 실행 → 최소 권한 위반"]
+      - ["kill -9 1", "PID 1 강제 종료 → 시스템·컨테이너 전체가 멈출 수 있음"]
+      - ["sudo + 낯선 명령", "관리자 권한 → 실수의 피해가 시스템 전체로"]
+    colw: [3.6, 8.5]
+    mono_col: 0
+    callout: "트렌드: 터미널 안으로 들어온 AI(Claude Code, Codex CLI 등) — 명령을 '외울' 필요는 줄고 '읽을' 필요는 커졌다"
+    notes: "AI가 제안한 명령을 읽고 판단하는 능력이 없으면 위험한 명령도 그대로 실행하게 된다."
+
+  - type: quiz
+    title: "5교시 확인 문제"
+    questions:
+      - "프롬프트 끝이 #이면 어떤 상태?"
+      - "ls -l /etc 에서 명령 · 옵션 · 인자는?"
+      - "디스크가 얼마나 찼는지 보는 명령은?"
+      - "ps aux | grep python 은 무엇을 보여 주나?"
+    answers: "1) 관리자(root)  2) ls / -l / /etc  3) df -h  4) 실행 중 프로세스 중 python이 들어간 줄만"
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "가상화와 하이퍼바이저"
+    goals: ["Type 1 vs Type 2", "가상화의 세 가지 방법", "Nitro와 Firecracker", "VMware 대이동"]
+    notes: "하이퍼바이저 = 운영체제들의 운영체제."
+
+  - type: image
+    title: "하이퍼바이저의 두 종류"
+    img: week1/day2/w1d2-hypervisor-types.png
+    notes: "KVM은 2007년 Linux 커널(2.6.20)에 포함 — Linux 자체를 Type 1처럼. AWS Nitro, 구글 클라우드도 KVM 계열. 분류의 원전: Goldberg 1972 하버드 박사 논문."
+
+  - type: table
+    title: "가상화를 구현하는 세 가지 방법"
+    head: ["방식", "아이디어", "대표"]
+    rows:
+      - ["전가상화 (이진 변환)", "위험한 명령을 실행 직전에 바꿔치기", "VMware (1999)"]
+      - ["반가상화", "게스트 OS를 고쳐 하이퍼바이저에 직접 요청", "Xen (2003)"]
+      - ["하드웨어 지원 가상화", "CPU에 가상화 전용 명령 추가", "Intel VT-x · AMD-V (2005~06)"]
+    colw: [3.4, 5.4, 3.3]
+    callout: "학술 노트: Barham 외, 'Xen and the Art of Virtualization' (SOSP 2003) → 2006년 EC2 출시 당시 하이퍼바이저"
+    notes: "학술 연구가 3년 만에 세계 최대 클라우드의 바탕이 된 사례."
+
+  - type: compare
+    title: "클라우드 가상화의 최신 형태"
+    left: ["AWS Nitro", ["네트워크·스토리지·보안 처리를 전용 카드로", "하이퍼바이저는 가벼운 KVM 기반으로", "VM이 물리 성능을 거의 그대로", "Graviton5에는 6세대 Nitro 카드"]]
+    right: ["Firecracker (NSDI 2020)", ["Lambda를 위한 마이크로 VM", "약 125ms 만에 부팅", "VM당 메모리 오버헤드 5MiB 미만", "VM의 격리 + 컨테이너의 가벼움"]]
+    notes: "Agache et al. (2020). Firecracker: Lightweight virtualization for serverless applications. NSDI '20. 오픈소스."
+
+  - type: cards
+    title: "트렌드 — Broadcom의 VMware 인수 이후"
+    cards:
+      - [Building2, slate, "2023.11", "Broadcom이 VMware 인수 완료 → 라이선스 정책 대전환"]
+      - [TrendingDown, orange, "86%", "VMware 사용을 줄이는 중 (CloudBolt, 2026.1, 302명)"]
+      - [Cloud, teal, "72%", "옮긴 워크로드의 행선지 = 퍼블릭 클라우드 IaaS"]
+      - [DoorOpen, red, "4%", "완전히 떠난 곳은 아직 소수"]
+    callout: "온프레미스 VM → 클라우드·컨테이너 이전 프로젝트 = DevOps·클라우드 엔지니어의 일자리"
+    notes: "교훈: 특정 상용 제품 의존 위험. 이 과정이 KVM·Kubernetes·Terraform 같은 오픈소스와 표준 중심인 이유."
+
+  - type: quiz
+    title: "6교시 확인 문제"
+    questions:
+      - "노트북의 VirtualBox는 Type 1? Type 2?"
+      - "Linux 커널에 포함된 가상화 기능은?"
+      - "2006년 EC2가 쓴 하이퍼바이저는?"
+      - "Lambda를 위한 초경량 마이크로 VM은?"
+    answers: "1) Type 2  2) KVM  3) Xen  4) Firecracker"
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "VM에서 컨테이너로 (2주차 예고)"
+    goals: ["컨테이너 = 격리된 프로세스", "VM vs 컨테이너", "네임스페이스와 cgroups", "컨테이너의 역사"]
+    notes: "비유: VM은 단독주택, 컨테이너는 아파트."
+
+  - type: image
+    title: "VM과 컨테이너"
+    img: week1/day2/w1d2-vm-vs-container.png
+    callout: "실제 클라우드: 물리 서버 → Nitro → EC2(VM) → Linux 커널 → 컨테이너들 — 서로 다른 층에서 다른 문제를 푼다"
+    notes: "VM은 고객 간 강한 격리, 컨테이너는 앱 단위의 빠르고 가벼운 배포. 5주차 EKS도 이 구조."
+
+  - type: image
+    title: "컨테이너를 만드는 두 기둥"
+    img: week1/day2/w1d2-namespaces-cgroups.png
+    notes: "cgroups는 2007년 구글 엔지니어가 개발, 2008년 커널 2.6.24에 포함. 이미지 = 프로그램, 컨테이너 = 프로세스."
+
+  - type: image
+    title: "컨테이너의 역사"
+    img: week1/day2/w1d2-container-history.png
+    notes: "Docker가 발명한 것은 격리 기술이 아니라 '경험' — Dockerfile, Docker Hub, docker run. 기술의 성공은 발명만큼 UX에 달려 있다."
+
+  - type: compare
+    title: "학술 노트와 트렌드"
+    left: ["구글 Borg (EuroSys 2015)", ["Docker 10년 전부터 사내 전 서비스를 컨테이너로", "수십만 대 서버 스케줄링 경험", "Kubernetes = Borg의 교훈을 오픈소스로 재설계"]]
+    right: ["컨테이너는 이제 기본값", ["운영 환경 컨테이너 사용 56% (2023년 41%) — CNCF", "Dockerfile 저장소 190만 개 (Octoverse 2025) · Actions 작업 연 454억 번 (Octoverse 2026)", "'실험에서 재현 가능한 운영으로 넘어가는 다리'"]]
+    notes: "Verma et al. (2015) Borg. Felter et al. (2015) IBM: 컨테이너 성능이 대부분 VM과 같거나 더 좋다."
+
+  - type: table
+    title: "2주차를 기다리게 만드는 질문"
+    head: ["질문", "오늘 배운 것으로 예측"]
+    rows:
+      - ["컨테이너 안에서 ps를 치면?", "PID 네임스페이스 → 내 앱만, PID 1번"]
+      - ["컨테이너를 지우면 데이터는?", "4교시 표 → 사라진다, 볼륨 필요"]
+      - ["Mac 이미지가 서버에서 안 돈다면?", "1교시 → CPU 아키텍처 차이"]
+      - ["Exit 137로 계속 죽는다면?", "3교시 + cgroups → 메모리 상한 초과"]
+    colw: [4.8, 7.3]
+    notes: "학생들이 먼저 답하게 한 뒤 공개."
+
+  - type: summary
+    title: "오늘 하루 정리"
+    items:
+      - ["1교시", "성능은 '데이터가 어디 있느냐'가 좌우한다 — 부품 간 수천~수백만 배"]
+      - ["2교시", "프로그램은 시스템 콜로 커널에 부탁한다 — 서버는 Linux"]
+      - ["3교시", "종료 코드 0은 성공 — 자동화는 이 숫자만 본다"]
+      - ["4교시", "설정은 /etc, 로그는 /var/log — 권한은 최소로"]
+      - ["5~6교시", "명령은 질문별로 읽고, 클라우드는 Type 1 하이퍼바이저 위에"]
+      - ["7교시", "컨테이너 = 네임스페이스 + cgroups로 격리된 프로세스"]
+    diary: "배움일기 — 가장 '아하!' 했던 순간 · 아직 헷갈리는 개념과 이유 · 내일(네트워크) 전에 궁금한 것"
+    notes: "내일은 네트워크 기초. 오늘 본 NIC를 통해 데이터가 어떻게 오가는지."

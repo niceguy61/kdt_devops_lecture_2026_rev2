@@ -1,0 +1,362 @@
+meta:
+  footer: "3주차 2일차 · MSA 장애와 CI"
+  title: "3주차 2일차 — MSA 장애와 CI"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 3주차 MSA + Kubernetes"
+    title: "MSA 장애와 CI"
+    subtitle: "3주차 2일차 · 장애 전파 · 타임아웃과 재시도 · 헬스 체크와 재시작 · 큐 적체와 메시지 유실 · GitHub Actions · 자동 테스트 · GHCR"
+    notes: "오전: 죽은 것보다 느린 것이 무섭다. 오후: 서비스가 셋이면 할 일도 셋 — CI에 맡긴다. 1주차 5일차 파이프라인 ①~⑤를 직접 만드는 날."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "1일차 요약 + 장애 전파"]
+      - ["2교시", "2", "타임아웃 · 재시도 · 헬스 체크"]
+      - ["3교시", "3", "큐 적체와 메시지 유실 + 장애 보고서"]
+      - ["4교시", "4", "GitHub Actions 개념과 첫 워크플로"]
+      - ["5교시", "5", "PR마다 자동 테스트"]
+      - ["6교시", "6", "이미지 자동 빌드와 GHCR"]
+      - ["7교시", "7", "CI 실패 읽기와 main 보호 + 배움일기"]
+    notes: "시작 전: cd ~/course && git pull, 새 catalog-api · order-api 복사 후 up --build, 커밋. gh auth status 확인."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "장애 전파"
+    goals: ["1일차 손 복습", "죽은 것 vs 느린 것", "catalog-api 얼리기", "느림이 번진다"]
+    notes: "어제 배움일기의 마지막 질문 — catalog-api가 느려지면 order-api는?"
+
+  - type: code
+    title: "실습 1 · 상품 서비스를 얼리기"
+    code: |
+      docker compose pause catalog-api
+      curl -s -w '  (HTTP %{http_code}, %{time_total}초)\n' -X POST \
+        http://localhost:8080/api/orders -H 'Content-Type: application/json' -d '{"product_id": 1}'
+      curl -s -o /dev/null -w '상품 목록: %{http_code} %{time_total}초\n' http://localhost:8080/api/products
+    out: |
+      {"error":"catalog unavailable",…}  (HTTP 503, 2.004초)
+      상품 목록: 504 60.06초
+    points:
+      - ["pause", "연결은 되지만 답이 없다"]
+      - ["timed out", "Name or service not known과 다르다"]
+      - ["504 vs 503", "게이트웨이가 포기 vs 서비스가 거절"]
+    notes: "502 Bad Gateway: 뒤쪽이 이상한 답/연결 끊김. 503: 서비스 스스로. 504: 게이트웨이(nginx 기본 60초)가 기다리다 포기."
+
+  - type: image
+    title: "기다리는 동안 자원이 묶인다"
+    img: week3/day2/w3d2-cascade.png
+    notes: "order-api는 gunicorn 기본값 — 일꾼 1명. 주문 하나가 2초 기다리면 상관없는 주문 목록도 1.7초 줄을 선다. 타임아웃 30초면 주문 목록까지 60초 뒤 504."
+
+  - type: table
+    title: "실습 2 · 타임아웃이 길수록 멀리 번진다"
+    head: ["타임아웃", "주문하기", "주문 목록 (catalog와 무관)", "결과"]
+    rows:
+      - ["2초", "2초 뒤 503", "최대 2초 지연", "주문만 실패"]
+      - ["30초", "30초 뒤 503 / 60초 뒤 504", "60초 뒤 504", "주문 서비스 전체 마비"]
+    colw: [1.8, 3.6, 3.6, 3.1]
+    callout: "넉넉하게 기다려 주는 것 = 내 자원을 묶어 남까지 멈추게 하는 것"
+    callout_color: orange
+    notes: "오해: 일꾼을 늘리면 해결? 완충일 뿐. 근본은 짧은 타임아웃 · 서킷 브레이커 · 벌크헤드. 학술: Nygard 『Release It!』 연쇄 장애 · 막힌 스레드, SRE 책 22장. 트렌드: 카오스 엔지니어링 — Chaos Monkey, LitmusChaos, AWS FIS."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "타임아웃 · 재시도 · 헬스 체크"
+    goals: ["타임아웃 정하기", "재시도가 살리는 경우", "재시도가 해치는 경우", "헬스 체크 · 재시작 정책"]
+    notes: "라이브러리 기본값은 무한 대기인 경우가 많다 — 리뷰에서 '이 호출에 타임아웃이 있나요?'"
+
+  - type: code
+    title: "재시도 + 지수 백오프"
+    shell: "order-api/app.py"
+    code: |
+      for attempt in range(CATALOG_RETRIES + 1):
+          try:
+              with urllib.request.urlopen(req, timeout=CATALOG_TIMEOUT) as res:
+                  return res.status, json.load(res)
+          except urllib.error.HTTPError as e:
+              return e.code, {}          # 404는 다시 물어도 같다
+          except Exception as e:
+              log("catalog_error", attempt=attempt + 1, error=str(e))
+              if attempt < CATALOG_RETRIES:
+                  time.sleep(0.2 * (2 ** attempt))   # 0.2 → 0.4 → 0.8 → 1.6
+    points:
+      - ["지수 백오프", "회복 중인 상대에 몰려가지 않게"]
+      - ["404는 재시도 X", "네트워크 문제일 때만"]
+      - ["안쪽일수록 짧게", "nginx 60초 > catalog 2초"]
+    notes: "학술: 이더넷의 이진 지수 백오프 (Metcalfe & Boggs 1976), Brooker (2015) Exponential Backoff And Jitter — 흔들림(jitter)을 더하라."
+
+  - type: compare
+    title: "실습 3~4 · 재시도 4번 — 살리거나 해치거나"
+    left: ["잠깐의 재시작 (stop → start)", ["3번 실패, 4번째 성공", "202, 1.72초", "사용자는 장애를 모른다"]]
+    right: ["멈춘 상대 (pause)", ["2초 × 5번 + 기다림 3초", "503, 13.01초", "일꾼이 6배 오래 묶인다", "층마다 3번이면 3×3×3 = 27배 — 재시도 폭풍"]]
+    notes: "재시도는 한 층에서만, 예산 안에서, 계속 실패하면 서킷 브레이커. 결제처럼 멱등하지 않은 요청은 그냥 재시도하면 두 번 결제 — 고유 키 필요(3교시)."
+
+  - type: code
+    title: "헬스 체크와 재시작 정책"
+    shell: "compose.yaml (order-api)"
+    code: |
+      restart: unless-stopped
+      healthcheck:
+        test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=5)"]
+        interval: 5s
+        timeout: 6s
+        retries: 3
+    out: |
+      # docker compose stop redis 후
+      order-api   Up 37 seconds (unhealthy)     /health → {"status":"ok"}
+      # WORK_SECONDS: "abc" 후
+      order-worker  Restarting (1)   재시작 횟수: 7   ValueError: could not convert …
+    points:
+      - ["unhealthy", "살아 있지만 준비 안 됨"]
+      - ["크래시 루프", "틀린 설정은 재시작으로 안 고쳐진다"]
+    notes: "Compose는 unhealthy를 표시만 한다. Kubernetes는 liveness 실패 → 재시작, readiness 실패 → 손님 안 보내기. /ready를 liveness로 쓰면 redis 장애 때 전부 재시작되는 2차 사고. 트렌드: 재시도 · 타임아웃을 코드 밖으로 — 서비스 메시(4주차)."
+
+  - type: table
+    title: "살아 있음 vs 준비됨"
+    head: ["", "/health — 살아 있나", "/ready — 준비됐나"]
+    rows:
+      - ["보는 것", "이 프로세스만", "DB · 큐 등 의존 대상까지"]
+      - ["실패하면", "다시 시작", "손님을 보내지 않기"]
+      - ["redis가 죽었을 때", "성공 — 재시작하면 안 된다", "실패 — 잠시 빼 둔다"]
+      - ["Kubernetes에서", "liveness probe", "readiness probe"]
+    colw: [2.8, 4.6, 4.7]
+    notes: "3주차 5일차에 probe로 다시."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "큐 적체와 메시지 유실"
+    goals: ["쌓였다 비워지는 큐", "처리 중 죽으면", "멈춘 주문 찾기 · 복구", "nginx 로그 · 장애 보고서"]
+    notes: "큐는 완충 장치이지만 BRPOP은 꺼내는 순간 지운다."
+
+  - type: image
+    title: "유령 주문과 유실"
+    img: week3/day2/w3d2-message-loss.png
+    notes: "12번: 저장은 됐는데 큐 넣기 실패(redis 꺼짐) — 사용자는 503을 받았지만 DB엔 pending. 13번: 꺼낸 뒤 처리 중 kill — 큐에도 없고 처리도 안 됨."
+
+  - type: code
+    title: "실습 8~9 · 처리 중 죽이고, 멈춘 주문 찾기"
+    code: |
+      # WORK_SECONDS: "10" → 주문 → 2초 뒤
+      docker compose kill order-worker
+      docker compose exec db psql -U devmart -d orders -c \
+        "SELECT id, status FROM orders WHERE status='pending'
+           AND created_at < now() - interval '1 minute';"
+      docker compose exec redis redis-cli LPUSH orders '{"order_id": 13, "request_id": "manual-recovery"}'
+    out: |
+      id 12 | pending
+      id 13 | pending
+      → 3초 뒤 12, 13 completed
+    points:
+      - ["1분 넘은 pending", "사용자 관점의 감시"]
+      - ["다시 넣기 전", "두 번 해도 괜찮은가(멱등)?"]
+    notes: "전달 보장: 최대 한 번(BRPOP) → 유실, 최소 한 번(ack) → 중복 가능 → 멱등 처리, 정확히 한 번은 매우 어렵다. 개선: LMOVE로 처리 중 목록, 트랜잭셔널 아웃박스. 학술: 종단 간 원칙 (Saltzer, Reed & Clark 1984) — 끝에서 확인하라. 트렌드: 아웃박스 + CDC (Debezium)."
+
+  - type: code
+    title: "nginx 로그에 요청 ID · 장애 보고서"
+    shell: "nginx/default.conf"
+    code: |
+      log_format devmart '$remote_addr [$time_local] "$request" $status '
+                         'rid=$request_id upstream=$upstream_addr rt=$request_time';
+      server {
+          listen 80;
+          access_log /var/log/nginx/access.log devmart;
+    out: |
+      "POST /api/orders HTTP/1.1" 202 rid=3a9f0c1e… upstream=172.18.0.6:8000 rt=0.027
+    points:
+      - ["rid", "grep $RID에 nginx도 걸린다"]
+      - ["rt", "사용자가 실제로 기다린 시간"]
+      - ["장애 보고서", "incident-report-template.md"]
+    notes: "추천 주제: 상품 서비스가 멈추자 주문 서비스 전체가 1분간 응답하지 않음. 증거가 없는 문장은 쓰지 않는다 — 명령과 로그 한 줄을 근거로."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "GitHub Actions 개념과 첫 워크플로"
+    goals: ["서비스 셋 = 할 일 셋", "구성 요소 일곱", "hello.yml 실행", "남의 액션의 위험"]
+    notes: "사람은 잊어버린다 — 테스트를 건너뛰거나 이미지 하나만 새로 만든다."
+
+  - type: image
+    title: "오늘 만드는 부분 — ① 커밋 ② 빌드 ③ 테스트 ⑤ 이미지 저장"
+    img: week3/day2/w3d2-ci-scope.png
+    notes: "1주차 5일차 2교시의 파이프라인. ④ 보안 검사, ⑥ 배포, ⑦ 모니터링은 4주차."
+
+  - type: image
+    title: "GitHub Actions의 구성 요소"
+    img: week3/day2/w3d2-actions-anatomy.png
+    notes: "워크플로 = 파일, 이벤트 = 깨우기, 잡 = 동시에, 스텝 = 차례로, 러너 = 매번 새 VM, 액션 = 재사용, 시크릿 = 로그에 *** . 파일 위치는 저장소 최상위 .github/workflows/."
+
+  - type: code
+    title: "실습 11 · 첫 워크플로"
+    shell: ".github/workflows/hello.yml"
+    code: |
+      on:
+        push:
+        workflow_dispatch:
+      jobs:
+        hello:
+          runs-on: ubuntu-latest
+          steps:
+            - run: echo "안녕하세요, ${{ github.actor }} 님!"
+            - uses: actions/checkout@v6
+            - run: ls -la
+    out: |
+      $ gh run list --limit 1
+      ✓  첫 GitHub Actions 워크플로  hello  main  push  12s
+    points:
+      - ["gh run view --log", "로그 전체"]
+      - ["gh workflow run hello", "버튼으로 실행"]
+      - ["확인 후 끄기", "모든 push마다 돈다"]
+    notes: "공개 저장소는 표준 러너 무료, 비공개는 월 무료 분량 초과 시 과금. 학술: Fowler (2006) CI, Hilton et al. (ASE 2016) — CI 프로젝트가 더 자주 릴리스하고 PR을 더 빨리 받아들였다."
+
+  - type: statement
+    icon: ShieldAlert
+    title: "남의 액션은 남의 코드다"
+    text: "uses: 누군가/무언가@v1 = 남의 코드를 내 저장소 권한으로 실행\n2025년 3월 tj-actions/changed-files 해킹 — CI 로그에 시크릿 노출"
+    sub: "검증된 제작자 우선 · 중요한 저장소는 커밋 SHA로 고정 · permissions는 최소로 — 태그는 옮겨 붙을 수 있다"
+    notes: "트렌드: 조직 정책으로 SHA 고정 강제, actionlint · zizmor로 워크플로 검사. 5주차 OIDC."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "PR마다 자동 테스트"
+    goals: ["테스트 읽기", "로컬에서 먼저", "워크플로 읽기", "빨간 X 보기"]
+    notes: "오전에 손으로 확인한 것이 그대로 테스트가 되었다."
+
+  - type: code
+    title: "실습 12 · 테스트를 Docker로 먼저"
+    code: |
+      cd ~/devops-lab/devmart-msa/order-api
+      docker run --rm -v "$PWD":/app -w /app python:3.14-slim \
+        sh -c "pip install -q -r requirements-dev.txt && python -m pytest -v"
+    out: |
+      tests/test_app.py::test_health_ok PASSED
+      tests/test_app.py::test_ready_fails_without_dependencies PASSED
+      tests/test_app.py::test_order_returns_503_when_catalog_is_down PASSED
+      ============== 3 passed in 5.81s ==============
+    points:
+      - ["test_client", "서버 없이 가짜 요청"]
+      - ["monkeypatch", "테스트 동안만 설정 바꾸기"]
+      - ["로컬 먼저", "CI는 마지막 관문"]
+    notes: "파이썬 설치 없이 2주차 바인드 마운트로."
+
+  - type: code
+    title: "CI 워크플로 — 테스트 부분"
+    shell: ".github/workflows/devmart-ci.yml"
+    code: |
+      on:
+        pull_request:
+          paths: ["devmart-msa/**", ".github/workflows/devmart-ci.yml"]
+        push:
+          branches: [main]
+      permissions:
+        contents: read
+      jobs:
+        test:
+          strategy:
+            matrix:
+              service: [catalog-api, order-api]
+          steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-python@v6
+              with: { python-version: "3.14", cache: pip }
+            - run: pip install -r requirements-dev.txt
+            - run: python -m pytest -v
+    points:
+      - ["paths", "필요할 때만"]
+      - ["matrix", "서비스마다 동시에"]
+      - ["compose-check", "DB_PASSWORD는 가짜 값"]
+    notes: "build 잡은 needs: [test, compose-check] — 테스트 통과 후에만."
+
+  - type: code
+    title: "실습 13~14 · PR 열고, 깨뜨리고, 읽기"
+    code: |
+      git switch -c ci/devmart-tests && cp …/devmart-ci.yml .github/workflows/
+      git push -u origin ci/devmart-tests && gh pr create … && gh pr checks --watch
+      # health()가 500을 돌려주게 고치고 push
+      gh run view --log-failed | tail -3
+    out: |
+      X  test (order-api)    ✓ test (catalog-api)   -  build (…) 건너뜀
+      FAILED tests/test_app.py::test_health_ok - assert 500 == 200
+      ##[error]Process completed with exit code 1.
+    points:
+      - ["읽는 순서", "잡 → 스텝 → 테스트 → 기대와 실제"]
+      - ["500 == 200", "실제 500, 기대 200"]
+    notes: "오해: 테스트 통과 = 버그 없음? 적어 둔 것만 확인한다 — 장애 3(큐 이름)은 통과한다. 학술: 테스트 피라미드 (Cohn 2009), 빠른 되먹임. 트렌드: AI가 쓴 PR일수록 CI가 품질의 바닥."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "이미지 자동 빌드와 GHCR"
+    goals: ["build 잡 읽기", "병합하면 push", "내 노트북에서 pull", "태그 전략"]
+    notes: "Docker Hub는 비밀번호 시크릿 필요, GHCR은 GITHUB_TOKEN으로."
+
+  - type: image
+    title: "build 잡 — PR은 빌드만, main만 push"
+    img: week3/day2/w3d2-build-job.png
+    notes: "permissions: packages: write는 build 잡에만. type=sha → sha-7f3c2e1, latest는 main일 때만. cache type=gha."
+
+  - type: code
+    title: "실습 15 · 병합하고 GHCR에서 받기"
+    code: |
+      gh pr merge --squash --delete-branch && gh run watch
+      # github.com/내아이디?tab=packages → 세 패키지를 Public으로
+      docker pull ghcr.io/내아이디/devmart-order-api:latest
+      docker image inspect ghcr.io/내아이디/devmart-order-api:latest \
+        --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'
+      git -C ~/devops-lab log -1 --format=%H
+    out: |
+      #12 pushing ghcr.io/내아이디/devmart-order-api:sha-7f3c2e1 … DONE
+      7f3c2e1a9d0b4c…
+      7f3c2e1a9d0b4c…
+    points:
+      - ["라벨 = 커밋", "이 이미지는 어느 코드인가"]
+      - ["공개로", "내일 kind가 로그인 없이 받게"]
+      - ["CI ≠ 배포", "창고까지 — CD는 4주차"]
+    notes: "공개 전에 이미지에 비밀값이 없는지 다시 확인. 회사는 비공개 + 레지스트리 로그인 Secret. 학술: 솔라윈즈(2020), 재현 가능한 빌드 (Lamb & Zacchiroli 2022), SLSA. 트렌드: attest-build-provenance, gh attestation verify."
+
+  - type: table
+    title: "태그 전략"
+    head: ["태그", "예", "바뀌나", "언제"]
+    rows:
+      - ["커밋 SHA", "sha-7f3c2e1", "절대 안 바뀜", "배포 · 롤백 기록"]
+      - ["latest", "latest", "main 병합마다 옮겨 붙음", "개발 중"]
+      - ["유의적 버전", "1.1.0", "사람이 릴리스할 때", "사람이 읽고 말할 때"]
+    colw: [2.4, 2.6, 3.6, 3.5]
+    mono_col: 1
+    notes: "3주차 4일차부터 K8s에 SHA 태그로 배포, 4주차 ArgoCD가 Git 커밋 = 클러스터 이미지를 맞춘다."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "CI 실패 읽기와 main 보호"
+    goals: ["실패 읽는 순서", "실패 세 가지", "Rulesets", "경로 필터의 함정"]
+    notes: "로그는 아래에서 위로."
+
+  - type: image
+    title: "CI 실패 — 잡 · 스텝 · 마지막 에러 줄 · 로컬 재현"
+    img: week3/day2/w3d2-ci-failure.png
+    notes: "실패 1 Dockerfile 오타 COPY wroker.py → not found (테스트 없는 order-worker는 빌드가 첫 관문), 실패 2 compose 콜론 누락 → services.redis must be a mapping, build 건너뜀, 실패 3 packages: write 삭제 → denied."
+
+  - type: steps
+    title: "실습 17 · main 보호 규칙"
+    steps:
+      - ["Rulesets", "Settings → Rules → Rulesets → New branch ruleset · 기본 브랜치"]
+      - ["PR 필수", "Require a pull request before merging"]
+      - ["필수 검사", "test ×2 · compose-check · build ×3"]
+      - ["강제 push 금지", "Block force pushes → main 직접 push는 GH013로 거절"]
+    notes: "함정: paths 필터 때문에 notes만 고친 PR에서는 CI가 안 돌고, 필수 검사를 영원히 기다린다(Expected — Waiting for status). 해결: 요약 잡 하나만 필수, paths 대신 잡 안에서 판단, 또는 우회. 학술: 토요타 안돈 줄 (Ohno), Humble & Farley (2010) 빌드가 깨지면 먼저 고쳐라. 트렌드: 실패 로그를 AI가 먼저 요약 — 판단은 사람."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "느린 상대가 내 일꾼을 묶는다 — 타임아웃이 길수록 멀리 번진다"]
+      - ["2교시", "재시도는 잠깐은 살리고 길게는 해친다 · /health vs /ready · 크래시 루프"]
+      - ["3교시", "유령 주문과 유실 — 1분 넘은 pending 찾기 · 멱등 확인 후 복구"]
+      - ["4교시", "Actions: 이벤트 · 잡 · 스텝 · 러너 · 액션 — 남의 액션은 남의 코드"]
+      - ["5교시", "PR마다 테스트 · compose 검사 — 빨간 X 읽기"]
+      - ["6~7교시", "main이면 GHCR push (sha 태그) · 초록이어야 병합"]
+    diary: "배움일기 — 장애 전파를 내 비유로 · 재시도의 득과 실(초) · /health와 /ready를 섞으면 · 유령 vs 유실 · 내 GHCR 이미지 주소 · 처리기가 죽으면 누가 다시 띄워 줄까?"
+    notes: "정리: docker compose down (볼륨은 남긴다), hello.yml은 PR로 끄기. 내일: Kubernetes 아키텍처와 kind."

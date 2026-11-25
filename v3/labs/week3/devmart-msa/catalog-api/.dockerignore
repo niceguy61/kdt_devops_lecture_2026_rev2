@@ -1,0 +1,11 @@
+# 이미지에 넣지 않을 것들
+.git
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.log
+Dockerfile*
+.dockerignore
+tests/

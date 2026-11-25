@@ -1,0 +1,54 @@
+# 4교시까지 완성된 catalog-api — 설정(ConfigMap · Secret) + probe + requests/limits
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-api
+  namespace: devmart
+  labels: { app: catalog-api }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: catalog-api }
+  template:
+    metadata:
+      labels: { app: catalog-api }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: catalog-api
+          image: ghcr.io/YOUR_ID/devmart-catalog-api:YOUR_SHA
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: { name: devmart-config }
+          env:
+            - name: DB_NAME
+              value: catalog
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: devmart-db, key: DB_PASSWORD }
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 10
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-api
+  namespace: devmart
+spec:
+  selector: { app: catalog-api }
+  ports:
+    - port: 8000
+      targetPort: 8000

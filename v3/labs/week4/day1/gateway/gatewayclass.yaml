@@ -1,0 +1,7 @@
+# 인프라 제공자의 몫 — "이 클러스터의 Gateway는 Envoy Gateway가 맡는다"
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller

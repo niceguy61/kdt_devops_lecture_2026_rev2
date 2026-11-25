@@ -1,0 +1,20 @@
+# 6교시 · 가중치로 나누기 — 10번 중 8번은 podinfo, 2번은 podinfo-canary
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: podinfo
+  namespace: default
+spec:
+  parentRefs:
+    - name: devmart
+      namespace: devmart
+  hostnames:
+    - podinfo.localhost
+  rules:
+    - backendRefs:
+        - name: podinfo
+          port: 9898
+          weight: 80
+        - name: podinfo-canary
+          port: 9898
+          weight: 20

@@ -1,0 +1,369 @@
+meta:
+  footer: "2주차 3일차 · 이미지와 Dockerfile"
+  title: "2주차 3일차 — 이미지와 Dockerfile"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 2주차 핸즈온"
+    title: "이미지와 Dockerfile"
+    subtitle: "2주차 3일차 · 레이어 · Dockerfile 문법 · DevMart API 빌드 · .dockerignore · 캐시 · Docker Hub · 멀티 스테이지"
+    notes: "오늘은 내 앱을 이미지로 포장하는 날. 1주차 4일차의 결론 'Docker = 실행 조건을 이미지로 포장'을 직접 한다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "이미지 레이어"]
+      - ["2교시", "2", "DevMart API와 Dockerfile 문법"]
+      - ["3교시", "3", "첫 빌드와 실행"]
+      - ["4교시", "4", "빌드 컨텍스트와 .dockerignore"]
+      - ["5교시", "5", "빌드 캐시와 명령 순서"]
+      - ["6교시", "6", "태그와 Docker Hub"]
+      - ["7교시", "7", "멀티 스테이지와 크기·보안 + 배움일기"]
+    notes: "6교시 전에 Docker Hub 가입을 미리 하게 하면 시간이 절약된다."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "이미지 레이어"
+    goals: ["어제 명령 손으로 복습", "image history 읽기", "레이어의 세 가지 이익", "쓰기 가능한 층과 CoW"]
+    notes: "어제 pull 출력의 Pull complete 여러 줄을 기억하게 한다."
+
+  - type: image
+    title: "이미지는 투명 필름을 겹친 것"
+    img: week2/day3/w2d3-layers.png
+    notes: "컨테이너를 지우면 맨 위 쓰기 가능한 층만 사라진다 — 어제 '지우면 변경도 사라진다'의 이유. 데이터는 내일 볼륨."
+
+  - type: code
+    title: "실습 1 · 레이어 들여다보기"
+    code: |
+      docker image history nginx:1.30-alpine
+    out: |
+      CREATED BY                                      SIZE
+      CMD ["nginx" "-g" "daemon off;"]                0B
+      STOPSIGNAL SIGQUIT                              0B
+      EXPOSE map[80/tcp:{}]                           0B
+      COPY 30-tune-worker-processes.sh /docker-ent…   16.4kB
+      RUN /bin/sh -c set -x && addgroup -g 101 -S …   …MB
+      ENV NGINX_VERSION=1.30.6                        0B
+      ADD alpine-minirootfs-3.24.4-x86_64.tar.gz /…   …MB
+    points:
+      - ["아래에서 위로", "맨 아래 Alpine → nginx 설치 → 실행 명령"]
+      - ["0B", "CMD·ENV·EXPOSE는 설정만 기록"]
+      - ["크기 있음", "RUN·COPY·ADD — 파일 변경분"]
+    notes: "학술: 유니온 마운트(Pendry & McKusick, USENIX 1995) → Linux OverlayFS(커널 3.18, 2014). 트렌드: 필요한 파일만 받는 lazy pulling (Slacker, FAST 2016)."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "DevMart API와 Dockerfile 문법"
+    goals: ["상품 API의 세 주소", "app.py · requirements.txt", "Dockerfile 한 줄씩", "RUN vs CMD, EXPOSE의 진실"]
+    notes: "코드는 이해하지 않아도 된다. 환경 변수 세 가지만."
+
+  - type: table
+    title: "DevMart 상품 API — 오늘의 주인공"
+    head: ["주소", "하는 일", "쓰이는 곳"]
+    rows:
+      - ["GET /health", "살아 있다는 신호", "헬스 체크, 3주차 probe"]
+      - ["GET /api/info", "버전 · 환경 · 컨테이너 이름", "어느 컨테이너가 응답했나"]
+      - ["GET /api/products", "상품 목록 JSON", "5일차 웹 화면"]
+    colw: [3.4, 4.6, 4.1]
+    mono_col: 0
+    callout: "DB_HOST가 없으면 샘플 3개 (오늘) · 있으면 PostgreSQL에서 (내일) · APP_VERSION · APP_ENV는 환경 변수로"
+    notes: "requirements.txt: flask==3.1.3, gunicorn==27.0.1, psycopg[binary]==3.3.9 — 버전 고정은 latest 문제와 같은 이유."
+
+  - type: image
+    title: "Dockerfile의 각 줄이 이미지의 층이 된다"
+    img: week2/day3/w2d3-dockerfile-anatomy.png
+    notes: "학술: 실행할 수 있는 문서 — 문서는 현실과 어긋나지만 코드는 실행되므로 어긋날 수 없다 (Morris, Infrastructure as Code)."
+
+  - type: code
+    title: "실습 3 · Dockerfile"
+    shell: "VS Code — devmart/catalog-api/Dockerfile"
+    code: |
+      FROM python:3.14-slim
+      WORKDIR /app
+      RUN useradd --create-home --uid 10001 appuser
+      COPY requirements.txt .
+      RUN pip install --no-cache-dir -r requirements.txt
+      COPY app.py .
+      USER appuser
+      ENV APP_VERSION=1.0.0
+      EXPOSE 8000
+      CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "app:app"]
+    points:
+      - ["--bind 0.0.0.0", "어제 실패 4의 교훈"]
+      - ["--access-logfile -", "로그는 표준 출력 — 12-Factor XI"]
+      - ["USER appuser", "root로 실행하지 않는다"]
+    notes: "requirements.txt를 app.py보다 먼저 복사하는 이유는 5교시의 비밀."
+
+  - type: compare
+    title: "흔한 오해 두 가지"
+    left: ["RUN vs CMD", ["RUN = 이미지를 만들 때 (build)", "CMD = 컨테이너를 시작할 때 (run)", "RUN은 여러 번, CMD는 마지막 하나", "밀키트 포장 vs 조리 방법"]]
+    right: ["EXPOSE는 포트를 열지 않는다", ["'8000을 쓴다'는 안내문", "바깥 접속은 여전히 -p 필요", "어제 PORTS 80/tcp = nginx의 EXPOSE", "트렌드: docker build --check, docker init"]]
+    notes: "도구가 만든 Dockerfile 초안의 실수를 알아보려면 한 줄씩 의미를 알고 쓴 경험이 필요하다."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "첫 빌드와 실행"
+    goals: ["docker build -t … .", "빌드 출력 읽기", "세 주소 확인", "같은 이미지, 다른 설정"]
+    notes: "마지막 점(.)을 빼먹는 실수가 가장 많다."
+
+  - type: code
+    title: "실습 4 · 첫 빌드"
+    code: |
+      cd ~/devops-lab/devmart/catalog-api
+      docker build -t devmart/catalog-api:1.0.0 .
+      docker image history devmart/catalog-api:1.0.0
+    out: |
+      => [1/6] FROM docker.io/library/python:3.14-slim@sha256:…     9.4s
+      => [2/6] WORKDIR /app                                          0.2s
+      => [3/6] RUN useradd --create-home --uid 10001 appuser        0.4s
+      => [4/6] COPY requirements.txt .                               0.0s
+      => [5/6] RUN pip install --no-cache-dir -r requirements.txt  24.6s
+      => [6/6] COPY app.py .                                         0.0s
+      => => naming to docker.io/devmart/catalog-api:1.0.0
+    points:
+      - ["-t 이름:태그", "만든 이미지에 이름표"]
+      - [".", "빌드 컨텍스트 — 빼먹으면 requires 1 argument"]
+      - ["가장 오래", "pip install — 인터넷에서 설치"]
+    notes: "내 코드는 몇 kB, 대부분은 파이썬과 라이브러리."
+
+  - type: code
+    title: "실습 5~6 · 실행하고, 설정만 바꿔 하나 더"
+    code: |
+      docker run -d --name api -p 8000:8000 devmart/catalog-api:1.0.0
+      curl http://localhost:8000/health
+      curl http://localhost:8000/api/products
+      docker exec api whoami
+      docker run -d --name api-dev -p 8001:8000 \
+        -e APP_ENV=dev -e APP_VERSION=1.0.0-dev devmart/catalog-api:1.0.0
+      curl http://localhost:8001/api/info
+    out: |
+      {"status":"ok"}
+      {"items":[{"id":1,"name":"러닝화","price":59000},…],"source":"sample"}
+      appuser
+      {"env":"dev","hostname":"c23dd62235b0","version":"1.0.0-dev",…}
+    points:
+      - ["파이썬 설치 없이", "파이썬 앱이 컨테이너 안에서"]
+      - ["-e", "Dockerfile의 ENV를 덮어쓴다"]
+      - ["이미지는 한 번", "설정은 환경마다 — 12-Factor III"]
+    notes: "학술: 'Only build your binaries once' (Humble & Farley 2010). 트렌드: 빌드 증명서(provenance attestation), SBOM, SLSA. 정리: docker rm -f api api-dev, devmart/ 커밋."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "빌드 컨텍스트와 .dockerignore"
+    goals: ["마지막 . 의 정체", "COPY . . 의 사고 재현", ".dockerignore로 막기", "비밀값은 실행할 때"]
+    notes: "실습용 가짜 비밀번호만 쓴다."
+
+  - type: image
+    title: "빌드 컨텍스트 — 엔진으로 보내는 재료 상자"
+    img: week2/day3/w2d3-build-context.png
+    notes: "비유: 이삿짐 상자. .dockerignore = '이건 넣지 마세요' 스티커."
+
+  - type: code
+    title: "실습 7 · 비밀값이 새는 이미지"
+    code: |
+      echo "DB_PASSWORD=super-secret-123" > .env
+      dd if=/dev/zero of=debug.log bs=1M count=100
+      # Dockerfile.copyall: FROM … / WORKDIR /app / COPY . . / RUN pip … / CMD …
+      docker build -f Dockerfile.copyall -t devmart/catalog-api:leaky .
+      docker run --rm devmart/catalog-api:leaky cat .env
+    out: |
+      => => transferring context: 104.88MB
+      DB_PASSWORD=super-secret-123
+    points:
+      - ["104MB", "쓰레기 파일까지 엔진으로"]
+      - ["cat .env", "이미지를 받는 누구나 읽는다"]
+      - ["RUN rm .env", "소용없다 — 아래층에 남는다"]
+    notes: "이 이미지를 공개 push하면 전 세계에 비밀번호가 노출된다."
+
+  - type: code
+    title: "실습 8 · .dockerignore로 막기"
+    shell: "VS Code — catalog-api/.dockerignore"
+    code: |
+      .git
+      .env
+      __pycache__/
+      *.pyc
+      .venv/
+      *.log
+      Dockerfile*
+      .dockerignore
+    out: |
+      => => transferring context: 63B
+      cat: .env: No such file or directory
+    points:
+      - [".gitignore", "Git(GitHub)에 올라가는 것을 막는다"]
+      - [".dockerignore", "이미지에 들어가는 것을 막는다"]
+      - ["둘 다 필요", "하나만 있으면 다른 쪽으로 샌다"]
+    notes: "정리: docker image rm devmart/catalog-api:leaky, rm Dockerfile.copyall debug.log .env. .dockerignore는 커밋."
+
+  - type: statement
+    icon: KeyRound
+    title: "학술 노트 — 이미지 12개 중 1개에 비밀값"
+    text: "337,171개 이미지 중 8.5%에 비밀값\n개인 키 52,107개 · API 비밀값 3,158개"
+    sub: "Dahlmanns et al. (ACM AsiaCCS 2023) — 주된 원인은 빌드 컨텍스트를 통째로 복사한 것 · 비밀값은 실행할 때 -e로, K8s Secret, AWS Secrets Manager"
+    notes: "Docker Hub 9.0%, 사설 레지스트리 6.3%. 트렌드: 빌드 중에만 보이는 build secrets (RUN --mount=type=secret)."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "빌드 캐시와 명령 순서"
+    goals: ["CACHED 읽기", "코드만 고치면 마지막 층만", "순서를 잘못 쓰면", "캐시 규칙"]
+    notes: "블록 탑 비유."
+
+  - type: image
+    title: "한 층이 바뀌면 그 위는 모두 다시"
+    img: week2/day3/w2d3-cache-order.png
+    notes: "자주 바뀌는 것(코드)을 맨 위(마지막)에."
+
+  - type: code
+    title: "실습 9~10 · 캐시 관찰과 느린 순서 비교"
+    code: |
+      docker build -t devmart/catalog-api:1.0.0 .        # 전부 CACHED
+      # app.py: 에코백 9900원, Dockerfile: ENV APP_VERSION=1.0.1
+      docker build -t devmart/catalog-api:1.0.1 .
+      # Dockerfile.slow: COPY app.py requirements.txt ./ → RUN pip …
+      time docker build -f Dockerfile.slow -t devmart/catalog-api:slow .
+      time docker build -t devmart/catalog-api:1.0.1 .
+    out: |
+      => CACHED [5/6] RUN pip install …
+      => [6/6] COPY app.py .
+      real    0m23.512s   (slow — pip 다시)
+      real    0m1.402s    (좋은 순서)
+    points:
+      - ["1.0.1", "새 태그 — 1.0.0으로 되돌릴 수 있다"]
+      - ["10배 이상", "순서 하나의 차이"]
+    notes: "Node: package.json 먼저 → npm ci → 코드. Java: pom.xml 먼저."
+
+  - type: table
+    title: "캐시를 잘 쓰는 Dockerfile 규칙"
+    head: ["규칙", "오늘의 예"]
+    rows:
+      - ["거의 안 바뀌는 것을 앞에", "FROM, useradd"]
+      - ["의존성 목록을 코드보다 먼저", "requirements.txt → pip install → app.py"]
+      - ["필요한 파일만 복사", "COPY app.py . (+ .dockerignore)"]
+      - ["설치와 정리를 한 RUN에", "apt-get update && install && rm -rf …"]
+      - ["설치 캐시 남기지 않기", "pip install --no-cache-dir"]
+    colw: [4.6, 7.5]
+    notes: "학술: Make (Feldman 1979) — 바뀐 것만 다시. Build Systems à la Carte (Mokhov et al., ICFP 2018). 트렌드: 팀이 함께 쓰는 원격 캐시(--cache-to/--cache-from, Build Cloud)."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "태그와 Docker Hub"
+    goals: ["태그는 이름표", "docker login", "tag와 push", "다이제스트와 동료 이미지"]
+    notes: "1주차 5일차 파이프라인의 ⑤ 이미지 저장."
+
+  - type: image
+    title: "레지스트리를 거쳐 어디서든 같은 이미지"
+    img: week2/day3/w2d3-registry-flow.png
+    notes: "docker tag는 복사가 아니라 이름표 추가 — IMAGE ID가 같다."
+
+  - type: code
+    title: "실습 11~12 · 로그인하고 push"
+    code: |
+      docker login                                   # 브라우저 로그인
+      docker tag devmart/catalog-api:1.0.1 내아이디/devmart-catalog-api:1.0.1
+      docker push 내아이디/devmart-catalog-api:1.0.1
+    out: |
+      Login Succeeded
+      The push refers to repository [docker.io/내아이디/devmart-catalog-api]
+      a7f3c2e1b9d0: Pushed
+      8b4f2e6a1c3d: Mounted from library/python
+      1.0.1: digest: sha256:3b8a9f1e…c42d size: 856
+    points:
+      - ["내아이디/", "Hub에 올리려면 내 Docker ID가 앞에"]
+      - ["Mounted from", "이미 있는 층은 연결만 — 층 공유"]
+      - ["처음 push = 공개", "비밀값 점검 필수"]
+    notes: "-p 비밀번호를 명령에 쓰지 않는다 (history). CI는 Docker Hub PAT + GitHub Secrets."
+
+  - type: compare
+    title: "태그 vs 다이제스트 · 동료의 이미지 받기"
+    left: ["태그 :1.0.1", ["사람이 붙인 이름표", "같은 태그로 다시 push하면 다른 이미지", "사람이 읽고 말할 때", "운영에 latest는 쓰지 않는다"]]
+    right: ["다이제스트 @sha256:…", ["내용으로 계산한 지문", "절대 다른 이미지를 가리키지 않는다", "운영 배포 · 보안 검증", "짝 실습: 동료아이디/devmart-catalog-api:1.0.1 실행"]]
+    notes: "docker image inspect --format '{{index .RepoDigests 0}}'. 유의적 버전 주.부.수 — 가격 수정은 1.0.1."
+
+  - type: statement
+    icon: Hourglass
+    title: "학술 노트 — 낡은 이미지의 위험"
+    text: "이미지는 만들어진 순간에 멈춘다\n— 다시 빌드하지 않으면 1년 뒤에도 오늘의 패키지 그대로"
+    sub: "Zerouali et al. (IEEE SANER 2019) — Debian 기반 이미지 7,380개 대부분에 낡은 패키지와 취약점 · 코드를 안 바꿔도 정기적으로 다시 빌드"
+    notes: "트렌드: ghcr.io, AWS ECR(5주차), Harbor — OCI 표준이라 사용법은 같고 주소만 다르다. Docker Hub 비로그인 받기 횟수 제한."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "멀티 스테이지와 크기·보안"
+    goals: ["크기가 중요한 이유", "베이스 이미지 고르기", "멀티 스테이지 — 100분의 1", "보안 점검 맛보기"]
+    notes: "Go는 혼자 실행되는 파일 하나를 만들어 효과가 극적이다."
+
+  - type: table
+    title: "베이스 이미지 고르기"
+    head: ["베이스", "크기 감각", "언제"]
+    rows:
+      - ["python:3.14", "약 1GB", "빌드 도구가 필요한 빌드 단계"]
+      - ["python:3.14-slim", "수십~100MB대", "대부분의 Python 앱 (오늘)"]
+      - ["python:3.14-alpine", "더 작음", "작지만 일부 라이브러리 설치가 까다롭다"]
+      - ["scratch", "0B", "혼자 실행되는 파일 하나 (Go 등)"]
+    colw: [3.6, 2.8, 5.7]
+    mono_col: 0
+    callout: "크면: 다운로드가 느려 확장이 느리다 · 저장·전송 비용 · 공격 표면이 넓다"
+    callout_color: orange
+    notes: "1주차 4일차 스케일 아웃, 1주차 1일차 비용 함정과 연결."
+
+  - type: image
+    title: "멀티 스테이지 — 주방과 식탁"
+    img: week2/day3/w2d3-multistage.png
+    notes: "FROM … AS build, COPY --from=build, FROM scratch, USER 10001 (scratch에는 사용자 목록 파일도 없다)."
+
+  - type: code
+    title: "실습 14 · 약 1GB → 약 10MB"
+    code: |
+      cd ~/devops-lab/day3/hello-go
+      docker build -f Dockerfile.single -t hello-go:single .
+      docker build -t hello-go:multi .
+      docker images hello-go
+      docker run -d --name hello -p 8088:8080 hello-go:multi
+      curl http://localhost:8088
+      docker exec hello sh
+    out: |
+      hello-go:multi     11MB
+      hello-go:single   997MB
+      안녕하세요! Go 컨테이너 608b8ad1d724 입니다
+      exec: "sh": executable file not found in $PATH
+    points:
+      - ["셸이 없다", "침입자도 쓸 도구가 없다"]
+      - ["트레이드오프", "운영자도 디버깅이 어렵다 → kubectl debug"]
+    notes: "Python은 slim으로 충분 — C 라이브러리를 컴파일할 때만 멀티 스테이지 (labs/…/Dockerfile.multistage)."
+
+  - type: code
+    title: "실습 15 · 이미지 보안 점검 맛보기"
+    code: |
+      docker image inspect --format '사용자: {{.Config.User}}' devmart/catalog-api:1.0.1
+      docker image inspect --format '사용자: {{.Config.User}}' nginx:1.30-alpine
+      docker scout quickview devmart/catalog-api:1.0.1
+    out: |
+      사용자: appuser
+      사용자:
+        Target     │ devmart/catalog-api:1.0.1 │  0C  0H  2M  18L
+        Base image │ python:3.14-slim          │  0C  0H  2M  18L
+    points:
+      - ["appuser", "우리 API는 root가 아니다"]
+      - ["nginx 빈칸", "root로 시작 후 worker만 낮춘다 (unprivileged 변형도)"]
+      - ["C·H·M·L", "대부분 베이스에서 온다 → 베이스 최신 유지"]
+    notes: "학술: 공격 표면 (Howard, Pincus & Wing 2005), distroless. 트렌드: 취약점 0개 목표 이미지, Critical 있으면 배포 금지 규칙 → 3주차 CI, 4주차 Kyverno."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "이미지 = 읽기 전용 층, 컨테이너는 그 위 얇은 쓰기 층"]
+      - ["2~3교시", "Dockerfile로 DevMart API 포장 — 파이썬 없이, appuser, 0.0.0.0"]
+      - ["4교시", "COPY . . 의 사고 → .dockerignore, 비밀값은 실행할 때"]
+      - ["5교시", "자주 바뀌는 것을 뒤로 — 순서 하나에 10배"]
+      - ["6교시", "tag · push · digest — 어디서든 같은 이미지"]
+      - ["7교시", "멀티 스테이지 1GB → 10MB, 작을수록 안전"]
+    diary: "배움일기 — 파이썬 없이 파이썬 앱이 도는 이유 · 캐시 규칙을 블록 탑으로 · 비밀번호가 보였을 때 · 내 Hub 주소와 digest · API와 DB는 어떻게 서로를 찾을까?"
+    notes: "내일은 볼륨·네트워크·환경 변수. API가 PostgreSQL과 대화한다. 1.0.0, 1.0.1 이미지는 남겨 둔다."

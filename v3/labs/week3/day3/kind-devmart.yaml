@@ -1,0 +1,21 @@
+# DevMart 실습 클러스터 — 컨트롤 플레인 1대 + 워커 2대
+# 만들기: kind create cluster --config kind-devmart.yaml
+# 지우기: kind delete cluster --name devmart
+#
+# 노드 이미지는 kind v0.33.0 릴리스 노트에 적힌 그대로 @sha256까지 고정합니다.
+# kind 버전을 바꾸면 그 버전의 릴리스 노트에 있는 이미지로 바꿔야 합니다.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: devmart
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+    # 3주차 4~5일차: NodePort 30080으로 연 서비스를 브라우저의 localhost:30080에서 보기 위한 통로
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+  - role: worker
+    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+  - role: worker
+    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5

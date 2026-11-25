@@ -1,0 +1,90 @@
+# 3주차 2일차 완성본 — order-api · order-worker에 재시작 정책과 헬스 체크 추가
+name: devmart-msa
+
+services:
+  web:
+    image: nginx:1.30-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - catalog-api
+      - order-api
+
+  catalog-api:
+    build: ./catalog-api
+    image: devmart/catalog-api:2.0.0
+    environment:
+      APP_ENV: compose
+      DB_HOST: db
+      DB_NAME: catalog
+      DB_USER: devmart
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env 파일에 적어 주세요}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  order-api:
+    build: ./order-api
+    image: devmart/order-api:1.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=5)"]
+      interval: 5s
+      timeout: 6s
+      retries: 3
+    environment:
+      DB_HOST: db
+      DB_NAME: orders
+      DB_USER: devmart
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env 파일에 적어 주세요}
+      CATALOG_URL: http://catalog-api:8000
+      CATALOG_TIMEOUT: "2"
+      REDIS_HOST: redis
+      QUEUE_NAME: orders
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  order-worker:
+    build: ./order-worker
+    image: devmart/order-worker:1.0.0
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_NAME: orders
+      DB_USER: devmart
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env 파일에 적어 주세요}
+      REDIS_HOST: redis
+      QUEUE_NAME: orders
+      WORK_SECONDS: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  redis:
+    image: redis:8-alpine
+
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_USER: devmart
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env 파일에 적어 주세요}
+    volumes:
+      - db-data:/var/lib/postgresql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devmart -d catalog"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:

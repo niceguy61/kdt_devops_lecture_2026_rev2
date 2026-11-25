@@ -1,0 +1,30 @@
+# DevMart MSA 전체를 한 번에: kubectl apply -k .
+# Secret(devmart-db)은 일부러 여기 넣지 않는다 — 2교시에 손으로 만들고, Git에 올리지 않는다.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: devmart
+resources:
+  - namespace.yaml
+  - config.yaml
+  - db.yaml
+  - redis.yaml
+  - catalog-api.yaml
+  - order-api.yaml
+  - order-worker.yaml
+  - web.yaml
+# 파일을 ConfigMap으로 만든다 (2주차 Compose의 바인드 마운트 자리)
+configMapGenerator:
+  - name: db-init
+    files:
+      - files/initdb/01-catalog.sql
+      - files/initdb/02-orders.sql
+  - name: web-html
+    files:
+      - files/web/index.html
+      - files/web/app.js
+      - files/web/style.css
+  - name: web-nginx
+    files:
+      - files/nginx/default.conf
+generatorOptions:
+  disableNameSuffixHash: true   # 이름 뒤에 해시를 붙이지 않는다 (2교시에 손으로 만든 db-init과 같은 이름)

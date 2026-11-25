@@ -1,0 +1,20 @@
+# 클러스터 운영자의 몫 — 문 하나, 80번, 모든 네임스페이스의 라우트를 받는다
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: devmart
+  namespace: devmart
+spec:
+  gatewayClassName: eg
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: devmart-proxy
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All

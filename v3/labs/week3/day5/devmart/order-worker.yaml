@@ -1,0 +1,32 @@
+# 주문 처리기 — 손님을 받지 않으니 Service가 없다
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-worker
+  namespace: devmart
+  labels: { app: order-worker }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: order-worker }
+  template:
+    metadata:
+      labels: { app: order-worker }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: order-worker
+          image: ghcr.io/YOUR_ID/devmart-order-worker:YOUR_SHA
+          envFrom:
+            - configMapRef: { name: devmart-config }
+          env:
+            - name: DB_NAME
+              value: orders
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: devmart-db, key: DB_PASSWORD }
+            - name: WORK_SECONDS
+              value: "1"
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }

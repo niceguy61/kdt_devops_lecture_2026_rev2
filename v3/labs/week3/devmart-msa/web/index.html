@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevMart</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>DevMart</h1>
+    <p id="info">서비스 정보를 불러오는 중…</p>
+  </header>
+  <main>
+    <h2>상품 <small>(catalog-api)</small></h2>
+    <p id="source" class="badge"></p>
+    <ul id="products" class="grid"></ul>
+    <h2>최근 주문 <small>(order-api → 큐 → order-worker)</small></h2>
+    <table id="orders">
+      <thead><tr><th>번호</th><th>상품</th><th>수량</th><th>금액</th><th>상태</th><th>요청 ID</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

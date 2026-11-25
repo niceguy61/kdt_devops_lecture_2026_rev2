@@ -1,0 +1,17 @@
+# 4주차 1일차 EnvoyProxy의 EKS판 — NodePort 대신 LoadBalancer(NLB)
+# AWS Load Balancer Controller가 이 주석을 읽고 인터넷 경계 NLB를 만든다
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: devmart-proxy
+  namespace: devmart
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: LoadBalancer
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: external          # LBC가 맡는다
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing # public 서브넷에
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip     # Pod IP로 바로

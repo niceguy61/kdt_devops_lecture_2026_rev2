@@ -1,0 +1,24 @@
+# 5교시 · devmart의 Deployment는 ':latest' 태그를 쓸 수 없다 — 바로 거절(Deny)
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: disallow-latest-tag
+spec:
+  validationActions: [Deny]
+  matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - { key: kubernetes.io/metadata.name, operator: In, values: [devmart] }
+    resourceRules:
+      - apiGroups: [apps]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [deployments]
+  matchConditions:
+    - name: not-istio-managed           # Istio가 만드는 waypoint는 예외
+      expression: "!has(object.metadata.labels) || !('gateway.istio.io/managed' in object.metadata.labels)"
+  validations:
+    - expression: >-
+        object.spec.template.spec.containers.all(c,
+          c.image.contains(':') && !c.image.endsWith(':latest'))
+      message: "이미지에 태그를 적어야 하고 ':latest'는 쓸 수 없습니다 — 어떤 버전이 도는지 알 수 없게 됩니다."

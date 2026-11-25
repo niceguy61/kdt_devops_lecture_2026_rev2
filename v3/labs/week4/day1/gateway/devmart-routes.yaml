@@ -1,0 +1,45 @@
+# 앱 개발자의 몫 — 서비스마다 자기 라우트 (팀마다 따로 고칠 수 있게)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: orders
+  namespace: devmart
+spec:
+  parentRefs:
+    - name: devmart
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /api/orders }
+      backendRefs:
+        - name: order-api
+          port: 8000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: catalog
+  namespace: devmart
+spec:
+  parentRefs:
+    - name: devmart
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /api/ }
+      backendRefs:
+        - name: catalog-api
+          port: 8000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: web
+  namespace: devmart
+spec:
+  parentRefs:
+    - name: devmart
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: / }
+      backendRefs:
+        - name: web
+          port: 80

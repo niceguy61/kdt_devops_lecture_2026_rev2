@@ -1,0 +1,18 @@
+# 5교시 · 타임아웃과 재시도를 코드가 아니라 메시에서
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: catalog-resilience
+  namespace: devmart
+spec:
+  hosts:
+    - catalog-api
+  http:
+    - timeout: 1s                        # 1초 넘게 걸리면 끊는다
+      retries:
+        attempts: 2                      # 실패하면 두 번 더
+        perTryTimeout: 400ms
+        retryOn: 5xx,connect-failure,reset
+      route:
+        - destination:
+            host: catalog-api

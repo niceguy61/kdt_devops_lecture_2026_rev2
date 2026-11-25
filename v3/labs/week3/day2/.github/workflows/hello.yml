@@ -1,0 +1,22 @@
+# 첫 워크플로 — 3주차 2일차 4교시
+name: hello
+
+on:
+  push:
+  workflow_dispatch:                  # Actions 탭에서 손으로 실행하는 버튼
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 인사
+        run: echo "안녕하세요, ${{ github.actor }} 님! 커밋 ${{ github.sha }}"
+      - name: 러너 둘러보기
+        run: |
+          uname -a
+          docker --version
+          python3 --version
+          echo "작업 폴더: $PWD"
+      - uses: actions/checkout@v6
+      - name: 받은 파일 보기
+        run: ls -la

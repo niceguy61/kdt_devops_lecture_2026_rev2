@@ -1,0 +1,2 @@
+# istio-cni — 노드마다 하나(DaemonSet). Pod의 트래픽을 ztunnel로 돌려 준다
+profile: ambient

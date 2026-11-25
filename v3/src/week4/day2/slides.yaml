@@ -1,0 +1,203 @@
+meta:
+  footer: "4주차 2일차 · Observability"
+  title: "4주차 2일차 — Observability"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 4주차 Kubernetes 운영"
+    title: "Observability"
+    subtitle: "4주차 2일차 · 로그 · 메트릭 · 트레이스 · kube-prometheus-stack · PromQL · Grafana · k6 · 알림 · 런북과 SLO"
+    notes: "어제 질문: 하루 100만 요청의 카나리는 누가 세나? 3주차까지는 장애가 난 걸 안 뒤에 사람이 찾았다. 오늘은 먼저 알아채게."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "1일차 요약 + 관찰 가능성"]
+      - ["2교시", "2", "kube-prometheus-stack 설치"]
+      - ["3교시", "3", "타깃과 PromQL"]
+      - ["4교시", "4", "Grafana 대시보드"]
+      - ["5교시", "5", "k6 부하 테스트"]
+      - ["6교시", "6", "알림"]
+      - ["7교시", "7", "관찰 런북과 SLO + 배움일기"]
+    notes: "Docker 메모리 6GB 이상 권장. 4GB면 podinfo-canary를 지운다."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "관찰 가능성"
+    goals: ["모니터링 vs 관찰", "세 기둥", "RED · USE", "던질 질문"]
+    notes: "모니터링 = 계기판 경고등(미리 정한 질문), 관찰 가능성 = 진단기(예상 못 한 질문). Kalman의 제어 이론."
+
+  - type: image
+    title: "로그 · 메트릭 · 트레이스"
+    img: week4/day2/w4d2-pillars.png
+    notes: "메트릭으로 알아채고, 트레이스로 좁히고, 로그로 왜인지. 오해: 로그만 잘 남기면 된다 — 비싸고 느리다. 학술: Dapper(Sigelman 외 2010) — 표본 추적. 트렌드: OpenTelemetry — Kubernetes 다음으로 활발한 CNCF 프로젝트."
+
+  - type: image
+    title: "무엇을 재나 — RED와 USE"
+    img: week4/day2/w4d2-red-use.png
+    notes: "황금 신호(SRE 6장) = 지연 · 트래픽 · 오류 · 포화. RED(Wilkie) — 서비스, USE(Gregg) — 자원. DevMart 앱은 /metrics가 없지만 입구 Envoy에서 RED."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "kube-prometheus-stack"
+    goals: ["묶음의 구성", "values 세 덩어리", "Secret 먼저", "Pod · CRD"]
+    notes: "operator = 3주차 reconcile의 응용. 팀마다 자기 ServiceMonitor."
+
+  - type: image
+    title: "무엇의 묶음인가"
+    img: week4/day2/w4d2-kps.png
+    notes: "Prometheus(긁고 저장 · 규칙), Alertmanager(묶기 · 잠재우기), Grafana, node-exporter(DaemonSet), kube-state-metrics, prometheus-operator."
+
+  - type: code
+    title: "실습 2 · values 읽고 설치"
+    shell: "monitoring/kps-values.yaml"
+    code: |
+      kubeControllerManager: { enabled: false }   # kind는 127.0.0.1에서만
+      kubeScheduler: { enabled: false }
+      kubeEtcd: { enabled: false }
+      prometheus:
+        prometheusSpec:
+          serviceMonitorSelectorNilUsesHelmValues: false   # 모든 팀의 CRD를
+      grafana:
+        admin:
+          existingSecret: grafana-admin                    # 비밀번호는 Secret으로
+    out: |2
+      alertmanager-kps-alertmanager-0     2/2   Running
+      kps-grafana-6c9d8b7f5-q2m4x         3/3   Running
+      kps-prometheus-node-exporter-4tq2k  1/1   Running   (× 3)
+      prometheus-kps-prometheus-0         2/2   Running
+    points:
+      - ["끄지 않으면", "설치하자마자 가짜 알림"]
+      - ["-0", "StatefulSet"]
+      - ["3/3", "Grafana + 사이드카 둘"]
+    notes: "helm install kps oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack --version 86.2.3. appVersion = operator 버전. CRD: ServiceMonitor · PodMonitor · PrometheusRule · Prometheus 자체도 리소스. 학술: Philips 2016 Introducing Operators. 트렌드: Prometheus 3, 원격 저장(Thanos · Mimir · AMP), PrometheusAgent."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "타깃과 PromQL"
+    goals: ["Target health", "Envoy PodMonitor", "세 가지 지표 모양", "R · E · D 계산"]
+    notes: "pull 방식 — 앱이 죽으면 up=0으로 바로 드러난다."
+
+  - type: code
+    title: "실습 4 · Envoy 지표 원본과 PodMonitor"
+    code: |
+      curl -s localhost:19001/stats/prometheus | grep '^envoy_cluster_upstream_rq_total' | grep devmart
+      kubectl apply -f monitoring/envoy-podmonitor.yaml
+    out: |2
+      envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/devmart/catalog/rule/0"} 1847
+      envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/devmart/orders/rule/0"} 312
+      envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/devmart/web/rule/0"} 96
+      podMonitor/envoy-gateway-system/envoy-proxy/0   UP
+    points:
+      - ["라우트마다", "어제 따로 만든 덕분"]
+      - ["PodMonitor", "Service에 없는 포트"]
+      - ["카운터", "늘기만 한다"]
+    notes: "카운터(rate를 씌운다) · 게이지(그대로) · 히스토그램(분위수). 오해: 평균이면 충분 — 꼬리 지연, p95 · p99."
+
+  - type: table
+    title: "실습 5 · PromQL 한 단계씩"
+    head: ["단계", "PromQL (줄임)", "답하는 것"]
+    rows:
+      - ["1", "envoy_cluster_upstream_rq_total{…}", "계단 — 쓸모 적음"]
+      - ["2", "rate(…[1m])", "R — 초당 요청"]
+      - ["3", "sum by (envoy_cluster_name) (rate(…))", "라우트별 합계"]
+      - ["4", "… rq_xx{class=\"5\"} / … rq_total", "E — 오류 비율"]
+      - ["5", "histogram_quantile(0.95, sum by (le, …) (rate(…_bucket[1m])))", "D — p95 (ms)"]
+      - ["6", "rate(container_cpu_usage_seconds_total{namespace=\"devmart\"}[1m])", "U — Pod CPU"]
+    colw: [1.0, 7.6, 3.5]
+    mono_col: 1
+    notes: "pending 주문 수는 PromQL로 못 답한다 — 아무도 그 지표를 내놓지 않는다(계측). 라벨에 요청 ID 금지 — 카디널리티 폭발. 학술: Tail at Scale(Dean & Barroso 2013) 1−0.99^100=63%, Gorilla(VLDB 2015) 1.37바이트/점. 트렌드: 네이티브 히스토그램."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "Grafana 대시보드"
+    goals: ["로그인과 Explore", "기본 대시보드", "손으로 패널", "코드로 대시보드"]
+    notes: "비밀번호는 grafana-admin Secret에서 base64 -d. Explore는 물어보는 곳, 대시보드는 늘 보는 곳."
+
+  - type: compare
+    title: "손으로 만든 대시보드 vs 코드로 만든 대시보드"
+    left: ["손으로 (실습 8)", ["Grafana 내부 DB", "바꾼 이력 없음", "다른 클러스터에 다시 클릭", "3주차의 kubectl scale과 같은 처지"]]
+    right: ["코드로 (실습 9)", ["ConfigMap(grafana_dashboard: \"1\") → Git", "PR 리뷰 · 이력", "kubectl apply 한 줄로 EKS에도", "화면에서 다듬고 JSON을 받아 굳힌다"]]
+    notes: "기본 대시보드: Namespace (Pods)에서 requests 대비 실제 사용 — 3주차 5일차의 '재 보고 정한다'. 원칙: 위에서 아래로 바깥에서 안으로, 한 패널 = 한 질문, 단위와 기준선, 적게. 학술: Tufte data-ink, Few 2006. 트렌드: Git Sync, 대시보드 자동 제안(Grafana 13)."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "k6 부하 테스트"
+    goals: ["스크립트 읽기", "평소의 부하", "부하 중 장애", "세 곳에서 같은 사건"]
+    notes: "부하 · 스트레스 · 스파이크 · 내구. 허락받은 내 시스템에만."
+
+  - type: code
+    title: "실습 10~11 · 부하, 그리고 부하 중 장애"
+    code: |
+      docker run --rm -i --add-host=host.docker.internal:host-gateway \
+        -e BASE_URL=http://host.docker.internal:30080 grafana/k6:2.3.0 run - < k6/load.js
+      kubectl scale deployment catalog-api -n devmart --replicas=0   # 1분쯤 뒤
+      kubectl scale deployment catalog-api -n devmart --replicas=2   # 40초 뒤
+    out: |2
+      ✓ 'p(95)<500' p(95)=41.3ms
+      ✓ 'rate<0.01' rate=0.00%          ← 평소
+      ✗ 'rate<0.01' rate=21.4%          ← 장애 중
+      ERRO thresholds on metrics 'http_req_failed' have been crossed
+    points:
+      - ["thresholds", "합격 기준을 먼저"]
+      - ["k6 vs Envoy", "어디서 재나에 따라 다르다"]
+      - ["orders도 오른다", "피해자 — 장애 전파"]
+    notes: "VU · stages · check · thresholds · __ENV. 같은 사건: k6(얼마나) · Grafana(어디서 언제) · events(왜). 학술: 리틀의 법칙 L=λW — 10/0.52≈19 req/s. 트렌드: k6 2.0(2026.5), CI의 성능 회귀 테스트."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "알림"
+    goals: ["알림의 흐름", "규칙 읽기", "울리고 잠재우기", "좋은 알림"]
+    notes: "증상에 알림을 걸어라 — 원인은 대시보드 · 런북으로."
+
+  - type: image
+    title: "알림의 흐름"
+    img: week4/day2/w4d2-alert-flow.png
+    notes: "record 규칙 devmart:gateway_5xx_ratio:rate1m, alert DevMartHighErrorRate(>5% for 1m), DevMartSlowResponses(p95>1s for 5m). Watchdog — 늘 울리는 데드맨 스위치."
+
+  - type: steps
+    title: "실습 13 · 알림을 울려 보기"
+    steps:
+      - ["손님", "요청 루프 — 손님이 없으면 비율도 없다(침묵) → 합성 감시(Probe)"]
+      - ["장애", "catalog-api 0개 → 30초 Pending → 1분 30초 Firing"]
+      - ["잠재우기", "amtool silence add … --duration=10m --comment='복구 중'"]
+      - ["복구", "2개로 → Inactive · 잠재우기는 Expire — 기한 없는 잠재우기 금지"]
+    notes: "받는 곳(Slack)은 values의 alertmanager.config — 웹훅 주소는 Secret. 오해: 알림은 많을수록 안전 — 알림 피로. 좋은 알림: 긴급 · 행동 가능 · 사용자 영향. 학술: SRE 6장, 경보 피로(Cvach 2012). 트렌드: SLO 소진율 알림, Sloth · Pyrra."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "관찰 런북과 SLO"
+    goals: ["SLI · SLO · SLA", "오류 예산", "런북 쓰기", "알림과 연결"]
+    notes: "비유: 택배 — 도착 비율(SLI), 98% 목표(SLO), 95% 미만 환불(SLA). 100%는 잘못된 목표."
+
+  - type: table
+    title: "DevMart 주문의 오류 예산 (SLO 99.5%, 28일)"
+    head: ["항목", "값"]
+    rows:
+      - ["주문 (초당 약 3.5건)", "약 850만 건"]
+      - ["실패해도 되는 주문", "약 4만 2천 건"]
+      - ["오늘 5교시 장애 (40초)", "약 140건 — 예산의 0.3%"]
+      - ["시간으로 바꾸면", "약 3시간 22분 완전 정지"]
+    colw: [5.5, 6.6]
+    callout: "예산이 넉넉하면 과감히 배포, 다 쓰면 배포를 멈추고 안정성 — 개발과 운영의 다툼을 숫자 하나로"
+    callout_color: teal
+    notes: "런북 조건: 알림 이름 = 파일 이름, 명령과 판단 기준, 되돌리는 법, 도움을 부를 시점, 장애 후 고친다. 최근 변경을 먼저 의심 — 되돌려서 손님부터. ~/devops-lab/runbooks/ → PR → runbook_url. 학술: SRE 3 · 4장, Hidalgo 2020. 트렌드: Grafana Assistant — 좋은 라벨 · 알림 · 런북이 먼저."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "로그(왜) · 메트릭(얼마나) · 트레이스(어디서) · RED와 USE"]
+      - ["2교시", "kube-prometheus-stack — operator와 CRD · Secret으로 비밀번호"]
+      - ["3교시", "Envoy PodMonitor · rate · sum by · histogram_quantile"]
+      - ["4교시", "코드로 관리하는 DevMart 대시보드"]
+      - ["5교시", "k6 thresholds · 부하 중 장애를 세 곳에서"]
+      - ["6~7교시", "증상 기반 알림 · Watchdog · SLO 99.5% · 런북 PR"]
+    diary: "배움일기 — 세 기둥 한 문장씩 · 가장 쓸모 있는 PromQL · k6 · Grafana · events가 각각 알려 준 것 · Firing까지 걸린 시간 · 내가 정할 SLO · 클러스터 자체도 Git대로 맞출 수 없을까?"
+    notes: "지우지 않는다. 내일: GitOps — Argo CD."

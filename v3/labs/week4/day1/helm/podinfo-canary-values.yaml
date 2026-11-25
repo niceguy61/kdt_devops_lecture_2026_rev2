@@ -1,0 +1,11 @@
+# 6교시 가중치 실습용 두 번째 릴리스 — 색과 메시지만 다르다
+replicaCount: 1
+ui:
+  color: "#E8833A"
+  message: "카나리 — 새 버전"
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 128Mi

@@ -1,0 +1,168 @@
+meta:
+  footer: "5주차 3일차 · Terraform 기초"
+  title: "5주차 3일차 — Terraform 기초"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 5주차 AWS + Terraform + EKS"
+    title: "Terraform 기초"
+    subtitle: "5주차 3일차 · init · plan · apply · destroy · 변수와 for_each · state와 어긋남 · import · 원격 state · 모듈 · OIDC로 PR plan"
+    notes: "어제 질문: 클릭 백 번을 코드로, 한 줄로 만들고 한 줄로 지우고, 어긋나면 알 수 있나?"
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "2일차 요약 + 코드로 인프라"]
+      - ["2교시", "2", "설치와 첫 리소스"]
+      - ["3교시", "3", "HCL — 변수 · 참조 · for_each"]
+      - ["4교시", "4", "state · 어긋남 · import"]
+      - ["5교시", "5", "원격 state와 잠금"]
+      - ["6교시", "6", "모듈로 VPC"]
+      - ["7교시", "7", "GitHub Actions에서 plan (OIDC) + 배움일기"]
+    notes: "오늘 만드는 것은 모두 무료에 가깝다. 그래도 7교시에 정리."
+
+  - type: section
+    num: "1교시"
+    title: "코드로 인프라"
+    goals: ["콘솔 · 스크립트 · IaC", "작업 흐름", "state", "push vs GitOps"]
+    notes: "스크립트는 '어떻게', Terraform은 '무엇을' — 멱등, 차이만, destroy, plan으로 어긋남."
+
+  - type: image
+    title: "Terraform의 작업 흐름"
+    img: week5/day3/w5d3-workflow.png
+    notes: "init = helm repo add, plan = argocd app diff, apply = sync, state = 추적 표시. Terraform은 push — apply할 때만. 오해: IaC는 큰 회사용. OpenTofu(BUSL 이후 갈래). 학술: 멱등 · Seven Sins(ICSE 2019). 트렌드: 1.15 동적 소스, 1.16 최신, CDK · Pulumi · ACK · Crossplane."
+
+  - type: section
+    num: "2교시"
+    title: "첫 리소스"
+    goals: ["설치", "init · plan · apply", "plan 기호", "Git에 넣을 것"]
+    notes: "자격 증명이 안 닿으면 export-credentials."
+
+  - type: code
+    title: "실습 2~3 · 한 바퀴"
+    code: |
+      terraform init            # 프로바이더 받기 + .terraform.lock.hcl
+      terraform plan            # + create
+      terraform apply           # 1 added
+      terraform apply           # No changes  ← 멱등
+      # 이름을 바꾸면?
+      terraform plan
+    out: |2
+      -/+ resource "aws_s3_bucket" "first" {
+            ~ bucket = "devmart-tf-first-…" -> "devmart-tf-1st-…" # forces replacement
+      Plan: 1 to add, 0 to change, 1 to destroy.
+    points:
+      - ["+ ~ -", "만들기 · 고치기 · 지우기"]
+      - ["-/+", "지우고 다시 — 데이터!"]
+      - ["Git", ".tf · 잠금 파일만"]
+    notes: "state는 Git에 넣지 않는다 — 비밀 평문, 덮어쓰기. 학술: SemVer와 잠금 파일. 트렌드: AWS 프로바이더 v6 — 자원마다 region."
+
+  - type: section
+    num: "3교시"
+    title: "HCL"
+    goals: ["variable · tfvars · validation", "data · locals · output", "for_each", "참조 = 의존"]
+    notes: "폴더 안 .tf는 모두 합쳐 읽는다 — 파일 이름은 관례."
+
+  - type: code
+    title: "실습 4 · 참조가 곧 의존"
+    shell: "02-hcl/main.tf"
+    code: |
+      resource "aws_s3_bucket" "this" {
+        for_each = var.buckets                     # assets, logs
+        bucket   = "${local.prefix}-${each.key}"
+      }
+      resource "aws_s3_bucket_versioning" "this" {
+        for_each = var.buckets
+        bucket   = aws_s3_bucket.this[each.key].id  # ← 참조
+      }
+    out: |2
+      Plan: 7 to add
+      "aws_s3_bucket_versioning.this" -> "aws_s3_bucket.this"
+      "aws_s3_object.notice" -> "data.aws_caller_identity.me"
+    points:
+      - ["data", "읽기만"]
+      - ["for_each", "키로 주소"]
+      - ["graph", "위상 정렬"]
+    notes: "count는 중간을 빼면 뒤가 다시 만들어질 수 있다. validation = 변수의 입장 제어. 오해: 복사해서 붙이면 된다. 학술: 설정 언어의 표현력(BCL 반성). 트렌드: terraform test."
+
+  - type: section
+    num: "4교시"
+    title: "state · 어긋남 · import"
+    goals: ["state 안 보기", "콘솔 수정 → plan", "refresh-only", "import · removed"]
+    notes: "state는 손으로 고치지 않는다 — state mv/rm, import · moved · removed 블록."
+
+  - type: table
+    title: "어긋남 — Argo CD와 나란히"
+    head: ["", "4주차 Argo CD", "오늘 Terraform"]
+    rows:
+      - ["비교", "계속 (OutOfSync)", "plan을 돌릴 때만 (Refreshing state)"]
+      - ["되돌리기", "selfHeal — 몇 초", "apply를 해야"]
+      - ["손 수정이 옳다면", "Git에 PR", "코드를 고친다"]
+      - ["점검만", "app diff", "plan -refresh-only"]
+      - ["콘솔 자원", "추적 표시 없음 → 모른다", "import 블록 + -generate-config-out"]
+    colw: [2.6, 4.6, 5.0]
+    notes: "실습: 콘솔에서 logs 버킷 버전 관리 · 태그 변경 → plan이 2 to change. removed { destroy = false } = 장부에서만 뺀다. 오해: Terraform이 계정 전부를 안다. 학술: Guerriero ICSME 2019. 트렌드: 정기 drift 감지, terraform query."
+
+  - type: section
+    num: "5교시"
+    title: "원격 state와 잠금"
+    goals: ["왜 원격", "닭과 달걀", "migrate-state", "잠금 충돌"]
+    notes: "state 버킷만 로컬 state. prevent_destroy."
+
+  - type: image
+    title: "같은 장부, 한 번에 하나"
+    img: week5/day3/w5d3-remote-state.png
+    notes: "use_lockfile = true — S3 조건부 쓰기(2024). DynamoDB 잠금은 1.11부터 폐기 예정. 남은 잠금은 확인 뒤 force-unlock. 학술: 낙관적 동시성(Kung & Robinson 1981). 트렌드: state 플랫폼, OpenTofu state 암호화."
+
+  - type: section
+    num: "6교시"
+    title: "모듈로 VPC"
+    goals: ["모듈 = 차트", "고르는 법", "22개 자원", "콘솔 VPC 지우기"]
+    notes: "terraform-aws-modules — 관리자 · 내려받기 · 프로바이더 버전 · 문서."
+
+  - type: code
+    title: "실습 10~13 · 1일차 설계표가 코드로"
+    shell: "04-vpc/main.tf"
+    code: |
+      module "vpc" {
+        source  = "terraform-aws-modules/vpc/aws"
+        version = "~> 6.0"
+        name = "devmart-tf"
+        cidr = "10.0.0.0/16"
+        azs             = ["ap-northeast-2a", "ap-northeast-2c"]
+        public_subnets  = ["10.0.0.0/20", "10.0.16.0/20"]
+        private_subnets = ["10.0.128.0/20", "10.0.144.0/20"]
+        enable_nat_gateway = false
+      }
+    out: |2
+      Apply complete! Resources: 22 added
+      == devmart-vpc (콘솔)   서브넷 4 · 라우팅 테이블 4
+      == devmart-tf (코드)    서브넷 4 · 라우팅 테이블 4 · 모두 ManagedBy=terraform
+    points:
+      - ["70줄", "→ 22개"]
+      - ["backend", "처음부터 S3"]
+      - ["콘솔 VPC", "이제 지운다"]
+    notes: "역할 하나 지우는 데 명령 다섯 줄 — destroy 한 줄과 비교. 오해: 공개 모듈은 블랙박스 — plan 목록을 다 읽는다. 학술: IaC 공급망. 트렌드: 변수 폐기 표시, 사설 레지스트리."
+
+  - type: section
+    num: "7교시"
+    title: "OIDC로 PR plan"
+    goals: ["키 없는 CI", "plan 역할 (Terraform으로)", "devmart-infra · PR", "정리"]
+    notes: "4주차 3일차 토큰보다 한 걸음 더 — 비밀이 하나도 없다."
+
+  - type: image
+    title: "GitHub Actions → AWS, 키 없이"
+    img: week5/day3/w5d3-oidc.png
+    notes: "STS가 확인: 발급자 · aud · sub. sub 조건을 빼면 아무 저장소나. 역할 = ReadOnly + state — apply는 못 한다. PR Summary: 태그 한 줄 → 9 to change. apply는 사람 → 다음 단계: main 브랜치 apply · Atlantis. 학술: OIDC · 연합 신원(Maler & Reed 2008). 트렌드: PR에 Checkov · Infracost · OPA."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "콘솔 · 스크립트 · IaC — '무엇을' 적는다, state는 장부"]
+      - ["2교시", "init · plan · apply · destroy, -/+ 를 보면 멈춘다"]
+      - ["3교시", "variable · data · locals · for_each · 참조 = 의존"]
+      - ["4교시", "콘솔 수정을 plan이 잡는다 · import · removed"]
+      - ["5~6교시", "S3 원격 state + 잠금 · 모듈로 VPC 22개 · 콘솔 VPC 정리"]
+      - ["7교시", "OIDC 역할 · devmart-infra PR plan · destroy 두 줄"]
+    diary: "배움일기 — 콘솔 · 스크립트 · Terraform · 가장 무서운 plan 기호 · plan이 잡은 어긋남 vs OutOfSync · 원격 state 이유 셋 · 키 없는 CI 순서 · EKS는 몇 개 자원? DevMart를 그대로?"
+    notes: "남긴 것: state 버킷, plan 역할, devmart-infra. 내일: Terraform으로 EKS."

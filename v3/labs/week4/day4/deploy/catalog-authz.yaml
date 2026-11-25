@@ -1,0 +1,17 @@
+# 6교시 · catalog-api(Service)를 부를 수 있는 곳을 정한다
+# targetRefs로 Service를 지목하면 waypoint가 검사한다 — 원래 부른 쪽의 신원을 본다
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: catalog-api-allow
+  namespace: devmart
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: catalog-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["devmart"]

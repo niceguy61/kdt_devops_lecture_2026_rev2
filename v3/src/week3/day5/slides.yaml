@@ -1,0 +1,254 @@
+meta:
+  footer: "3주차 5일차 · 운영 가능한 워크로드"
+  title: "3주차 5일차 — 운영 가능한 워크로드"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 3주차 MSA + Kubernetes"
+    title: "운영 가능한 워크로드"
+    subtitle: "3주차 5일차 · Namespace · ConfigMap과 Secret · probe · requests와 limits · DevMart MSA를 Kubernetes에 · 장애 연습 · 3주차 회고"
+    notes: "어제의 빈칸: DB 없음, 설정이 매니페스트에 박힘, 롤링 중 FAIL, 자원 무제한. 오늘 채우고 DevMart 전체를 apply -k 한 줄로."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "4일차 요약 + Namespace"]
+      - ["2교시", "2", "ConfigMap과 Secret"]
+      - ["3교시", "3", "probe — 준비됐나, 살아 있나"]
+      - ["4교시", "4", "requests와 limits"]
+      - ["5교시", "5", "DevMart MSA를 Kubernetes에"]
+      - ["6교시", "6", "장애 연습"]
+      - ["7교시", "7", "3주차 회고 + 배움일기"]
+    notes: "세 이미지가 GHCR에 있는지. kind 노드는 postgres · redis · nginx · python 이미지를 따로 받는다. 오늘은 -n devmart를 빠뜨리지 않는다."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "4일차 요약 + Namespace"
+    goals: ["정리하며 복습", "세 이미지 확인", "Namespace란", "devmart 만들기"]
+    notes: "어제 것을 파일로 지운다 — Deployment를 지우면 ReplicaSet · Pod도 (가비지 컬렉션). get all의 all은 모두가 아니다."
+
+  - type: compare
+    title: "Namespace — 공유 오피스의 호실"
+    left: ["하는 것", ["이름의 범위 — 같은 이름을 칸마다", "칸째로 한꺼번에 지우기", "RBAC · ResourceQuota의 단위"]]
+    right: ["하지 않는 것", ["네트워크 차단 — catalog-api.default로 부를 수 있다", "노드 나누기 — 모두 같은 노드에 섞인다", "그 자체로 보안 경계 (RBAC · 정책과 함께)"]]
+    notes: "Node · Namespace · PV · StorageClass는 클러스터 전체의 것. set-context --namespace=devmart는 보이지 않는 설정 — 교재는 계속 -n. 학술: 멀티 테넌시 · 시끄러운 이웃, Borg quota. 트렌드: vCluster, 플랫폼 팀의 셀프서비스."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "ConfigMap과 Secret"
+    goals: ["설정을 이미지 밖으로", "base64는 암호가 아니다", "파일 → ConfigMap · PVC", "고쳐도 바로 안 바뀐다"]
+    notes: "1주차 4일차 12-Factor: 설정은 환경에."
+
+  - type: image
+    title: "ConfigMap과 Secret이 환경 변수가 되기까지"
+    img: week3/day5/w3d5-config.png
+    notes: "ConfigMap은 Git에, Secret은 kubectl create secret으로 Git 밖에서. kustomization에도 Secret은 없다."
+
+  - type: code
+    title: "실습 4~7 · Secret, 초기화 SQL, DB, catalog-api"
+    code: |
+      kubectl create secret generic devmart-db -n devmart \
+        --from-literal=DB_PASSWORD="$(openssl rand -hex 12)"
+      kubectl get secret devmart-db -n devmart -o jsonpath='{.data.DB_PASSWORD}' | base64 -d
+      kubectl create configmap db-init -n devmart --from-file=devmart/files/initdb/ --save-config
+      kubectl apply -f devmart/db.yaml -f steps/catalog-v1.yaml
+    out: |
+      f3a92c0b7d1e445b8a2c6f0d
+      db-data   Bound   pvc-3f2a…   1Gi   RWO   standard
+      {"items":[{"id":1,"name":"러닝화","price":59000,"stock":12},…
+    points:
+      - ["base64 -d", "한 줄로 원래 값"]
+      - ["PVC", "Compose의 이름 있는 볼륨"]
+      - ["Recreate", "디스크는 한 Pod만"]
+    notes: "Secret을 지키는 것: RBAC, 저장 시 암호화, 화면에 찍지 않기. PVC Pending → Pod 배정 뒤 Bound. 학술: Meli 외 NDSS 2019 How Bad Can It Git?"
+
+  - type: statement
+    icon: TriangleAlert
+    title: "실습 8 · enableServiceLinks: false"
+    text: "Service 이름 db → Pod에 DB_PORT=tcp://10.96…:5432가 몰래 들어온다"
+    sub: "앱은 os.getenv('DB_PORT')로 포트를 읽는다 → 연결 깨짐 · 'Compose에선 되는데 Kubernetes에서만 안 돼요'"
+    notes: "kubectl run envtest로 직접 확인. 실습 9: ConfigMap을 patch해도 환경 변수는 Pod가 뜰 때 한 번 → rollout restart. Kustomize 해시 접미사는 자동 롤링(오늘은 끔). 트렌드: External Secrets Operator, Sealed Secrets, EKS Pod Identity."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "probe"
+    goals: ["readiness vs liveness", "FAIL 세기", "무중단의 세 조각", "probe가 틀리면"]
+    notes: "Compose healthcheck는 표시만, Kubernetes는 행동한다. 비유: 영업중 팻말 vs 의식 확인."
+
+  - type: image
+    title: "세 가지 probe"
+    img: week3/day5/w3d5-probes.png
+    notes: "httpGet · exec · tcpSocket · grpc. timeoutSeconds 기본 1초 — 느린 /ready는 늘린다(order-api 6초). catalog-api는 /ready가 없어 /health — 한계는 6교시 장애 1에서."
+
+  - type: compare
+    title: "실습 10 · 롤링 재시작 중 FAIL"
+    left: ["v1 — probe 없음", ["새 Pod: 포트 열기 전에 손님", "옛 Pod: SIGTERM 뒤 목록에서 빠지기 전 거절", "3 FAIL / 142 OK"]]
+    right: ["v2 — readiness + preStop sleep 5", ["새 Pod: readiness 성공해야 목록에", "옛 Pod: 5초 기다리며 목록에서 빠진다", "0 FAIL / 150 OK"]]
+    notes: "클러스터 안 busybox loop Pod로 0.2초마다. 무중단 = readiness + 종료 전 대기 + 롤링 규칙. 4일차 '롤링이면 무중단' 오해의 답."
+
+  - type: table
+    title: "실습 11 · probe 경로 오타"
+    head: ["", "readiness 오타", "liveness 오타"]
+    rows:
+      - ["Pod", "Running · 0/1", "Running · 1/1 · RESTARTS 증가"]
+      - ["결과", "롤링이 멈추고 옛 Pod가 일한다", "30초마다 죽였다 살림"]
+      - ["사용자", "FAIL 0", "재시작마다 FAIL"]
+      - ["위험", "낮음 — 멈춘 배포", "높음 — 배포는 성공인데 흔들린다"]
+    colw: [1.8, 5.0, 5.3]
+    callout: "liveness는 가볍게, 자기만 — 의존 대상 확인은 readiness의 몫"
+    callout_color: red
+    notes: "kubectl patch --type=json으로 경로 하나 바꾸기. 학술: Chandra & Toueg 1996 — 고장 감지기는 틀릴 수 있다, failureThreshold · timeoutSeconds가 손잡이. 트렌드: preStop sleep 액션, 우아한 종료."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "requests와 limits"
+    goals: ["예약과 상한", "단위 읽기", "노드 예약 현황 · QoS", "OOMKilled"]
+    notes: "비유: 식당 테이블 예약과 1인 주문 한도."
+
+  - type: image
+    title: "requests는 스케줄러가, limits는 커널이"
+    img: week3/day5/w3d5-resources.png
+    notes: "100m = 0.1코어, 64Mi ≠ 64M. 오늘 기준: 메모리는 requests+limits, CPU는 requests만 — 정답은 재 보고(4주차 Prometheus)."
+
+  - type: table
+    title: "QoS 등급"
+    head: ["등급", "조건", "노드 메모리가 모자라면"]
+    rows:
+      - ["Guaranteed", "모든 컨테이너 requests = limits", "가장 나중에 쫓겨난다"]
+      - ["Burstable", "requests가 있고 limits와 다르다 (오늘)", "중간"]
+      - ["BestEffort", "하나도 없다 (4일차 catalog-api)", "가장 먼저 쫓겨난다"]
+    colw: [2.6, 5.3, 4.2]
+    mono_col: 0
+    notes: "requests 없음 = 스케줄러가 0으로 친다 → 몰린다. LimitRange · Kyverno로 강제. kind 노드는 노트북 전체를 자기 것으로 안다(Allocatable) — EKS와 비교는 5주차."
+
+  - type: code
+    title: "실습 13 · 메모리 상한을 넘으면"
+    shell: "steps/oom.yaml"
+    code: |
+      command: ["python", "-c", "x = 'x' * (300 * 1024 * 1024); print('다 썼다')"]
+      resources:
+        requests: { memory: 64Mi }
+        limits: { memory: 128Mi }
+    out: |
+      oom-demo   0/1   OOMKilled   0   20s
+          State:          Terminated
+            Reason:       OOMKilled
+            Exit Code:    137
+    points:
+      - ["로그 없음", "SIGKILL — 유언 기회 없음"]
+      - ["누수?", "limit만 올리면 또 죽는다"]
+      - ["137", "4일차 3교시의 그 숫자"]
+    notes: "학술: Borg — 요청보다 덜 쓴다 → 예약과 실제 분리, CFS quota의 지연 튀김 → CPU limit 논쟁. 트렌드: VPA + 실행 중 자원 변경(v1.35 정식)."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "DevMart MSA를 Kubernetes에"
+    goals: ["Kustomize", "apply -k 한 줄", "요청 ID로 따라가기", "늘리기 · 데이터 지키기"]
+    notes: "앱 코드는 한 줄도 안 바꿨다."
+
+  - type: image
+    title: "네임스페이스 devmart 안의 DevMart"
+    img: week3/day5/w3d5-devmart-k8s.png
+    notes: "Service 이름과 포트를 Compose와 같게 → nginx 설정 · CATALOG_URL 그대로. order-worker는 Service 없음."
+
+  - type: code
+    title: "실습 14 · 한 줄로 배포"
+    shell: "~/devops-lab/k8s/day5"
+    code: |
+      kubectl kustomize devmart/ | grep '^kind:' | sort | uniq -c
+      kubectl apply -k devmart/
+      kubectl wait deployment --all -n devmart --for=condition=Available --timeout=180s
+    out: |
+      configmap/web-html created
+      service/catalog-api unchanged
+      deployment.apps/catalog-api unchanged
+      deployment.apps/order-api created
+      deployment.apps/order-worker created
+      deployment.apps/web condition met
+    points:
+      - ["unchanged", "선언형은 멱등"]
+      - ["depends_on 없음", "readiness + 재시작이 맞춘다"]
+      - ["localhost:30080", "1일차와 같은 화면"]
+    notes: "문제: order-api 0/1(redis 이미지 받는 중), web host not found in upstream → rollout restart, ImagePullBackOff(sed 빠뜨림), invalid integer(enableServiceLinks)."
+
+  - type: code
+    title: "실습 15~17 · 따라가기, 늘리기, 지워도 남기"
+    code: |
+      kubectl logs -n devmart -l 'app in (order-api,catalog-api,order-worker)' \
+        --prefix --timestamps --tail=-1 | grep $RID | sort -k2
+      kubectl exec -n devmart deployment/db -- psql -U devmart -d orders -c \
+        "SELECT processed_by, count(*) FROM orders WHERE status='completed' GROUP BY 1;"
+      kubectl delete pod -n devmart -l app=db
+    out: |
+      [pod/order-api-…/order-api]       … "order_received" …
+      [pod/catalog-api-…/catalog-api]   … "get_product" …
+      [pod/order-worker-…/order-worker] … "order_completed" …
+       order-worker-7d5b8c6f9-kx7tq |  11
+       order-worker-7d5b8c6f9-wq4mz |  11
+      주문 43건 → DB Pod 삭제 → 43건
+    points:
+      - ["요청 ID", "노드가 달라도 한 이야기"]
+      - ["processed_by", "= Pod 이름"]
+      - ["PVC", "Pod는 바뀌어도 데이터는"]
+    notes: "처리기 늘리기는 파일로(replicas 4) 후 되돌리기. DB Recreate 동안 503 → 길어지면 502. Compose ↔ Kubernetes 대응표. 학술: 12-Factor를 지킨 앱은 옮겨 다닌다. 트렌드: Helm · 플랫폼 추상화."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "장애 연습"
+    goals: ["바깥에서 안으로", "짝끼리 break.sh", "15분 · 보고서", "apply로 안 돌아오는 것"]
+    notes: "break.sh를 열어 보지 않는다. 1라운드 장애 1 · 2, 2라운드 3 · 4. 끝나면 fix.sh."
+
+  - type: image
+    title: "진단의 순서 — 바깥에서 안으로"
+    img: week3/day5/w3d5-diagnose.png
+    notes: "모든 Pod가 Running인데 고장일 수 있다 — 사용자 증상부터. get events --sort-by=.lastTimestamp로 최근 변경."
+
+  - type: table
+    title: "장애 넷 — 해설 요약 (강사용)"
+    head: ["장애", "사용자 증상", "결정적 단서", "배운 것"]
+    rows:
+      - ["1 Secret 비밀번호", "상품 503 · 주문 처리 안 됨", "password authentication failed", "probe가 기능별 증상을 갈랐다"]
+      - ["2 redis 0개", "주문 502", "deployment redis 0/0 · endpoint 비었음", "readiness 범위 = 번짐 범위"]
+      - ["3 큐 이름", "주문이 pending에서 멈춤", "worker_started queue=order · LLEN 증가", "apply로 안 지워지는 set env"]
+      - ["4 CATALOG_URL", "주문하기만 503", "catalog_error · :8080", "ConfigMap 뒤 재시작"]
+    colw: [2.4, 2.9, 3.9, 2.9]
+    notes: "장애 1: catalog(/health) 교체 완료 → 503, order-api(/ready) 교체 멈춤 → 옛 Pod가 일함, worker(probe 없음) 교체 완료 → 처리 실패. 고치기는 ALTER USER + Secret을 같은 값으로. 장애 3은 Pod가 전부 1/1. 학술: 비난 없는 사후 검토 — SRE 15장, Allspaw 2012. 트렌드: AI 요약 — 사용자 관점의 질문과 복구 판단은 사람."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "3주차 회고"
+    goals: ["한 주의 지도", "대응표를 내 말로", "KPT", "주말 동안"]
+    notes: "Try는 '다음 주 언제 무엇을 하면 지켰는지 알 수 있는' 문장으로."
+
+  - type: table
+    title: "한 주의 지도"
+    head: ["날", "한 일", "핵심 한 줄"]
+    rows:
+      - ["1일차", "MSA · Compose 여섯 서비스", "연결이 새 장애 지점"]
+      - ["2일차", "장애 전파 · CI · GHCR", "느린 것이 무섭다 · 기계가 매번 똑같이"]
+      - ["3일차", "Kubernetes 구조 · kind", "원하는 상태를 계속 지킨다"]
+      - ["4일차", "Pod · Deployment · Service", "라벨로 잇고, 되돌릴 수 있게"]
+      - ["5일차", "설정 · probe · 자원 · MSA 배포", "probe가 장애의 번짐을 정한다"]
+    colw: [1.6, 5.0, 5.5]
+    callout: "여러 서비스로 나뉜 앱을, 기계가 검증하고(CI) 클러스터가 지키게(Kubernetes) 만들었다"
+    callout_color: teal
+    notes: "4주차: Helm + Gateway API(ingress-nginx 2026년 3월 은퇴), Observability, Argo CD, Istio(ambient), RBAC · Kyverno. 학술: Kerth 2001 Prime Directive, Derby & Larsen 2006."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "devmart 네임스페이스 — 이름의 범위, 보안 경계는 아니다"]
+      - ["2교시", "ConfigMap(Git) · Secret(Git 밖) · PVC · enableServiceLinks: false"]
+      - ["3교시", "readiness + preStop → FAIL 0 · liveness는 가볍게"]
+      - ["4교시", "requests는 스케줄러, limits는 커널 · OOMKilled 137"]
+      - ["5교시", "apply -k 한 줄로 DevMart 전체 · localhost:30080에서 주문"]
+      - ["6~7교시", "장애 넷을 바깥에서 안으로 · 3주차 KPT"]
+    diary: "배움일기 — ConfigMap vs .env · FAIL 전후와 세 조각 · 내 앱의 limit · 첫 주문의 기분 · 가장 오래 걸린 진단 단계 · 가장 크게 바뀐 생각 · 서비스 50개면?"
+    notes: "클러스터는 지우지 않는다. 월요일: docker start 노드 셋 → get pods -n devmart. 망가지면 delete → create → Secret → apply -k, 5분."

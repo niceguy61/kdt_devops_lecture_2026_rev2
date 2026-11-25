@@ -1,0 +1,9 @@
+# Envoy Gateway 컨트롤러 — 기본값에서 바꾸는 것만 (3주차 5일차 requests/limits)
+deployment:
+  envoyGateway:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 512Mi

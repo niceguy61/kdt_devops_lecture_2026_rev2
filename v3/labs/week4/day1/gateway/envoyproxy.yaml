@@ -1,0 +1,20 @@
+# Envoy Gateway 전용 설정 — Envoy의 Service를 NodePort 30080으로
+# (kind에는 LoadBalancer가 없다. 30080은 3주차 3일차 kind 설정의 포트 통로)
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: devmart-proxy
+  namespace: devmart
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: NodePort
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - port: 80
+                  nodePort: 30080

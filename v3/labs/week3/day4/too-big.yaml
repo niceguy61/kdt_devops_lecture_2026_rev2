@@ -1,0 +1,12 @@
+# 3교시 장애 3 · 어느 노드에도 안 들어가는 요청 → Pending
+apiVersion: v1
+kind: Pod
+metadata:
+  name: too-big
+spec:
+  containers:
+    - name: catalog-api
+      image: ghcr.io/YOUR_ID/devmart-catalog-api:YOUR_SHA
+      resources:
+        requests:
+          memory: 100Gi

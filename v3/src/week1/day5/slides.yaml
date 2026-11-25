@@ -1,0 +1,453 @@
+meta:
+  footer: "1주차 5일차 · DevOps 문화와 협업"
+  title: "1주차 5일차 — DevOps 문화와 협업"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 기초 이론 과정"
+    title: "DevOps 문화와 협업"
+    subtitle: "1주차 5일차 · DevOps의 탄생 · SDLC와 CI/CD · Git과 GitHub · 타 부서 협업 · 장애 커뮤니케이션 · 문서 · 2주차 준비"
+    notes: "기술을 다루는 사람과 팀을 보는 날. 신입이 가장 먼저 부딪히는 벽은 기술보다 소통인 경우가 많다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "DevOps는 왜 생겼나"]
+      - ["2교시", "2", "SDLC와 CI/CD"]
+      - ["3교시", "3", "Git과 GitHub 맛보기 (시연)"]
+      - ["4교시", "4", "타 부서와 협업하기"]
+      - ["5교시", "5", "장애 커뮤니케이션과 포스트모템"]
+      - ["6교시", "6", "문서로 일하기"]
+      - ["7교시", "7", "손으로 맞추는 실행 환경 (시연) + 2주차 준비"]
+    notes: "8교시는 1주차 배움일기와 회고."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "DevOps는 왜 생겼나"
+    goals: ["어제 10분 요약", "혼란의 벽", "DevOps의 탄생과 CALMS", "웨스트럼 조직 문화"]
+    notes: "어제의 콘웨이 법칙 — 오늘은 조직과 소통을 정면으로."
+
+  - type: table
+    title: "어제 10분 요약"
+    head: ["어제 배운 것", "한 문장"]
+    rows:
+      - ["현대 앱의 지도", "애플리케이션 = 코드 + 실행 조건"]
+      - ["프론트 · 백엔드", "API는 약속, stateless여야 늘릴 수 있다"]
+      - ["확장성 · 가용성", "스케일 아웃, 9의 개수, SPOF 제거, CAP"]
+      - ["데이터 · 캐시 · 큐", "RDB는 ACID, 큐는 맡겨 두기 — 대가는 멱등성"]
+      - ["MSA", "조직 문제를 풀고 분산 시스템 문제를 떠안는다"]
+    colw: [3.4, 8.7]
+    callout: "콘웨이의 법칙 — 시스템은 조직의 의사소통 구조를 닮는다. 오늘은 '조직' 쪽을 본다"
+    notes: "학생에게 먼저 말해 보게 하기."
+
+  - type: image
+    title: "혼란의 벽 — 개발과 운영이 갈라져 있던 시절"
+    img: week1/day5/w1d5-wall.png
+    notes: "평가 기준이 다르면 원하는 것이 다르다. 개발은 몇 달 만에 크게 배포, 배포 날은 장애 날. 비유: 요리사와 홀 직원."
+
+  - type: steps
+    title: "학술 노트 — DevOps의 탄생 (2009)"
+    steps:
+      - ["2009.6 Velocity", "Flickr 올스포 · 해먼드 '하루 10번 이상 배포'"]
+      - ["핵심", "도구가 아니라 신뢰 · 공유된 목표 · 존중"]
+      - ["2009.10 겐트", "드부아의 첫 DevOpsDays"]
+      - ["#DevOps", "행사 해시태그가 운동의 이름이 되다"]
+    notes: "Allspaw & Hammond (2009) Velocity. Kim et al. (2016) The DevOps Handbook."
+
+  - type: image
+    title: "DevOps의 다섯 기둥 — CALMS"
+    img: week1/day5/w1d5-calms.png
+    callout: "'Kubernetes를 쓰니까 DevOps'는 반만 맞다 — 도구는 다섯 중 하나"
+    callout_color: orange
+    notes: "DevOps 엔지니어 · SRE · 플랫폼 엔지니어: 이름과 범위는 달라도 '개발자가 빠르고 안전하게 배포할 길을 만드는 사람'."
+
+  - type: table
+    title: "학술 노트 — 웨스트럼의 조직 문화 (2004)"
+    head: ["유형", "정보의 흐름", "실패가 생기면"]
+    rows:
+      - ["병리적 (권력 지향)", "정보를 무기로 쥔다", "희생양을 찾는다"]
+      - ["관료적 (규칙 지향)", "규정 경로로만", "처벌하거나 규정 탓"]
+      - ["생성적 (성과 지향)", "필요한 사람에게 흐른다", "조사하고 배운다"]
+    colw: [3.6, 4.2, 4.3]
+    callout: "DORA 연구 — 생성적 문화일수록 배포 성과와 조직 성과가 높다 (측정 가능한 차이)"
+    notes: "Westrum (2004) BMJ Quality & Safety. Forsgren, Humble & Kim (2018) Accelerate."
+
+  - type: statement
+    icon: Bot
+    title: "트렌드 — AI 시대의 DevOps"
+    text: "AI로 코드는 빨라졌다\n리뷰 · 테스트 · 배포가 받쳐 주지 못하면 병목만 뒤로 밀린다"
+    sub: "DORA 2025 'AI는 증폭기' — 작게 자주 배포, 자동 검증, 빠른 되돌리기가 AI 코드를 안전하게 받아들이는 방법"
+    notes: "AI 시대에 DevOps는 오히려 더 중요해진다."
+
+  - type: quiz
+    title: "1교시 확인 문제"
+    questions:
+      - "개발팀과 운영팀이 원하던 것은 각각?"
+      - "2009년 Flickr 발표 제목의 숫자는?"
+      - "CALMS의 다섯 글자는?"
+      - "실패가 생기면 '조사하고 배우는' 문화는?"
+    answers: "1) 변화, 안정  2) 10 (하루 10번 이상 배포)  3) 문화 · 자동화 · 린 · 측정 · 공유  4) 생성적 문화"
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "SDLC와 CI/CD"
+    goals: ["소프트웨어 개발 생명주기", "폭포수 vs 애자일", "CI · CD", "파이프라인 = 품질 관문"]
+    notes: "3주차 GitHub Actions, 4주차 Argo CD의 개념적 바탕."
+
+  - type: table
+    title: "소프트웨어 개발 생명주기 (SDLC)"
+    head: ["단계", "주로 누가", "DevOps의 관심사"]
+    rows:
+      - ["계획 · 설계", "기획 · 개발", "필요한 인프라, 확장성, 비용"]
+      - ["개발", "개발", "개발 환경, 브랜치 전략"]
+      - ["테스트", "QA · 개발", "자동 테스트"]
+      - ["배포", "운영 · DevOps", "배포 자동화, 되돌리기"]
+      - ["운영 · 피드백", "운영 · SRE", "모니터링, 장애 대응, 지표"]
+    colw: [2.8, 3.2, 6.1]
+    notes: "회사마다 이름은 달라도 대체로 이 단계."
+
+  - type: image
+    title: "폭포수 vs 애자일"
+    img: week1/day5/w1d5-waterfall-agile.png
+    notes: "비유: 완성된 요리를 한 번에 vs 한 숟가락씩 맛보며 간 맞추기."
+
+  - type: compare
+    title: "학술 노트 — 폭포수의 오해와 애자일 선언"
+    left: ["Royce (1970)", ["유명한 '폭포수' 그림의 출처", "그런데 그 아래에 '위험하다'고 씀", "피드백과 반복을 넣으라고 주장", "비판 대상의 그림이 이름을 얻다"]]
+    right: ["애자일 선언 (2001.2)", ["공정과 도구보다 개인과 상호작용", "문서보다 작동하는 소프트웨어", "계약보다 고객과의 협력", "계획보다 변화에 대응"]]
+    notes: "DevOps는 애자일 정신을 운영과 배포까지 넓힌 것."
+
+  - type: image
+    title: "CI/CD 파이프라인"
+    img: week1/day5/w1d5-cicd.png
+    callout: "자동화는 종료 코드만 본다 — 0이면 다음으로, 아니면 멈춘다"
+    notes: "CI: 자주 합치고 매번 자동 빌드·테스트 (통합 지옥 해결). 지속적 전달 = 운영 배포 버튼은 사람, 지속적 배포 = 운영까지 자동."
+
+  - type: compare
+    title: "학술 노트 — CI와 CD의 정리"
+    left: ["CI — Fowler (2000/2006)", ["XP(켄트 벡)에서 시작", "모두가 매일 메인 라인에 커밋", "모든 커밋은 빌드된다", "깨진 빌드는 즉시 고친다"]]
+    right: ["CD — Humble & Farley (2010)", ["배포 파이프라인 체계화", "'배포가 고통스러우면 더 자주 하라'", "자주 하면 작아지고 자동화된다", "배포가 지루할 만큼 평범해진다"]]
+    notes: "Fowler (2006) Continuous Integration. Humble & Farley (2010) Continuous Delivery."
+
+  - type: cards
+    title: "트렌드 — 공급망 보안이 파이프라인에"
+    cards:
+      - [FileText, teal, "SBOM", "무슨 재료로 만들었나 — 소프트웨어 자재 명세서"]
+      - [PenLine, orange, "서명", "결과물에 서명해 위변조를 막는다"]
+      - [ShieldCheck, violet, "SLSA", "빌드 과정의 신뢰 수준 표준"]
+      - [ArrowLeft, red, "시프트 레프트", "보안을 마지막이 아니라 앞쪽으로"]
+    notes: "1일차: AI 패키지 환각(USENIX 2025). 공급망 공격 증가."
+
+  - type: quiz
+    title: "2교시 확인 문제"
+    questions:
+      - "폭포수와 애자일의 가장 큰 차이는?"
+      - "몇 주 만에 코드를 합칠 때 생기던 문제는?"
+      - "지속적 전달과 지속적 배포의 차이는?"
+      - "'배포가 고통스러우면 ○○ ○○ 하라'"
+    answers: "1) 한 번에 크게 vs 작게 자주  2) 통합 지옥  3) 운영 배포를 사람이 결정 vs 자동  4) 더 자주"
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "Git과 GitHub 맛보기 (강사 시연)"
+    goals: ["버전 관리가 필요한 이유", "세 영역과 커밋", "브랜치와 Pull Request", "Git vs GitHub"]
+    notes: "1주차는 보기만. 2주차 1일차에 직접 입력."
+
+  - type: statement
+    icon: Files
+    title: "보고서_최종_진짜최종_v3.docx"
+    text: "무엇이 언제, 왜 바뀌었는지 모른다\n두 사람이 동시에 고치면 누구 것을 살리나?"
+    sub: "버전 관리 시스템 — 변경 이력을 기록하고, 여러 사람의 변경을 안전하게 합친다 · 현업 표준은 Git"
+    notes: "학생들에게 이런 파일 이름을 써 본 적 있는지 물어보기."
+
+  - type: image
+    title: "Git의 세 영역과 커밋"
+    img: week1/day5/w1d5-git-areas.png
+    notes: "시연: git init → status → add → commit → log → switch -c → push. 커밋 메시지에는 무엇을, 왜."
+
+  - type: compare
+    title: "커밋 메시지 — 무엇을, 왜"
+    left: ["나쁜 메시지", ["수정", "asdf", "최종"]]
+    right: ["좋은 메시지", ["로그인 실패 시 에러 메시지 표시", "DB 연결 타임아웃 5초→10초 (피크 시간 연결 실패)", "상품 목록 API에 페이지 나누기 추가"]]
+    notes: "비밀값(비밀번호, API 키, AWS Access Key)은 절대 커밋 금지 — 지워도 이력에 남고 봇이 몇 분 안에 찾아낸다. .env는 .gitignore에."
+
+  - type: image
+    title: "브랜치와 Pull Request"
+    img: week1/day5/w1d5-branch-pr.png
+    callout: "코드 리뷰는 감시가 아니라 학습 — 코멘트는 사람이 아니라 코드에 대해"
+    notes: "비유: 공동 문서의 제안 모드. main은 항상 검토된 코드만. 리뷰는 사람 SPOF도 줄인다."
+
+  - type: compare
+    title: "Git vs GitHub · 학술 노트 — 2주 만에 만든 Git (2005)"
+    left: ["Git ≠ GitHub", ["Git: 내 컴퓨터의 버전 관리 프로그램", "GitHub: 저장소 호스팅 서비스", "PR · 리뷰 · 이슈 · Actions(CI/CD)", "비슷한 것: GitLab, Bitbucket"]]
+    right: ["Torvalds (2005.4)", ["BitKeeper 무료 사용 중단", "며칠 만에 자기 소스 관리", "분산 — 모두가 전체 이력 사본", "해시로 위변조 감지 · SPOF 없음"]]
+    notes: "Chacon & Straub (2014) Pro Git."
+
+  - type: cards
+    title: "트렌드 — Octoverse 2026"
+    cards:
+      - [Users, teal, "2억 2,500만+", "GitHub 개발자 수 (2026년 9월)"]
+      - [Bot, orange, "40%+", "AI 에이전트가 시작한 PR (2026년 9월, 3월엔 17%)"]
+      - [GitMerge, violet, "13억 개", "1년간 병합된 PR — 리뷰와 자동 검사가 병목"]
+      - [Code, teal, "TypeScript 1위", "2년 연속 가장 많이 쓰는 언어"]
+    notes: "GitHub Octoverse 2026 (2026-10-28 발표, 2025.10~2026.9 집계). push 179억 번 — 2024·2025년 합계보다 많음. Actions 작업 454억 번. 집계 방식이 바뀌어 옛 보고서 숫자와 직접 비교는 주의."
+
+  - type: quiz
+    title: "3교시 확인 문제"
+    questions:
+      - "이번 커밋에 담을 변경을 고르는 명령은?"
+      - "좋은 커밋 메시지에 꼭 들어갈 두 가지는?"
+      - "main을 직접 고치지 않고 '합쳐 주세요'라고 요청하는 것은?"
+      - "Git이 '분산' 버전 관리라는 뜻은?"
+    answers: "1) git add  2) 무엇을, 왜  3) Pull Request  4) 모두가 전체 이력의 완전한 사본을 가진다"
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "타 부서와 협업하기"
+    goals: ["함께 일하는 사람들", "요청을 잘 쓰는 법", "비기술자에게 설명하기", "팀 구조와 심리적 안전감"]
+    notes: "DevOps 엔지니어는 가장 많은 부서와 이야기하는 사람 중 하나."
+
+  - type: image
+    title: "DevOps 엔지니어의 협업 지도"
+    img: week1/day5/w1d5-stakeholders.png
+    callout: "모두가 옳다, 다만 원하는 것이 다를 뿐 — 양쪽 목표를 모두 만족하는 선택지를 찾는다"
+    notes: "보안의 '안 됩니다'는 방해가 아니라 자기 책임을 다하는 것."
+
+  - type: table
+    title: "요청을 잘 쓰는 법 — 보안팀에 포트 개방 요청"
+    head: ["항목", "내용"]
+    rows:
+      - ["무엇을", "결제 API 서버 보안 그룹에 인바운드 TCP 443"]
+      - ["어디에서", "결제 대행사 IP 대역 203.0.113.0/24만"]
+      - ["왜", "결제 결과 웹훅(callback)을 받아야 함"]
+      - ["언제까지", "12월 5일 출시, 12월 3일까지 테스트"]
+      - ["위험과 대안", "0.0.0.0/0 대신 대행사 IP로 제한"]
+      - ["되돌리기", "출시 취소 시 규칙 삭제, 담당자 명시"]
+    colw: [2.6, 9.5]
+    callout: "나쁜 요청: '포트 좀 열어 주세요. 급해요.' — 상대가 물을 질문에 미리 답한다"
+    callout_color: orange
+    notes: "3일차 /32, 보안 그룹 표가 여기서 쓰인다. 1일차 좋은 질문의 다섯 줄과 같은 원리."
+
+  - type: compare
+    title: "기술을 모르는 사람에게 설명하기"
+    left: ["하지 말 것", ["약어 그대로 ('ALB 타깃 그룹이…')", "원인부터 길게", "'곧 됩니다'", "추정을 단정"]]
+    right: ["할 것", ["결과부터 쉬운 말로", "영향 → 원인 → 대응 → 예상 시간", "'30분 안에 다시 알려 드리겠습니다'", "'현재까지 확인된 것은…' + 비유"]]
+    notes: "이번 주 내내 쓴 비유가 이 능력을 위한 연습. 모르는 사람도 결정을 내릴 수 있게 말하는 것이 실력."
+
+  - type: image
+    title: "학술 노트 — 브룩스의 법칙 (1975)"
+    img: week1/day5/w1d5-brooks.png
+    callout: "늦어진 프로젝트에 사람을 더 넣으면 더 늦어진다"
+    notes: "Brooks (1975) The Mythical Man-Month. 교육 시간 + 소통 경로 n(n−1)/2."
+
+  - type: table
+    title: "Team Topologies — 소통 경로를 줄이는 팀 구조 (2019)"
+    head: ["팀 유형", "하는 일", "예"]
+    rows:
+      - ["스트림 정렬 팀", "사용자에게 가치를 직접 전달", "결제팀, 검색팀"]
+      - ["플랫폼 팀", "다른 팀이 셀프서비스로 쓸 기반", "DevOps · 플랫폼 엔지니어링"]
+      - ["활성화 팀", "새 역량을 익히도록 돕기", "보안 · 테스트 코치"]
+      - ["복잡한 하위 시스템 팀", "고도의 전문 영역", "검색 엔진, 결제 엔진"]
+    colw: [3.4, 4.6, 4.1]
+    notes: "Skelton & Pais (2019). 좋은 플랫폼 팀은 묻지 않고도 일할 수 있게 만들어 소통 경로를 줄인다."
+
+  - type: statement
+    icon: HeartHandshake
+    title: "학술 노트 — 심리적 안전감"
+    text: "성과 좋은 팀일수록 실수 보고가 더 많았다\n— 말해도 안전하다고 느껴서"
+    sub: "Edmondson (1999) 병원 팀 연구 · Google Project Aristotle: 좋은 팀의 가장 중요한 요인 · 장애를 숨기면 팀은 아무것도 배우지 못한다"
+    notes: "여러분이 '모르겠어요'라고 편하게 질문하는 것도 같은 원리."
+
+  - type: quiz
+    title: "4교시 확인 문제"
+    questions:
+      - "포트 개방 요청에 꼭 넣을 항목 세 가지는?"
+      - "비기술자에게 장애를 설명하는 순서는?"
+      - "10명 팀의 소통 경로는 몇 개?"
+      - "DevOps · 플랫폼 엔지니어가 속하는 팀 유형은?"
+    answers: "1) 무엇을 · 어디에서 · 왜 (+언제까지, 위험과 대안, 되돌리기)  2) 영향 → 원인 → 대응 → 예상 시간  3) 45개  4) 플랫폼 팀"
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "장애 커뮤니케이션과 포스트모템"
+    goals: ["인시던트 대응 흐름", "장애 중의 역할", "장애 공유 메시지", "비난 없는 포스트모템"]
+    notes: "질문은 '일어날까?'가 아니라 '일어났을 때 얼마나 빨리, 침착하게?'"
+
+  - type: image
+    title: "인시던트 대응 흐름과 역할"
+    img: week1/day5/w1d5-incident.png
+    callout: "원인 찾기보다 피해 멈추기가 먼저 — '방금 무엇이 바뀌었나?' → 되돌리기"
+    callout_color: orange
+    notes: "지휘자는 직접 고치지 않는다. 모두가 한꺼번에 이것저것 시도하면 상황이 꼬인다."
+
+  - type: table
+    title: "장애 공유 메시지 — 14:20 업데이트"
+    head: ["항목", "내용"]
+    rows:
+      - ["영향", "14:05부터 카드 결제 약 30% 실패. 계좌 이체 · 조회는 정상"]
+      - ["확인된 것", "14:00 배포된 결제 API 새 버전 이후 발생"]
+      - ["조치", "14:15 이전 버전으로 되돌리는 중"]
+      - ["다음 업데이트", "14:40 또는 상황이 바뀌는 즉시"]
+      - ["문의", "#inc-20261127-payment 채널"]
+    colw: [2.6, 9.5]
+    callout: "확실한 것과 추정을 구분하고, 다음 연락 시점을 반드시 — 소식 없는 30분이 가장 불안하다"
+    notes: "4교시 설명 순서를 장애 공지에 적용."
+
+  - type: compare
+    title: "비난 없는 포스트모템"
+    left: ["비난하는 회고", ["'누가 그 명령을 쳤어?'", "그 사람이 조심했어야 했다", "'앞으로 조심하겠습니다'", "→ 다음엔 실수를 숨긴다"]]
+    right: ["비난 없는 회고", ["'왜 그때 합리적으로 보였을까?'", "시스템이 실수를 막지 못했다", "확인 자동화, 권한 축소, 경고 추가", "→ 다음엔 더 빨리 말한다"]]
+    notes: "비유: 항공 사고 조사. Allspaw (2012) Blameless PostMortems and a Just Culture. Google SRE (2016) Ch.15. 재발 방지 조치에는 담당자와 기한."
+
+  - type: image
+    title: "사례로 배우기 — CrowdStrike 2024 · AWS 2025"
+    img: week1/day5/w1d5-outage-lessons.png
+    notes: "CrowdStrike: Channel File 291, UTC 04:09 배포 → 05:27 되돌림, 약 850만 대(Microsoft 추정). 4주차 카나리 배포가 이 문제를 다룬다. AWS: 3일차 상세."
+
+  - type: statement
+    icon: Sparkles
+    title: "트렌드 — 인시던트 대응에 들어오는 AI"
+    text: "알림 묶어 요약 · 관련 로그와 최근 배포 찾기 · 포스트모템 초안"
+    sub: "반복 정리는 AI가 돕지만 — 판단과 결정은 사람이, AI가 제시한 원인은 반드시 증거로 확인"
+    notes: "1일차: Stack Overflow 2026 — 약 절반은 '쉽게 검증할 수 있을 때만' AI를 믿고, 중요한 결정을 맡기겠다는 응답은 6.6%."
+
+  - type: quiz
+    title: "5교시 확인 문제"
+    questions:
+      - "원인 분석보다 먼저 해야 할 일은?"
+      - "지휘자가 직접 고치지 않는 이유는?"
+      - "'앞으로 조심하겠습니다'가 나쁜 재발 방지책인 이유는?"
+      - "CrowdStrike 사례에 도움이 됐을 배포 방식은?"
+    answers: "1) 피해 멈추기(완화)  2) 전체 판단과 결정에 집중  3) 시스템이 바뀌지 않아 반복된다  4) 카나리(점진적) 배포"
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "문서로 일하기"
+    goals: ["문서 = 사람 SPOF 제거", "README · 런북 · ADR", "좋은 README", "Docs as Code"]
+    notes: "문서를 가장 자주 읽을 사람은 3개월 뒤의 나 자신."
+
+  - type: image
+    title: "세 가지 핵심 문서"
+    img: week1/day5/w1d5-docs.png
+    notes: "README 목차 = 어제의 실행 조건(런타임, 포트, 설정, 의존성, 실행 명령). 2주차부터 모든 실습 저장소에 README."
+
+  - type: steps
+    title: "런북 예시 — 'API 응답 지연 경보'"
+    steps:
+      - ["1 확인", "대시보드에서 p99 · 에러율"]
+      - ["2 최근 변경", "1시간 안에 배포? → 4번"]
+      - ["3 DB 확인", "CPU 80% 이상이면 느린 쿼리"]
+      - ["4 되돌리기", "직전 배포로, 5분 뒤 재확인"]
+      - ["5 올리기", "15분 내 미개선 → 인시던트 선언"]
+    notes: "복사해 쓰는 명령, 판단 기준 숫자, 다음 단계 조건. 런북 → 스크립트 → 자동 복구."
+
+  - type: compare
+    title: "학술 노트 — ADR (Nygard, 2011)과 6쪽 메모"
+    left: ["ADR", ["거대한 설계 문서는 아무도 안 읽는다", "결정 하나당 한두 쪽", "저장소 안에 번호를 붙여 쌓는다", "바뀌면 '대체됨' — 결정의 역사"]]
+    right: ["아마존 서술형 메모 (2004)", ["경영진 회의에서 파워포인트 금지", "회의는 조용히 메모 읽기로 시작", "글머리표는 빈틈을 숨긴다", "글을 잘 쓰는 것 = 생각을 잘 하는 것"]]
+    notes: "Nygard (2011) Documenting Architecture Decisions. Bryar & Carr (2021) Working Backwards. ADR 예: 왜 PostgreSQL — 배경, 결정, 대안, 결과(트레이드오프)."
+
+  - type: compare
+    title: "Docs as Code"
+    left: ["옛날 방식", ["워드 파일을 메일로", "어느 게 최신인지 모름", "코드와 문서가 따로", "검토 없이 고친다"]]
+    right: ["Docs as Code", ["마크다운을 Git 저장소에", "커밋 이력 = 변경 이력", "같은 PR에서 코드와 문서를", "문서도 리뷰받는다"]]
+    notes: "이 교재도 마크다운 원본 하나에서 PDF · 슬라이드 · GitHub 페이지를 자동 생성."
+
+  - type: statement
+    icon: BookOpen
+    title: "트렌드 — 사람과 AI가 함께 읽는 문서"
+    text: "AI 코딩 도구가 읽는 저장소 지침 파일\n— AI에게 좋은 문서가 사람에게도 좋은 문서"
+    sub: "실행 방법이 분명하고, 결정의 이유가 있고, 최신 상태인 문서 · 문서를 잘 쓰는 팀이 AI도 잘 쓴다"
+    notes: "1일차 'AI에게 맥락을 주는 질문'과 같은 원리."
+
+  - type: quiz
+    title: "6교시 확인 문제"
+    questions:
+      - "처음 저장소를 본 사람이 가장 먼저 읽는 문서는?"
+      - "새벽 장애 때 순서대로 따라 할 문서는?"
+      - "'왜 PostgreSQL을 골랐지?'에 답하는 문서는?"
+      - "ADR에서 결정이 바뀌면 옛 기록은?"
+    answers: "1) README  2) 런북  3) ADR  4) 지우지 않고 '대체됨' 표시 후 새 기록"
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "손으로 맞추는 실행 환경 + 2주차 준비"
+    goals: ["DB 직접 설치 시연", "다섯 가지 고통", "Docker 미리 보기", "설치 체크리스트"]
+    notes: "포장하지 않으면 정확히 무엇이 힘든지 직접 봐야 와닿는다. WSL2 Ubuntu에서 강사 시연."
+
+  - type: image
+    title: "DB를 손으로 설치하면"
+    img: week1/day5/w1d5-install-traces.png
+    notes: "시연: apt install → systemctl status → ss -tlnp | grep 5432 → /etc/postgresql → /var/lib/postgresql. 2일차 '설정은 /etc, 데이터는 /var/lib, 로그는 /var/log'."
+
+  - type: image
+    title: "다섯 가지 고통 → Docker로 바꿔 보면"
+    img: week1/day5/w1d5-manual-vs-docker.png
+    callout: "Docker가 해결 못 하는 것도 있다 — 앱의 버그, 잘못된 설계, 팀 간 소통"
+    callout_color: orange
+    notes: "2주차 명령 미리 보기: docker run -d -e POSTGRES_PASSWORD=… -p 5433:5432 postgres:14."
+
+  - type: table
+    title: "Docker Desktop 라이선스 — 알고 쓰자"
+    head: ["사용 주체", "Docker Desktop"]
+    rows:
+      - ["개인 · 교육 · 비상업 오픈소스", "무료"]
+      - ["직원 250명 미만 그리고 연 매출 1,000만 달러 미만", "무료"]
+      - ["그 이상 규모의 회사", "유료 구독 필요"]
+    colw: [7.6, 4.5]
+    callout: "대안: WSL2 안에 Docker Engine 직접 설치(오픈소스), Rancher Desktop, Podman Desktop — 라이선스도 기술 선택 기준"
+    notes: "이 과정은 교육 목적이라 무료. 취업 후 큰 회사에서는 구독 여부 확인."
+
+  - type: table
+    title: "2주차 설치 체크리스트"
+    head: ["항목", "확인 방법"]
+    rows:
+      - ["노트북 사양", "메모리 16GB 권장(최소 8GB), 디스크 여유 50GB+"]
+      - ["Windows 버전", "Windows 10 22H2 또는 11 (winver)"]
+      - ["가상화 기능", "작업 관리자 → 성능 → CPU → '가상화: 사용'"]
+      - ["관리자 권한", "프로그램 설치 권한 (회사 노트북 주의)"]
+      - ["GitHub 계정", "github.com 가입"]
+      - ["Mac 사용자", "Apple Silicon인지 Intel인지 (ARM vs x86)"]
+    colw: [3.2, 8.9]
+    callout: "AWS 계정은 5주차에 만든다 — 지금 만들 필요 없음 · 설치는 2주차 1일차 오전에 함께"
+    notes: "가상화가 꺼져 있으면 BIOS 설정이 필요하니 미리 알려 달라고 안내."
+
+  - type: image
+    title: "1주차를 돌아보며"
+    img: week1/day5/w1d5-week1-map.png
+    notes: "각 일차가 2주차의 어디에 쓰이는지 연결."
+
+  - type: statement
+    icon: Container
+    title: "트렌드 — 개발 환경도 컨테이너로"
+    text: "저장소에 개발 환경 설정(Dev Container)을 넣으면\n몇 분 만에 똑같은 개발 환경"
+    sub: "VS Code · GitHub Codespaces — 첫 출근 날 '환경 설치'가 아니라 '첫 커밋'을 · Docker가 개발자의 책상까지 바꾼다"
+    notes: "containers.dev 명세."
+
+  - type: quiz
+    title: "7교시 확인 문제"
+    questions:
+      - "Ubuntu PostgreSQL의 설정과 데이터 위치는?"
+      - "두 DB가 모두 5432를 쓰려 하면 Docker에서는?"
+      - "Docker의 네 가지 동사는?"
+      - "직원 300명 회사에서 Docker Desktop을 쓰려면?"
+    answers: "1) /etc/postgresql/, /var/lib/postgresql/  2) 바깥 포트를 다르게 (-p 5433:5432)  3) 포장 · 격리 · 연결 · 재현  4) 유료 구독"
+
+  - type: summary
+    title: "1주차 5일차 정리"
+    items:
+      - ["1교시", "DevOps는 도구가 아니라 일하는 방식 — CALMS, 생성적 문화"]
+      - ["2교시", "작게 자주 — CI/CD 파이프라인은 종료 코드로 움직이는 관문"]
+      - ["3교시", "add → commit → push, 브랜치 → PR → 리뷰 → 병합"]
+      - ["4교시", "요청은 상대가 물을 질문에 미리 답하기, 심리적 안전감"]
+      - ["5교시", "피해 멈추기가 먼저, 비난 없는 포스트모템"]
+      - ["6~7교시", "README · 런북 · ADR, 그리고 실행 조건의 포장 = Docker"]
+    diary: "1주차 배움일기 — 가장 '아하!'한 순간 · 헷갈리는 개념 두 가지 · 겪어 본 고통 · 내가 생각하는 DevOps 한 문장 · 2주차에 알고 싶은 것"
+    notes: "다음 주는 Docker. 환경 설치부터 함께 시작한다. 한 주 수고했다는 인사로 마무리."

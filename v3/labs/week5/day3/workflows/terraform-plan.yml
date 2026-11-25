@@ -1,0 +1,42 @@
+# devmart-infra 저장소의 .github/workflows/terraform-plan.yml
+# PR마다 fmt · validate · plan — apply는 사람이 (오늘은)
+name: terraform-plan
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-plan.yml"
+
+permissions:
+  contents: read
+  id-token: write          # OIDC 토큰을 받을 권한 — 이것이 '키 없는' 로그인의 열쇠
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/04-vpc
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ap-northeast-2
+      - name: 모양 검사
+        run: terraform fmt -check -recursive ..
+      - run: terraform init -input=false
+      - run: terraform validate
+      - name: plan
+        run: |
+          terraform plan -input=false -no-color -lock-timeout=60s > plan.txt
+          {
+            echo "### terraform plan — 04-vpc"
+            echo '```'
+            tail -40 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

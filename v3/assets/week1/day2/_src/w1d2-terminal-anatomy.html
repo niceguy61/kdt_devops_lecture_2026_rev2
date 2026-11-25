@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8"><style>/* 다이어그램 공통 스타일 — 1600x900 캔버스 기준 */
+:root{
+  --navy:#0F2A44; --navy2:#1E3A5F; --teal:#0089A0; --teal-d:#006A7C; --teal-l:#E0F3F6;
+  --orange:#C8651B; --orange-l:#FBEBDD; --slate:#475569; --slate-l:#EEF2F6; --line:#D5DEE6;
+  --red:#B83227; --red-l:#FBE7E5; --green:#2E7D4F; --green-l:#E3F3E9; --violet:#5B4BB7; --violet-l:#ECEAFB;
+  --aws-region:#00A4A6; --aws-az:#147EBA; --ink:#1E293B; --muted:#64748B;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#fff}
+body{font-family:"Pretendard",sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;word-break:keep-all}
+.canvas{width:1600px;height:900px;padding:40px 40px;display:flex;flex-direction:column;justify-content:center;gap:28px;overflow:hidden;background:#fff}
+.hd{font-size:40px;font-weight:800;color:var(--navy);letter-spacing:-0.5px}
+.sub{font-size:24px;color:var(--muted);font-weight:500;margin-top:-16px}
+.row{display:flex;align-items:stretch;gap:24px}
+.row.c{align-items:center}
+.col{display:flex;flex-direction:column;gap:18px}
+.grow{flex:1 1 0;min-width:0}
+.card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:26px 28px;display:flex;flex-direction:column;gap:12px}
+.card.fill-teal{background:var(--teal-l);border-color:#9fd6df}
+.card.fill-orange{background:var(--orange-l);border-color:#efc6a3}
+.card.fill-slate{background:var(--slate-l);border-color:var(--line)}
+.card.fill-red{background:var(--red-l);border-color:#efb7b1}
+.card.fill-green{background:var(--green-l);border-color:#a9d6bb}
+.card.fill-violet{background:var(--violet-l);border-color:#c6c0ef}
+.card.fill-navy{background:var(--navy);border-color:var(--navy);color:#fff}
+.card h3{font-size:30px;font-weight:800;color:var(--navy);line-height:1.25}
+.card.fill-navy h3{color:#fff}
+.card p,.card li{font-size:23px;line-height:1.45;color:var(--slate)}
+.card.fill-navy p{color:#cfe3ee}
+.card ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.card li::before{content:"• ";color:var(--teal);font-weight:800}
+.ic{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none}
+.ic svg{display:block}
+.chip{display:inline-block;font-size:20px;font-weight:700;padding:6px 14px;border-radius:999px;background:var(--slate-l);color:var(--slate)}
+.chip.teal{background:var(--teal);color:#fff}.chip.orange{background:var(--orange);color:#fff}.chip.navy{background:var(--navy);color:#fff}
+.arr{flex:none;display:flex;align-items:center;justify-content:center;color:#9AAAB8}
+.center{text-align:center;align-items:center}
+.muted{color:var(--muted)}
+.note{font-size:21px;color:var(--muted)}
+.big{font-size:54px;font-weight:900}
+.t-teal{color:var(--teal)}.t-orange{color:var(--orange)}.t-red{color:var(--red)}.t-green{color:var(--green)}.t-navy{color:var(--navy)}
+.tag{font-size:18px;font-weight:700;letter-spacing:1px;color:var(--muted)}
+.grid{display:grid;gap:22px}
+.box{border-radius:16px;padding:14px 18px;font-size:22px;font-weight:700;text-align:center}
+.dash{border:3px dashed var(--line);border-radius:22px;padding:22px}
+.hd,.sub{display:none}
+.flow{align-items:stretch}
+.arr{align-self:center}
+
+    .canvas{width:1320px;height:1100px}</style></head><body><div class="canvas"><div class="card fill-navy" style="padding:34px 40px;gap:26px">
+<div style="font-family:monospace;font-size:38px;color:#E2E8F0;white-space:nowrap"><span style="color:#7FD3E0">student@devbox</span>:<span style="color:#ffd7b0">~/app</span>$ <span style="color:#fff;font-weight:700">ls</span> <span style="color:#C4B5FD">-l</span> <span style="color:#86EFAC">/var/log</span> <span style="color:#FCA5A5">| grep nginx</span></div>
+</div>
+<div class="row" style="gap:16px">
+ <div class="card grow" style="gap:6px"><div style="font-size:24px;font-weight:900;color:var(--teal)">프롬프트</div><p style="font-size:20px">사용자@컴퓨터:현재위치<br><b>$</b> 일반 · <b>#</b> 관리자</p></div>
+ <div class="card grow" style="gap:6px"><div style="font-size:24px;font-weight:900;color:var(--navy)">명령</div><p style="font-size:20px">무엇을 할까<br><code>ls</code> = 목록 보기</p></div>
+ <div class="card grow" style="gap:6px"><div style="font-size:24px;font-weight:900;color:var(--violet)">옵션</div><p style="font-size:20px">어떻게 할까<br><code>-l</code> = 자세히</p></div>
+ <div class="card grow" style="gap:6px"><div style="font-size:24px;font-weight:900;color:var(--green)">인자</div><p style="font-size:20px">무엇에 대해<br><code>/var/log</code></p></div>
+ <div class="card grow" style="gap:6px"><div style="font-size:24px;font-weight:900;color:var(--red)">파이프</div><p style="font-size:20px">앞 출력을 뒤 입력으로<br><code>| grep</code> = 걸러내기</p></div>
+</div></div></body></html>

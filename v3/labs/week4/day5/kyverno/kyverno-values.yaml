@@ -1,0 +1,19 @@
+# Kyverno — kind 실습용. 컨트롤러 넷 중 둘만 켜고 자원을 줄인다
+admissionController:
+  replicas: 1
+  container:
+    resources:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits: { memory: 384Mi }
+backgroundController:
+  enabled: true                      # 이미 있는 리소스를 검사해 보고서를 만든다 (Audit)
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 256Mi }
+reportsController:
+  enabled: true
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 256Mi }
+cleanupController:
+  enabled: false

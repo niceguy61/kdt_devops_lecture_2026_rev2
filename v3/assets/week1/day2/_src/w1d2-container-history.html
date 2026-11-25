@@ -1,0 +1,66 @@
+<!doctype html><html><head><meta charset="utf-8"><style>/* 다이어그램 공통 스타일 — 1600x900 캔버스 기준 */
+:root{
+  --navy:#0F2A44; --navy2:#1E3A5F; --teal:#0089A0; --teal-d:#006A7C; --teal-l:#E0F3F6;
+  --orange:#C8651B; --orange-l:#FBEBDD; --slate:#475569; --slate-l:#EEF2F6; --line:#D5DEE6;
+  --red:#B83227; --red-l:#FBE7E5; --green:#2E7D4F; --green-l:#E3F3E9; --violet:#5B4BB7; --violet-l:#ECEAFB;
+  --aws-region:#00A4A6; --aws-az:#147EBA; --ink:#1E293B; --muted:#64748B;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#fff}
+body{font-family:"Pretendard",sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;word-break:keep-all}
+.canvas{width:1600px;height:900px;padding:40px 40px;display:flex;flex-direction:column;justify-content:center;gap:28px;overflow:hidden;background:#fff}
+.hd{font-size:40px;font-weight:800;color:var(--navy);letter-spacing:-0.5px}
+.sub{font-size:24px;color:var(--muted);font-weight:500;margin-top:-16px}
+.row{display:flex;align-items:stretch;gap:24px}
+.row.c{align-items:center}
+.col{display:flex;flex-direction:column;gap:18px}
+.grow{flex:1 1 0;min-width:0}
+.card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:26px 28px;display:flex;flex-direction:column;gap:12px}
+.card.fill-teal{background:var(--teal-l);border-color:#9fd6df}
+.card.fill-orange{background:var(--orange-l);border-color:#efc6a3}
+.card.fill-slate{background:var(--slate-l);border-color:var(--line)}
+.card.fill-red{background:var(--red-l);border-color:#efb7b1}
+.card.fill-green{background:var(--green-l);border-color:#a9d6bb}
+.card.fill-violet{background:var(--violet-l);border-color:#c6c0ef}
+.card.fill-navy{background:var(--navy);border-color:var(--navy);color:#fff}
+.card h3{font-size:30px;font-weight:800;color:var(--navy);line-height:1.25}
+.card.fill-navy h3{color:#fff}
+.card p,.card li{font-size:23px;line-height:1.45;color:var(--slate)}
+.card.fill-navy p{color:#cfe3ee}
+.card ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.card li::before{content:"• ";color:var(--teal);font-weight:800}
+.ic{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none}
+.ic svg{display:block}
+.chip{display:inline-block;font-size:20px;font-weight:700;padding:6px 14px;border-radius:999px;background:var(--slate-l);color:var(--slate)}
+.chip.teal{background:var(--teal);color:#fff}.chip.orange{background:var(--orange);color:#fff}.chip.navy{background:var(--navy);color:#fff}
+.arr{flex:none;display:flex;align-items:center;justify-content:center;color:#9AAAB8}
+.center{text-align:center;align-items:center}
+.muted{color:var(--muted)}
+.note{font-size:21px;color:var(--muted)}
+.big{font-size:54px;font-weight:900}
+.t-teal{color:var(--teal)}.t-orange{color:var(--orange)}.t-red{color:var(--red)}.t-green{color:var(--green)}.t-navy{color:var(--navy)}
+.tag{font-size:18px;font-weight:700;letter-spacing:1px;color:var(--muted)}
+.grid{display:grid;gap:22px}
+.box{border-radius:16px;padding:14px 18px;font-size:22px;font-weight:700;text-align:center}
+.dash{border:3px dashed var(--line);border-radius:22px;padding:22px}
+.hd,.sub{display:none}
+.flow{align-items:stretch}
+.arr{align-self:center}
+
+    .canvas{width:1320px;height:1100px}</style></head><body><div class="canvas"><div style="position:relative"><div style="position:absolute;left:5%;right:5%;top:58px;height:4px;background:var(--line)"></div>
+<div class="row" style="gap:10px;position:relative"><div class="col center grow" style="gap:10px"><div style="font-size:28px;font-weight:900;color:var(--slate)">1979</div>
+  <div style="width:22px;height:22px;border-radius:50%;background:var(--slate);box-shadow:0 0 0 6px #fff"></div>
+  <div class="card center" style="padding:16px 8px;gap:6px;width:100%"><h3 style="font-size:23px">chroot</h3><p style="font-size:18px">Unix 루트 디렉터리 격리</p></div></div><div class="col center grow" style="gap:10px"><div style="font-size:28px;font-weight:900;color:var(--slate)">2000</div>
+  <div style="width:22px;height:22px;border-radius:50%;background:var(--slate);box-shadow:0 0 0 6px #fff"></div>
+  <div class="card center" style="padding:16px 8px;gap:6px;width:100%"><h3 style="font-size:23px">FreeBSD Jails</h3><p style="font-size:18px">파일·프로세스·네트워크 격리</p></div></div><div class="col center grow" style="gap:10px"><div style="font-size:28px;font-weight:900;color:var(--violet)">2002~</div>
+  <div style="width:22px;height:22px;border-radius:50%;background:var(--violet);box-shadow:0 0 0 6px #fff"></div>
+  <div class="card center" style="padding:16px 8px;gap:6px;width:100%"><h3 style="font-size:23px">Linux 네임스페이스</h3><p style="font-size:18px">커널에 격리 기능 추가</p></div></div><div class="col center grow" style="gap:10px"><div style="font-size:28px;font-weight:900;color:var(--violet)">2008</div>
+  <div style="width:22px;height:22px;border-radius:50%;background:var(--violet);box-shadow:0 0 0 6px #fff"></div>
+  <div class="card center" style="padding:16px 8px;gap:6px;width:100%"><h3 style="font-size:23px">cgroups · LXC</h3><p style="font-size:18px">Linux만으로 컨테이너</p></div></div><div class="col center grow" style="gap:10px"><div style="font-size:28px;font-weight:900;color:var(--teal)">2013</div>
+  <div style="width:22px;height:22px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 6px #fff"></div>
+  <div class="card center" style="padding:16px 8px;gap:6px;width:100%"><h3 style="font-size:23px">Docker</h3><p style="font-size:18px">이미지·레지스트리로 대중화</p></div></div><div class="col center grow" style="gap:10px"><div style="font-size:28px;font-weight:900;color:var(--teal)">2014</div>
+  <div style="width:22px;height:22px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 6px #fff"></div>
+  <div class="card center" style="padding:16px 8px;gap:6px;width:100%"><h3 style="font-size:23px">Kubernetes</h3><p style="font-size:18px">컨테이너 자동 운영</p></div></div><div class="col center grow" style="gap:10px"><div style="font-size:28px;font-weight:900;color:var(--orange)">2015</div>
+  <div style="width:22px;height:22px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 6px #fff"></div>
+  <div class="card center" style="padding:16px 8px;gap:6px;width:100%"><h3 style="font-size:23px">OCI</h3><p style="font-size:18px">이미지·런타임 표준</p></div></div></div></div>
+<div class="card fill-slate" style="padding:16px 24px"><p style="font-size:22px">격리 기술은 Docker 이전에 이미 있었다 — Docker는 그것을 <b style="color:var(--teal-d)">누구나 쓰기 쉽게 포장</b>해서 대중화했다</p></div></div></body></html>

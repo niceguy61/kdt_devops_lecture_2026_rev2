@@ -1,0 +1,22 @@
+# Argo CD — kind 실습용. 기본값에서 바꾸는 것만.
+configs:
+  params:
+    server.insecure: true          # port-forward를 http로 보기 위해 (실습용 — 운영은 TLS)
+  cm:
+    timeout.reconciliation: 60s    # Git을 다시 확인하는 주기 (기본 120s)
+dex:
+  enabled: false                   # 외부 로그인(SSO) 연동 — 오늘은 쓰지 않는다
+notifications:
+  enabled: false
+server:
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 256Mi }
+repoServer:
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }
+controller:
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }

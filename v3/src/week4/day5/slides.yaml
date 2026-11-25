@@ -1,0 +1,211 @@
+meta:
+  footer: "4주차 5일차 · Kubernetes 보안"
+  title: "4주차 5일차 — Kubernetes 보안"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 4주차 Kubernetes 운영"
+    title: "Kubernetes 보안"
+    subtitle: "4주차 5일차 · 세 관문 · RBAC · ServiceAccount · 서비스 신원으로 허가 · Kyverno · 거절의 지도 · 종합 훈련 · 회고"
+    notes: "어제 질문: 모두 같은 신원(sa/default)인데 서비스마다 · 사람마다 할 수 있는 일을 어떻게 나누나? latest 금지는 누가 지키게 하나?"
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "4일차 요약 + 세 관문"]
+      - ["2교시", "2", "RBAC — 사람의 권한"]
+      - ["3교시", "3", "ServiceAccount — 프로그램의 신원"]
+      - ["4교시", "4", "서비스 신원으로 허가"]
+      - ["5교시", "5", "Kyverno 정책"]
+      - ["6교시", "6", "4주차 종합 장애 훈련"]
+      - ["7교시", "7", "4주차 회고 + 보안 점검표 + 배움일기"]
+    notes: "Kyverno 0.3~0.5GB. DevMart는 배포 저장소 커밋, 플랫폼(RBAC · 정책)은 apply + platform-changes.md."
+
+  - type: section
+    num: "1교시"
+    title: "세 관문"
+    goals: ["4주차를 보안의 눈으로", "나는 누구인가", "인증 · 인가 · 입장 제어", "User 리소스는 없다"]
+    notes: "kubectl auth whoami → kubernetes-admin, kubeadm:cluster-admins. 인증서 CN = 이름, O = 그룹."
+
+  - type: image
+    title: "apiserver의 세 관문"
+    img: week4/day5/w4d5-api-gates.png
+    notes: "건물 비유: 출입증 → 층 → 짐 검사. RBAC는 짐을 열어 보지 않는다. 학술: Ferraiolo & Kuhn 1992, RBAC96, ABAC(SP 800-162). 트렌드: VAP GA(1.30), Kyverno 1.17 CEL v1."
+
+  - type: section
+    num: "2교시"
+    title: "RBAC — 사람의 권한"
+    goals: ["네 리소스", "개발자 읽기 전용", "가장해서 시험", "당직자 재시작"]
+    notes: "규칙 = apiGroups · resources · verbs. 하위 리소스: pods/log · pods/exec · deployments/scale."
+
+  - type: image
+    title: "RBAC — 누가 · 잇고 · 무엇을"
+    img: week4/day5/w4d5-rbac.png
+    notes: "RBAC는 허가만 — 적지 않은 것은 거절. 가장(--as) 권한도 RBAC — 관리자에게만."
+
+  - type: code
+    title: "실습 2~4 · 가장해서 시험하기"
+    code: |
+      D="--as=jane --as-group=devmart-devs"
+      kubectl auth can-i list secrets -n devmart $D
+      kubectl get secrets -n devmart $D
+      kubectl rollout restart deploy/web -n devmart --as=minsu
+      kubectl scale deploy/web -n devmart --replicas=3 --as=minsu
+    out: |2
+      no
+      Error from server (Forbidden): secrets is forbidden: User "jane" cannot list resource "secrets" … "devmart"
+      deployment.apps/web restarted
+      Error from server (Forbidden): … cannot update resource "deployments/scale"
+    points:
+      - ["Forbidden", "누가 · 무엇을 · 어디서"]
+      - ["restart", "get + patch"]
+      - ["scale", "다른 하위 리소스"]
+    notes: "Argo CD 컨트롤러는 *.* [*] — 사실상 cluster-admin. GitOps에서 사람은 읽기만, 쓰기는 Git. 가장 귀한 열쇠: 배포 저장소 쓰기 · Argo CD 관리자, AppProject로 좁힌다. 오해: edit를 줘야 빠르다. 학술: 권한 상승, Rahman TOSEM 2023. 트렌드: JIT 권한, EKS Access Entries."
+
+  - type: section
+    num: "3교시"
+    title: "ServiceAccount"
+    goals: ["Pod 안의 열쇠", "토큰으로 apiserver", "서비스마다 SA", "토큰 빼기"]
+    notes: "automountServiceAccountToken 기본 true — order-api는 API를 안 부르는데 토큰이 있다."
+
+  - type: code
+    title: "실습 5 · 신원이 다르면 결과가 다르다"
+    code: |
+      # default SA로
+      curl --cacert $S/ca.crt -H "Authorization: Bearer $(cat $S/token)" \
+        https://kubernetes.default.svc/api/v1/namespaces/devmart/pods
+      # pod-reader SA로 — 같은 명령
+    out: |2
+      "message": "pods is forbidden: User \"system:serviceaccount:devmart:default\" cannot list …"
+      "code": 403
+      ---
+      "name": "catalog-api-5d8c7b9f6-2xkq4"
+      {"sub":"system:serviceaccount:devmart:pod-reader","exp":…,"kubernetes.io":{"pod":{"name":"sa-demo2"}}}
+    points:
+      - ["인증 통과", "인가에서 거절"]
+      - ["JWT", "약 1시간 · Pod에 묶임"]
+      - ["SPIFFE", "같은 SA에서 온다"]
+    notes: "학술: Confused Deputy(Hardy 1988). 트렌드: 워크로드 신원 — EKS Pod Identity · IRSA · GitHub OIDC."
+
+  - type: code
+    title: "실습 6 · 서비스마다 SA (커밋)"
+    shell: "devmart/kustomization.yaml"
+    code: |
+      patches:
+        - target: { kind: Deployment, name: order-api }
+          patch: |-
+            - op: add
+              path: /spec/template/spec/serviceAccountName
+              value: order-api
+      # serviceaccounts.yaml: automountServiceAccountToken: false
+    out: |2
+      order-api-5b8c7d9f6-r2t5y   order-api
+      ls: cannot access '/var/run/secrets/kubernetes.io/serviceaccount': No such file
+      202        ← 주문은 그대로
+    points:
+      - ["patches", "파일은 그대로"]
+      - ["롤링", "템플릿이 바뀌었으니"]
+      - ["두 겹", "ztunnel은 waypoint를 본다"]
+    notes: "오해: 권한이 없으면 토큰이 있어도 괜찮다 — 나중에 누가 default에 권한을 주면 전부. db · redis · web은 아직 default — Try."
+
+  - type: section
+    num: "4교시"
+    title: "서비스 신원으로 허가"
+    goals: ["order-api만", "같은 네임스페이스도 거절", "Pod IP 우회로", "L4 규칙"]
+    notes: "principals = SPIFFE ID에서 spiffe:// 뺀 것."
+
+  - type: table
+    title: "실습 7~9 · L7과 L4 두 겹"
+    head: ["", "L7 (targetRefs: Service)", "L4 (selector: Pod)"]
+    rows:
+      - ["검사하는 곳", "waypoint", "catalog-api 노드의 ztunnel"]
+      - ["허가", "sa/order-api", "sa/waypoint · envoy-gateway-system"]
+      - ["client(sa/default) → Service", "403 RBAC: access denied", "—"]
+      - ["outsider → Pod IP", "200 (우회!)", "000 연결 끊김"]
+      - ["손님 orders · products", "202 · 200", "202 · 200"]
+    colw: [3.0, 4.6, 4.6]
+    notes: "새 서비스가 catalog-api를 부르려면 두 규칙을 모두 고친다 — PR에 '누가 새로 부르게 되나'. 오해: mTLS면 안전하다 — 허가가 짝. 학술: PDP/PEP, RFC 2904, XACML. 트렌드: 신원 기반 세분화."
+
+  - type: section
+    num: "5교시"
+    title: "Kyverno 정책"
+    goals: ["입장 제어", "설치", "Audit 보고서", "Deny — kubectl과 Argo CD"]
+    notes: "Pod Security Admission · VAP는 기본, Kyverno는 보고서 · 예외 · CLI. ValidatingPolicy는 1.17+."
+
+  - type: code
+    title: "ValidatingPolicy — latest 금지"
+    shell: "kyverno/disallow-latest.yaml"
+    code: |
+      spec:
+        validationActions: [Deny]
+        matchConstraints: { …devmart의 deployments CREATE · UPDATE… }
+        matchConditions:
+          - expression: "!('gateway.istio.io/managed' in object.metadata.labels)"
+        validations:
+          - expression: >-
+              object.spec.template.spec.containers.all(c,
+                c.image.contains(':') && !c.image.endsWith(':latest'))
+    out: |2
+      kubectl create deployment try-latest --image=nginx:latest   (나는 cluster-admin)
+      error: … admission webhook "….kyverno.svc-fail" denied the request: Policy disallow-latest-tag failed
+    points:
+      - ["object", "들어오려는 YAML"]
+      - ["예외", "Istio가 만드는 waypoint"]
+      - ["누구든", "admin도 막힌다"]
+    notes: "시스템이 만드는 것을 먼저 생각한다 — 입장 제어 사고의 대부분. 학술: 기준 감시기(Anderson 1972). 트렌드: Kyverno CNCF 졸업(2026-03), CEL 분업, OPA Gatekeeper."
+
+  - type: steps
+    title: "실습 11~13 · Audit → Deny → Argo CD도 막힌다"
+    steps:
+      - ["Audit", "limits · non-root를 보고만 — PolicyReport: limits PASS, root는 6개 모두 FAIL"]
+      - ["순서", "Audit → Git에서 고치기 → FAIL 0이면 Deny"]
+      - ["Deny", "latest 커밋 → Argo CD Sync 실패, OutOfSync · Healthy (옛 버전 그대로)"]
+      - ["되돌리기", "git revert — PR 단계에서 kyverno CLI로 먼저 막는 것이 더 좋다"]
+    notes: "Argo CD 메시지: one or more objects failed to apply, reason: admission webhook … denied."
+
+  - type: section
+    num: "6교시"
+    title: "4주차 종합 장애 훈련"
+    goals: ["거절의 지도", "짝 훈련", "바깥에서 안으로", "Git으로 복구"]
+    notes: "break-w4.sh random — 번호는 /tmp/.w4-break. 15분 제한, 두세 판. 손님 루프를 켜 둔다."
+
+  - type: image
+    title: "누가 거절했나"
+    img: week4/day5/w4d5-who-refused.png
+    notes: "Istio의 RBAC와 Kubernetes의 RBAC는 다른 곳 — kubectl 오류인가 HTTP 응답인가. 조사 순서: 손님 → 관찰 → 최근 변경(git log) → Argo CD → 메시 → 입구 → 플랫폼."
+
+  - type: table
+    title: "훈련 정답 (끝난 뒤에)"
+    head: ["#", "손님이 본 것", "거절한 주체", "단서"]
+    rows:
+      - ["1", "이상 없음 · 새 버전이 안 나감", "Kyverno", "Argo CD Sync 실패 메시지"]
+      - ["2", "orders만 실패", "waypoint (L7 허가)", "403 rbac_access_denied, sa/order-worker"]
+      - ["3", "orders만 실패 (빠르게)", "waypoint 타임아웃", "504 UT, timeout 10ms"]
+      - ["4", "이상 없음 · 동료가 로그를 못 봄", "apiserver RBAC", "Forbidden pods/log — 플랫폼 변경"]
+      - ["5", "web만 500", "Envoy Gateway", "HTTPRoute ResolvedRefs False, port 8080"]
+    colw: [0.6, 3.6, 3.0, 5.0]
+    notes: "2와 3은 증상이 같다 — 로그의 코드 · 플래그가 가른다. 5는 Synced · Healthy인 틀린 설정. 학술: Allspaw 2015 Trade-offs Under Pressure, STELLA 2017. 트렌드: AI 장애 도우미 — 입력은 커밋 · 로그 · 알림."
+
+  - type: section
+    num: "7교시"
+    title: "4주차 회고"
+    goals: ["4주차 한 장", "보안 점검표", "KPT", "5주차로"]
+    notes: "client · outsider · plain 정리."
+
+  - type: compare
+    title: "4주차 kind → 5주차 AWS"
+    left: ["4주차 (kind)", ["내 노트북의 클러스터", "NodePort 30080", "클러스터를 손으로", "SA 토큰 · SPIFFE"]]
+    right: ["5주차 (AWS)", ["EKS — 당일 만들고 당일 지운다", "ALB", "Terraform으로 네트워크 · 클러스터", "IAM 역할 · Pod Identity"]]
+    notes: "배포 저장소 + Argo CD는 그대로 — destination만 EKS로. 5분 복구 최종판: 플랫폼 단계가 가장 길다 — app of apps · Terraform. 학술: Schneier — 보안은 과정, NIST CSF 2.0 거버넌스. 트렌드: cosign · SLSA · ImageValidatingPolicy."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "인증 · 인가 · 입장 제어 — 세 관문, 거절 메시지가 다르다"]
+      - ["2교시", "개발자 읽기 전용 · 당직자 재시작 · GitOps에서 사람은 읽기만"]
+      - ["3교시", "서비스마다 ServiceAccount · 쓰지 않는 토큰 빼기"]
+      - ["4교시", "catalog-api는 order-api만 (L7) · Pod IP 우회로 막기 (L4)"]
+      - ["5교시", "Kyverno ValidatingPolicy — Audit 보고서 · Deny가 Argo CD도 막는다"]
+      - ["6~7교시", "거절의 지도 · 종합 훈련 · 보안 점검표 · KPT"]
+    diary: "배움일기 — 세 관문과 메시지 · 사라진 토큰의 위험 · L7과 L4가 막은 것 · 훈련의 시간과 거절 주체 · 운영을 바꾼 하루 · 클라우드의 클러스터는 누가 어떤 네트워크 위에 얼마로?"
+    notes: "4주차 끝. 다음 주: AWS — 계정과 VPC부터."

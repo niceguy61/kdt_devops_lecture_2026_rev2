@@ -1,0 +1,4 @@
+# ztunnel — 노드마다 하나(DaemonSet). L4 프록시 · mTLS
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { memory: 256Mi }

@@ -1,0 +1,19 @@
+# EKS의 Argo CD가 볼 Application — 같은 배포 저장소, 다른 폴더(eks)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devmart
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ID/devmart-deploy.git
+    targetRevision: main
+    path: eks
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: devmart
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

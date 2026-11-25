@@ -1,0 +1,37 @@
+# 4~7교시 · catalog-api Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-api
+  labels:
+    app: catalog-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: catalog-api
+  template:
+    metadata:
+      labels:
+        app: catalog-api
+    spec:
+      containers:
+        - name: catalog-api
+          image: ghcr.io/YOUR_ID/devmart-catalog-api:YOUR_SHA
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_VERSION
+              value: "2.0.0"
+            - name: APP_ENV
+              value: "kind"
+      # 실습용: 노드가 연락 끊긴 뒤 Pod를 옮기기까지 기다리는 시간을 기본 300초 → 30초로
+      tolerations:
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30

@@ -1,0 +1,301 @@
+meta:
+  footer: "3주차 3일차 · Kubernetes 아키텍처"
+  title: "3주차 3일차 — Kubernetes 아키텍처"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 3주차 MSA + Kubernetes"
+    title: "Kubernetes 아키텍처"
+    subtitle: "3주차 3일차 · 왜 Kubernetes인가 · 컨트롤 플레인 · 노드와 Pod · 선언형과 reconcile · 장단점과 선택지 · kubectl과 kind · 첫 클러스터"
+    notes: "어제 배움일기의 마지막 질문 — 처리기가 죽으면 누가 다시 띄워 줄까? 컴퓨터가 여러 대라면? 오늘은 쓰기 전에 이해하는 날. 앱 배포는 내일."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "2일차 요약 + 왜 Kubernetes인가"]
+      - ["2교시", "2", "컨트롤 플레인 — 결정하고 기록하는 본부"]
+      - ["3교시", "3", "노드와 Pod — 실제로 돌리는 현장"]
+      - ["4교시", "4", "선언형과 reconcile"]
+      - ["5교시", "5", "장단점과 선택지"]
+      - ["6교시", "6", "kubectl과 kind 설치"]
+      - ["7교시", "7", "첫 클러스터 — 둘러보고, 지우고, 끄기 + 배움일기"]
+    notes: "Docker Desktop 메모리 4GB 이상 확인. 2일차 DevMart는 down. kindest/node:v1.37.0 이미지는 점심시간에 미리 pull. 오늘 만든 클러스터는 지우지 않는다."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "왜 Kubernetes인가"
+    goals: ["2일차 손 복습", "Compose로 안 되는 일", "한 문장 정의", "짧은 역사"]
+    notes: "생각 실험: 서버 세 대로 DevMart — 배치, 장애, 부하 분산, 무중단 교체, 늘리고 줄이기를 누가?"
+
+  - type: image
+    title: "Compose는 한 대, Kubernetes는 여러 대를 한 덩어리로"
+    img: week3/day3/w3d3-why-k8s.png
+    notes: "스케줄링 · 자가 치유 · 서비스 발견 · 롤링 업데이트 · 스케일링 — 사람이 하던 일을 클러스터가. 대가는 부품과 개념이 많다는 것."
+
+  - type: statement
+    icon: Ship
+    title: "Kubernetes를 한 문장으로"
+    text: "여러 대의 컴퓨터를 한 대처럼 쓰게 해 주고,\n내가 적어 둔 '원하는 상태'를 계속 지켜 주는 시스템"
+    sub: "그리스어로 조타수 · K8s = K와 s 사이 8글자 · Docker의 경쟁자가 아니라 Compose의 자리"
+    notes: "앞부분 = 클러스터(2~3교시), 뒷부분 = reconcile(4교시). 비유: 작은 가게(Compose) vs 창고 여러 곳을 가진 물류 회사."
+
+  - type: image
+    title: "Borg에서 v1.37까지"
+    img: week3/day3/w3d3-history.png
+    notes: "학술: Verma 외 2015 Borg (EuroSys), Burns 외 2016 Borg, Omega, and Kubernetes (ACM Queue) — 라벨, 같은 API, Pod. 트렌드: CNCF 2026년 1월 조사 82% 운영 사용(2023 66%), 생성형 AI 운영 조직 66%가 추론을 K8s에서. 1년 3번 릴리스, 약 14개월 지원."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "컨트롤 플레인"
+    goals: ["본부와 현장", "apiserver · etcd", "scheduler", "controller-manager"]
+    notes: "컨트롤 플레인 = 결정하고 기록, 데이터 플레인 = 실제 일이 흐르는 곳."
+
+  - type: image
+    title: "클러스터 = 컨트롤 플레인 + 노드"
+    img: week3/day3/w3d3-architecture.png
+    notes: "kubectl은 HTTPS 6443으로 apiserver에만. 운영 환경 컨트롤 플레인은 3대(또는 5대). kind는 1대."
+
+  - type: cards
+    title: "컨트롤 플레인의 네 부품"
+    cards:
+      - ["Router", "violet", "kube-apiserver", "유일한 창구 · 인증 → 인가 → 허가 → 검증 → 저장 · 은행 창구"]
+      - ["Database", "violet", "etcd", "클러스터의 장부 · Raft 과반 합의 · 3대 또는 5대 · 백업 필수"]
+      - ["Scale", "violet", "kube-scheduler", "거르기 → 점수 → nodeName 기록 · 띄우지는 않는다"]
+      - ["RefreshCw", "violet", "controller-manager", "ReplicaSet · Deployment · Node · Job … 원하는 상태로 맞추는 반복들"]
+    notes: "Secret은 기본 base64일 뿐 — 운영에서는 저장 시 암호화. cloud-controller-manager는 클라우드 연결(EKS에서). 학술: Ongaro & Ousterhout 2014 Raft."
+
+  - type: table
+    title: "부품 하나가 멈추면"
+    head: ["멈춘 부품", "이미 떠 있는 앱", "새로 하려는 일"]
+    rows:
+      - ["kube-apiserver", "계속 돈다", "kubectl 전부 실패"]
+      - ["etcd", "계속 돈다", "저장 불가 = apiserver 장애"]
+      - ["kube-scheduler", "계속 돈다", "새 Pod가 Pending에서 멈춤"]
+      - ["controller-manager", "계속 돈다", "죽어도 새로 안 만듦 · 노드 장애 감지 안 됨"]
+    colw: [3.2, 3.0, 5.9]
+    mono_col: 0
+    callout: "본부가 멈춰도 현장은 하던 일을 계속한다 — 다만 아무것도 바꿀 수 없고, 고쳐 주는 이도 없다"
+    callout_color: violet
+    notes: "왜 모두 apiserver를 통해서만? 기록이 한곳, 부품 교체 가능, 부분 장애 격리, 보안 경계 하나. 1일차 'DB에 직접 붙지 말고 API로'와 같은 원리. 트렌드: 컨트롤 플레인은 사는 것 — EKS/GKE/AKS, Auto Mode/Autopilot."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "노드와 Pod"
+    goals: ["노드의 부품", "Pod = 함께 사는 묶음", "Pod는 소모품", "뜨기까지 6단계"]
+    notes: "노드에서 가장 중요한 것은 kubelet."
+
+  - type: table
+    title: "노드의 부품"
+    head: ["부품", "역할", "비유"]
+    rows:
+      - ["kubelet", "내 노드에 배정된 Pod를 발견해 띄우고 보고 · probe도 여기서", "창고 반장"]
+      - ["containerd", "CRI로 지시받아 이미지 받고 컨테이너 생성", "지게차 기사"]
+      - ["kube-proxy", "Service 주소 → Pod로 넘기는 규칙", "입구 안내판"]
+      - ["CNI (kindnet)", "Pod마다 IP, 노드 간 Pod 통신", "창고 사이 도로"]
+    colw: [2.6, 6.8, 2.7]
+    mono_col: 0
+    notes: "v1.24에서 없어진 건 Docker가 아니라 dockershim. docker build 이미지는 OCI 표준이라 그대로 돈다. 노드 안에서는 docker 대신 crictl."
+
+  - type: compare
+    title: "Pod — 한 집에 사는 가족"
+    left: ["Pod 안의 컨테이너들", ["항상 같은 노드에", "IP 하나 공유 · localhost로 대화", "볼륨 공유 가능", "함께 생기고 함께 사라진다", "대부분 컨테이너 1개"]]
+    right: ["Pod는 소모품", ["죽으면 고치지 않고 새로 — 이름 · IP가 바뀐다", "IP를 적어 두고 부르지 않는다 → Service (내일)", "데이터를 두지 않는다 → 볼륨 (5일차)", "사람이 직접 만들지 않는다 → Deployment (내일)"]]
+    notes: "오해: DevMart 전체를 Pod 하나에? 같이 늘고 같이 죽는다 → MSA로 나눈 이점이 사라진다. 서비스 하나 = Pod 종류 하나. 1주차 4일차 pets vs cattle."
+
+  - type: image
+    title: "Pod 하나가 뜨기까지 — 6단계"
+    img: week3/day3/w3d3-pod-flow.png
+    notes: "kubectl은 2단계(etcd 저장)에서 created를 받고 끝난다. 실패 단계별 상태: 3 Pending, 5 ImagePullBackOff, 6 이후 CrashLoopBackOff. 학술: 레벨 기반 설계 — watch 알림을 놓쳐도 지금 상태로 판단."
+
+  - type: statement
+    icon: TriangleAlert
+    title: "kubectl이 성공했다 ≠ 앱이 떴다"
+    text: "명령 → 상태 확인이 한 쌍"
+    sub: "트렌드: v1.35 cgroup v1 지원 종료 · 실행 중 Pod 자원 변경 정식 · v1.33 사이드카 정식"
+    notes: "내일 get · describe · logs로 상태 읽는 법을 집중적으로."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "선언형과 reconcile"
+    goals: ["명령형 vs 선언형", "멱등", "관찰 → 비교 → 행동", "매니페스트 네 칸"]
+    notes: "비유: 길 알려 주기(명령형) vs 목적지 말하기(선언형)."
+
+  - type: image
+    title: "컨트롤러의 반복 — reconcile loop"
+    img: week3/day3/w3d3-reconcile.png
+    notes: "원인은 묻지 않고 차이만 본다 — 온도 조절기. Compose도 YAML이지만 up 이후엔 아무도 지켜보지 않는다. 학술: Hellerstein 외 2004 되먹임 제어, Burgess 1998 수렴."
+
+  - type: table
+    title: "같은 반복이 다른 사고를 모두 막는다 — replicas: 2"
+    head: ["무슨 일이", "실제", "컨트롤러"]
+    rows:
+      - ["앱이 메모리 부족으로 죽음", "1개", "하나 새로"]
+      - ["누가 실수로 Pod 삭제", "1개", "하나 새로"]
+      - ["노드 하나가 꺼짐", "1개", "다른 노드에 하나 새로"]
+      - ["같은 라벨 Pod가 하나 더", "3개", "하나 지움"]
+      - ["replicas: 5로 apply", "2개", "셋 더"]
+    colw: [5.6, 2.0, 4.5]
+    notes: "다섯 가지 대응 코드가 아니라 '차이를 메운다' 반복 하나. 7교시 실험 1에서 직접."
+
+  - type: code
+    title: "매니페스트 읽기 — 네 칸과 status"
+    shell: "내일 만들 catalog-api (읽기만)"
+    code: |
+      apiVersion: apps/v1          # 1 API 묶음과 버전
+      kind: Deployment             # 2 무엇을
+      metadata:                    # 3 이름표
+        name: catalog-api
+        labels: { app: catalog-api }
+      spec:                        # 4 원하는 상태 — 내가 쓴다
+        replicas: 2
+        selector:
+          matchLabels: { app: catalog-api }
+        template:
+          metadata:
+            labels: { app: catalog-api }
+          spec:
+            containers:
+              - name: catalog-api
+                image: ghcr.io/내아이디/devmart-catalog-api:sha-7f3c2e1
+    points:
+      - ["spec", "내가 쓴다"]
+      - ["status", "Kubernetes가 채운다"]
+      - ["라벨 · 셀렉터", "이름이 아니라 꼬리표로 찾는다"]
+    notes: "spec과 status의 차이 = 컨트롤러가 할 일. 멱등: apply를 세 번 해도 2개. 실습: 사람 컨트롤러 놀이 — 칠판 = apiserver, 컨트롤러는 적기만, 노드가 붙인다. 트렌드: GitOps(4주차 Argo CD), Crossplane · ACK."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "장단점과 선택지"
+    goals: ["주는 것 vs 치르는 것", "쓰지 말아야 할 때", "어떤 Kubernetes", "왜 kind"]
+    notes: "Kubernetes는 복잡함을 없애지 않고 한곳으로 모은다."
+
+  - type: compare
+    title: "얻는 것과 치르는 것"
+    left: ["얻는 것", ["노드가 죽어도 다른 노드로", "원하는 상태를 계속 지켜 줌", "무중단 교체 · 되돌리기 · 확장이 기본", "어디서나 같은 방식", "거대한 생태계"]]
+    right: ["치르는 것", ["움직이는 부품이 많다", "배울 개념이 많고 YAML이 길다", "층이 많아 원인 찾기가 어렵다", "생태계 고르기 자체가 일", "운영할 사람(플랫폼 팀)이 필요"]]
+    notes: "쓰지 말아야 할 때: 서비스 1~3개, 트래픽 작음, 운영할 사람 없음, 정적 사이트, 이력서용. 대안: Compose, ECS + Fargate, Cloud Run, Lambda, Nomad. App Runner는 2026-04-30부터 신규 고객 X. 학술: Brooks 1987 본질적 vs 부수적 복잡성."
+
+  - type: table
+    title: "어떤 Kubernetes를 쓸까"
+    head: ["종류", "예", "컨트롤 플레인은", "언제"]
+    rows:
+      - ["관리형", "EKS · GKE · AKS", "클라우드가", "운영 대부분 · 5주차"]
+      - ["직접 설치", "kubeadm · RKE2 · OpenShift", "우리 팀", "자체 데이터센터 · 규제"]
+      - ["경량", "k3s · k0s", "우리 팀", "엣지 · 작은 서버"]
+      - ["로컬", "kind · minikube · k3d", "내 노트북", "학습 · 개발 · CI"]
+    colw: [1.8, 3.8, 2.6, 3.9]
+    notes: "트렌드: 플랫폼 엔지니어링 — 플랫폼 팀이 사내 제품처럼. CNCF 2026 조사: 기술보다 조직 문화가 걸림돌. 실습: 꽃집 · DevMart · 핀테크 판단표."
+
+  - type: image
+    title: "kind — Kubernetes IN Docker"
+    img: week3/day3/w3d3-kind.png
+    notes: "고른 이유: 표준 그대로(kubeadm) · 2주차 Docker 위 · 지우면 흔적 없음. 오해: kind는 가짜? 같은 apiserver · kubectl · 매니페스트 — 5주차 EKS에 그대로."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "kubectl과 kind 설치"
+    goals: ["Docker 점검", "kubectl 설치 · 지문 확인", "kind 설치", "자동 완성 · k 별칭"]
+    notes: "kubectl = 리모컨(어떤 클러스터든), kind = 설치 · 철거 기사(만들고 지울 때만). 버전 차이 ±1 마이너."
+
+  - type: code
+    title: "실습 6~7 · Docker 점검과 kubectl 설치"
+    code: |
+      docker info 2>/dev/null | grep -E 'Cgroup Version|CPUs|Total Memory'
+      KVER=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+      curl -fsSLO "https://dl.k8s.io/release/${KVER}/bin/linux/amd64/kubectl"
+      curl -fsSLO "https://dl.k8s.io/release/${KVER}/bin/linux/amd64/kubectl.sha256"
+      echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+      sudo install -m 0755 kubectl /usr/local/bin/kubectl
+    out: |
+      Cgroup Version: 2
+      Total Memory: 7.653GiB
+      kubectl: OK
+    points:
+      - ["cgroup 2", "v1.35부터 필수"]
+      - ["4GiB 이상", ".wslconfig · Resources"]
+      - ["지문 OK", "아니면 설치하지 않는다"]
+    notes: "Mac: brew install kubectl (Docker Desktop의 kubectl과 겹치면 brew link --overwrite). 학술: 체크섬 → 서명(cosign) · SBOM, 어제의 SLSA와 같은 흐름."
+
+  - type: code
+    title: "실습 7~9 · 클러스터 없이 물어보기, kind, 별칭"
+    code: |
+      kubectl version
+      curl -fsSLo kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64
+      sudo install -m 0755 kind /usr/local/bin/kind && kind version
+      alias k=kubectl
+    out: |
+      Client Version: v1.37.x
+      The connection to the server localhost:8080 was refused - did you specify the right host or port?
+      kind v0.33.0 go1.x.x linux/amd64
+    points:
+      - ["localhost:8080", "kubeconfig가 없다"]
+      - ["kind v0.33.0", "2026-08-26 · 기본 v1.37.0"]
+      - ["k + Tab", "현업 표준"]
+    notes: "이 오류를 기억 — 7교시 실험 3에서 같은 문장, 다른 주소. 트렌드: 터미널 옆의 AI — 구조를 알아야 AI가 만든 명령이 무엇을 바꾸는지 판단."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "첫 클러스터"
+    goals: ["만들기", "둘러보기", "지우기 · 끄기 · 멈추기", "1교시 표 완성"]
+    notes: "클러스터는 지우지 않는다 — 내일과 모레 계속."
+
+  - type: code
+    title: "실습 10 · 클러스터 만들기"
+    shell: "~/devops-lab/k8s"
+    code: |
+      kind create cluster --config kind-devmart.yaml
+      kubectl get nodes
+    out: |
+      ✓ Starting control-plane
+      ✓ Installing CNI
+      ✓ Joining worker nodes
+      Set kubectl context to "kind-devmart"
+      NAME                    STATUS   ROLES           AGE   VERSION
+      devmart-control-plane   Ready    control-plane   2m    v1.37.0
+      devmart-worker          Ready    <none>          95s   v1.37.0
+      devmart-worker2         Ready    <none>          95s   v1.37.0
+    points:
+      - ["@sha256 고정", "릴리스 노트 그대로"]
+      - ["30080", "내일 브라우저 통로"]
+      - ["kubeadm init · join", "출력 한 줄 = 오전 한 교시"]
+    notes: "실패: 30080 already allocated, already exist, cgroup, 메모리 부족."
+
+  - type: table
+    title: "실습 11 · kube-system에서 오전의 부품 찾기"
+    head: ["보이는 Pod", "정체", "어디에"]
+    rows:
+      - ["kube-apiserver · etcd · kube-scheduler · kube-controller-manager", "컨트롤 플레인 (정적 Pod)", "컨트롤 플레인만"]
+      - ["kube-proxy-…", "노드마다 하나 (DaemonSet)", "모든 노드"]
+      - ["kindnet-…", "CNI (DaemonSet)", "모든 노드"]
+      - ["coredns-…", "클러스터 DNS (Deployment, 2개)", "아무 노드"]
+      - ["(없음) kubelet", "노드의 systemd 서비스", "모든 노드"]
+    colw: [5.4, 4.0, 2.7]
+    notes: "docker ps — 노드는 컨테이너, 6443 = apiserver. kubeconfig = 주소록 · 열쇠 꾸러미, 컨텍스트 착각 사고. -v=6 → GET /api/v1/nodes 200. /etc/kubernetes/manifests = 정적 Pod. Taints: control-plane:NoSchedule."
+
+  - type: steps
+    title: "실습 12 · 지우고, 끄고, 멈추기"
+    steps:
+      - ["Pod 지우기", "delete pod -l k8s-app=kube-dns → 몇 초 뒤 이름이 다른 2개 · ReplicaSet 컨트롤러"]
+      - ["노드 끄기", "docker stop devmart-worker2 → 잠시 뒤 NotReady + unreachable 테인트 · Node 컨트롤러"]
+      - ["본부 멈추기", "docker stop devmart-control-plane → 127.0.0.1:…의 connection refused · 워커 Pod는 그대로"]
+      - ["되돌리기", "docker start → Ready · 망가지면 고치지 말고 delete → create"]
+    notes: "순서 1 → 2 → 3. 같은 오류 문장이라도 주소가 진단의 열쇠: localhost:8080 = kubeconfig 없음, 127.0.0.1:41235 = apiserver 무응답. NoExecute 기본 5분 뒤 옮김 — 내일 앱 Pod로 다시."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "여러 대를 한 대처럼 + 원하는 상태를 계속 지킨다"]
+      - ["2교시", "apiserver(창구) · etcd(장부) · scheduler(배치) · controller-manager(맞추기)"]
+      - ["3교시", "kubelet이 현장 반장 · Pod는 소모품 · 뜨기까지 6단계"]
+      - ["4교시", "선언형 = 멱등 · 관찰 → 비교 → 행동 · spec은 내가, status는 K8s가"]
+      - ["5교시", "복잡함을 한곳으로 모으는 도구 — 필요할 때만 · kind를 고른 이유"]
+      - ["6~7교시", "kubectl · kind 설치 → devmart 클러스터 3대 → 지우고 끄고 멈춰 봄"]
+    diary: "배움일기 — K8s 한 문장 · 부품 하나가 멈추면 · 사실은 선언형이었던 것 · 실험 1~3의 고친 주체 · DevMart에 K8s가 필요한가 · Pod IP가 매번 바뀌면 order-api는 catalog-api를 어떻게 찾을까?"
+    notes: "클러스터는 지우지 않는다. 재부팅하면 docker start로 노드 셋을 켠다. 내일: Pod · Deployment · Service."

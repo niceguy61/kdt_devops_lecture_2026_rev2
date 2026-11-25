@@ -1,0 +1,42 @@
+# $patch: delete — 펼친 결과에서 이 리소스를 지운다 (원본 파일은 그대로)
+$patch: delete
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: waypoint
+  namespace: devmart
+---
+$patch: delete
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: catalog-resilience
+  namespace: devmart
+---
+$patch: delete
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: strict
+  namespace: devmart
+---
+$patch: delete
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: catalog-api-allow
+  namespace: devmart
+---
+$patch: delete
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: catalog-api-l4
+  namespace: devmart
+---
+$patch: delete
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devmart
+  namespace: devmart

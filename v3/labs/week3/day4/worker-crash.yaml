@@ -1,0 +1,12 @@
+# 3교시 장애 2 · 잘못된 설정 → CrashLoopBackOff (2일차 2교시의 크래시 루프와 같은 원인)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker-crash
+spec:
+  containers:
+    - name: order-worker
+      image: ghcr.io/YOUR_ID/devmart-order-worker:YOUR_SHA
+      env:
+        - name: WORK_SECONDS
+          value: "abc"

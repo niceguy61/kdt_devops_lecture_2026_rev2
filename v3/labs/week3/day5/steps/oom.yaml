@@ -1,0 +1,15 @@
+# 4교시 · 메모리 한도를 넘으면 — 300MB를 쓰려는 프로그램에 128Mi 한도
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom-demo
+  namespace: devmart
+spec:
+  restartPolicy: Never
+  containers:
+    - name: hog
+      image: python:3.14-slim
+      command: ["python", "-c", "import time; x = 'x' * (300 * 1024 * 1024); print('다 썼다'); time.sleep(60)"]
+      resources:
+        requests: { memory: 64Mi }
+        limits: { memory: 128Mi }

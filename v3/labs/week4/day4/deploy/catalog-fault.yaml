@@ -1,0 +1,18 @@
+# 5교시 · 장애 주입 — catalog-api로 가는 메시 안 호출을 일부러 늦추거나 실패시킨다
+# Gateway API에는 아직 장애 주입이 없어 Istio의 VirtualService를 쓴다 (waypoint에서 동작)
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: catalog-fault
+  namespace: devmart
+spec:
+  hosts:
+    - catalog-api
+  http:
+    - fault:
+        delay:
+          percentage: { value: 100 }
+          fixedDelay: 3s                 # order-api의 CATALOG_TIMEOUT(2초)보다 길게
+      route:
+        - destination:
+            host: catalog-api

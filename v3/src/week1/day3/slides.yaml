@@ -1,0 +1,498 @@
+meta:
+  footer: "1주차 3일차 · 네트워크 기초"
+  title: "1주차 3일차 — 네트워크 기초"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 기초 이론 과정"
+    title: "네트워크 기초"
+    subtitle: "1주차 3일차 · 계층 모델 · IP와 서브넷 · 포트 · DNS · HTTP/HTTPS · 요청의 여정 · 네트워크 장비"
+    notes: "2주차 이후 실습 에러의 상당수가 '연결이 안 돼요'. 원인은 거의 항상 주소(IP)·문(포트)·이름(DNS)·규칙(방화벽) 중 하나. 오늘은 이 넷을 구분하는 눈을 만든다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "네트워크 큰 그림"]
+      - ["2교시", "2", "IP 주소와 서브넷"]
+      - ["3교시", "3", "포트와 프로토콜"]
+      - ["4교시", "4", "DNS"]
+      - ["5교시", "5", "HTTP와 HTTPS"]
+      - ["6교시", "6", "서비스로 가는 길 — 요청의 여정"]
+      - ["7교시", "7", "네트워크 장비의 역할 + 배움일기"]
+    notes: "8교시는 배움일기."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "네트워크 큰 그림"
+    goals: ["어제 10분 요약", "패킷과 캡슐화", "OSI 7계층 vs TCP/IP 4계층", "인터넷을 만든 세 편의 글"]
+    notes: "어제 NIC를 '주문 창구'라고만 하고 넘어갔다. 오늘은 그 창구 너머."
+
+  - type: table
+    title: "어제 10분 요약"
+    head: ["어제 배운 것", "한 문장"]
+    rows:
+      - ["부품과 속도", "데이터가 어디 있느냐에 따라 수천~수백만 배 차이"]
+      - ["운영체제", "프로그램은 시스템 콜로 커널에 부탁한다"]
+      - ["프로세스", "실행 중인 프로그램 — 종료 코드 0은 성공"]
+      - ["파일", "설정은 /etc, 로그는 /var/log, 권한은 최소로"]
+      - ["컨테이너", "네임스페이스와 cgroups로 격리된 프로세스"]
+    colw: [3.4, 8.7]
+    callout: "어제의 '서울↔미국 서부 왕복 약 150ms' — 왜 그렇게 오래 걸리는지 오늘 알게 된다"
+    notes: "학생에게 먼저 말해 보게 하기."
+
+  - type: compare
+    title: "데이터는 잘게 잘려서 간다 — 패킷"
+    left: ["한 덩어리로 보낸다면", ["한 바이트만 깨져도 전부 다시", "큰 파일 하나가 길을 독차지", "길 하나가 끊기면 실패"]]
+    right: ["패킷으로 잘라 보내면", ["깨진 조각만 다시 보낸다", "여러 사람이 길을 나눠 쓴다", "조각마다 다른 길로 돌아갈 수 있다"]]
+    notes: "패킷 크기는 보통 1,500바이트 안팎(이더넷 MTU)."
+
+  - type: image
+    title: "택배로 이해하는 캡슐화"
+    img: week1/day3/w1d3-parcel.png
+    notes: "편지(HTTP) → 봉투(TCP, 포트) → 상자(IP, IP 주소) → 트럭(이더넷, MAC). 각 층은 자기 포장만 본다 — 택배 기사는 편지 내용을 몰라도 된다."
+
+  - type: image
+    title: "TCP/IP 4계층과 OSI 7계층"
+    img: week1/day3/w1d3-tcpip-layers.png
+    callout: "공부·대화는 OSI 번호(L4, L7)로, 실제 구현은 TCP/IP로"
+    notes: "OSI는 ISO가 1984년 발표한 참조 모델. 실제 인터넷은 먼저 퍼진 TCP/IP로 돈다. '잘 설계된 표준보다 먼저 돌아가는 구현이 이긴다.' L4 LB=NLB, L7 LB=ALB, L7 방화벽=WAF."
+
+  - type: steps
+    title: "학술 노트 — 인터넷을 만든 세 편의 글"
+    steps:
+      - ["1964 패킷 교환", "Baran(RAND) · Davies — 메시지를 잘라 여러 경로로"]
+      - ["1969 ARPANET", "패킷 교환 네트워크의 시작"]
+      - ["1974 TCP/IP", "Cerf & Kahn — 서로 다른 네트워크를 하나로"]
+      - ["1983 전환", "ARPANET이 TCP/IP로 전면 전환"]
+      - ["1984 종단 간 원칙", "Saltzer·Reed·Clark — 중간은 단순하게, 기능은 양 끝에"]
+    notes: "Cerf와 Kahn은 2004년 튜링상. 종단 간 원칙 덕분에 웹·스트리밍·클라우드가 인터넷 구조를 바꾸지 않고 등장했다. Saltzer et al. (1984) ACM TOCS 2(4)."
+
+  - type: statement
+    icon: Zap
+    title: "빛도 시간이 걸린다"
+    text: "광섬유 속 빛 ≈ 초속 20만 km\n서울↔미국 서부 약 1만 km → 왕복 100ms는 물리 법칙"
+    sub: "서버를 아무리 빠르게 해도 빛의 속도는 못 바꾼다 → 사용자 가까운 리전(서울 ap-northeast-2)과 CDN을 고르는 근본 이유"
+    notes: "여기에 중간 장비를 거치는 시간이 더해져 약 150ms. 2025년 10월 AWS us-east-1 장애 예고 — 4교시."
+
+  - type: quiz
+    title: "1교시 확인 문제"
+    questions:
+      - "큰 데이터를 작은 조각으로 나눠 보내는 단위는?"
+      - "택배 비유에서 '받는 사람 주소'와 '몇 번 창구'는?"
+      - "URL 경로를 보고 나누는 로드밸런서는 L4? L7?"
+      - "TCP/IP를 설계한 '인터넷의 아버지' 두 사람은?"
+    answers: "1) 패킷  2) IP 주소(인터넷 계층), 포트(전송 계층)  3) L7  4) 빈트 서프, 밥 칸"
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "IP 주소와 서브넷"
+    goals: ["IPv4 주소 구조", "공인 IP · 사설 IP · NAT", "CIDR 읽고 계산하기", "5주차 VPC 미리 보기"]
+    notes: "오늘 가장 '숫자'가 많은 시간. 공식은 하나만 외우면 된다."
+
+  - type: image
+    title: "IPv4 주소와 CIDR"
+    img: week1/day3/w1d3-ip-anatomy.png
+    callout: "주소 개수 = 2^(32 − 슬래시 숫자) · 0.0.0.0/0 = 인터넷 전체"
+    notes: "32비트 → 약 43억 개. 슬래시 숫자가 작을수록 큰 동네. 1일차의 '보안 그룹에 0.0.0.0/0 = 전 세계에서 접근 가능'이 이 뜻."
+
+  - type: table
+    title: "공인 IP와 사설 IP (RFC 1918)"
+    head: ["구분", "범위", "특징 · 예시"]
+    rows:
+      - ["공인 IP", "사설 범위를 뺀 나머지", "인터넷 전체에서 유일 · 돈이 든다"]
+      - ["사설 IP", "10.0.0.0/8", "약 1,677만 개 · AWS VPC에서 가장 많이 씀"]
+      - ["사설 IP", "172.16.0.0/12", "약 104만 개 · Docker 기본 네트워크"]
+      - ["사설 IP", "192.168.0.0/16", "약 6.5만 개 · 가정용 공유기"]
+      - ["루프백", "127.0.0.1", "나 자신 (3교시 localhost)"]
+    colw: [2.2, 3.6, 6.3]
+    mono_col: 1
+    notes: "사설 IP는 여러 곳에서 겹쳐 써도 된다. 대신 인터넷에 직접 나갈 수 없다 → NAT."
+
+  - type: image
+    title: "NAT — 사설 IP가 인터넷에 나가는 방법"
+    img: week1/day3/w1d3-nat.png
+    notes: "NAT 뒤의 컴퓨터는 바깥에서 먼저 접근하기 어렵다 — 보안상 장점. AWS NAT Gateway는 켜진 시간 + 데이터 양으로 과금(1일차 비용 함정)."
+
+  - type: image
+    title: "5주차 미리 보기 — VPC를 서브넷으로 나누기"
+    img: week1/day3/w1d3-vpc-subnets.png
+    callout: "바깥과 통하는 것은 퍼블릭, 숨길 것은 프라이빗 — 같은 구성을 두 가용 영역에"
+    callout_color: orange
+    notes: "VPC CIDR은 나중에 바꾸기 어렵고, 다른 네트워크와 겹치면 연결 불가. 'CIDR을 잘못 잡아 1년 뒤 전부 다시 만들었다'는 이야기는 흔하다."
+
+  - type: compare
+    title: "학술 노트 — CIDR와 주소 고갈"
+    left: ["버티기 위한 발명", ["A·B·C 등급 → 낭비가 심함", "1993 RFC 1519 CIDR: 필요한 크기만큼", "1996 RFC 1918 사설 주소 + NAT"]]
+    right: ["그래도 고갈", ["2011년 2월 IANA 마지막 IPv4 블록 소진", "해법은 128비트 IPv6", "약 3.4×10³⁸개 — 사실상 무한"]]
+    notes: "Fuller et al. (1993) RFC 1519 (현재 RFC 4632). Rekhter et al. (1996) RFC 1918."
+
+  - type: cards
+    title: "트렌드 — IPv4는 이제 '돈', IPv6는 절반을 넘보는 중"
+    cards:
+      - [BadgeDollarSign, orange, "$0.005 / 시간", "AWS 공인 IPv4 주소 1개 요금 (2024년 2월부터, 사용 여부 무관)"]
+      - [Globe, teal, "50.1%", "구글 서비스 IPv6 접속 비율이 처음 절반을 넘은 날 (2026년 3월 28일)"]
+      - [Map, violet, "국가별 편차", "프랑스·독일·인도 70% 이상, 일부 국가는 훨씬 낮음"]
+    notes: "출처: AWS VPC 요금, Google IPv6 통계, APNIC Blog. 실습은 IPv4 중심이지만 현업에서는 IPv6 지원 여부를 점점 더 묻는다."
+
+  - type: quiz
+    title: "2교시 확인 문제"
+    questions:
+      - "192.168.0.15는 공인 IP? 사설 IP?"
+      - "10.0.0.0/24에는 주소가 몇 개?"
+      - "출발지 0.0.0.0/0은 무슨 뜻?"
+      - "사설 서브넷 서버가 밖으로만 나가게 하는 AWS 장비는?"
+    answers: "1) 사설 IP  2) 256개  3) 전 세계 모든 IP  4) NAT Gateway"
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "포트와 프로토콜"
+    goals: ["포트 — 한 컴퓨터 안의 여러 문", "TCP vs UDP", "3-way handshake", "localhost와 0.0.0.0"]
+    notes: "2주차 Docker 실습에서 가장 많이 쓰게 될 시간."
+
+  - type: image
+    title: "IP는 건물 주소, 포트는 호실 번호"
+    img: week1/day3/w1d3-ports.png
+    notes: "포트 0~65535. 0~1023 잘 알려진 포트(관리자 권한 필요), 49152~ 임시 포트. 8080은 개발용 관례, 6443은 K8s API 서버(3주차)."
+
+  - type: statement
+    icon: TriangleAlert
+    title: "2주차에 반드시 만나는 에러 — 포트 충돌"
+    text: "bind: address already in use\nport is already allocated"
+    sub: "① 누가 그 포트를 쓰는지 확인 (ss -tlnp, docker ps) → ② 그 프로세스를 멈출지, 내 포트를 바꿀지 결정"
+    notes: "1일차 '좋은 질문' 예시가 바로 이 에러였다."
+
+  - type: compare
+    title: "TCP vs UDP — 확실하게 vs 빠르게"
+    left: ["TCP — 등기 우편", ["먼저 연결을 맺는다", "순서 보장, 빠진 패킷 재전송", "웹(HTTP/1.1·2), DB, SSH"]]
+    right: ["UDP — 전단지", ["연결 없이 바로 보낸다", "보장 없음, 대신 빠르다", "DNS 조회, 영상 통화, 게임, HTTP/3"]]
+    notes: "영상 통화는 0.1초 전 화면을 다시 받는 것보다 지금 화면이 중요."
+
+  - type: image
+    title: "TCP 3-way handshake"
+    img: week1/day3/w1d3-handshake.png
+    notes: "데이터 전에 최소 왕복 1번. 그래서 연결 재사용(keep-alive)."
+
+  - type: table
+    title: "에러 메시지로 원인 구분하기"
+    head: ["에러 메시지", "무슨 일이 일어났나", "먼저 의심할 것"]
+    rows:
+      - ["Connection refused", "닿았지만 그 포트에 받을 프로그램이 없다", "프로그램 꺼짐, 포트 번호 틀림"]
+      - ["Connection timed out", "아무 응답 없음 — 중간에서 막힘", "방화벽 · 보안 그룹, IP 틀림"]
+      - ["No route to host", "그 주소로 가는 길이 없다", "네트워크 설정, 라우팅"]
+      - ["Name or service not known", "이름을 IP로 바꾸지 못했다", "DNS (4교시)"]
+    colw: [3.6, 4.6, 3.9]
+    mono_col: 0
+    callout: "'연결이 안 돼요' → '보안 그룹이 막는 것 같아요'로 바꾸는 표 — 5주차에 가장 많이 쓴다"
+    notes: "이 네 줄 구분이 오늘의 핵심 실무 역량."
+
+  - type: table
+    title: "localhost, 127.0.0.1, 0.0.0.0"
+    head: ["주소", "뜻", "쓰임"]
+    rows:
+      - ["localhost = 127.0.0.1", "나 자신 — 밖으로 나가지 않는다", "내 컴퓨터의 서버에 내가 접속"]
+      - ["127.0.0.1에서 listen", "나만 접속할 수 있다", "외부 노출이 위험한 관리 도구"]
+      - ["0.0.0.0에서 listen", "모든 네트워크 카드에서 받는다", "외부용 서버, 컨테이너 안의 앱"]
+    colw: [3.6, 4.4, 4.1]
+    mono_col: 0
+    callout: "컨테이너 안 앱이 127.0.0.1로 떠 있으면 바깥에서 접속 불가 — 'Up인데 안 열려요'의 단골 원인"
+    callout_color: orange
+    notes: "컨테이너의 127.0.0.1은 그 컨테이너 자신(어제 배운 네트워크 네임스페이스)."
+
+  - type: compare
+    title: "학술 노트 — 인터넷이 무너질 뻔한 날 (1986)"
+    left: ["혼잡 붕괴", ["1986년 10월 버클리↔LBL", "초당 32,000비트 → 40비트", "모두가 동시에 재전송 → 더 막힘"]]
+    right: ["Jacobson (1988) 혼잡 제어", ["막히면 보내는 속도를 스스로 줄이고", "괜찮으면 조금씩 늘린다", "→ 3주차 재시도의 exponential backoff"]]
+    notes: "Jacobson, V. (1988). Congestion avoidance and control. ACM SIGCOMM."
+
+  - type: statement
+    icon: Rocket
+    title: "트렌드 — HTTP/3와 QUIC: 웹이 UDP 위로"
+    text: "QUIC (RFC 9000, 2021) — UDP 위에서 신뢰성과 암호화를\nHTTP/3 사용 웹사이트 약 38~40% (W3Techs, 2026년)"
+    sub: "TCP + TLS handshake를 합쳐 더 빨리 연결 · 인터넷 중간을 바꾸지 않고 양 끝 소프트웨어만 바꿔 퍼졌다 — 종단 간 원칙"
+    notes: "상위 1,000개 사이트 기준 약 44%."
+
+  - type: quiz
+    title: "3교시 확인 문제"
+    questions:
+      - "HTTPS와 PostgreSQL의 기본 포트는?"
+      - "TCP 3-way handshake 세 단계는?"
+      - "Connection timed out — 가장 먼저 의심할 것은?"
+      - "컨테이너 앱이 127.0.0.1:8080이면 바깥에서 접속 가능?"
+    answers: "1) 443, 5432  2) SYN → SYN-ACK → ACK  3) 방화벽·보안 그룹  4) 불가 — 0.0.0.0으로 띄워야 한다"
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "DNS"
+    goals: ["이름을 IP로 — 전화번호부", "조회 과정과 캐시", "레코드 종류와 TTL", "2025년 AWS 장애 분석"]
+    notes: "IP가 바뀌어도 DNS만 고치면 같은 주소 — 클라우드에서 서버를 자유롭게 교체할 수 있는 숨은 비결."
+
+  - type: image
+    title: "이름이 IP가 되기까지"
+    img: week1/day3/w1d3-dns-resolution.png
+    notes: "도메인은 오른쪽에서 왼쪽으로 읽는다: www . example . co . kr . (루트). 대부분의 조회는 캐시 덕분에 1~2단계에서 끝난다."
+
+  - type: table
+    title: "자주 쓰는 DNS 레코드"
+    head: ["레코드", "뜻", "예시"]
+    rows:
+      - ["A", "이름 → IPv4 주소", "www → 13.125.10.20"]
+      - ["AAAA", "이름 → IPv6 주소", "www → 2406:da12::1"]
+      - ["CNAME", "이름 → 다른 이름 (별칭)", "www → myapp.cloudfront.net"]
+      - ["MX", "메일 서버", "mail.example.com"]
+      - ["TXT", "아무 텍스트", "도메인 소유 증명, 메일 보안"]
+      - ["NS", "이 도메인의 네임서버", "ns-123.awsdns-45.com"]
+    colw: [1.8, 4.4, 5.9]
+    mono_col: 0
+    callout: "ALB는 고정 IP 대신 '이름'을 준다 → 내 도메인은 CNAME(또는 Route 53 Alias)으로 연결"
+    notes: "로드밸런서 뒤의 IP는 트래픽에 따라 바뀌기 때문. 5주차 확인."
+
+  - type: compare
+    title: "TTL과 캐시 — '바꿨는데 왜 안 바뀌죠?'"
+    left: ["TTL 길게 (예: 1일)", ["조회가 적어 빠르다", "DNS 서버 부담이 적다", "바꾸면 최대 하루 동안 옛 주소로"]]
+    right: ["TTL 짧게 (예: 60초)", ["바꾸면 금방 반영된다", "조회가 많아진다", "서버 이전 며칠 전에 미리 줄여 둔다"]]
+    notes: "'어떤 사람은 되고 어떤 사람은 안 돼요' — 원인은 거의 항상 캐시와 TTL."
+
+  - type: steps
+    title: "학술 노트 — 하나의 파일에서 분산 DB로"
+    steps:
+      - ["HOSTS.TXT", "모든 컴퓨터 이름을 파일 하나에 — SRI가 관리"]
+      - ["한계", "수천 대가 되자 관리·배포 불가"]
+      - ["1983 DNS", "Mockapetris RFC 882·883"]
+      - ["세 가지 원리", "계층 · 위임 · 캐시"]
+      - ["지금", "/etc/hosts에 남은 흔적, 40년째 같은 설계"]
+    notes: "RFC 1034·1035(1987)로 정리. 세계에서 가장 성공한 분산 데이터베이스 중 하나."
+
+  - type: image
+    title: "사례 — 2025년 10월 AWS us-east-1 장애"
+    img: week1/day3/w1d3-aws-outage.png
+    callout: "서버도 DB도 멀쩡했다 — 이름 하나를 못 찾아 약 15시간"
+    callout_color: orange
+    notes: "DynamoDB DNS 관리 자동화의 경쟁 상태(어제 3교시)로 dynamodb.us-east-1.amazonaws.com 레코드가 비어 버림. 연쇄적으로 EC2 관리 기능, NLB 상태 확인까지 영향. 4일차 SPOF, 5일차 포스트모템과 연결."
+
+  - type: statement
+    icon: Lock
+    title: "트렌드 — DNS도 암호화한다"
+    text: "DoH (DNS over HTTPS) · DoT (DNS over TLS)"
+    sub: "전통 DNS 질문은 암호화되지 않아 '어떤 사이트를 찾는지' 보인다 — 프라이버시가 기본 프로토콜까지 바꾼다"
+    notes: "RFC 8484 (2018) DoH. 주요 브라우저·OS 지원."
+
+  - type: quiz
+    title: "4교시 확인 문제"
+    questions:
+      - "도메인을 IPv4 주소로 연결하는 레코드는?"
+      - "도메인을 AWS 로드밸런서 이름에 연결할 때는?"
+      - "레코드를 바꿨는데 옛 서버로 가는 사용자가 있는 이유는?"
+      - "2025년 AWS 장애의 시작점은?"
+    answers: "1) A  2) CNAME(또는 Alias)  3) 캐시와 TTL  4) DynamoDB DNS 자동화 경쟁 상태로 빈 DNS 레코드"
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "HTTP와 HTTPS"
+    goals: ["요청과 응답의 구조", "메서드와 멱등성", "상태 코드 읽기", "HTTPS와 인증서"]
+    notes: "웹뿐 아니라 앱↔서버, 서버↔서버(API)도 대부분 HTTP. 3주차 MSA 서비스들도 HTTP로 대화."
+
+  - type: image
+    title: "HTTP 요청과 응답"
+    img: week1/day3/w1d3-http-anatomy.png
+    notes: "Authorization 헤더의 토큰은 비밀값 — 로그·스크린샷에 남기지 않는다."
+
+  - type: table
+    title: "메서드 — 무엇을 하고 싶은가"
+    head: ["메서드", "뜻", "예시", "여러 번 보내도 같은가"]
+    rows:
+      - ["GET", "조회", "상품 목록 보기", "예"]
+      - ["POST", "생성", "주문하기, 회원가입", "아니오 — 중복 생성 위험"]
+      - ["PUT", "전체 교체", "프로필 전체 수정", "예"]
+      - ["PATCH", "일부 수정", "닉네임만 수정", "경우에 따라"]
+      - ["DELETE", "삭제", "장바구니 상품 삭제", "예"]
+    colw: [1.9, 2.2, 3.8, 4.2]
+    mono_col: 0
+    callout: "멱등성 — '주문' 버튼을 두 번 눌러 주문이 두 번 들어가는 사고의 원인 (3주차 중복 요청)"
+    notes: "재시도가 안전한지가 멱등성에 달려 있다."
+
+  - type: table
+    title: "상태 코드 — 서버의 대답 한 줄 요약"
+    head: ["범위", "뜻", "대표 코드", "먼저 볼 곳"]
+    rows:
+      - ["2xx", "성공", "200 · 201 · 204", "—"]
+      - ["3xx", "다른 곳으로", "301 · 302 · 304", "URL, HTTP→HTTPS"]
+      - ["4xx", "요청이 이상함", "400 · 401 · 403 · 404 · 429", "요청 보낸 쪽"]
+      - ["5xx", "서버가 실패", "500 · 502 · 503 · 504", "서버와 그 뒤"]
+    colw: [1.6, 2.6, 4.4, 3.5]
+    mono_col: 0
+    callout: "502·504는 로드밸런서가 보내는 신호 — '나는 살았는데 뒤의 앱이 이상하다' → 앱 서버부터 본다"
+    callout_color: orange
+    notes: "401 로그인 필요, 403 권한 없음 — 헷갈리기 쉬움. 4주차 Gateway API, 5주차 ALB에서 계속 만남."
+
+  - type: image
+    title: "HTTPS가 지키는 세 가지"
+    img: week1/day3/w1d3-tls.png
+    notes: "인증서 문제 세 가지: 만료(갱신 잊음 — 현업 장애 단골), 이름 불일치, 자체 서명."
+
+  - type: compare
+    title: "학술 노트 — 웹의 탄생과 REST"
+    left: ["1989 Berners-Lee (CERN)", ["'Vague but exciting' — 상사의 메모", "1990~91 HTTP · HTML · URL", "1993 무료 공개 → 세계 표준", "2016 튜링상"]]
+    right: ["2000 Fielding 박사 논문", ["웹이 왜 크게 확장됐나를 분석", "모든 것은 자원(URL) + 정해진 메서드", "서버는 상태를 기억 안 함(stateless)", "→ 4일차 scale out의 전제"]]
+    notes: "Fielding (2000) UC Irvine 박사 논문. 오늘날 대부분의 웹 API가 REST API."
+
+  - type: image
+    title: "트렌드 — TLS 인증서 수명이 47일로"
+    img: week1/day3/w1d3-cert-lifetime.png
+    callout: "사람이 기억해서 하는 일은 언젠가 잊힌다 → Let's Encrypt · cert-manager · ACM으로 자동화"
+    notes: "CA/Browser Forum Ballot SC-081v3, 2025년 4월 반대 없이 통과. 2026.3.15 200일, 2027.3.15 100일, 2029.3.15 47일. cert-manager는 4주차 소개, ACM은 5주차."
+
+  - type: quiz
+    title: "5교시 확인 문제"
+    questions:
+      - "목록 조회와 새 주문 생성에 쓰는 메서드는?"
+      - "여러 번 보내도 결과가 같은 성질은?"
+      - "로그인 없이 마이페이지 접근 시 상태 코드는?"
+      - "2029년부터 TLS 인증서 최대 유효 기간은?"
+    answers: "1) GET, POST  2) 멱등성  3) 401  4) 47일"
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "서비스로 가는 길 — 요청의 여정"
+    goals: ["브라우저에서 DB까지", "지연 시간 예산과 p99", "어디서 끊겼나 찾기", "분산 컴퓨팅의 여덟 가지 착각"]
+    notes: "1~5교시의 조각을 하나로 잇는다. 이 그림이 과정 전체의 지도."
+
+  - type: image
+    title: "주소창에 엔터를 누르면"
+    img: week1/day3/w1d3-request-journey.png
+    notes: "① DNS ② TCP ③ TLS ④ CDN ⑤ LB ⑥ 앱 ⑦ 캐시 ⑧ DB ⑨ 응답."
+
+  - type: table
+    title: "시간은 어디서 쓰이나 — 지연 시간 예산 (예시)"
+    head: ["단계", "대략의 시간", "줄이는 방법"]
+    rows:
+      - ["DNS 조회", "0~50ms (캐시면 0)", "적절한 TTL"]
+      - ["TCP + TLS 연결", "10~40ms", "연결 재사용, TLS 1.3, HTTP/3"]
+      - ["앱 서버 처리", "10~200ms", "코드 최적화, 서버 증설"]
+      - ["캐시 조회", "1ms 미만", "자주 쓰는 데이터 캐시"]
+      - ["DB 조회", "1~100ms+", "인덱스, 쿼리 최적화"]
+    colw: [3.0, 3.6, 5.5]
+    callout: "평균만 보면 안 된다 — 상위 1%가 겪는 p99를 본다 (4주차 Prometheus)"
+    notes: "서울 사용자 → 서울 리전 가정의 예시 값. 서비스마다 크게 다름. Dean & Barroso (2013) The tail at scale."
+
+  - type: steps
+    title: "'사이트가 안 열려요' — 앞에서부터 하나씩"
+    steps:
+      - ["1 DNS", "이름이 IP로 바뀌는가? (NXDOMAIN)"]
+      - ["2 네트워크", "그 포트까지 닿는가? (timed out · refused)"]
+      - ["3 TLS", "인증서가 유효한가?"]
+      - ["4 로드밸런서", "뒤에 건강한 서버가 있는가? (502·503·504)"]
+      - ["5 앱 · 의존성", "앱 로그, DB·캐시·외부 API (500)"]
+    notes: "2주차 Docker부터 5주차 AWS까지 어떤 '연결 안 됨'이든 같은 순서. 1일차 다섯 줄 질문의 '보인 결과' 칸에 무엇을 적을지 알려 준다."
+
+  - type: table
+    title: "학술 노트 — 분산 컴퓨팅의 여덟 가지 착각"
+    head: ["착각", "현실", "이 과정에서"]
+    rows:
+      - ["네트워크는 믿을 만하다", "패킷은 사라지고 연결은 끊긴다", "3주차 재시도"]
+      - ["지연 시간은 0이다", "빛도 시간이 걸린다", "리전 선택"]
+      - ["대역폭은 무한하다", "한계와 비용이 있다", "데이터 전송 요금"]
+      - ["네트워크는 안전하다", "누군가 엿볼 수 있다", "HTTPS"]
+      - ["구성은 바뀌지 않는다", "서버와 IP는 계속 바뀐다", "DNS, K8s 서비스"]
+      - ["관리자는 한 명이다", "여러 팀·회사가 얽혀 있다", "5일차 협업"]
+      - ["전송 비용은 0이다", "직렬화·암호화·요금", "MSA 비용"]
+      - ["네트워크는 균일하다", "장비와 경로가 제각각", "멀티 리전"]
+    colw: [3.8, 4.6, 3.7]
+    notes: "Peter Deutsch 외, Sun Microsystems (1994 무렵). 2025년 AWS 장애는 1·5·6번이 한꺼번에 깨진 사례."
+
+  - type: statement
+    icon: MapPin
+    title: "트렌드 — 사용자 가까이로: 엣지 컴퓨팅"
+    text: "빛의 속도를 못 이긴다면\n서버를 사용자 가까이 가져간다"
+    sub: "CDN이 정적 파일 복사를 넘어 엣지에서 코드까지 실행 (CloudFront Functions, Cloudflare Workers) — 빠른 일은 엣지, 무거운 일은 리전"
+    notes: "로그인 확인, A/B 테스트, 이미지 크기 조정 등."
+
+  - type: quiz
+    title: "6교시 확인 문제"
+    questions:
+      - "TCP 연결과 TLS 연결 중 먼저 일어나는 것은?"
+      - "정적 파일을 사용자 가까이에서 내려 주는 것은?"
+      - "평균 대신 p99를 보는 이유는?"
+      - "'사이트가 안 열려요' — 가장 먼저 확인할 단계는?"
+    answers: "1) TCP (HTTP/3는 QUIC이 둘을 합침)  2) CDN  3) 평균은 소수의 심한 지연을 가린다  4) DNS"
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "네트워크 장비의 역할"
+    goals: ["라우터와 스위치", "상태 있는/없는 방화벽", "포워드 vs 리버스 프록시", "로드밸런서와 헬스 체크"]
+    notes: "클라우드에서는 상자 대신 설정 몇 줄 — 하는 일은 같다. 장비를 알면 AWS 콘솔 메뉴가 읽힌다."
+
+  - type: image
+    title: "네트워크 장비 ↔ AWS ↔ Kubernetes"
+    img: week1/day3/w1d3-network-devices.png
+    notes: "라우트 테이블에 '0.0.0.0/0 → 인터넷 게이트웨이' 한 줄이 있으면 퍼블릭 서브넷. 보안 그룹=상태 있음(인스턴스), NACL=상태 없음(서브넷)."
+
+  - type: table
+    title: "보안 그룹 규칙 읽기 (5주차 미리 보기)"
+    head: ["포트", "출발지", "해석"]
+    rows:
+      - ["443", "0.0.0.0/0", "전 세계에서 HTTPS — 웹 서버라면 정상"]
+      - ["22", "203.0.113.7/32", "내 IP 하나에서만 SSH — 좋은 습관"]
+      - ["22", "0.0.0.0/0", "전 세계에서 SSH — 위험! 공격 봇의 표적"]
+      - ["5432", "앱 서버의 보안 그룹", "앱 서버만 DB 접속 — 모범 사례"]
+    colw: [1.6, 3.8, 6.7]
+    mono_col: 0
+    callout: "Connection timed out이 나오면 가장 먼저 이 표를 확인한다"
+    callout_color: orange
+    notes: "203.0.113.0/24는 문서용 예시 주소 대역(RFC 5737)."
+
+  - type: compare
+    title: "프록시 — 누구 편에 서 있나"
+    left: ["포워드 프록시 = 내 비서", ["클라이언트를 대신해 밖으로 나간다", "회사 인터넷 감시·차단·캐시", "상대방은 비서만 본다"]]
+    right: ["리버스 프록시 = 안내 데스크", ["서버를 대신해 요청을 받는다", "뒤의 여러 서버로 연결, HTTPS 처리", "nginx · Envoy · AWS ALB"]]
+    notes: "방문객은 회사 안에 부서가 몇 개인지 몰라도 된다."
+
+  - type: cards
+    title: "로드밸런서 — 여러 서버에 일을 나눠 주기"
+    cards:
+      - [Split, teal, "분산", "라운드 로빈, 최소 연결 — 한 대에 몰리지 않게"]
+      - [HeartPulse, orange, "헬스 체크", "아픈 서버는 빼고, 건강해지면 다시 넣는다"]
+      - [Lock, violet, "TLS 종료", "암호화를 LB에서 풀어 뒤 서버 부담 감소"]
+      - [Layers, teal, "L4 NLB · L7 ALB", "IP·포트만 vs URL 경로·헤더까지"]
+    callout: "헬스 체크 = 자동 복구의 시작 → K8s readiness probe, ALB 대상 그룹 상태 확인"
+    notes: "서버가 죽어도 사용자가 모르게 만드는 모든 자동화는 '주기적으로 묻고, 아니면 빼고, 건강해지면 넣는다'에서 출발."
+
+  - type: compare
+    title: "학술 노트 — 성벽에서 제로 트러스트로"
+    left: ["성과 해자 (castle and moat)", ["바깥에 두꺼운 방화벽", "안에 들어오면 믿는다", "한 번 뚫리면 내부를 마음대로"]]
+    right: ["제로 트러스트", ["2014 구글 BeyondCorp", "2020 NIST SP 800-207 표준화", "never trust, always verify", "→ 4주차 Istio mTLS, NetworkPolicy"]]
+    notes: "Ward & Beyer (2014) ;login: 39(6). Rose et al. (2020) NIST SP 800-207."
+
+  - type: statement
+    icon: DoorOpen
+    title: "트렌드 — Kubernetes의 '정문'이 바뀌는 중"
+    text: "Ingress NGINX 2026년 3월 은퇴\n→ 후속 표준 Gateway API"
+    sub: "은퇴 이후 새 릴리스·버그 수정·보안 패치 없음 — 그래서 이 과정 4주차는 Gateway API + Envoy Gateway로 실습"
+    notes: "Kubernetes Blog (2025.11) Ingress NGINX Retirement. 오늘 배운 리버스 프록시·L7 LB가 Gateway API가 표준화한 개념."
+
+  - type: quiz
+    title: "7교시 확인 문제"
+    questions:
+      - "응답을 자동 허용하는 방화벽 종류와 AWS 이름은?"
+      - "SSH(22)를 0.0.0.0/0으로 열면 생기는 위험은?"
+      - "/api와 /를 다른 서버로 보내려면 AWS의 어떤 LB?"
+      - "'절대 믿지 말고 항상 확인하라' 보안 모델은?"
+    answers: "1) 상태 있는 방화벽, 보안 그룹  2) 전 세계 공격 봇의 표적 — 내 IP(/32)로 제한  3) ALB  4) 제로 트러스트"
+
+  - type: summary
+    title: "오늘 하루 정리"
+    items:
+      - ["1교시", "데이터는 패킷으로, 층마다 포장(캡슐화) — 거리 = 지연 시간"]
+      - ["2교시", "사설 IP + NAT, 주소 개수 = 2^(32−n), 0.0.0.0/0 = 인터넷 전체"]
+      - ["3교시", "refused는 받을 프로그램 없음, timed out은 방화벽 — 컨테이너는 0.0.0.0"]
+      - ["4교시", "DNS = 계층·위임·캐시, 바꿨는데 안 바뀌면 TTL"]
+      - ["5~6교시", "4xx는 요청 쪽, 5xx는 서버 쪽 — 장애는 요청의 여정 앞에서부터"]
+      - ["7교시", "보안 그룹은 상태 있는 방화벽, 헬스 체크는 자동 복구의 시작"]
+    diary: "배움일기 — 2주차 Docker에서 바로 쓸 것 하나 · 에러 표(refused, timed out…)를 내 말로 · 내일(현대 앱 구조) 전에 궁금한 것"
+    notes: "내일은 현대 애플리케이션 구조. 오늘 그린 요청의 여정 ⑥~⑧(앱·캐시·DB)을 확대한다."

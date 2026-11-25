@@ -1,0 +1,14 @@
+# 2교시 · 처음 만드는 Pod — catalog-api 하나
+# YOUR_ID · YOUR_SHA는 1교시 단계 3의 sed 명령이 바꿔 준다
+apiVersion: v1
+kind: Pod
+metadata:
+  name: catalog-api
+  labels:
+    app: catalog-api
+spec:
+  containers:
+    - name: catalog-api
+      image: ghcr.io/YOUR_ID/devmart-catalog-api:YOUR_SHA
+      ports:
+        - containerPort: 8000

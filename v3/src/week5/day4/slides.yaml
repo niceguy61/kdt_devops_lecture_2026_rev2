@@ -1,0 +1,177 @@
+meta:
+  footer: "5주차 4일차 · Terraform으로 EKS"
+  title: "5주차 4일차 — Terraform으로 EKS"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 5주차 AWS + Terraform + EKS"
+    title: "Terraform으로 EKS"
+    subtitle: "5주차 4일차 · VPC + NAT + EKS 모듈 · Access Entry와 Pod Identity · LBC · NLB 앞의 Envoy Gateway · EBS · 같은 배포 저장소 · 지우는 순서"
+    notes: "어제 질문: EKS를 코드로 만들면 몇 개 자원? DevMart를 그대로 올릴 수 있나? 오늘 시간당 약 $0.3 — 7교시에 반드시 지운다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "3일차 요약 + EKS의 구조"]
+      - ["2교시", "2", "코드 읽기와 apply"]
+      - ["3교시", "3", "기다리는 동안 — 신원 두 방향 · kubeconfig"]
+      - ["4교시", "4", "플랫폼 올리기"]
+      - ["5교시", "5", "같은 배포 저장소를 EKS에"]
+      - ["6교시", "6", "클라우드에서 달라진 것"]
+      - ["7교시", "7", "지우는 순서 + 배움일기"]
+    notes: "kind는 꺼 두어도 된다. 지우는 시각을 먼저 정한다."
+
+  - type: section
+    num: "1교시"
+    title: "EKS의 구조"
+    goals: ["AWS가 운영하는 것", "내가 만드는 것", "kind와 짝짓기", "오늘의 비용"]
+    notes: "플랫폼(입구 · 스토리지 · 신원)만 갈아 끼우면 앱은 그대로."
+
+  - type: image
+    title: "EKS — 누가 무엇을"
+    img: week5/day4/w5d4-eks.png
+    notes: "비용: 컨트롤 플레인 $0.10 + NAT $0.059 + 노드 $0.104 + NLB · IP — 시간당 약 $0.3, 하루 약 $2, 잊으면 한 달 $200. 오해: EKS면 운영이 필요 없다. 학술: 공유 책임의 경계. 트렌드: 관리형 노드 그룹 · Auto Mode · Karpenter · Fargate · Capabilities, 1.36."
+
+  - type: section
+    num: "2교시"
+    title: "코드 읽기와 apply"
+    goals: ["파일 여섯", "VPC: 달라진 세 곳", "EKS 모듈 v21", "plan 50개에서 볼 것"]
+    notes: "NAT 켜기 · NAT 하나 · 서브넷 태그(LBC가 찾는다)."
+
+  - type: code
+    title: "eks.tf — 클러스터 · 애드온 · 노드"
+    shell: "devmart-infra/terraform/eks/eks.tf"
+    code: |
+      module "eks" {
+        source  = "terraform-aws-modules/eks/aws"
+        version = "~> 21.0"
+        name               = "devmart"
+        kubernetes_version = "1.36"
+        enable_cluster_creator_admin_permissions = true
+        subnet_ids = module.vpc.private_subnets
+        addons = { vpc-cni = { before_compute = true }, eks-pod-identity-agent = {…},
+                   kube-proxy = {}, coredns = {}, metrics-server = {}, aws-ebs-csi-driver = {…} }
+        eks_managed_node_groups = { default = { instance_types = ["t3.medium"], desired_size = 2 } }
+      }
+    out: |2
+      Plan: 5○ to add, 0 to change, 0 to destroy.
+      module.eks.aws_eks_cluster.this[0]: Creation complete after 9m12s
+      Apply complete!                       real 16m
+    points:
+      - ["v21", "name · kubernetes_version · addons"]
+      - ["-out", "리뷰한 plan 그대로"]
+      - ["돈 · 권한 · 공개 · 삭제", "사람이 보는 넷"]
+    notes: "실패 표: AZ 용량 · ExpiredToken · 버전 · 잠금 — 멱등이라 다시 apply. 학술: 코드 리뷰의 이해 비용(Bacchelli & Bird 2013). 트렌드: eksctl · Blueprints · 클러스터는 TF, 플랫폼은 GitOps."
+
+  - type: section
+    num: "3교시"
+    title: "신원 두 방향"
+    goals: ["IAM → Kubernetes", "Kubernetes → IAM", "kubeconfig", "노드 · 애드온 확인"]
+    notes: "aws-auth ConfigMap은 예전 방식 — 오타 하나로 모두 잠기던."
+
+  - type: image
+    title: "Access Entry와 Pod Identity"
+    img: week5/day4/w5d4-identity.png
+    notes: "노드 역할에 권한을 주면 그 노드의 모든 Pod가 쓴다 — SA 단위로 좁힌다(4주차 5일차). get nodes: 둘뿐, private IP, EXTERNAL-IP 없음. 오해: 만든 사람은 언제나 들어간다. 학술: 워크로드 신원(SP 800-207). 트렌드: IRSA → Pod Identity."
+
+  - type: section
+    num: "4교시"
+    title: "플랫폼 올리기"
+    goals: ["gp3 StorageClass", "Load Balancer Controller", "Envoy Gateway → NLB", "Argo CD"]
+    notes: "kps · Istio · Kyverno는 노드 2대에 무겁다 — 오늘은 안 올린다."
+
+  - type: code
+    title: "바뀐 파일은 하나 — EnvoyProxy"
+    shell: "platform/envoyproxy-eks.yaml"
+    code: |
+      envoyService:
+        type: LoadBalancer                     # kind: NodePort 30080
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: external
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    out: |2
+      NAME      CLASS   ADDRESS                                                     PROGRAMMED
+      devmart   eg      k8s-envoygat-envoydev-….elb.ap-northeast-2.amazonaws.com   True
+      curl http://$NLB/  →  404   ← Envoy가 답했다 (아직 라우트 없음)
+    points:
+      - ["external", "LBC가 맡는다"]
+      - ["ip", "Pod로 바로"]
+      - ["장부 밖", "NLB는 TF에 없다"]
+    notes: "gp3 WaitForFirstConsumer — EBS는 AZ에 묶인다. LBC SA 이름 = Pod Identity 연결 이름. 오해: LoadBalancer면 어디서나 같다. 학술: 이식성의 층 — 인터페이스(CSI · Gateway API)와 구현. 트렌드: 플랫폼도 GitOps(app of apps)."
+
+  - type: section
+    num: "5교시"
+    title: "같은 배포 저장소를 EKS에"
+    goals: ["오버레이 eks/", "Secret · Application", "인터넷에서 열기", "바뀐 것 · 그대로인 것"]
+    notes: "CRD가 없는 리소스가 하나라도 있으면 Sync가 통째로 실패."
+
+  - type: code
+    title: "실습 6~8 · eks/ 폴더 하나"
+    shell: "devmart-deploy/eks/kustomization.yaml"
+    code: |
+      resources:
+        - ../devmart                       # 4주차 그대로
+      patches:
+        - path: remove-mesh-and-monitoring.yaml   # $patch: delete × 6
+    out: |2
+      < 2 kind: AuthorizationPolicy   < 1 kind: Gateway (waypoint)
+      < 1 kind: PeerAuthentication    < 1 kind: PrometheusRule   < 1 kind: VirtualService
+      /               200
+      /api/products   200
+      {"order_id":1,"status":"pending","total_price":59000}
+    points:
+      - ["오버레이", "참조 + 차이만"]
+      - ["휴대폰", "LTE로 열어 보기"]
+      - ["앱 파일", "한 줄도 안 바뀜"]
+    notes: "db Pending — EBS 만들고 붙이는 시간. 오해: 클라우드로 옮기려면 앱을 다시 짠다 — 12-Factor면 플랫폼의 일, 어려운 건 데이터. 학술: 설정 복사의 어긋남(Sayagh TSE 2020). 트렌드: ApplicationSet, Source Hydrator."
+
+  - type: image
+    title: "손님의 요청이 지나는 길"
+    img: week5/day4/w5d4-path.png
+    notes: "바뀐 것은 플랫폼(NLB · EBS), 그대로인 것은 앱(이미지 · HTTPRoute · Deployment · Argo CD)."
+
+  - type: section
+    num: "6교시"
+    title: "클라우드에서 달라진 것"
+    goals: ["Pod IP = VPC IP", "NLB 대상 = Pod", "PVC = EBS, AZ에 묶임", "노드 늘리기 · 콘솔"]
+    notes: "EC2 → 네트워크 인터페이스 → 보조 IP에 Pod IP."
+
+  - type: table
+    title: "실습 9~12 · AWS 쪽에서 본 Kubernetes"
+    head: ["본 것", "어디서", "뜻"]
+    rows:
+      - ["Pod IP 10.0.137.201", "ENI 보조 IP", "VPC CNI — 노드당 Pod 상한(t3.medium ≈ 17)"]
+      - ["NLB 대상 = Envoy Pod IP", "대상 그룹", "Pod를 늘리면 LBC가 대상을 더한다"]
+      - ["PVC db-data = vol-… gp3 암호화", "EC2 → 볼륨", "nodeAffinity: ap-northeast-2a — db는 2a에서만"]
+      - ["desired_size 2 → 3", "terraform plan", "노드 수는 코드로 (PR)"]
+      - ["kubectl top nodes", "metrics-server 애드온", "메모리 35~45%"]
+    colw: [3.8, 3.0, 5.4]
+    notes: "EBS는 AZ 하나 — 2a 노드가 사라지면 db Pending (내일 장애 훈련) → RDS Multi-AZ의 이유. 오해: 클라우드 디스크는 어디서나 붙는다 — S3 · EFS · EBS 구분. 학술: 플랫 네트워크의 비용, IPv6. 트렌드: Karpenter · Auto Mode, 스팟 · Graviton."
+
+  - type: section
+    num: "7교시"
+    title: "지우는 순서"
+    goals: ["누가 만들었나", "cleanup.sh", "terraform destroy", "AWS 쪽에서 확인"]
+    notes: "NLB(LBC) · EBS(EBS CSI)는 장부 밖 — Kubernetes 쪽 먼저, 클러스터는 마지막."
+
+  - type: steps
+    title: "실습 13~14 · 앱 → 입구 → 클러스터 → 확인"
+    steps:
+      - ["앱", "Application 삭제 → Namespace → PVC → EBS 볼륨 삭제"]
+      - ["입구", "helm uninstall eg → Service → LBC가 NLB 삭제 (사라질 때까지 기다린다)"]
+      - ["클러스터", "terraform destroy — 5○개, 10~15분"]
+      - ["확인", "check-account · EKS · 볼륨 · ENI · EIP 모두 빈 줄, 오늘 약 $1.5~2"]
+    notes: "거꾸로 하면 NLB · EBS가 고아로 남아 과금, VPC 삭제 실패. 내일 같은 코드로 약 30분에 재현. 오해: destroy가 끝나면 다 지워졌다. 학술: 분산 가비지 컬렉션(Plainfossé & Shapiro 1995). 트렌드: 하루살이 환경, 주인 없는 자원 탐지."
+
+  - type: summary
+    title: "오늘 만든 것 (그리고 지운 것)"
+    items:
+      - ["1교시", "EKS — AWS가 운영하는 것 · 내가 만드는 것 · 오늘의 비용"]
+      - ["2교시", "VPC + NAT + EKS 1.36 + 애드온 여섯 + 노드 2 — 5○개 자원, 16분"]
+      - ["3교시", "Access Entry(IAM → K8s) · Pod Identity(K8s → IAM)"]
+      - ["4교시", "gp3 · LBC · Envoy Gateway → NLB · Argo CD"]
+      - ["5~6교시", "eks/ 오버레이로 같은 앱 · Pod IP · NLB 대상 · EBS의 AZ"]
+      - ["7교시", "앱 → 입구 → destroy → AWS 쪽 확인"]
+    diary: "배움일기 — AWS가 운영하는 것 vs 내가 만든 것 · plan에서 확인한 넷 · 신원 두 방향 · 바뀐 파일 vs 그대로 · 가장 클라우드다운 것 · 만들고 지운 시간과 비용 · 내일 30분에 재현? 노드가 죽으면 db는?"
+    notes: "내일: 다시 만들고, 파이프라인을 EKS로, 장애 훈련, 비용 보고, 5주 회고."

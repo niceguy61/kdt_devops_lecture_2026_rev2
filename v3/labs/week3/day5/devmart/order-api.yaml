@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-api
+  namespace: devmart
+  labels: { app: order-api }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: order-api }
+  template:
+    metadata:
+      labels: { app: order-api }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: order-api
+          image: ghcr.io/YOUR_ID/devmart-order-api:YOUR_SHA
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: { name: devmart-config }
+          env:
+            - name: DB_NAME
+              value: orders
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: devmart-db, key: DB_PASSWORD }
+          readinessProbe:                 # 준비됐나 — DB와 큐까지 (2일차 /ready)
+            httpGet: { path: /ready, port: 8000 }
+            periodSeconds: 5
+            timeoutSeconds: 6             # /ready는 redis가 없으면 2초 넘게 걸린다 (2일차 2교시)
+          livenessProbe:                  # 살아 있나 — 이 프로세스만 (2일차 /health)
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 10
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-api
+  namespace: devmart
+spec:
+  selector: { app: order-api }
+  ports:
+    - port: 8000
+      targetPort: 8000

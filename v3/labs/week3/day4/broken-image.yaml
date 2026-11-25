@@ -1,0 +1,9 @@
+# 3교시 장애 1 · 이미지 태그 오타 → ErrImagePull / ImagePullBackOff
+apiVersion: v1
+kind: Pod
+metadata:
+  name: broken-image
+spec:
+  containers:
+    - name: catalog-api
+      image: ghcr.io/YOUR_ID/devmart-catalog-api:sha-0000000

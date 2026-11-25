@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8"><style>/* 다이어그램 공통 스타일 — 1600x900 캔버스 기준 */
+:root{
+  --navy:#0F2A44; --navy2:#1E3A5F; --teal:#0089A0; --teal-d:#006A7C; --teal-l:#E0F3F6;
+  --orange:#C8651B; --orange-l:#FBEBDD; --slate:#475569; --slate-l:#EEF2F6; --line:#D5DEE6;
+  --red:#B83227; --red-l:#FBE7E5; --green:#2E7D4F; --green-l:#E3F3E9; --violet:#5B4BB7; --violet-l:#ECEAFB;
+  --aws-region:#00A4A6; --aws-az:#147EBA; --ink:#1E293B; --muted:#64748B;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#fff}
+body{font-family:"Pretendard",sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;word-break:keep-all}
+.canvas{width:1600px;height:900px;padding:40px 40px;display:flex;flex-direction:column;justify-content:center;gap:28px;overflow:hidden;background:#fff}
+.hd{font-size:40px;font-weight:800;color:var(--navy);letter-spacing:-0.5px}
+.sub{font-size:24px;color:var(--muted);font-weight:500;margin-top:-16px}
+.row{display:flex;align-items:stretch;gap:24px}
+.row.c{align-items:center}
+.col{display:flex;flex-direction:column;gap:18px}
+.grow{flex:1 1 0;min-width:0}
+.card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:26px 28px;display:flex;flex-direction:column;gap:12px}
+.card.fill-teal{background:var(--teal-l);border-color:#9fd6df}
+.card.fill-orange{background:var(--orange-l);border-color:#efc6a3}
+.card.fill-slate{background:var(--slate-l);border-color:var(--line)}
+.card.fill-red{background:var(--red-l);border-color:#efb7b1}
+.card.fill-green{background:var(--green-l);border-color:#a9d6bb}
+.card.fill-violet{background:var(--violet-l);border-color:#c6c0ef}
+.card.fill-navy{background:var(--navy);border-color:var(--navy);color:#fff}
+.card h3{font-size:30px;font-weight:800;color:var(--navy);line-height:1.25}
+.card.fill-navy h3{color:#fff}
+.card p,.card li{font-size:23px;line-height:1.45;color:var(--slate)}
+.card.fill-navy p{color:#cfe3ee}
+.card ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.card li::before{content:"• ";color:var(--teal);font-weight:800}
+.ic{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none}
+.ic svg{display:block}
+.chip{display:inline-block;font-size:20px;font-weight:700;padding:6px 14px;border-radius:999px;background:var(--slate-l);color:var(--slate)}
+.chip.teal{background:var(--teal);color:#fff}.chip.orange{background:var(--orange);color:#fff}.chip.navy{background:var(--navy);color:#fff}
+.arr{flex:none;display:flex;align-items:center;justify-content:center;color:#9AAAB8}
+.center{text-align:center;align-items:center}
+.muted{color:var(--muted)}
+.note{font-size:21px;color:var(--muted)}
+.big{font-size:54px;font-weight:900}
+.t-teal{color:var(--teal)}.t-orange{color:var(--orange)}.t-red{color:var(--red)}.t-green{color:var(--green)}.t-navy{color:var(--navy)}
+.tag{font-size:18px;font-weight:700;letter-spacing:1px;color:var(--muted)}
+.grid{display:grid;gap:22px}
+.box{border-radius:16px;padding:14px 18px;font-size:22px;font-weight:700;text-align:center}
+.dash{border:3px dashed var(--line);border-radius:22px;padding:22px}
+.hd,.sub{display:none}
+.flow{align-items:stretch}
+.arr{align-self:center}
+
+    .canvas{width:1320px;height:1100px}</style></head><body><div class="canvas"><div class="grid" style="grid-template-columns:repeat(3,1fr)"><div class="card" style="gap:8px;padding:24px 26px"><div style="font-size:56px;font-weight:900;color:var(--teal);letter-spacing:-1px">83%</div>
+  <p style="font-size:22px;color:var(--navy);font-weight:700;line-height:1.35">업무에 AI 도구를 쓰는 개발자<br>(안 쓴다 17.2%)</p><div class="note" style="font-size:17px">Stack Overflow 2026</div></div><div class="card" style="gap:8px;padding:24px 26px"><div style="font-size:56px;font-weight:900;color:var(--orange);letter-spacing:-1px">6.6%</div>
+  <p style="font-size:22px;color:var(--navy);font-weight:700;line-height:1.35">중요한 결정을 AI에 맡기겠다는<br>개발자</p><div class="note" style="font-size:17px">Stack Overflow 2026</div></div><div class="card" style="gap:8px;padding:24px 26px"><div style="font-size:56px;font-weight:900;color:var(--violet);letter-spacing:-1px">40%+</div>
+  <p style="font-size:22px;color:var(--navy);font-weight:700;line-height:1.35">AI 에이전트가 시작한<br>GitHub PR (2026년 9월)</p><div class="note" style="font-size:17px">GitHub Octoverse 2026</div></div><div class="card" style="gap:8px;padding:24px 26px"><div style="font-size:56px;font-weight:900;color:var(--red);letter-spacing:-1px">38%</div>
+  <p style="font-size:22px;color:var(--navy);font-weight:700;line-height:1.35">보안 취약점이 생긴<br>AI 코드 생성 과제</p><div class="note" style="font-size:17px">Veracode 2026년 10월</div></div><div class="card" style="gap:8px;padding:24px 26px"><div style="font-size:56px;font-weight:900;color:var(--red);letter-spacing:-1px">+19%</div>
+  <p style="font-size:22px;color:var(--navy);font-weight:700;line-height:1.35">숙련자가 AI 사용 시 늘어난 작업 시간<br>(본인 체감은 20% 단축)</p><div class="note" style="font-size:17px">METR RCT 2025</div></div><div class="card" style="gap:8px;padding:24px 26px"><div style="font-size:56px;font-weight:900;color:var(--slate);letter-spacing:-1px">J-커브</div>
+  <p style="font-size:22px;color:var(--navy);font-weight:700;line-height:1.35">AI 도입 초기엔 생산성이<br>잠시 떨어졌다가 오른다</p><div class="note" style="font-size:17px">DORA ROI 보고서 2026</div></div></div>
+<div class="note">※ 각 수치의 조사 대상과 방법은 서로 다릅니다. 본문 표와 참고 문헌을 함께 보세요</div></div></body></html>

@@ -1,0 +1,41 @@
+# 3교시 · Istio 지표를 어제의 Prometheus가 긁게 한다 (2일차 PodMonitor와 같은 방법)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istiod
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels: { istio: pilot }
+  endpoints:
+    - port: http-monitoring          # 15014
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ztunnel
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels: { app: ztunnel }
+  podMetricsEndpoints:
+    - targetPort: 15020
+      path: /stats/prometheus
+      interval: 15s
+---
+# waypoint는 어느 네임스페이스에든 생길 수 있다 → 모든 네임스페이스에서 찾는다
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: waypoints
+  namespace: istio-system
+spec:
+  namespaceSelector: { any: true }
+  selector:
+    matchExpressions:
+      - { key: gateway.istio.io/managed, operator: Exists }
+  podMetricsEndpoints:
+    - targetPort: 15020
+      path: /stats/prometheus
+      interval: 15s

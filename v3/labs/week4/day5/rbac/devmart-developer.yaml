@@ -1,0 +1,31 @@
+# 2교시 · 개발자 그룹(devmart-devs)은 devmart를 '읽기'만 — 쓰기는 Git(Argo CD)으로
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: devmart-developer
+  namespace: devmart
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "configmaps", "events", "serviceaccounts"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes", "gateways"]
+    verbs: ["get", "list", "watch"]
+  # secrets는 없다 · pods/exec도 없다 · 쓰기 동사(create, update, patch, delete)도 없다
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devmart-developer
+  namespace: devmart
+subjects:
+  - kind: Group
+    name: devmart-devs
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: devmart-developer
+  apiGroup: rbac.authorization.k8s.io

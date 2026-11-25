@@ -1,0 +1,12 @@
+# podinfo 차트 — 기본값에서 바꾸는 것만 적는다
+# 전체 기본값 보기: helm show values oci://ghcr.io/stefanprodan/charts/podinfo --version 6.14.0
+replicaCount: 2
+ui:
+  color: "#0E7C86"
+  message: "DevMart 4주차 — Helm으로 설치했습니다"
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 128Mi

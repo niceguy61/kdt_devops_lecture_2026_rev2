@@ -1,0 +1,235 @@
+meta:
+  footer: "4주차 3일차 · GitOps"
+  title: "4주차 3일차 — GitOps"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 4주차 Kubernetes 운영"
+    title: "GitOps"
+    subtitle: "4주차 3일차 · push와 pull · 배포 저장소 · Argo CD · Application과 Sync · 어긋남 · selfHeal과 prune · Actions → Argo CD"
+    notes: "어제 질문: 대시보드 · 규칙 · 런북을 Git에 올렸다. 클러스터 자체도 Git대로 맞출 수 없을까? 3주차의 set env는 어디에도 기록되지 않았다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "2일차 요약 + GitOps"]
+      - ["2교시", "2", "CI와 CD 나누기 · 배포 저장소"]
+      - ["3교시", "3", "Argo CD 설치"]
+      - ["4교시", "4", "Application과 Sync"]
+      - ["5교시", "5", "Sync와 어긋남"]
+      - ["6교시", "6", "selfHeal과 prune"]
+      - ["7교시", "7", "Actions → Argo CD 전체 파이프라인 + 배움일기"]
+    notes: "Argo CD가 0.5~1GB 더 쓴다. gh auth status, GHCR 패키지 공개 확인. 오늘 새 저장소 하나 · 토큰 하나."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "GitOps"
+    goals: ["3주차 배포의 약점", "push vs pull", "네 원칙", "저장소 둘"]
+    notes: "약점: 기록이 없다, 어긋나도 모른다(drift), 열쇠가 밖에 있다."
+
+  - type: image
+    title: "push와 pull"
+    img: week4/day3/w4d3-push-pull.png
+    notes: "push는 난로를 켜고 나가는 것, pull은 온도 조절기. Deployment 컨트롤러의 reconcile을 Git 크기로. 오해: Git에 YAML을 올리면 GitOps다 — 원칙 3 · 4가 빠진 push. 오해: kubectl을 못 쓴다 — 읽기는 그대로."
+
+  - type: table
+    title: "GitOps 네 원칙 (OpenGitOps v1.0.0)"
+    head: ["원칙", "뜻", "DevMart에서"]
+    rows:
+      - ["1. 선언적", "무엇을 원하는지 적는다", "Deployment YAML · kustomization"]
+      - ["2. 버전 · 불변", "이력이 지워지지 않는 곳에", "배포 저장소의 커밋 이력"]
+      - ["3. 자동으로 당겨 옴", "에이전트가 스스로 가져온다", "Argo CD가 60초마다"]
+      - ["4. 계속 맞춤", "실제 상태를 원하는 상태로", "selfHeal (6교시)"]
+    colw: [2.6, 4.2, 5.2]
+    notes: "학술: CFEngine(Burgess 1993)의 수렴, GitOps 이름은 Richardson 2017. 트렌드: Argo CD 3.6(2026-11-04) — 메모리 절감, Resources Explorer, OTel. Weaveworks는 2024년 폐업, Flux는 CNCF에서 계속."
+
+  - type: image
+    title: "오늘의 그림 — 코드 저장소와 배포 저장소"
+    img: week4/day3/w4d3-loop.png
+    notes: "devops-lab(코드) → CI → GHCR → CI 봇이 devmart-deploy에 태그 커밋 → Argo CD가 pull. 배포 = 커밋, 되돌리기 = git revert."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "CI와 CD 나누기"
+    goals: ["CI는 Git에서 멈춘다", "저장소를 나누는 이유", "매니페스트 모으기", "images: 변환기"]
+    notes: "CI의 마지막 행동은 kubectl apply가 아니라 git push. CI는 클러스터 열쇠가 없다."
+
+  - type: compare
+    title: "같은 저장소 vs 배포 저장소 따로"
+    left: ["같은 저장소의 deploy/", ["코드 · 운영 이력이 섞인다", "봇 커밋이 CI를 다시 깨운다", "main의 'PR 필수'에 봇 push가 거절", "코드 권한 = 운영 권한"]]
+    right: ["devmart-deploy 따로", ["배포 이력만 따로 본다", "다른 저장소라 반복 없음", "코드 저장소 규칙은 그대로", "저장소 하나만 쓰는 토큰"]]
+    notes: "GITHUB_TOKEN은 ruleset 우회 목록에 넣을 수 없다. Argo CD 공식 Best Practices도 분리를 권한다. Secret은 어느 쪽에도 넣지 않는다."
+
+  - type: code
+    title: "실습 1~3 · 배포 저장소 만들고 모으기"
+    code: |
+      gh repo create devmart-deploy --public --clone
+      cp -r ~/devops-lab/k8s/day5/devmart/* devmart/
+      cp …/w4d1/gateway/devmart-routes.yaml …/w4d2/monitoring/devmart-{dashboard,rules}.yaml devmart/
+      sed -i "s/YOUR_ID/$ID/g; s/YOUR_SHA/$TAG/g" devmart/*.yaml
+      kubectl diff -k devmart; echo $?
+    out: |2
+      images:
+        - name: ghcr.io/niceguy61/devmart-catalog-api
+          newTag: sha-7c1e9a2
+      0          ← 배포 저장소 = 지금 클러스터
+    points:
+      - ["images:", "태그를 한 곳에서"]
+      - ["diff 0", "차이 없음"]
+      - ["Secret", "Git 밖에"]
+    notes: "web Service는 1일차에 ClusterIP로 바꾼 파일. 학술: Continuous Delivery(Humble & Farley 2010) — 한 번 빌드, 설정은 버전 관리. 트렌드: Source Hydrator — 펼친 YAML을 커밋."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "Argo CD 설치"
+    goals: ["부품", "values", "웹 UI 로그인", "CLI"]
+    notes: "1일차 Helm 루프 그대로: 저장소 등록 → 버전 확인 → values와 설치 → 확인."
+
+  - type: image
+    title: "Argo CD의 부품"
+    img: week4/day3/w4d3-argocd.png
+    notes: "repo-server(Git을 펼친다) · application-controller(비교와 맞춤, StatefulSet) · server(API · UI) · redis(캐시) · applicationset-controller. 학술: server-side apply와 managedFields(KEP-555)."
+
+  - type: code
+    title: "실습 5~7 · 설치와 로그인"
+    code: |
+      helm repo add argo https://argoproj.github.io/argo-helm
+      helm install argocd argo/argo-cd -n argocd --create-namespace \
+        --version "$VER" -f argocd/argocd-values.yaml --wait
+      kubectl port-forward -n argocd svc/argocd-server 8080:80 &
+      argocd login localhost:8080 --username admin --password "$PW" --plaintext
+      argocd account update-password
+      kubectl -n argocd delete secret argocd-initial-admin-secret
+    out: |2
+      argocd-application-controller-0     1/1   Running
+      argocd-repo-server-…                1/1   Running
+      argocd-server-…                     1/1   Running
+      'admin:login' logged in successfully
+    points:
+      - ["insecure", "port-forward를 http로"]
+      - ["60s", "Git 확인 주기"]
+      - ["CLI 버전", "서버 이미지 태그에 맞춘다"]
+    notes: "APP VERSION v3.6.x 확인, 차트 버전은 그날 고정해 VERSIONS.txt에. Pending이면 podinfo-canary 지우기. 트렌드: controller sharding, 관리형 Argo CD(EKS Capabilities 등)."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "Application과 Sync"
+    goals: ["Application 네 칸", "처음엔 OutOfSync", "손으로 Sync", "Sync와 Health"]
+    notes: "Argo CD는 폴더를 보고 도구를 고른다 — kustomization.yaml이면 kustomize, Chart.yaml이면 Helm."
+
+  - type: code
+    title: "실습 8~9 · Application 만들고 Sync"
+    shell: "argocd/devmart-app.yaml"
+    code: |
+      spec:
+        project: default
+        source:
+          repoURL: https://github.com/YOUR_ID/devmart-deploy.git
+          targetRevision: main
+          path: devmart
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: devmart
+    out: |2
+      devmart  OutOfSync  Healthy  Manual
+      >   argocd.argoproj.io/tracking-id: devmart:apps/Deployment:devmart/catalog-api
+      deployment.apps/catalog-api configured     ← created가 아니다
+    points:
+      - ["OutOfSync", "추적 표시가 없어서"]
+      - ["adopt", "지우지 않고 넘겨받는다"]
+      - ["cascade", "app delete는 Namespace까지"]
+    notes: "웹 UI 나무 = ownerReferences. 추적 표시가 없는 Secret · Gateway는 prune 대상이 아니다. 학술: Borg, Omega, and Kubernetes(2016) — 작은 컨트롤러들의 협력. 트렌드: 3.x는 annotation 추적이 기본, Resources Explorer."
+
+  - type: image
+    title: "Sync와 Health — 두 질문"
+    img: week4/day3/w4d3-status.png
+    notes: "Health는 readiness probe가 정한다 — 3주차 5일차의 probe가 여기서 다시 쓰인다. probe가 없으면 떠 있기만 해도 Healthy."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "Sync와 어긋남"
+    goals: ["A · Git이 바뀌면", "B · 클러스터가 바뀌면", "C · Git이 틀리면", "git revert"]
+    notes: "웹 UI를 옆에 띄워 둔다. diff의 < 는 클러스터, > 는 Git."
+
+  - type: table
+    title: "실습 10~12 · 어긋남의 세 방향"
+    head: ["", "만든 방법", "Sync · Health", "해결"]
+    rows:
+      - ["A", "replicas 2→3 커밋 · push", "OutOfSync · Healthy", "argocd app sync"]
+      - ["B", "kubectl set env QUEUE_NAME=order", "OutOfSync · Healthy (주문은 고장!)", "Git이 맞으면 Sync, 손 수정이 맞으면 PR"]
+      - ["C", "newTag: sha-0000000 커밋", "Synced · Progressing → Degraded", "git revert --no-edit HEAD"]
+    colw: [0.6, 4.0, 3.8, 3.8]
+    mono_col: 1
+    notes: "B: Argo CD Health는 Kubernetes가 보는 건강까지, 손님이 보는 건강은 어제의 대시보드. C: 옛 Pod가 그대로 손님을 받는다(롤링). reset + force push는 이력을 지운다 — 불변 원칙. 학술: Oppenheimer 2003, Yin 2011(설정 오류). 트렌드: Argo Rollouts — 단계마다 Prometheus로 자동 중단."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "selfHeal과 prune"
+    goals: ["자동 동기화", "selfHeal", "prune", "끄는 법"]
+    notes: "prune이 기본으로 꺼진 이유 — 실수로 지운 파일이 운영 DB를 지우면 안 된다."
+
+  - type: steps
+    title: "실습 13~15 · 스스로 맞추는 클러스터"
+    steps:
+      - ["자동 Sync", "devmart-app-auto.yaml apply → 커밋 · push만으로 replicas 3→2"]
+      - ["selfHeal", "kubectl scale --replicas=5 → 몇 초 만에 2로, deploy web 삭제 → 다시 생성"]
+      - ["prune", "debug.yaml 추가 → 생성, git rm → 클러스터에서도 사라짐"]
+      - ["남는 것", "devmart-db Secret · Gateway — 추적 표시가 없다"]
+    notes: "selfHeal vs HPA 싸움 — replicas를 Git에서 지우거나 ignoreDifferences. 장애 중엔 argocd app set --sync-policy none, 기록 남기고 다시 켠다. 자동 Sync 중엔 app rollback이 막힌다. 학술: MAPE-K(Kephart & Chess 2003). 트렌드: PR 단계 정책 검사 + admission(5일차 Kyverno)."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "Actions → Argo CD"
+    goals: ["배포 저장소 전용 토큰", "update-manifest job", "PR 하나로 2.1.0", "revert로 되돌리기"]
+    notes: "fine-grained PAT: devmart-deploy 하나, Contents RW, 30일. gh secret set DEPLOY_REPO_TOKEN. 이 토큰 = 운영 배포 권한. 회사는 GitHub App."
+
+  - type: code
+    title: "실습 17 · 배포 저장소에 새 태그 적기"
+    shell: ".github/workflows/devmart-ci.yml"
+    code: |
+      update-manifest:
+        needs: build
+        if: github.event_name == 'push'
+        steps:
+          - uses: actions/checkout@v6
+            with:
+              repository: ${{ github.repository_owner }}/devmart-deploy
+              token: ${{ secrets.DEPLOY_REPO_TOKEN }}
+          - run: kustomize edit set image ghcr.io/$OWNER/devmart-$s=…:sha-${GITHUB_SHA::7}
+          - run: git commit -m "deploy: devmart 이미지 → sha-…" && git push
+    out: |2
+      5a7c9e2 deploy: devmart 이미지 → sha-3f8b2d1      ← 봇이 쓴 커밋
+      Sync Status:   Synced to main (5a7c9e2)
+    points:
+      - ["needs: build", "없는 태그를 막는다"]
+      - ["다른 저장소", "무한 반복 없음"]
+      - ["둘째 줄", "코드 커밋 링크"]
+    notes: "실패 표: Repository not found(토큰 범위) · 403(Contents 권한) · kustomize 없음 · ImagePullBackOff(패키지 비공개)."
+
+  - type: steps
+    title: "실습 18~19 · PR 하나로 배포, revert로 되돌리기"
+    steps:
+      - ["바꾸기", "Dockerfile APP_VERSION 2.0.0 → 2.1.0 · PR · 체크 · 합치기"]
+      - ["지켜보기", "1초마다 /api/info — 2.0.0과 2.1.0이 섞이다 2.1.0, FAIL 0줄"]
+      - ["되돌리기", "devmart-deploy에서 git revert HEAD · push → 1분 안에 2.0.0"]
+      - ["뒷정리", "코드 저장소도 revert PR — 안 하면 다음 합치기 때 2.1.0이 돌아온다"]
+    notes: "사람 손이 닿은 곳은 sed 한 줄과 합치기 버튼. 비밀 값: Sealed Secrets · SOPS · External Secrets(5주차 AWS Secrets Manager). app of apps · ApplicationSet. 학술: DORA — 빈도와 안정성은 함께 간다. 트렌드: Image Updater · Renovate · Kargo."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1교시", "push vs pull · GitOps 네 원칙 · 어긋남(drift)"]
+      - ["2교시", "devmart-deploy — 매니페스트 묶음, images: 한 곳에서 태그"]
+      - ["3교시", "Argo CD 설치 · 웹 UI · CLI 로그인"]
+      - ["4교시", "Application · 추적 표시 · Sync와 Health"]
+      - ["5교시", "어긋남 세 방향 · git revert"]
+      - ["6~7교시", "selfHeal · prune · CI 봇 커밋 → 자동 배포 · revert로 복구"]
+    diary: "배움일기 — push와 pull 한 문장씩 · 어긋남 A · B · C를 Sync · Health로 · selfHeal이 방해될 상황 · 합치기→반영, revert→반영 몇 분? · CI와 Argo CD의 권한 · 서비스 사이 호출은 누가 검사하나?"
+    notes: "지우지 않는다. 내일부터 DevMart 변경은 배포 저장소 커밋으로. 내일: Istio — 서비스 메시."

@@ -1,0 +1,36 @@
+# 6교시 · DevMart 알림 규칙
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devmart
+  namespace: devmart
+spec:
+  groups:
+    - name: devmart.gateway
+      rules:
+        # 요청 중 5xx 비율 — 미리 계산해 두는 기록 규칙
+        - record: devmart:gateway_5xx_ratio:rate1m
+          expr: |
+            sum by (envoy_cluster_name) (rate(envoy_cluster_upstream_rq_xx{envoy_response_code_class="5", envoy_cluster_name=~"httproute/devmart/.*"}[1m]))
+            /
+            sum by (envoy_cluster_name) (rate(envoy_cluster_upstream_rq_total{envoy_cluster_name=~"httproute/devmart/.*"}[1m]))
+        - alert: DevMartHighErrorRate
+          expr: devmart:gateway_5xx_ratio:rate1m > 0.05
+          for: 1m
+          labels:
+            severity: critical
+            team: devmart
+          annotations:
+            summary: "{{ $labels.envoy_cluster_name }}의 5xx 비율이 {{ $value | humanizePercentage }}"
+            description: "1분 넘게 요청의 5% 이상이 5xx로 실패하고 있습니다."
+            runbook_url: "https://github.com/YOUR_ID/devops-lab/blob/main/runbooks/devmart-high-error-rate.md"
+        - alert: DevMartSlowResponses
+          expr: |
+            histogram_quantile(0.95, sum by (le, envoy_cluster_name) (rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~"httproute/devmart/.*"}[5m]))) > 1000
+          for: 5m
+          labels:
+            severity: warning
+            team: devmart
+          annotations:
+            summary: "{{ $labels.envoy_cluster_name }}의 p95 응답 시간이 {{ $value }}ms"
+            description: "5분 넘게 느린 쪽 5%의 응답이 1초를 넘습니다."

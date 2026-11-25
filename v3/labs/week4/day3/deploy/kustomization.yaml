@@ -1,0 +1,40 @@
+# devmart-deploy 저장소의 devmart/kustomization.yaml — Git이 원하는 상태의 전부
+# (3주차 5일차 devmart/ + 4주차 1일차 라우트 + 2일차 대시보드 · 알림 규칙)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: devmart
+resources:
+  - namespace.yaml
+  - config.yaml
+  - db.yaml
+  - redis.yaml
+  - catalog-api.yaml
+  - order-api.yaml
+  - order-worker.yaml
+  - web.yaml
+  - devmart-routes.yaml          # 4주차 1일차
+  - devmart-dashboard.yaml       # 4주차 2일차
+  - devmart-rules.yaml           # 4주차 2일차
+configMapGenerator:
+  - name: db-init
+    files:
+      - files/initdb/01-catalog.sql
+      - files/initdb/02-orders.sql
+  - name: web-html
+    files:
+      - files/web/index.html
+      - files/web/app.js
+      - files/web/style.css
+  - name: web-nginx
+    files:
+      - files/nginx/default.conf
+generatorOptions:
+  disableNameSuffixHash: true
+# 7교시부터 CI가 이 아래 태그를 바꾼다 — 사람은 손대지 않는다
+images:
+  - name: ghcr.io/YOUR_ID/devmart-catalog-api
+    newTag: YOUR_SHA
+  - name: ghcr.io/YOUR_ID/devmart-order-api
+    newTag: YOUR_SHA
+  - name: ghcr.io/YOUR_ID/devmart-order-worker
+    newTag: YOUR_SHA

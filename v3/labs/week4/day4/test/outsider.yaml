@@ -1,0 +1,21 @@
+# 6교시 · 메시 안에 있지만 devmart 밖인 손님
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: outsider
+  labels:
+    istio.io/dataplane-mode: ambient
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: outsider
+spec:
+  containers:
+    - name: curl
+      image: curlimages/curl:8.17.0
+      command: ["sleep", "infinity"]
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 32Mi }

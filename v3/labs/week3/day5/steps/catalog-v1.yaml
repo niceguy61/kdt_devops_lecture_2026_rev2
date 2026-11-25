@@ -1,0 +1,40 @@
+# 2교시 · catalog-api v1 — 설정은 ConfigMap, 비밀번호는 Secret에서
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-api
+  namespace: devmart
+  labels: { app: catalog-api }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: catalog-api }
+  template:
+    metadata:
+      labels: { app: catalog-api }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: catalog-api
+          image: ghcr.io/YOUR_ID/devmart-catalog-api:YOUR_SHA
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: { name: devmart-config }
+          env:
+            - name: DB_NAME
+              value: catalog
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: devmart-db, key: DB_PASSWORD }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-api
+  namespace: devmart
+spec:
+  selector: { app: catalog-api }
+  ports:
+    - port: 8000
+      targetPort: 8000

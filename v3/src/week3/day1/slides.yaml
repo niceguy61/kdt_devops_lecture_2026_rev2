@@ -1,0 +1,314 @@
+meta:
+  footer: "3주차 1일차 · MSA 개념과 실행"
+  title: "3주차 1일차 — MSA 개념과 실행"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 3주차 MSA + Kubernetes"
+    title: "MSA 개념과 실행"
+    subtitle: "3주차 1일차 · 모놀리식과 MSA · 서비스 경계와 데이터 · DevMart MSA 여섯 서비스 · 요청 ID 추적 · 동기와 비동기 · 연결 장애"
+    notes: "3주차부터 난이도가 한 단계 올라간다. 대신 2주차의 Compose · 네트워크 · 환경 변수 · 로그 읽기가 그대로 쓰인다. 오늘은 MSA의 찬반이 아니라 여러 서비스를 실행하고 연결을 확인하고 끊긴 곳을 찾는 법."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "2주차 요약 + 모놀리식과 MSA"]
+      - ["2교시", "2", "서비스 경계와 데이터 소유"]
+      - ["3교시", "3", "DevMart MSA 구조 읽기"]
+      - ["4교시", "4", "여섯 서비스 실행하기"]
+      - ["5교시", "5", "요청 ID로 통신 추적하기"]
+      - ["6교시", "6", "동기와 비동기 — 큐와 처리기"]
+      - ["7교시", "7", "장애 시나리오 1 + 배움일기"]
+    notes: "시작 전에 2주차 DevMart를 down (8080 충돌). redis:8-alpine을 미리 pull 해 두면 좋다."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "모놀리식과 MSA"
+    goals: ["2주차 10분 요약", "한 덩어리 vs 작은 서비스", "얻는 것과 잃는 것", "MSA는 선택이다"]
+    notes: "2주차 손 복습: devmart 폴더에서 docker compose ps → down."
+
+  - type: image
+    title: "대형 식당과 푸드코트"
+    img: week3/day1/w3d1-mono-vs-msa.png
+    notes: "모놀리식은 나쁜 것이 아니다 — 처음 시작하는 서비스는 대부분 모놀리식. 문제는 커졌을 때: 전체 배포, 장애 전파, 통째 확장, 사람이 서로 기다림."
+
+  - type: table
+    title: "무엇을 얻고 무엇을 잃나"
+    head: ["기준", "모놀리식", "MSA"]
+    rows:
+      - ["배포 단위", "전체 한 번에", "서비스마다 따로"]
+      - ["장애 범위", "한 기능이 전체를 멈출 수 있다", "가둘 수 있다 · 잘못 설계하면 연쇄 (2일차)"]
+      - ["확장", "통째로", "바쁜 서비스만 (6교시)"]
+      - ["기능 사이 호출", "함수 호출", "네트워크 호출 — 느리고 실패할 수 있다"]
+      - ["데이터", "한 DB · 조인 · 트랜잭션 쉬움", "서비스마다 DB · 서비스를 넘는 조인 어려움"]
+      - ["운영", "프로그램 하나", "서비스 수만큼 빌드 · 배포 · 로그"]
+    colw: [2.4, 4.4, 5.3]
+    callout: "MSA = 독립성을 사는 대신 복잡함을 치르는 선택 · 분산 컴퓨팅의 8가지 오류가 전부 현실이 된다"
+    notes: "오해: 컨테이너 여럿 = MSA가 아니다. 기술 계층을 나눈 것과 업무를 나눈 것은 다르다. 늘 함께 배포해야 하면 분산 모놀리스."
+
+  - type: table
+    title: "인프라 엔지니어에게 MSA가 뜻하는 것"
+    head: ["모놀리식에서 하나였던 것", "MSA에서는", "이 과정에서"]
+    rows:
+      - ["이미지 하나", "서비스 수만큼 이미지 · 태그", "3주차 2일차 CI"]
+      - ["배포 하나", "서비스마다 배포 · 롤백", "3주차 K8s · 4주차 ArgoCD"]
+      - ["설정 파일 하나", "서비스마다 환경 변수 · 비밀값", "3주차 5일차 ConfigMap · Secret"]
+      - ["로그 한 곳", "흩어진 로그", "오늘 5교시 · 4주차 로그 수집"]
+      - ["함수 호출", "타임아웃 · 재시도", "3주차 2일차 · 4주차 Istio"]
+    colw: [3.6, 4.4, 4.1]
+    notes: "학술: Lewis & Fowler (2014) 'Microservices' — 업무 능력 중심, 분산 데이터, 인프라 자동화, 실패를 전제한 설계. Fowler 'MicroservicePrerequisites' — 빠른 서버 준비, 기본 모니터링, 빠른 배포. 트렌드: 프라임 비디오 2023 — 다시 합쳐 비용 90% 절감, 모듈러 모놀리스."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "서비스 경계와 데이터 소유"
+    goals: ["업무 능력으로 나누기", "서비스마다 자기 DB", "콘웨이의 법칙", "DevMart 나눠 보기"]
+    notes: "회사를 엑셀 부서, 이메일 부서로 나누지 않는다 — 영업부, 회계부, 물류부."
+
+  - type: image
+    title: "남의 DB를 읽지 않고 API로 묻는다"
+    img: week3/day1/w3d1-data-ownership.png
+    notes: "API = 서비스 사이의 약속. 대가: 조인 · 외래 키 · 트랜잭션. product_name 복사는 업무적으로도 맞다(주문 당시 이름)."
+
+  - type: statement
+    icon: Users
+    title: "콘웨이의 법칙 (1968)"
+    text: "시스템을 설계하는 조직은\n그 조직의 의사소통 구조를 닮은 설계를 만든다"
+    sub: "역 콘웨이 전략 — 원하는 구조에 맞춰 팀을 먼저 나눈다 · 아마존 '피자 두 판 팀' · MacCormack et al. (2012) 거울 가설"
+    notes: "Conway (1968) Datamation. Evans (2003) DDD 경계 컨텍스트 — 같은 '상품'도 카탈로그 · 주문 · 배송에서 뜻이 다르다. 트렌드: 팀 토폴로지 — 인지 부하로 나누고, 플랫폼 팀이 도구를 제공."
+
+  - type: table
+    title: "실습 1 · DevMart 서비스 경계"
+    head: ["서비스", "하는 일", "소유 데이터", "묻는 대상"]
+    rows:
+      - ["web", "화면 · 주소별 안내", "없음", "모든 API"]
+      - ["catalog-api", "상품 조회", "catalog DB", "없음"]
+      - ["order-api", "주문 접수 · 목록", "orders DB", "catalog-api (가격)"]
+      - ["order-worker", "주문 처리 (오래 걸림)", "orders DB (상태)", "큐에서 일 받기"]
+      - ["redis", "메시지 큐", "대기 메시지", "없음"]
+      - ["db", "PostgreSQL — DB 둘", "—", "—"]
+    colw: [2.4, 3.6, 3.0, 3.1]
+    mono_col: 0
+    callout: "실습용 타협: DB 서버 하나에 DB 둘 — 서로의 DB에 접속하지 않는 규칙은 지킨다"
+    callout_color: orange
+    notes: "먼저 notes/week3-day1.md에 직접 그려 보고 비교."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "DevMart MSA 구조 읽기"
+    goals: ["전체 그림", "서비스마다 일곱 가지", "compose.yaml로 표 채우기", "nginx = API 게이트웨이"]
+    notes: "실행 전에 읽는다."
+
+  - type: image
+    title: "DevMart MSA — 여섯 서비스"
+    img: week3/day1/w3d1-topology.png
+    notes: "두 갈래: 상품 보기 web → catalog-api → catalog DB. 주문하기 web → order-api → ① catalog-api ② orders DB ③ redis → order-worker → orders DB."
+
+  - type: cards
+    title: "서비스마다 알아야 할 일곱 가지"
+    cards:
+      - [Tag, teal, "① 이름 · ② 포트", "서비스 이름 · EXPOSE · ports"]
+      - [Network, violet, "③ 의존 · ④ 설정", "*_HOST · *_URL · environment · .env"]
+      - [HeartPulse, green, "⑤ 헬스", "/health · /ready · healthcheck"]
+      - [FileText, orange, "⑥ 로그 · ⑦ 데이터", "compose logs · volumes · DB 이름"]
+    callout: "서비스가 늘수록 이 표가 운영의 지도가 된다"
+    notes: "찾아낼 것: 둘 다 8000이어도 OK(컨테이너마다 네트워크 공간), order-worker는 포트 없음, QUEUE_NAME은 둘이 같아야, redis는 볼륨 없음, DB_PASSWORD는 .env 하나."
+
+  - type: code
+    title: "nginx — 주소로 나눠 보내는 안내 데스크"
+    shell: "nginx/default.conf"
+    code: |
+      proxy_set_header X-Request-ID $request_id;
+      add_header X-Request-ID $request_id always;
+
+      location /api/orders {
+          proxy_pass http://order-api:8000;
+      }
+      location /api/ {
+          proxy_pass http://catalog-api:8000;
+      }
+    points:
+      - ["가장 길게 일치", "/api/orders → order-api"]
+      - ["API 게이트웨이", "브라우저는 서비스 수를 몰라도 된다"]
+      - ["X-Request-ID", "5교시의 주인공"]
+    notes: "남북 트래픽(바깥 → 안) vs 동서 트래픽(서비스끼리). 학술: 퍼사드 패턴, BFF (Calçado 2015). 트렌드: Kubernetes Gateway API — Ingress NGINX 은퇴, 4주차."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "여섯 서비스 실행하기"
+    goals: ["실습 파일 받기", "성공 기준 먼저", "한 줄로 띄우기", "정상 기준선 기록"]
+    notes: "받은 파일은 실행 전에 읽는다 — 1주차 1일차 AI 검증 4단계의 안전 확인."
+
+  - type: code
+    title: "실습 3 · 한 줄로 띄우기"
+    code: |
+      cp -r ~/course/v3/labs/week3/devmart-msa ~/devops-lab/
+      cd ~/devops-lab/devmart-msa && cp .env.example .env
+      docker compose config --quiet && echo "문법 OK"
+      docker compose up -d --build
+      docker compose ps --format 'table {{.Service}}\t{{.Status}}\t{{.Ports}}'
+    out: |
+      catalog-api    Up 30 seconds            8000/tcp
+      db             Up 36 seconds (healthy)  5432/tcp
+      order-api      Up 30 seconds            8000/tcp
+      order-worker   Up 30 seconds
+      redis          Up 36 seconds            6379/tcp
+      web            Up 29 seconds            0.0.0.0:8080->80/tcp
+    points:
+      - ["db healthy 뒤", "파이썬 서비스 셋 → web 마지막"]
+      - ["브라우저", "주문하기 → pending → completed"]
+      - ["8080 충돌?", "2주차 DevMart를 down"]
+    notes: "성공 기준을 notes에 먼저 적는다: 6개 Up, 상품 5개, pending→completed, /ready 정상, 에러 로그 없음."
+
+  - type: code
+    title: "주문 API와 /health · /ready"
+    code: |
+      curl -s -X POST http://localhost:8080/api/orders \
+        -H 'Content-Type: application/json' -d '{"product_id": 4, "quantity": 2}'
+      docker compose exec order-api python -c \
+        "import urllib.request as u; print(u.urlopen('http://localhost:8000/ready').read())"
+      docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}'
+    out: |
+      {"order_id":2,"request_id":"d8f441e3…","status":"pending","total_price":36000}
+      b'{"checks":{"db":"ok","queue":"ok"},"status":"ready"}\n'
+    points:
+      - ["/health", "살아 있나? — 프로세스만"]
+      - ["/ready", "일할 준비? — DB · 큐까지"]
+      - ["기준선", "ps · logs · stats를 notes에"]
+    notes: "학술: Shewhart (1931) 관리도 — 평소의 흔들림을 알아야 이상을 말할 수 있다. 4주차 Prometheus의 조상. 트렌드: Telepresence · mirrord · Testcontainers — 개발/운영 일치(12-Factor X)."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "요청 ID로 통신 추적하기"
+    goals: ["흩어지는 로그", "번호표 이어 넘기기", "여행 기록 만들기", "JSON 로그"]
+    notes: "택배 송장 번호 비유."
+
+  - type: image
+    title: "요청 ID 하나가 네 서비스를 따라간다"
+    img: week3/day1/w3d1-request-trace.png
+    notes: "HTTP는 헤더로, 큐는 메시지 안에. 한 곳이라도 빠뜨리면 추적이 끊긴다."
+
+  - type: code
+    title: "실습 4 · 주문 하나의 여행 기록"
+    code: |
+      curl -si -X POST http://localhost:8080/api/orders \
+        -H 'Content-Type: application/json' -d '{"product_id": 1}'
+      RID=ea2298f15fcb37bfc986679ba76b7622
+      docker compose logs -t --no-log-prefix | grep $RID | sort
+    out: |
+      …19.202Z {"service": "order-api", "event": "order_received", …}
+      …19.216Z {"service": "catalog-api", "event": "get_product", …}
+      …19.228Z {"service": "order-api", "event": "order_queued", "order_id": 9}
+      …19.230Z {"service": "order-worker", "event": "order_processing", …}
+      …20.236Z {"service": "order-worker", "event": "order_completed", …}
+    points:
+      - ["사용자 대기", "약 26ms — 202 응답까지"]
+      - ["catalog 호출", "약 14ms — 함수였다면 1ms 미만"]
+      - ["nginx 로그", "기본 형식엔 request_id 없음"]
+    notes: "JSON 로그 = 구조화된 로그 — 기계가 칸 이름으로 고르고 합친다. jq로 보기. 학술: Dapper (Sigelman et al. 2010) — 추적 ID, span, 모든 곳에, 공용 라이브러리에, 표본 추출. 트렌드: W3C Trace Context traceparent, OpenTelemetry (4주차)."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "동기와 비동기 — 큐와 처리기"
+    goals: ["전화와 주문서 함", "큐가 쌓이는 것 보기", "처리기 3개로", "언제 무엇을"]
+    notes: "가격 조회는 동기, 주문 처리는 비동기."
+
+  - type: image
+    title: "동기와 비동기"
+    img: week3/day1/w3d1-sync-async.png
+    notes: "동기: 답이 올 때까지 기다린다 → 짧은 타임아웃. 비동기: 202 Accepted, 몰리면 쌓이고 처리기를 늘려 나눠 비운다."
+
+  - type: code
+    title: "실습 5~6 · 쌓이고, 나눠서 비우기"
+    code: |
+      # compose.yaml: order-worker WORK_SECONDS: "5" → docker compose up -d order-worker
+      for i in 1 2 3 4 5 6; do curl -s -o /dev/null -w "%{http_code} %{time_total}\n" \
+        -X POST http://localhost:8080/api/orders -H 'Content-Type: application/json' \
+        -d '{"product_id": 4}'; done
+      docker compose exec redis redis-cli LLEN orders
+      docker compose up -d --scale order-worker=3
+      docker compose exec db psql -U devmart -d orders -c \
+        "SELECT id, status, processed_by FROM orders ORDER BY id DESC LIMIT 6;"
+    out: |
+      202 0.031   (× 6 — 처리는 5초인데 응답은 0.02초)
+      (integer) 5
+       20 | completed | a17ede6a43f2
+       19 | completed | d190f9334617
+       18 | completed | ae83c2f545d3
+    points:
+      - ["LLEN 5", "줄 선 주문 5개"]
+      - ["processed_by 셋", "BRPOP은 한 명에게만"]
+      - ["nginx 재시작 불필요", "처리기가 가지러 온다(pull)"]
+    notes: "줄일 때 처리 중이던 메시지는? SIGTERM 후 10초 — 더 길면 유실 가능, 2일차. 학술: 리틀의 법칙 L = λW (Little 1961) — 도착률 > 처리 능력이면 큐는 끝없이 길어진다, 4주차 KEDA. 트렌드: RabbitMQ · SQS · Kafka 이벤트 스트림."
+
+  - type: compare
+    title: "언제 무엇을 · 비동기의 함정"
+    left: ["동기가 맞을 때", ["답이 있어야 다음 일을 할 때 (가격, 로그인)", "대신 타임아웃을 짧게", "결과를 즉시 보여 줘야 할 때"]]
+    right: ["비동기가 맞을 때", ["오래 걸리는 일 (결제 승인, 이메일)", "순간적으로 몰리는 일 (세일 시작)", "받는 쪽이 자주 멈출 때", "함정: 장애를 없애지 않고 미룬다 → 큐 길이 감시"]]
+    notes: "DevMart 화면은 2초마다 상태를 다시 묻는다 — 비동기 + 상태 조회."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "장애 시나리오 1 — 연결이 끊겼다"
+    goals: ["진단 순서", "주소 · DB 이름 오타", "조용한 장애", "git restore"]
+    notes: "시작 전 compose.yaml이 커밋돼 있는지 git status로 확인 — 고장 낸 뒤 git restore로 되돌린다."
+
+  - type: image
+    title: "바깥에서 안으로 — MSA 연결 장애 진단"
+    img: week3/day1/w3d1-debug-order.png
+    notes: "② 영향 범위: 상품 보기 / 주문 목록 / 주문하기 / 처리 완료를 각각 확인하면 범위가 확 준다."
+
+  - type: code
+    title: "장애 1~2 · 주소 오타와 DB 이름 오타"
+    code: |
+      # CATALOG_URL: http://catalog:8000  → docker compose up -d order-api
+      docker compose logs order-api --no-log-prefix | grep catalog_error | tail -1
+      docker compose exec order-api getent hosts catalog-api
+      # DB_NAME: order → docker compose up -d order-api
+      docker compose logs order-api --no-log-prefix | grep db_error | tail -1
+      git restore compose.yaml && docker compose up -d order-api
+    out: |
+      … "error": "<urlopen error [Errno -2] Name or service not known>"
+      172.18.0.5      catalog-api
+      … FATAL:  database "order" does not exist
+    points:
+      - ["장애 1", "주문하기만 503 — 상품 보기는 정상"]
+      - ["장애 2", "주문 전부 503 — 장애가 주문에 갇힘"]
+      - ["IP가 보였다", "이름 · 연결 · 인증은 통과"]
+    notes: "화면의 실패 알림에 요청 ID를 보여 주면 사용자 문의에 grep 한 번으로 답할 수 있다."
+
+  - type: code
+    title: "장애 3 · 에러가 하나도 없는 장애"
+    code: |
+      # order-worker QUEUE_NAME: order → docker compose up -d order-worker
+      docker compose ps                                   # 모두 Up
+      docker compose logs order-worker --no-log-prefix --tail 2
+      docker compose exec redis redis-cli KEYS '*'
+      docker compose exec redis redis-cli LLEN orders
+    out: |
+      {"service": "order-worker", "event": "worker_started", "queue": "order", …}
+      1) "orders"
+      (integer) 1
+    points:
+      - ["202인데 pending", "모두 Up · 에러 로그 없음"]
+      - ["서로 다른 우체통", "orders에 쌓이고 order를 기다림"]
+      - ["복구 후", "큐가 기다려 줘서 유실 없음"]
+    notes: "교훈: Up + 에러 없음 ≠ 정상, 함께 맞춰야 하는 설정은 한 곳에서(ConfigMap), 큐 길이 감시, 시작할 때 설정을 로그에. 학술: 회색 장애 (Huang et al., HotOS 2017) — 관찰자의 차이. 트렌드: 설정도 PR 단계에서 자동 검사 (내일 CI, 4주차 Kyverno)."
+
+  - type: summary
+    title: "오늘 만든 것"
+    items:
+      - ["1~2교시", "MSA = 업무별 서비스 + 자기 데이터 + 따로 배포 · 대가는 복잡함"]
+      - ["3교시", "여섯 서비스의 일곱 가지 · nginx = API 게이트웨이"]
+      - ["4교시", "한 줄로 실행 · 성공 기준 먼저 · 기준선"]
+      - ["5교시", "요청 ID로 네 서비스 로그를 시간 순으로"]
+      - ["6교시", "동기는 기다리고, 비동기는 맡긴다 · 처리기 3개"]
+      - ["7교시", "주소 · DB 이름 · 큐 이름 — 조용한 장애"]
+    diary: "배움일기 — MSA를 내 비유로 · 주문 하나가 지나가는 길 · 가장 오래 걸린 구간 · 동기/비동기를 내가 아는 앱에서 · 조용한 장애에서 처음 의심한 것 · catalog-api가 느려지면?"
+    notes: "정리: docker compose down (볼륨은 남긴다). 내일: 장애 전파 · 타임아웃 · 재시도 · 큐 적체 · GitHub Actions CI."

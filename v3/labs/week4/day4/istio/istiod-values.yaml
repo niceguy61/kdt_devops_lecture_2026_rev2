@@ -1,0 +1,9 @@
+# istiod — ambient 프로필, kind 실습용 자원
+profile: ambient
+pilot:
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+  autoscaleEnabled: false
+meshConfig:
+  accessLogFile: /dev/stdout        # 프록시 접근 로그를 남긴다 (5교시에 읽는다)

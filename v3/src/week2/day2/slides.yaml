@@ -1,0 +1,356 @@
+meta:
+  footer: "2주차 2일차 · Docker 기본"
+  title: "2주차 2일차 — Docker 기본"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 2주차 핸즈온"
+    title: "Docker 기본"
+    subtitle: "2주차 2일차 · 이미지와 컨테이너 · 안에 들어가 보기 · nginx · 포트 연결 · logs와 exec · 생명주기 · 실패 사례"
+    notes: "오늘은 남이 만든 이미지(alpine, nginx)로 손기술을 익히는 날. 1주차 개념(격리된 프로세스, 포트, 종료 코드, 127.0.0.1)을 눈으로 확인한다."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "이미지와 컨테이너"]
+      - ["2교시", "2", "컨테이너 안에 들어가 보기"]
+      - ["3교시", "3", "nginx를 백그라운드로"]
+      - ["4교시", "4", "포트 연결"]
+      - ["5교시", "5", "관찰하기 — logs · exec · inspect · stats"]
+      - ["6교시", "6", "생명주기와 정리"]
+      - ["7교시", "7", "실패 사례 다섯 가지 + 배움일기"]
+    notes: "시작 전 bash tools/check-env.sh 로 실패 0개 확인."
+
+  # 1교시
+  - type: section
+    num: "1교시"
+    title: "이미지와 컨테이너"
+    goals: ["어제 환경 점검", "틀과 붕어빵", "이미지 이름 읽기", "images · ps -a"]
+    notes: "Docker Desktop이 꺼져 있으면 먼저 켠다."
+
+  - type: image
+    title: "이미지와 컨테이너"
+    img: week2/day2/w2d2-image-container.png
+    notes: "이미지 = 읽기 전용 틀(1주차 '프로그램'), 컨테이너 = 실행 단위(1주차 '프로세스'). 비유: 밀키트와 요리."
+
+  - type: statement
+    icon: Snowflake
+    title: "학술 노트 — 불변 인프라"
+    text: "고쳐 쓰는 '눈송이 서버' 대신\n새 이미지로 통째로 교체한다"
+    sub: "Fowler (2012) SnowflakeServer · C. Fowler (2013) Immutable Infrastructure — 이미지가 읽기 전용인 이유, '서버를 가축처럼'이 가능한 이유"
+    notes: "3일차에 앱을 고치면 컨테이너 안이 아니라 이미지를 다시 빌드한다."
+
+  - type: table
+    title: "이미지 이름 읽기 — docker.io/library/nginx:1.30-alpine"
+    head: ["부분", "뜻", "생략하면"]
+    rows:
+      - ["docker.io", "레지스트리 (창고)", "docker.io (Docker Hub)"]
+      - ["library", "계정 · 조직", "library (공식 이미지)"]
+      - ["nginx", "저장소 (이미지 이름)", "생략 불가"]
+      - ["1.30-alpine", "태그 (버전)", "latest"]
+    colw: [2.8, 4.4, 4.9]
+    mono_col: 0
+    callout: "latest는 '최신'이 아니라 '태그를 안 적었을 때의 기본 이름' — 버전을 적는다"
+    callout_color: orange
+    notes: "오늘 받은 latest와 석 달 뒤 latest는 다를 수 있다. 3일차에 다이제스트."
+
+  - type: code
+    title: "실습 1 · 어제의 hello-world 찾기"
+    code: |
+      docker images
+      docker ps
+      docker ps -a
+      docker rm eager_turing vibrant_hopper   # 내 화면의 이름으로
+    out: |
+      IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+      hello-world:latest   f7931603f70e       20.3kB         3.96kB    U
+      CONTAINER ID   IMAGE         COMMAND    STATUS                    NAMES
+      a1b2c3d4e5f6   hello-world   "/hello"   Exited (0) 18 hours ago   eager_turing
+      9f8e7d6c5b4a   hello-world   "/hello"   Exited (0) 18 hours ago   vibrant_hopper
+    points:
+      - ["ps vs ps -a", "실행 중만 / 멈춘 것까지"]
+      - ["Exited (0)", "괄호 = 종료 코드"]
+      - ["이미지 1, 컨테이너 2", "틀 하나로 두 개를 찍었다"]
+    notes: "ID 앞 3~4글자로도 지울 수 있다. 트렌드: 공식 이미지 → 강화 이미지, 허가된 이미지만 쓰는 정책(4주차 Kyverno)."
+
+  # 2교시
+  - type: section
+    num: "2교시"
+    title: "컨테이너 안에 들어가 보기"
+    goals: ["docker run -it --rm", "프로세스와 PID 1", "호스트 이름", "커널은 공유"]
+    notes: "1주차 2일차의 '격리된 프로세스'를 확인하는 시간."
+
+  - type: code
+    title: "실습 2 · Alpine 컨테이너 안으로"
+    shell: "터미널 → 컨테이너 안 (/ #)"
+    code: |
+      docker run -it --rm alpine:3.24 sh
+      cat /etc/os-release
+      ps
+      hostname
+      uname -r
+      echo "컨테이너 안에서 만든 파일" > /tmp/note.txt
+      exit
+    out: |
+      PRETTY_NAME="Alpine Linux v3.24"
+      PID   USER     TIME  COMMAND
+          1 root      0:00 sh
+          8 root      0:00 ps
+      3c9a1f2e7b4d
+      6.6.87.2-microsoft-standard-WSL2
+    points:
+      - ["-i -t --rm", "입력 · 터미널 · 끝나면 자동 삭제"]
+      - ["PID 1 = sh", "바깥 수백 개 프로세스가 안 보인다"]
+      - ["uname -r", "바깥 Ubuntu와 같다 — 커널 공유"]
+    notes: "Alpine에는 bash가 없다 → sh. 다시 들어가면 /tmp/note.txt가 없다 (새 컨테이너)."
+
+  - type: image
+    title: "컨테이너 안과 밖"
+    img: week2/day2/w2d2-inside-outside.png
+    notes: "마운트·PID·UTS 네임스페이스. 학술 노트: 커널 공유 → 컨테이너 탈출 위험, gVisor(2018)·Firecracker(2020)로 격리 강화, Young et al. (2019) HotCloud — 트레이드오프."
+
+  # 3교시
+  - type: section
+    num: "3교시"
+    title: "nginx를 백그라운드로"
+    goals: ["docker pull과 레이어", "앞에서 실행 · Ctrl+C", "-d --name", "Up인데 접속이 안 되는 이유"]
+    notes: "nginx는 5일차 DevMart의 화면과 /api 프록시를 맡는다."
+
+  - type: code
+    title: "실습 3~5 · pull, 앞에서, 뒤에서"
+    code: |
+      docker pull nginx:1.30-alpine
+      docker run --rm nginx:1.30-alpine     # Ctrl+C로 멈춤
+      docker run -d --name web nginx:1.30-alpine
+      docker ps
+      curl http://localhost:80
+    out: |
+      7a2b6f1c4e3d: Pull complete    (여러 줄 = 여러 층)
+      Digest: sha256:4f1c…
+      CONTAINER ID   IMAGE               STATUS         PORTS     NAMES
+      52ae767dfac9   nginx:1.30-alpine   Up 4 seconds   80/tcp    web
+      curl: (7) Failed to connect to localhost port 80
+    points:
+      - ["-d", "detached — 터미널을 돌려준다"]
+      - ["80/tcp (화살표 없음)", "컨테이너 건물 안의 80호실일 뿐"]
+      - ["daemon off", "PID 1이 끝나면 컨테이너도 끝 — 앞에서 실행"]
+    notes: "학술: 데몬과 '한 컨테이너, 한 관심사'. 트렌드: nginx 1.30(2026.4) — 주 버전은 고정, 패치는 따라가기. 정리: docker rm -f web."
+
+  # 4교시
+  - type: section
+    num: "4교시"
+    title: "포트 연결"
+    goals: ["-p 바깥:안", "브라우저로 접속", "같은 이미지 여러 개", "충돌과 127.0.0.1"]
+    notes: "1주차 3일차 NAT · 포트의 실제 모습."
+
+  - type: image
+    title: "두 건물 사이에 통로 뚫기"
+    img: week2/day2/w2d2-port-mapping.png
+    callout: "왼쪽이 바깥, 오른쪽이 안 — -p 8080:80"
+    notes: "Docker가 패킷 필터에 DNAT 규칙을 넣는다 = 공유기의 포트 포워딩."
+
+  - type: code
+    title: "실습 6~8 · 연결, 여러 개, 충돌"
+    code: |
+      docker run -d --name web  -p 8080:80 nginx:1.30-alpine
+      curl http://localhost:8080          # 브라우저도
+      docker run -d --name web2 -p 8081:80 nginx:1.30-alpine
+      docker run -d --name web3 -p 8082:80 nginx:1.30-alpine
+      docker ps --format "table {{.Names}}\t{{.Ports}}"
+      docker run -d --name web4 -p 8080:80 nginx:1.30-alpine
+      docker run -d --name web-local -p 127.0.0.1:8083:80 nginx:1.30-alpine
+    out: |
+      web3   0.0.0.0:8082->80/tcp
+      web2   0.0.0.0:8081->80/tcp
+      web    0.0.0.0:8080->80/tcp
+      … Bind for 0.0.0.0:8080 failed: port is already allocated
+    points:
+      - ["안은 모두 80", "각자 다른 건물 — 바깥 문 번호만 다르면 된다"]
+      - ["web4 = Created", "시작 못 한 채 남는다 → docker rm"]
+      - ["127.0.0.1:", "내 컴퓨터에서만 — DB·관리 도구"]
+    notes: "정리: docker rm -f web web2 web3 web-local. 학술: ufw로 막아도 Docker 규칙이 먼저 — DB 노출 사고. 트렌드: 공용 와이파이에서는 127.0.0.1에만."
+
+  # 5교시
+  - type: section
+    num: "5교시"
+    title: "관찰하기"
+    goals: ["logs — 무슨 일이", "exec · cp — 안에서", "inspect — 설정", "top · stats — 숫자"]
+    notes: "Up이라고 정상은 아니다."
+
+  - type: image
+    title: "관찰 도구 네 가지"
+    img: week2/day2/w2d2-observe.png
+    notes: "로그는 표준 출력 — 12-Factor XI. syslog(1980년대, RFC 5424) → 4주차 관찰 가능성의 첫 기둥."
+
+  - type: code
+    title: "실습 9~10 · 로그 보고, 안에서 바꾸기"
+    code: |
+      docker run -d --name web -p 8080:80 nginx:1.30-alpine
+      curl -s http://localhost:8080/없는페이지 > /dev/null
+      docker logs --tail 3 web
+      docker logs -f web                  # Ctrl+C
+      docker exec web nginx -v
+      docker exec -it web sh              # 안에서 index.html 수정 후 exit
+      docker cp day2/index.html web:/usr/share/nginx/html/index.html
+    out: |
+      "GET /%EC%97%86… HTTP/1.1" 404 153 "-" "curl/8.5.0"
+      nginx version: nginx/1.30.6
+      Successfully copied 2.05kB to web:/usr/share/nginx/html/index.html
+    points:
+      - ["run -it vs exec -it", "새 컨테이너 / 실행 중인 컨테이너"]
+      - ["exec·cp는 임시", "진짜 변경은 이미지(3일차)·볼륨(4일차)"]
+    notes: "exec로 나온 뒤에도 컨테이너는 계속 실행 — exec 셸만 끝났다."
+
+  - type: code
+    title: "실습 11 · 설정과 상태를 숫자로"
+    code: |
+      docker inspect --format '{{.State.Status}}' web
+      docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' web
+      docker top web
+      docker stats --no-stream web
+    out: |
+      running
+      172.17.0.2
+      UID    PID    PPID   CMD
+      root   1283   1258   nginx: master process nginx -g daemon off;
+      NAME   CPU %   MEM USAGE / LIMIT
+      web    0.00%   3.7MiB / 7.6GiB
+    points:
+      - ["172.17.0.2", "사설 IP (172.16.0.0/12) — 4일차에 이름으로"]
+      - ["PID 1283", "안에서는 1 — 같은 프로세스, 두 이름표"]
+      - ["stats", "cgroups가 세는 숫자 → 3주차 limits"]
+    notes: "정리: docker rm -f web, day2/index.html 커밋."
+
+  # 6교시
+  - type: section
+    num: "6교시"
+    title: "생명주기와 정리"
+    goals: ["Created · Up · Exited", "stop vs kill — 0과 137", "재시작 정책", "안전하게 정리"]
+    notes: "1주차 2일차 프로세스 생명주기와 같은 모양."
+
+  - type: image
+    title: "컨테이너의 일생"
+    img: week2/day2/w2d2-lifecycle.png
+    notes: "stop → start는 변경 유지, rm 후 새 run은 사라짐."
+
+  - type: code
+    title: "실습 12~14 · 멈추고, 죽이고, 다시 살리기"
+    code: |
+      docker stop web ; docker start web     # 변경 유지
+      docker kill web
+      docker run --name exit3 alpine:3.24 sh -c "echo 작업 실패!; exit 3"
+      docker run -d --name crash --restart on-failure:3 \
+        alpine:3.24 sh -c "echo 시작합니다; exit 1"
+      docker inspect --format '재시작 횟수: {{.RestartCount}}' crash
+      docker ps -a --format "table {{.Names}}\t{{.Status}}"
+    out: |
+      재시작 횟수: 3
+      crash   Exited (1) 5 seconds ago
+      exit3   Exited (3) 1 minute ago
+      web     Exited (137) 2 minutes ago
+    points:
+      - ["137 = 128 + 9", "SIGKILL — 3주차 OOMKilled에서 다시"]
+      - ["exit 3", "자동화는 이 숫자만 본다"]
+      - ["재시작 ≠ 고침", "반복 실패는 로그부터 → CrashLoopBackOff"]
+    notes: "학술: Unix 신호, SIGTERM vs SIGKILL, 우아한 종료(12-Factor IX, K8s 30초)."
+
+  - type: table
+    title: "정리 명령 — 좁은 범위부터"
+    head: ["명령", "지우는 것", "위험도"]
+    rows:
+      - ["docker rm 이름", "그 컨테이너 하나", "낮음"]
+      - ["docker container prune", "멈춘 컨테이너 전부", "낮음"]
+      - ["docker image rm 이름", "그 이미지 하나", "낮음"]
+      - ["docker system prune", "멈춘 컨테이너·안 쓰는 네트워크·캐시", "중간"]
+      - ["docker system prune -a --volumes", "+ 모든 안 쓰는 이미지 + 볼륨(데이터!)", "높음"]
+    colw: [4.6, 5.4, 2.1]
+    mono_col: 0
+    callout: "--volumes는 DB 데이터를 지운다 — 인터넷의 '용량 정리' 명령을 생각 없이 실행하지 않기"
+    callout_color: orange
+    notes: "docker system df로 사용량 확인. 트렌드: Testcontainers, 에이전트용 일회용 컨테이너."
+
+  # 7교시
+  - type: section
+    num: "7교시"
+    title: "실패 사례 다섯 가지"
+    goals: ["디버깅 순서", "이름 · 태그 · 바로 꺼짐", "127.0.0.1 · 포트 순서", "내 문제 해결 표"]
+    notes: "생산적 실패. 일부러 만들고 고친다."
+
+  - type: image
+    title: "컨테이너 디버깅 순서"
+    img: week2/day2/w2d2-debug-order.png
+    notes: "1주차 3일차 6교시의 '앞에서부터 하나씩'을 컨테이너용으로."
+
+  - type: table
+    title: "실패 1~3 · 이름, 태그, 바로 꺼짐"
+    head: ["만든 것", "보이는 것", "원인 → 해결"]
+    rows:
+      - ["--name web 두 번", "Conflict … name \"/web\" is already in use", "멈춘 것도 이름 차지 → rm -f 또는 다른 이름"]
+      - ["nginx:1.30-alpin", "…:1.30-alpin: not found", "태그 오타 → Hub의 Tags 확인"]
+      - ["run -d alpine:3.24", "ps -a에 Exited (0)", "sh가 바로 끝남 → -it 또는 sleep 3600"]
+    colw: [3.0, 4.6, 4.5]
+    mono_col: 0
+    notes: "어제의 저장소 오타는 repository does not exist, 오늘의 태그 오타는 not found."
+
+  - type: code
+    title: "실패 4 · Up인데 접속이 안 돼요"
+    code: |
+      docker run -d --name py-bad -p 8090:8000 python:3.14-slim \
+        python -m http.server 8000 --bind 127.0.0.1
+      curl http://localhost:8090
+      docker exec py-bad python -c "import urllib.request; \
+        print(urllib.request.urlopen('http://127.0.0.1:8000').status)"
+      docker rm -f py-bad
+      docker run -d --name py-good -p 8090:8000 python:3.14-slim \
+        python -m http.server 8000
+    out: |
+      curl: (56) Recv failure: Connection reset by peer
+      200
+    points:
+      - ["안에서는 200", "밖에서만 실패 → 앱이 127.0.0.1에서만 기다린다"]
+      - ["0.0.0.0", "컨테이너 안 앱은 모든 문에서 — 1주차 3일차"]
+      - ["\\", "명령이 다음 줄로 이어진다"]
+    notes: "Docker Desktop에서는 (52) Empty reply from server. 3일차 DevMart API가 --bind 0.0.0.0:8000인 이유."
+
+  - type: code
+    title: "실패 5 · 포트 순서를 거꾸로"
+    code: |
+      docker run -d --name rev -p 80:8080 nginx:1.30-alpine
+      curl http://localhost:8080
+      curl http://localhost:80
+      docker rm -f rev
+    out: |
+      curl: (7) Failed to connect to localhost port 8080 … Couldn't connect
+      curl: (56) Recv failure: Connection reset by peer
+    points:
+      - ["바깥 80 → 안 8080", "nginx는 안의 80에서 기다린다"]
+      - ["첫 curl", "노트북 8080에 아무도 없다 (refused)"]
+      - ["둘째 curl", "컨테이너 8080에 아무도 없다"]
+    notes: "학술: 디버깅 = 가설과 실험 (Zeller 2009). 한 번에 하나씩 바꾼다."
+
+  - type: code
+    title: "실습 16 · 나만의 문제 해결 표 — 첫 번째 런북"
+    code: |
+      # VS Code: ~/devops-lab/day2/troubleshooting.md
+      # | 보인 에러 / 증상 | 원인 | 해결 명령 |  ← 내 말로 채우기
+      cd ~/devops-lab
+      git add day2/troubleshooting.md
+      git commit -m "2일차: Docker 문제 해결 표"
+      git push
+      docker container prune
+    points:
+      - ["1주차 5일차", "런북 = 새벽 3시의 나를 위한 문서"]
+      - ["AI에게 물을 때", "이 표와 디버깅 1~5 결과를 함께"]
+    notes: "이미지(alpine, nginx, python)는 내일도 쓰므로 남긴다."
+
+  - type: summary
+    title: "오늘 손에 익힌 것"
+    items:
+      - ["1교시", "이미지 = 읽기 전용 틀, 컨테이너 = 실행 단위 · 버전을 적는다"]
+      - ["2교시", "안에서는 내가 PID 1, 커널은 바깥과 공유"]
+      - ["3~4교시", "-d --name, -p 바깥:안 — 127.0.0.1은 내 컴퓨터만"]
+      - ["5교시", "logs · exec · inspect · stats — exec로 고친 건 임시"]
+      - ["6교시", "stop 0 · kill 137 · 재시작은 고침이 아니다 · 정리는 좁게"]
+      - ["7교시", "이미지 → 상태 → 로그 → 포트 → 안쪽 순서로 좁힌다"]
+    diary: "배움일기 — 가장 당황한 에러와 원인 한 문장 · 이미지/컨테이너를 프로그램/프로세스에 빗대기 · docker top의 PID · 내일 만들고 싶은 이미지"
+    notes: "내일은 Dockerfile. DevMart의 상품 API를 직접 이미지로 포장한다."

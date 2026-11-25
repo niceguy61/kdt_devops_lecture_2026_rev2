@@ -1,0 +1,165 @@
+meta:
+  footer: "5주차 2일차 · EC2 · ALB · Auto Scaling · S3"
+  title: "5주차 2일차 — EC2 · ALB · Auto Scaling · S3"
+
+slides:
+  - type: cover
+    kicker: "CLOUD NATIVE DEVOPS · 5주차 AWS + Terraform + EKS"
+    title: "EC2 · ALB · Auto Scaling · S3"
+    subtitle: "5주차 2일차 · 역할을 붙인 EC2 · user data · Session Manager · 시작 템플릿 · Auto Scaling · ALB · 장애와 교체 · 지우는 순서"
+    notes: "어제 질문: 서버를 띄우고, 늘리고, 하나가 죽어도 손님이 모르게. 오늘은 콘솔로 — Kubernetes가 해 주던 일을 VM 크기로."
+
+  - type: agenda
+    title: "오늘의 흐름"
+    items:
+      - ["1교시", "1", "1일차 요약 + 컴퓨트 고르기"]
+      - ["2교시", "2", "역할을 붙인 첫 EC2"]
+      - ["3교시", "3", "Session Manager · 메타데이터 · S3"]
+      - ["4교시", "4", "시작 템플릿과 Auto Scaling 그룹"]
+      - ["5교시", "5", "대상 그룹과 ALB"]
+      - ["6교시", "6", "장애와 교체 · 늘리기"]
+      - ["7교시", "7", "지우는 순서 + 비용 점검 + 배움일기"]
+    notes: "시간당 요금이 나가는 것을 만든다 — 7교시에 반드시 지운다. 하루 $0.5 이하."
+
+  - type: section
+    num: "1교시"
+    title: "컴퓨트 고르기"
+    goals: ["EC2 · ECS · Lambda · EKS", "오늘의 그림", "Kubernetes와 짝짓기", "EKS 노드도 EC2"]
+    notes: "요금: EC2 켜 둔 시간, Lambda 호출 × 시간, EKS 클러스터 + 노드."
+
+  - type: image
+    title: "오늘의 그림"
+    img: week5/day2/w5d2-arch.png
+    notes: "손님은 ALB 주소만 안다. app-sg는 web-sg에서만 9898. SSH 없음. 역할 = SSM + S3 읽기."
+
+  - type: image
+    title: "같은 생각, 다른 크기"
+    img: week5/day2/w5d2-k8s-map.png
+    notes: "오해: 컨테이너 시대에 EC2는 몰라도 된다 — EKS 노드 · LB가 다 그 위. 학술: 탄력성의 정의(Herbst 2013). 트렌드: EKS Auto Mode · Karpenter · 서버를 의식하는 정도."
+
+  - type: section
+    num: "2교시"
+    title: "역할을 붙인 첫 EC2"
+    goals: ["devmart-ec2-role", "인스턴스 시작 마법사", "user data", "왜 public 서브넷"]
+    notes: "역할: AmazonSSMManagedInstanceCore + 1일차 S3 정책(inline). 인스턴스 프로파일 = 역할을 꽂는 어댑터."
+
+  - type: table
+    title: "실습 2 · 인스턴스 시작 — 칸마다 이유"
+    head: ["칸", "값", "이유"]
+    rows:
+      - ["AMI · 유형", "Amazon Linux 2023 · t3.micro", "SSM 에이전트 · CLI 내장 · 프리 티어"]
+      - ["키 페어", "없이 진행", "SSH 안 씀 — Session Manager"]
+      - ["서브넷 · 공인 IP", "public1-2a · 활성화", "NAT 없이 Docker 받기 (실무는 private)"]
+      - ["보안 그룹", "devmart-app-sg", "9898 from web-sg만, 22 없음"]
+      - ["IAM 인스턴스 프로파일", "devmart-ec2-role", "키 없이 AWS 접근"]
+      - ["메타데이터 · user data", "V2만 · podinfo 띄우기", "SSRF 방어 · 손으로 설정하지 않는다"]
+    colw: [3.0, 4.2, 5.0]
+    notes: "내 노트북 → 공인 IP:9898은 막힌다(정상). 오해: 접속해서 설정 — 눈송이. 학술: 불변 인프라(Fowler 2013). 트렌드: Graviton, flex 인스턴스."
+
+  - type: section
+    num: "3교시"
+    title: "Session Manager · 메타데이터 · S3"
+    goals: ["포트 없는 접속", "user data 확인", "IMDSv2와 역할 자격 증명", "키 없는 S3 · Deny"]
+    notes: "SSM 에이전트가 밖으로 연결을 열어 두고 그 길로 들어온다. CloudTrail에 누가 들어왔나."
+
+  - type: code
+    title: "실습 4~5 · 서버 안에서 본 신원"
+    shell: "Session Manager (ssm-user)"
+    code: |
+      md iam/security-credentials/devmart-ec2-role | head -4
+      aws sts get-caller-identity --query Arn
+      aws s3 cp s3://devmart-assets-niceguy61/notice.txt -
+      aws s3 rm s3://devmart-assets-niceguy61/notice.txt
+    out: |2
+      "AccessKeyId" : "ASIA…",          ← 임시 자격 증명
+      "arn:aws:sts::…:assumed-role/devmart-ec2-role/i-0a1b2c3d4e5f60718"
+      DevMart 공지 — 2026-11-30
+      delete failed: … AccessDenied … with an explicit deny in an identity-based policy
+    points:
+      - ["IMDSv2", "토큰 없으면 401"]
+      - ["키 없음", "SDK가 자동으로"]
+      - ["Deny", "1일차의 그 문장"]
+    notes: "Capital One(2019): SSRF + IMDSv1 + 과한 역할. 새 버킷은 퍼블릭 액세스 차단 기본(2023-04~). 학술: OWASP A10 SSRF. 트렌드: 데이터 경계(SCP · RCP · 엔드포인트 정책)."
+
+  - type: section
+    num: "4교시"
+    title: "시작 템플릿 · Auto Scaling"
+    goals: ["템플릿 = Pod 템플릿", "인스턴스에서 템플릿", "원하는 수 2", "손으로 만든 서버 지우기"]
+    notes: "서브넷은 템플릿에 넣지 않는다 — 그룹이 정한다. user data는 base64 — 비밀번호 금지."
+
+  - type: code
+    title: "실습 7 · AZ 둘에 2대"
+    code: |
+      aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names devmart-asg \
+        --query 'AutoScalingGroups[0].{desired:DesiredCapacity,instances:Instances[].[AvailabilityZone,LifecycleState]}'
+    out: |2
+      desired: 2
+      instances:
+      - [ap-northeast-2a, InService]
+      - [ap-northeast-2c, InService]
+    points:
+      - ["균형", "AZ마다 하나"]
+      - ["두 가지 일", "수 맞추기 · 교체"]
+      - ["자기 것만", "web-1은 안 센다"]
+    notes: "오해: Auto Scaling은 트래픽 늘 때만 — 원하는 수 유지 · 자동 교체가 주된 이유. 학술: 오토스케일링 기법 분류(Lorido-Botran 2014). 트렌드: 속성 기반 인스턴스 선택, 혼합 인스턴스."
+
+  - type: section
+    num: "5교시"
+    title: "대상 그룹과 ALB"
+    goals: ["네 부품", "대상 그룹 /healthz", "ALB web-sg", "그룹에 붙이기 · ELB 상태 확인"]
+    notes: "ALB = L7, NLB = L4 (4일차 EKS에서 Envoy 앞에)."
+
+  - type: table
+    title: "Gateway API와 나란히"
+    head: ["4주차 1일차 (kind)", "오늘 (AWS)"]
+    rows:
+      - ["Gateway — listener :80", "ALB — 리스너 :80"]
+      - ["HTTPRoute — path → backendRef", "리스너 규칙 — 경로 → 대상 그룹"]
+      - ["Service + Endpoints", "대상 그룹 + 등록된 인스턴스"]
+      - ["readiness probe", "상태 검사 /healthz"]
+      - ["YAML 몇 줄", "화면 셋 · 클릭 서른 번"]
+    colw: [6.0, 6.0]
+    notes: "curl 6번 — hostname 두 가지가 번갈아. 내 노트북 → ALB(80) → 서버(web-sg에서 온 9898). 학술: Power of Two Choices(Mitzenmacher 2001). 트렌드: LBC가 Gateway API로 ALB · NLB를."
+
+  - type: section
+    num: "6교시"
+    title: "장애와 교체"
+    goals: ["서버 종료", "앱만 죽음", "늘리고 줄이기", "Kubernetes와 속도"]
+    notes: "손님 루프를 켜 둔다."
+
+  - type: table
+    title: "실습 12~14 · 무엇이 바꾸나, 얼마나 걸리나"
+    head: ["장애", "손님", "누가 바꾸나", "걸린 시간"]
+    rows:
+      - ["서버 종료", "502 한두 번 → 한 서버로", "ASG (원하는 수 2)", "2~3분 (같은 AZ에)"]
+      - ["앱만 정지", "거의 없음 — ALB가 20초에 뺀다", "ASG ELB 상태 확인", "약 3분"]
+      - ["원하는 수 3 → 1", "없음 — draining 뒤 종료", "사람 (set-desired-capacity)", "2~3분 / 1분"]
+    colw: [2.4, 4.2, 3.4, 2.6]
+    notes: "Pod는 몇 초, 서버는 분 단위 — 부팅 + user data + 상태 검사. 나만의 AMI(Packer · Image Builder)로 줄인다. readiness = 대상 그룹, liveness(교체) = ELB 상태 확인. 오해: 서버가 바뀌니 데이터도 안전 — 디스크가 사라진다. 학술: 가축과 애완동물. 트렌드: 웜 풀 · 인스턴스 새로 고침."
+
+  - type: section
+    num: "7교시"
+    title: "지우는 순서"
+    goals: ["의존 관계", "CLI로 지우기", "남은 것 확인", "오늘의 비용"]
+    notes: "중지가 아니라 종료 — 중지는 EBS 요금이 계속."
+
+  - type: steps
+    title: "실습 15 · 기대는 것부터 거꾸로"
+    steps:
+      - ["ASG", "delete-auto-scaling-group --force-delete (인스턴스까지)"]
+      - ["ALB → 대상 그룹", "wait load-balancers-deleted 뒤에"]
+      - ["시작 템플릿", "delete-launch-template"]
+      - ["S3", "aws s3 rb --force (비우고 지운다) · VPC · SG · 역할은 남긴다"]
+    notes: "오늘 약 $0.3 — ALB도 AZ마다 공인 IPv4. 만들기는 화면 열 개 · 칸 백 개, 지우기는 순서. 내일 Terraform: 코드 몇십 줄, destroy 한 줄. 학술: 위상 정렬(Kahn 1962). 트렌드: Resource Explorer, 만료 태그."
+
+  - type: summary
+    title: "오늘 만든 것 (그리고 지운 것)"
+    items:
+      - ["1교시", "EC2 · ECS · Lambda · EKS — 같은 생각, 다른 크기"]
+      - ["2교시", "역할을 붙인 EC2 · user data로 podinfo"]
+      - ["3교시", "Session Manager · IMDSv2 · 키 없는 S3 · Deny"]
+      - ["4교시", "시작 템플릿 · Auto Scaling 그룹 (AZ 둘에 2대)"]
+      - ["5~6교시", "ALB · 대상 그룹 · 종료 · 앱 정지 · 늘리기 줄이기"]
+      - ["7교시", "의존 순서대로 지우기 · 남은 것 0"]
+    diary: "배움일기 — Kubernetes와 짝지은 넷 · assumed-role 신원과 키 없는 S3 · 502 몇 번, 교체 몇 분 · 앱만 죽은 서버를 바꾼 것 · 지운 순서 · 클릭 백 번을 코드로?"
+    notes: "VPC · SG · 역할은 무료라 남긴다. 내일: Terraform 기초."

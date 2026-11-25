@@ -1,0 +1,10 @@
+body { font-family: system-ui, sans-serif; margin: 0; background: #f1f5f9; color: #1e293b; }
+header { background: #0f2a44; color: #fff; padding: 24px 32px; }
+header h1 { margin: 0 0 6px; }
+header p { margin: 0; color: #a5c4d8; }
+main { padding: 24px 32px; }
+.badge { display: inline-block; background: #e0f3f6; color: #006a7c; padding: 4px 12px; border-radius: 99px; font-weight: 700; }
+.badge.error { background: #fbe7e5; color: #b83227; }
+.grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.grid li { background: #fff; border: 1px solid #d5dee6; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.grid li span { color: #c8651b; font-weight: 700; }

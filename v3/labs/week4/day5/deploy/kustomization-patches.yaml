@@ -1,0 +1,17 @@
+# 3교시 · devmart/kustomization.yaml 맨 끝에 붙인다 — Deployment 파일을 고치지 않고 서비스마다 SA를 지정
+patches:
+  - target: { kind: Deployment, name: catalog-api }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: catalog-api
+  - target: { kind: Deployment, name: order-api }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: order-api
+  - target: { kind: Deployment, name: order-worker }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: order-worker
