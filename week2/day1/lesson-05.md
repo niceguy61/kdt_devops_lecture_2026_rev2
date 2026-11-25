@@ -1,162 +1,282 @@
-# 5교시: Docker 기본 명령어 1 - 실행 80% 사이클
+# 5교시 · 첫 저장소 — commit과 push
 
-## 수업 목표
-- Docker 기본 명령어를 암기 목록이 아니라 상태 확인과 lifecycle 제어 도구로 사용한다.
-- `version`, `pull`, `images`, `run`, `ps`, `logs`, `stop`, `rm`을 실행 목적과 확인 지점 기준으로 연결한다.
-- 실행 후 중지와 정리까지 포함한 하나의 hands-on cycle을 완성한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - `~/devops-lab`을 Git 저장소로 만듭니다.
+> - README를 쓰고 첫 커밋을 만듭니다.
+> - GitHub에 저장소를 만들고 push합니다.
+> - "고치고 → 확인하고 → 담고 → 기록하고 → 올리는" 한 바퀴를 두 번 돌아 봅니다.
 
-## 강의 전개
+## 오늘의 한 바퀴
 
-이 교시는 Docker 명령어를 많이 소개하는 시간이 아니라, 하나의 container lifecycle을 끝까지 닫는 시간이다. 학생이 `docker run`만 성공시키고 넘어가면 이후 port 충돌, 이름 충돌, disk 누적을 스스로 만든다. 그래서 실행, 확인, 관찰, 중지, 삭제를 하나의 묶음으로 반복한다.
+1주차 5일차 3교시에 강사가 시연한 흐름을 이제 직접 합니다. 앞으로 5주 동안 수백 번 돌게 될 바퀴입니다.
 
-실습 image는 `nginx:latest`를 사용한다. PostgreSQL을 바로 시작하지 않는 이유는 web server가 port publishing을 눈으로 확인하기 쉽고, DB password와 readiness 같은 변수를 잠시 미룰 수 있기 때문이다. 여기서 `18080:80` mapping을 이해하면 다음 교시의 `15432:5432`, `15433:5432` mapping을 더 자연스럽게 받아들인다.
+![Git 한 바퀴 — 고치고, 확인하고(status·diff), 담고(add), 기록하고(commit), 올린다(push)](../../assets/week2/day1/w2d1-git-loop.png)
 
-명령은 상태 질문과 함께 읽는다. `docker version`은 CLI와 daemon이 연결됐는지 묻는다. `docker pull`은 registry에서 image를 가져올 수 있는지 묻는다. `docker images`는 local disk에 어떤 실행 재료가 있는지 묻는다. `docker ps`는 현재 실행 중인 container와 port binding을 묻는다. `docker logs`는 process가 남긴 관찰 확인 지점을 묻는다. `docker stop`과 `docker rm`은 운영자가 lifecycle을 끝까지 책임졌는지 묻는다.
+## 실습 8 · 첫 커밋
 
-출력 차이도 정상 범위로 설명한다. 처음 pull하는 학생은 layer download가 보이고, 이미 받은 학생은 up to date가 보일 수 있다. container ID는 장비마다 다르다. Docker version도 다를 수 있다. 수업에서 고정해야 하는 것은 전체 문자열이 아니라 image name, container name, port binding, status, log의 의미다.
+> **🧪 실습: 실습 목표**
+>
+> `~/devops-lab`을 저장소로 만들고, README와 `.gitignore`를 담은 첫 커밋을 만듭니다.
 
-마지막에는 cleanup을 강하게 확인한다. container가 남아 있으면 다음 실습에서 이름 충돌이나 port 충돌이 난다. 특히 교육 환경에서는 "실습이 끝났다"의 기준을 browser 확인이 아니라 `stop`, `rm`, `ps` 재확인까지로 잡아야 한다.
-
-## 실습 전 기준
-
-오늘 명령은 모두 로컬 Docker와 Docker Hub public image를 사용한다. cloud resource는 만들지 않는다. container 이름은 충돌을 피하기 위해 `paperclip-day1-nginx`를 사용한다. 기존에 같은 이름의 container가 있으면 먼저 정리해야 한다.
-
-```bash
-docker ps -a --filter name=paperclip-day1-nginx
-```
-
-출력이 비어 있으면 바로 진행한다. 같은 이름의 container가 보이면 6교시 정리 절차에 따라 `stop`과 `rm`을 수행한다.
-
-## 기본 명령 목적표
-| 명령 | 실행 목적 | 정상 확인 지점 | 흔한 실패 |
-|---|---|---|---|
-| `docker version` | CLI와 daemon 연결 확인 | Client/Server 정보가 보임 | daemon 미실행, 권한 문제 |
-| `docker pull nginx:latest` | registry에서 image 확보 | digest와 status 출력 | network/auth/image name 문제 |
-| `docker images` | local image 목록 확인 | `nginx`, `hello-world` 등 표시 | socket 권한 문제 |
-| `docker run` | image에서 container 시작 | container ID 또는 output | port 충돌, image 없음 |
-| `docker ps` | running container 확인 | STATUS, PORTS, NAMES 확인 | 필터/이름 오타 |
-| `docker logs` | process log 확인 | entrypoint/start log | container 이름 오타 |
-| `docker stop` | running container 정상 중지 | container 이름 반환 | 이미 종료됨 |
-| `docker rm` | stopped container 삭제 | container 이름 반환 | 실행 중이라 삭제 실패 |
-
-## Hands-on 1: Docker 연결과 image 준비
+### 단계 1 — 저장소 시작
 
 ```bash
-docker version
-docker pull nginx:latest
-docker images
+cd ~/devops-lab
+git init
 ```
 
-### Linux 사전 테스트 결과
-환경: Ubuntu 24.04.3 LTS, Linux `6.6.87.2-microsoft-standard-WSL2`, Docker Client `29.0.2`, Docker Server `29.3.1`.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> Initialized empty Git repository in /home/devops/devops-lab/.git/
+> ```
+> 숨김 폴더 `.git`이 생겼습니다. **이 폴더가 저장소의 모든 기록**입니다. 지우면 기록이 사라지니 건드리지 않습니다.
 
-`docker version` 핵심 출력:
-
-```text
-Client: Docker Engine - Community
- Version:           29.0.2
- OS/Arch:           linux/amd64
-
-Server:
- Engine:
-  Version:          29.3.1
-  OS/Arch:          linux/amd64
-```
-
-`docker pull nginx:latest` 재실행 시 출력:
-
-```text
-latest: Pulling from library/nginx
-Digest: sha256:5aca99593157f4ae539a5dec1092a0ad8762f8e2eb1789085a13a0f5622369f6
-Status: Image is up to date for nginx:latest
-docker.io/library/nginx:latest
-```
-
-처음 실행하는 학생은 `Downloaded newer image`가 보일 수 있다. 이미 받은 학생은 `Image is up to date`가 보일 수 있다. 둘 다 정상이다.
-
-## Hands-on 2: container 시작과 상태 확인
+### 단계 2 — 상태 보기
 
 ```bash
-docker run -d --name paperclip-day1-nginx -p 18080:80 nginx:latest
-docker ps --filter name=paperclip-day1-nginx
+git status
 ```
 
-### 기대 결과
-`docker run -d`는 긴 container ID를 출력한다. `docker ps`는 다음과 비슷하게 보인다.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> On branch main
+>
+> No commits yet
+>
+> Untracked files:
+>   (use "git add <file>..." to include in what will be committed)
+>         hello.txt
+>
+> nothing added to commit but untracked files present (use "git add" to track)
+> ```
+> `Untracked`는 "Git이 아직 지켜보지 않는 파일"이라는 뜻입니다. Git은 친절하게 **다음에 할 명령**(`git add`)까지 알려 줍니다. 막히면 `git status`부터 보는 습관을 들이세요.
 
-```text
-CONTAINER ID   IMAGE          COMMAND                  STATUS          PORTS                                       NAMES
-ce1d01f8a780   nginx:latest   "/docker-entrypoint.…"   Up 44 seconds   0.0.0.0:18080->80/tcp, [::]:18080->80/tcp   paperclip-day1-nginx
-```
+### 단계 3 — README 만들기
 
-`PORTS`에서 `18080->80/tcp`가 핵심이다. host의 `18080` port로 들어온 요청이 container 내부의 `80` port로 전달된다.
+VS Code에서 **새 파일**(`README.md`)을 만들고 아래 내용을 붙여 넣은 뒤, 이름 부분을 바꾸고 저장(`Ctrl` + `S`)합니다.
 
-## Hands-on 3: log 확인과 정리
+```markdown
+# devops-lab
 
-```bash
-docker logs paperclip-day1-nginx
-docker stop paperclip-day1-nginx
-docker rm paperclip-day1-nginx
-docker ps --filter name=paperclip-day1-nginx
-```
+Cloud Native DevOps 과정 실습 저장소입니다.
 
-### Linux 사전 테스트 결과
-`docker logs` 핵심 출력:
+- 이름: 홍길동
+- 시작한 날: 2주차 1일차
 
-```text
-/docker-entrypoint.sh: Configuration complete; ready for start up
-2026/06/04 04:07:14 [notice] 1#1: nginx/1.31.1
-2026/06/04 04:07:14 [notice] 1#1: start worker processes
-```
+## 실습 기록
 
-`docker stop`과 `docker rm` 출력:
-
-```text
-paperclip-day1-nginx
-paperclip-day1-nginx
-```
-
-정리 후 `docker ps --filter name=paperclip-day1-nginx` 출력:
-
-```text
-CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
-```
-
-헤더만 보이면 running container가 남아 있지 않은 상태다.
-
-## 주의할 점 메모
-| 항목 | 학생 확인 |
+| 일차 | 한 것 |
 |---|---|
-| `docker version` Client/Server 확인 | |
-| `nginx:latest` pull 결과 | |
-| container name | `paperclip-day1-nginx` |
-| port binding | `18080:80` |
-| `docker ps` STATUS/PORTS | |
-| `docker logs` 핵심 1줄 | |
-| stop/rm 완료 여부 | |
-| screenshot filename | |
+| 2주차 1일차 | 개발 환경 설치, 첫 커밋 |
+```
 
-## 흔한 오해
-| 오해 | 바로잡기 |
+### 단계 4 — `.gitignore` 만들기
+
+새 파일 `.gitignore`(점으로 시작)를 만들고:
+
+```text
+# 비밀값과 개인 설정은 절대 올리지 않는다
+.env
+*.pem
+*.key
+
+# 운영체제와 편집기가 만드는 파일
+.DS_Store
+Thumbs.db
+.vscode/
+```
+
+1주차 5일차의 "비밀값은 절대 커밋하지 않는다 — `.env`는 `.gitignore`에"를 지금 첫 커밋부터 지킵니다.
+
+### 단계 5 — 담고 기록하기
+
+```bash
+git add README.md .gitignore hello.txt
+git status
+git commit -m "실습 저장소 시작: README와 .gitignore 추가"
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> [main (root-commit) 3f2a1c9] 실습 저장소 시작: README와 .gitignore 추가
+>  3 files changed, 22 insertions(+)
+>  create mode 100644 .gitignore
+>  create mode 100644 README.md
+>  create mode 100644 hello.txt
+> ```
+> `3f2a1c9`처럼 보이는 값이 이 커밋의 **해시(지문)**입니다. 3교시 학술 노트의 그 값입니다. 사람마다 다르게 나옵니다.
+
+### 단계 6 — 기록 보기
+
+```bash
+git log --oneline
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 3f2a1c9 (HEAD -> main) 실습 저장소 시작: README와 .gitignore 추가
+> ```
+
+## 실습 9 · GitHub에 올리기
+
+> **🧪 실습: 실습 목표**
+>
+> GitHub에 `devops-lab` 저장소를 만들고 첫 커밋을 push합니다.
+
+### 단계 1 — 원격 저장소 만들고 바로 올리기
+
+```bash
+gh repo create devops-lab --public --source=. --remote=origin --push
+```
+
+| 옵션 | 뜻 |
 |---|---|
-| `docker run`만 성공하면 끝이다. | `ps`, `logs`, `stop`, `rm`까지 해야 운영 cycle이 닫힌다. |
-| `docker images`에 기존 이미지가 많으면 문제다. | 기존 실습 이력이 있을 수 있다. 오늘 image인 `nginx`, `hello-world`를 구분해 확인한다. |
-| `Image is up to date`는 실패다. | 이미 최신 image가 local에 있다는 뜻이다. |
-| `rm`을 먼저 하면 된다. | running container는 보통 먼저 `stop`한 뒤 `rm`한다. |
+| `devops-lab` | GitHub에 만들 저장소 이름 |
+| `--public` | 공개 저장소 (포트폴리오용). 비공개로 하려면 `--private` |
+| `--source=.` | 지금 폴더를 이 저장소의 내용으로 |
+| `--remote=origin` | 원격 저장소의 별명을 `origin`으로 (관례) |
+| `--push` | 만들자마자 push까지 |
 
-## 확인 기준
-| 기준 | 확인 지점 |
-|---|---|
-| 실행 비중 | 직접 명령을 실행하고 결과를 확인했다. |
-| 상태 확인 | `version`, `images`, `ps`, `logs` 중 3개 이상의 출력 의미를 설명했다. |
-| 정리 | `stop`과 `rm` 후 남은 container가 없음을 확인했다. |
-| 재현성 | container name, port, image tag를 정확히 확인했다. |
-| 보안/비용 | cloud resource를 만들지 않고 local 실습만 수행했다. |
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> ✓ Created repository 내아이디/devops-lab on github.com
+>   https://github.com/내아이디/devops-lab
+> ✓ Added remote https://github.com/내아이디/devops-lab.git
+> ✓ Pushed commits to https://github.com/내아이디/devops-lab.git
+> ```
 
-### 공식 근거 링크
-- Docker Docs: Docker run reference, https://docs.docker.com/reference/cli/docker/container/run/
-- Docker Docs: docker container ls, https://docs.docker.com/reference/cli/docker/container/ls/
-- Docker Docs: docker container logs, https://docs.docker.com/reference/cli/docker/container/logs/
+### 단계 2 — 원격 연결 확인
 
-### 다음 연결
-다음 교시는 같은 명령 사이클을 PostgreSQL 공식 image에 적용한다. 핵심은 "container가 떠 있다"가 아니라 port, log, query result, cleanup으로 DB 실행 상태를 검증하는 것이다.
+```bash
+git remote -v
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> origin  https://github.com/내아이디/devops-lab.git (fetch)
+> origin  https://github.com/내아이디/devops-lab.git (push)
+> ```
+
+### 단계 3 — 브라우저로 확인
+
+```bash
+gh repo view --web
+```
+
+브라우저에 저장소가 열리고, README 내용이 첫 화면에 표 형태로 보이면 성공입니다. 브라우저가 안 열리면 위 주소를 직접 엽니다.
+
+> [!WARNING]
+> **공개 저장소에 올리기 전 30초 점검**
+>
+> `--public`은 전 세계 누구나 볼 수 있다는 뜻입니다. push 전에 `git status`와 `git diff --staged`로 **무엇이 올라가는지** 한 번 보는 습관을 들이세요. 비밀번호, 토큰, 개인 정보가 섞여 있지 않은지 확인합니다.
+
+## 실습 10 · 한 바퀴 더
+
+> **🧪 실습: 실습 목표**
+>
+> README를 고쳐서 수정 → 확인 → 담기 → 기록 → 올리기를 혼자 한 바퀴 돌아 봅니다.
+
+### 단계 1 — README 고치기
+
+VS Code에서 README 표에 한 줄을 추가하고 저장합니다.
+
+```markdown
+| 2주차 1일차 | GitHub 로그인(gh), 첫 push |
+```
+
+### 단계 2 — 무엇이 바뀌었는지 보기
+
+```bash
+git status
+git diff
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> modified:   README.md
+> ...
+> +| 2주차 1일차 | GitHub 로그인(gh), 첫 push |
+> ```
+> `git diff`에서 `+`는 추가된 줄, `-`는 지워진 줄입니다. 1주차 5일차 코드 리뷰에서 동료가 보는 화면이 바로 이것입니다. 끝까지 보려면 `q`를 눌러 빠져나옵니다.
+
+### 단계 3 — 담고, 기록하고, 올리기
+
+```bash
+git add README.md
+git commit -m "README에 실습 기록 추가"
+git push
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> To https://github.com/내아이디/devops-lab.git
+>    3f2a1c9..8b7e4d2  main -> main
+> ```
+> 브라우저를 새로고침하면 README가 바뀌어 있고, 저장소 화면 위쪽에 **2 commits**가 보입니다.
+
+> **🛠️ 막혔다면: 막혔다면**
+>
+> | 증상 | 원인 | 해결 |
+> |---|---|---|
+> | `Author identity unknown` | 3교시 설정을 안 함 | `git config --global user.name/email` 설정 후 다시 커밋 |
+> | `nothing to commit` | 파일을 저장하지 않았거나 add를 안 함 | VS Code 탭에 저장 안 된 표시(●)가 있는지 확인 → 저장 → `git add` |
+> | `gh: Name already exists on this account` | 같은 이름 저장소가 이미 있음 | 다른 이름(`devops-lab-2`)을 쓰거나 기존 저장소를 연결 |
+> | `Authentication failed` / 비밀번호를 물어봄 | 4교시 인증이 Git에 연결 안 됨 | `gh auth status` 확인 → `gh auth setup-git` |
+> | `rejected … (fetch first)` | GitHub 쪽에 내가 없는 커밋이 있음 (웹에서 직접 고친 경우 등) | `git pull` 후 다시 `git push` (5일차에 자세히) |
+> | 커밋 메시지 오타 | — | 아직 push 전이면 `git commit --amend -m "새 메시지"` |
+
+> **🎓 학술 노트 — 작은 커밋이 좋은 이유**
+>
+> 좋은 커밋은 **한 가지 변경**만 담습니다. 이것은 취향이 아니라 연구로 뒷받침되는 실천입니다. 마이크로소프트 연구진(Bacchelli & Bird, 2013)은 코드 리뷰를 분석해, 리뷰어가 가장 어려워하는 것이 **변경의 맥락을 이해하는 일**이라는 것을 발견했습니다. 여러 변경이 한 커밋에 섞여 있으면 리뷰어는 무엇이 왜 바뀌었는지 파악하는 데 대부분의 시간을 씁니다.
+>
+> 또 작은 커밋은 문제가 생겼을 때 **어느 커밋이 원인인지** 찾기 쉽게 해 줍니다. Git에는 커밋 이력을 반씩 나눠 가며 버그가 처음 생긴 커밋을 찾아 주는 `git bisect`라는 명령이 있는데, 커밋이 작을수록 원인을 더 정확히 짚어 냅니다. 1주차 5일차 장애 대응의 "방금 무엇이 바뀌었나?"라는 질문에 빨리 답할 수 있는 것도 작은 커밋 덕분입니다.
+>
+> - Bacchelli, A., & Bird, C. (2013). Expectations, outcomes, and challenges of modern code review. *ICSE 2013*.
+> - Git. *git-bisect Documentation*. git-scm.com/docs/git-bisect
+
+> **📈 트렌드 — 커밋 메시지에도 규칙을**
+>
+> 많은 팀이 커밋 메시지를 **정해진 형식**으로 씁니다. 대표적인 것이 **Conventional Commits** 규칙으로, `feat: 상품 목록 API 추가`, `fix: 가격 표시 오류 수정`, `docs: README 실행 방법 보강`처럼 앞에 변경의 **종류**를 붙입니다. 형식이 정해져 있으면 사람이 읽기 쉬울 뿐 아니라, 도구가 커밋을 읽고 **변경 기록(CHANGELOG)을 자동으로 만들거나 버전 번호를 자동으로 올릴** 수 있습니다. 최근 AI 코딩 도구도 변경 내용을 읽고 이런 형식의 메시지를 제안해 줍니다. 다만 **"왜"는 사람만 압니다.** AI가 쓴 메시지라도 "왜 바꿨는지"가 들어 있는지 확인하세요.
+
+## 정리
+
+- `git init` → `git status` → `git add` → `git commit` → `git push`가 기본 한 바퀴입니다.
+- 막히면 언제나 **`git status`**부터 봅니다. Git이 다음 할 일을 알려 줍니다.
+- `.gitignore`로 비밀값과 잡동사니 파일을 **첫 커밋부터** 막습니다.
+- `gh repo create … --push`로 GitHub 저장소를 만들고 바로 올립니다.
+- 커밋은 **작게, 한 가지씩**, 메시지에는 **무엇을 왜**를 적습니다.
+
+> **✅ 확인 문제**
+>
+> 1. Git이 아직 지켜보지 않는 파일을 뭐라고 표시하나요?
+> 2. 저장소의 모든 기록이 담긴 숨김 폴더의 이름은?
+> 3. `git diff`에서 `+`로 시작하는 줄의 의미는?
+> 4. 원격 저장소의 관례적인 별명은?
+> 5. 아직 push하지 않은 마지막 커밋의 메시지를 고치는 명령은?
+>
+> <details><summary>정답</summary>
+>
+> 1. Untracked
+> 2. `.git`
+> 3. 추가된 줄
+> 4. `origin`
+> 5. `git commit --amend -m "새 메시지"`
+>
+> </details>
+
+## 참고 문헌
+
+- Chacon, S., & Straub, B. (2014). *Pro Git* (2nd ed.), Ch. 2 Git Basics. git-scm.com/book/ko/v2
+- GitHub CLI Manual. *gh repo create*. cli.github.com/manual/gh_repo_create
+- Bacchelli, A., & Bird, C. (2013). Expectations, outcomes, and challenges of modern code review. *ICSE 2013*.
+- Conventional Commits. *Conventional Commits 1.0.0*. conventionalcommits.org

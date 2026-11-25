@@ -12,3 +12,4 @@ private/
 build/
 *.log
 .aws-sam/
+reference/

@@ -1,111 +1,184 @@
-# 3교시: volume 명령과 cleanup 위험
+# 3교시 · nginx를 백그라운드로 실행
 
-## 수업 목표
-- docker volume 명령의 목적을 설명한다.
-- inspect 출력에서 공개 가능한 정보만 선별한다.
-- volume cleanup이 data 삭제임을 설명한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - `docker pull`로 이미지를 미리 받고, 층(레이어) 단위로 내려받는 모습을 봅니다.
+> - 컨테이너를 앞(foreground)에서 실행하고 `Ctrl` + `C`로 멈춥니다.
+> - `-d`와 `--name`으로 백그라운드 컨테이너를 실행합니다.
+> - 실행은 되는데 접속이 안 되는 이유를 1주차 3일차 지식으로 설명합니다.
 
-## 강의 전개
-volume은 보이지 않는 저장소처럼 느껴지기 때문에 cleanup 때 사고가 자주 난다. `docker volume ls`는 존재 여부를, `docker volume inspect`는 Docker가 관리하는 mountpoint와 metadata를 보여준다. 이 교시의 목적은 JSON을 통째로 붙이는 것이 아니라 운영자가 판단해야 할 최소 정보를 고르는 것이다.
+## 웹 서버 nginx
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 원인을 좁히는 단서다. 실패한 명령, 에러 요약, 가설, 다시 실행할 명령을 순서대로 다룬다.
+**nginx**(엔진엑스)는 웹 페이지를 내주고, 1주차 3일차에 배운 **리버스 프록시**와 **로드밸런서** 역할도 하는 서버 프로그램입니다. 이번 주 5일차에 DevMart의 화면을 보여 주고 `/api` 요청을 상품 API로 넘기는 역할을 맡습니다. 오늘은 그 전에 nginx 컨테이너를 다루는 연습을 합니다.
 
-## Imagegen 인포그래픽: volume cleanup risk
-![Docker volume cleanup risk decision](./assets/lesson-03-volume-cleanup-risk.png)
+## 실습 3 · 이미지 미리 받기
 
-이 이미지는 `volume ls`, `volume inspect`, `volume rm`을 같은 성격의 명령으로 보지 않게 만든다. 조회 명령과 삭제 명령을 분리해서 보고, 임시 volume과 DB volume의 삭제 판단이 달라야 한다는 점을 확인한다.
+> **🧪 실습: 실습 목표**
+>
+> nginx 이미지를 받으면서 이미지가 **여러 층으로 나뉘어** 내려오는 것을 확인합니다.
 
-## 시각 자료 1: volume 명령의 역할
-```mermaid
-flowchart LR
-  LS[docker volume ls] --> Exists[존재 여부]
-  Inspect[docker volume inspect] --> Meta[driver, mountpoint, labels]
-  RM[docker volume rm] --> Delete[data 삭제 가능]
-  Exists --> Decision{사용 중인가?}
-  Meta --> Decision
-  Decision -->|모름| Keep[삭제하지 않음]
-  Decision -->|실습용 temp| Remove[삭제]
-```
-
-이 그림은 `ls`, `inspect`, `rm`을 같은 수준의 조회 명령으로 보지 않게 만든다. `rm`은 상태 확인이 아니라 data 삭제로 이어질 수 있는 변경 명령이다.
-
-## 시각 자료 2: cleanup 판단 흐름
-```mermaid
-flowchart TD
-  Target[삭제하려는 대상] --> Kind{종류}
-  Kind --> C[container]
-  Kind --> V[volume]
-  Kind --> N[network]
-  C --> Cq[다시 만들 수 있는 실행 단위인가]
-  V --> Vq[DB data가 들어 있는가]
-  N --> Nq[다음 실습에서 재사용하는가]
-  Vq -->|확실하지 않음| Stop[삭제 보류]
-  Vq -->|임시 실습용| Delete[삭제 가능]
-```
-
-이 visual은 cleanup을 단순히 "깔끔하게 지우기"가 아니라 대상의 성격을 나누는 판단으로 보여준다. volume은 container보다 위험도가 높다.
-
-## 실습 명령
-```bash
-docker volume ls
-docker volume inspect paperclip-pg16-data
-```
+### 단계 1 — pull
 
 ```bash
-docker volume create paperclip-temp-data
-docker volume ls | grep paperclip-temp-data
+docker pull nginx:1.30-alpine
 ```
 
-## 검증 명령
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 1.30-alpine: Pulling from library/nginx
+> 7a2b6f1c4e3d: Pull complete
+> 5c8e9a1b2d3f: Pull complete
+> a4d3c2b1e0f9: Pull complete
+> ...
+> Digest: sha256:4f1c…
+> Status: Downloaded newer image for nginx:1.30-alpine
+> docker.io/library/nginx:1.30-alpine
+> ```
+> `Pull complete` 줄이 **여러 개**입니다. 이미지가 하나의 큰 파일이 아니라 **여러 층(레이어)**으로 되어 있기 때문입니다. 마지막 `Digest: sha256:…`은 어제 3교시 학술 노트의 그 **내용 지문**입니다. 3일차에 레이어와 다이제스트를 자세히 배웁니다.
+
+### 단계 2 — 받은 이미지 확인
+
 ```bash
-docker volume inspect paperclip-pg16-data --format "{{ .Name }} {{ .Mountpoint }}"
-docker volume inspect paperclip-temp-data --format "{{ .Name }}"
+docker images
 ```
 
-## 실습 확장 흐름
-| 단계 | 할 일 | 기대되는 관찰 |
-|---|---|---|
-| 준비 | 기존 DB volume과 임시 volume을 구분한다. | `paperclip-pg16-data`와 `paperclip-temp-data`의 용도가 다르다. |
-| 실행 | `volume ls`와 `volume inspect`를 실행한다. | 이름, driver, mountpoint가 보인다. |
-| 관찰 | mountpoint에 개인 경로가 포함될 수 있음을 확인한다. | 공개 문서에 그대로 옮기지 않아야 함을 안다. |
-| 실패 재현 | 사용 중인 volume 삭제를 시도한다. | container가 붙어 있으면 삭제 실패가 날 수 있다. |
-| 복구 | 임시 volume만 삭제한다. | DB volume은 다음 실습을 위해 남는다. |
-| 확인 | 남길 volume과 지울 volume을 구분한다. | data 삭제 위험을 명령 전에 판단한다. |
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> `alpine:3.24`, `hello-world:latest`, **`nginx:1.30-alpine`**이 보입니다. Alpine 기반이라 크기가 작습니다.
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
+## 실습 4 · 앞에서 실행하고 멈추기
+
+> **🧪 실습: 실습 목표**
+>
+> `-d` 없이 실행하면 터미널이 어떻게 되는지 보고, `Ctrl` + `C`로 멈춰 봅니다.
+
+### 단계 1 — 앞에서 실행
+
+```bash
+docker run --rm nginx:1.30-alpine
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+> ...
+> /docker-entrypoint.sh: Configuration complete; ready for start up
+> 2026/11/30 01:10:12 [notice] 1#1: nginx/1.30.6
+> 2026/11/30 01:10:12 [notice] 1#1: start worker processes
+> ```
+> 로그가 나오고 **프롬프트가 돌아오지 않습니다.** nginx는 hello-world와 달리 할 일을 끝내고 종료하는 프로그램이 아니라, 요청을 **계속 기다리는** 서버이기 때문입니다. `1#1`의 첫 1은 **PID 1**입니다(2교시).
+
+### 단계 2 — 멈추기
+
+`Ctrl` + `C`를 누릅니다. nginx가 종료되고 프롬프트가 돌아옵니다. `--rm`을 붙였으니 컨테이너도 사라졌습니다. 이렇게 앞에서 실행하면 터미널을 하나 차지하므로 불편합니다.
+
+## 실습 5 · 백그라운드로 실행
+
+> **🧪 실습: 실습 목표**
+>
+> `-d`로 nginx를 백그라운드에 띄우고, `docker ps`로 확인한 뒤, 접속을 시도해 봅니다.
+
+### 단계 1 — 백그라운드 실행
+
+```bash
+docker run -d --name web nginx:1.30-alpine
+```
+
+| 옵션 | 뜻 |
 |---|---|
-| Mountpoint를 그대로 공유 | 개인 경로가 포함될 수 있으므로 공개 문서에는 필요한 정보만 남긴다. |
-| dangling volume이 많다 | 실습 흔적일 수 있지만 실제 data인지 확인 전 삭제하지 않는다. |
-| volume rm 실패 | 사용 중인 container가 있으면 먼저 container 연결을 끊어야 한다. |
+| `-d` | **d**etached — 백그라운드에서 실행하고 터미널을 바로 돌려준다 |
+| `--name web` | 컨테이너 이름을 `web`으로 정한다. 앞으로 ID 대신 이름으로 부른다 |
 
-## Cleanup
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 52ae767dfac9e4b1c0a3f8d27e65b9c1a4d8f02e7b3c6a915d04e2f8b7c1a3d6
+> ```
+> 긴 문자열(컨테이너 ID 전체) 한 줄이 나오고 프롬프트가 바로 돌아옵니다.
+
+### 단계 2 — 실행 중인지 확인
+
 ```bash
-docker volume rm paperclip-temp-data || true
-# paperclip-pg16-data는 다음 실습에서 재사용하므로 지우지 않는다.
+docker ps
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> CONTAINER ID   IMAGE               COMMAND                  CREATED         STATUS         PORTS     NAMES
+> 52ae767dfac9   nginx:1.30-alpine   "/docker-entrypoint.…"   5 seconds ago   Up 4 seconds   80/tcp    web
+> ```
+> STATUS가 **Up**, NAMES가 **web**입니다. PORTS에 **`80/tcp`**가 보입니다. 이 컨테이너 안에서 nginx가 80번 포트를 열고 기다린다는 뜻입니다.
 
-## 주의할 점
-- Container를 삭제해도 named volume의 데이터는 남을 수 있다. 데이터를 초기화하려는 것이 아니라면 `docker volume rm`이나 `down -v`를 실행하지 않는다.
-- Host port publish(`-p`)와 container 간 통신은 다른 문제다. 브라우저나 host `psql`로 접근할 때만 host port가 필요하고, 같은 Docker network 안에서는 container name과 container port를 사용한다.
-- Volume target path는 image가 실제로 데이터를 쓰는 경로와 맞아야 한다. PostgreSQL은 `/var/lib/postgresql/data`와 `PGDATA` 설정을 확인하지 않으면 데이터가 남지 않거나 엉뚱한 위치에 쌓인다.
-- bind mount는 host 경로를 그대로 노출한다. 개인 경로, 권한 문제, 실수로 수정한 host 파일이 container 동작에 영향을 줄 수 있다.
-- Cleanup 전에는 지금 지우는 대상이 container인지, volume인지, network인지 먼저 구분한다.
+### 단계 3 — 접속해 보기
 
-## 핵심 포인트
-이 실습의 핵심은 명령어 자체가 아니라 경계다. container는 실행 단위이고, volume은 data lifecycle이며, network는 통신 경계다. 학생이 `docker run` 한 줄을 볼 때 `-v`, `--network`, `-p`를 옵션 목록으로 외우면 뒤에서 Compose와 Kubernetes로 넘어갈 때 같은 혼란이 반복된다. 그래서 각 옵션을 "무엇을 container 밖으로 분리하는가"라는 질문으로 읽게 한다.
+```bash
+curl http://localhost:80
+```
 
-강의 중에는 성공 출력보다 실패 출력의 의미를 더 오래 다룬다. port가 열리지 않은 것은 web server 문제가 아닐 수 있고, DB 접속 실패는 password 문제가 아니라 network boundary 문제일 수 있다. host terminal, container 내부, 같은 Docker network의 client container는 모두 서로 다른 관찰 위치다. 학생이 어디에서 명령을 실행하는지 말로 먼저 설명한 뒤 CLI를 실행하게 한다.
+> **🟢 확인: 예상되는 결과 — 실패**
+>
+> ```text
+> curl: (7) Failed to connect to localhost port 80 after 0 ms: Couldn't connect to server
+> ```
+> nginx는 분명 Up인데 접속이 안 됩니다. 왜일까요?
 
-## 운영 해석
-실무에서 database container를 다룰 때 가장 위험한 실수는 cleanup을 단순 파일 정돈처럼 보는 것이다. container 삭제는 process와 container writable layer를 없애는 것이고, volume 삭제는 data를 삭제하는 것이다. network 삭제는 통신 경로를 없애는 것이다. 이 세 가지를 구분하지 않으면 실습은 성공해도 운영 사고를 배운 셈이 된다.
+> [!IMPORTANT]
+> **1주차 3일차로 설명하기**
+>
+> 컨테이너는 자기만의 **네트워크 네임스페이스**를 가집니다. 컨테이너 안의 80번 포트는 **컨테이너라는 건물 안의 80호실**일 뿐, 내 노트북이라는 건물의 80호실이 아닙니다. 지금 `localhost:80`은 내 노트북의 80호실에 노크한 것이고, 거기에는 아무도 없으니 1주차 3일차 에러 표의 **"닿았지만 받을 프로그램이 없다(refused)"**와 같은 상황입니다. PORTS의 `80/tcp`에 **화살표(`->`)가 없는 것**이 바로 그 증거입니다. 다음 시간에 두 건물을 잇는 통로를 뚫습니다.
 
-운영에서는 "실행됐다"보다 어떤 data가 남고 무엇이 삭제되는지가 더 중요하다. Day 2의 storage/network 판단은 Day 5 Compose에서 `volumes`와 `networks`를 읽는 기준이 된다. Compose의 YAML 항목은 갑자기 생긴 문법이 아니라 Day 2에서 손으로 실행한 storage/network 결정을 파일로 옮긴 것이다.
+> **🧹 정리: 정리**
+>
+> ```bash
+> docker rm -f web
+> ```
+> `-f`(force)는 실행 중인 컨테이너를 **멈추고 지우는 것을 한 번에** 합니다. 6교시에 차근차근 나눠서 해 봅니다.
 
-## 혼자 다시 따라오기
-최소 성공 경로는 `docker volume ls`, `docker volume inspect paperclip-pg16-data`, 임시 volume 생성과 삭제다. 삭제가 실패하면 어떤 container가 그 volume을 쓰고 있는지 `docker ps -a`와 `docker inspect`로 먼저 확인한다. DB volume은 다음 실습에서 필요하므로 기본값은 삭제 보류다.
+> **🎓 학술 노트 — 데몬과 '한 컨테이너, 한 프로세스'**
+>
+> nginx처럼 계속 떠서 요청을 기다리는 프로그램을 Unix에서는 **데몬(daemon)**이라고 부릅니다. 전통적인 서버에서는 데몬을 백그라운드로 돌리고, 죽으면 다시 살리는 일을 **init 시스템**(오늘날의 systemd)이 맡았습니다.
+>
+> 컨테이너에서는 이 구조가 바뀝니다. 컨테이너 안에는 보통 systemd가 없고, **우리가 실행한 프로그램 자체가 PID 1**입니다. 그래서 nginx 이미지는 nginx를 데몬 모드로 보내지 않고 **앞에서(`daemon off`) 실행**합니다. PID 1이 끝나면 컨테이너가 끝나기 때문입니다. 그리고 "죽으면 다시 살리기"는 컨테이너 바깥의 Docker(재시작 정책, 6교시)나 Kubernetes(3주차)가 맡습니다. 이 분업이 Docker가 권장하는 **"컨테이너 하나에 관심사 하나(one concern per container)"** 원칙의 바탕입니다. 웹 서버와 DB를 한 컨테이너에 넣지 않고 5일차처럼 따로 띄우는 이유입니다.
+>
+> - Docker Docs. *Building best practices — Decouple applications*. docs.docker.com/build/building/best-practices
+> - Burns, B., & Oppenheimer, D. (2016). Design patterns for container-based distributed systems. *USENIX HotCloud '16*.
 
-## 다음 연결
-다음 교시는 bind mount로 host path를 직접 container에 연결한다. named volume과 달리 host path 의존이 생긴다.
+> **📈 트렌드 — nginx 1.30과 '버전을 적는' 습관**
+>
+> nginx는 전체 웹사이트의 약 3분의 1이 쓰는 가장 널리 쓰이는 웹 서버 중 하나입니다. 2026년 4월 새 안정 버전 **1.30**이 나오면서 1.28과 1.29는 지원이 끝났고, 이후에도 여러 차례 보안 패치(1.30.x)가 나왔습니다. 이것이 이 교재가 `nginx:latest` 대신 `nginx:1.30-alpine`처럼 **주 버전을 적고**, 패치 번호(1.30.6 등)는 이미지가 알아서 최신을 따라가게 하는 이유입니다. 너무 느슨하면(`latest`) 갑자기 큰 변화가 들어오고, 너무 빡빡하면(`1.30.0` 고정) 보안 패치를 놓칩니다. 이 균형을 정하는 것도 DevOps 엔지니어의 일입니다.
+
+## 정리
+
+- `docker pull`은 이미지를 **여러 층**으로 내려받고, 마지막에 **다이제스트(sha256)**를 보여 줍니다.
+- `-d` 없이 실행한 서버는 터미널을 차지하고, `Ctrl` + `C`로 멈춥니다.
+- `docker run -d --name 이름`으로 백그라운드에서 이름 붙여 실행합니다.
+- 컨테이너 안의 포트는 컨테이너 건물 안의 호실입니다. **포트를 연결하지 않으면 바깥에서 들어갈 수 없습니다.**
+
+> **✅ 확인 문제**
+>
+> 1. `docker pull` 출력에 `Pull complete`가 여러 줄 나오는 이유는?
+> 2. nginx를 `-d` 없이 실행하면 프롬프트가 돌아오지 않는 이유는?
+> 3. `-d`와 `--name`은 각각 무슨 옵션인가요?
+> 4. `docker ps`의 PORTS가 `80/tcp`일 때 `localhost:80`으로 접속이 안 되는 이유는?
+> 5. 실행 중인 컨테이너를 한 번에 멈추고 지우는 명령은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 이미지가 여러 층(레이어)으로 되어 있어 층마다 내려받기 때문
+> 2. nginx는 요청을 계속 기다리는 서버(데몬)라 끝나지 않기 때문
+> 3. `-d`는 백그라운드 실행(detached), `--name`은 컨테이너 이름 지정
+> 4. 컨테이너는 별도의 네트워크 네임스페이스를 가지므로, 포트를 호스트에 연결(publish)하지 않으면 바깥에서 닿을 수 없다
+> 5. `docker rm -f 이름`
+>
+> </details>
+
+## 참고 문헌
+
+- Docker Hub. *nginx Docker Official Image*. hub.docker.com/_/nginx
+- nginx. *nginx news*. nginx.org/en/news.html
+- Docker Docs. *docker container run — detached mode (-d), --name*. docs.docker.com
+- Burns, B., & Oppenheimer, D. (2016). Design patterns for container-based distributed systems. *HotCloud '16*.

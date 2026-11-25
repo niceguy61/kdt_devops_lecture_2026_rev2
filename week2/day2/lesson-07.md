@@ -1,104 +1,273 @@
-# 7교시: port publish와 network 차이
+# 7교시 · 실패 사례 다섯 가지
 
-## 수업 목표
-- host 접근과 container 간 접근을 분리한다.
-- wrong host/port failure를 재현한다.
-- PORTS 출력과 network DNS를 함께 해석한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 초보자가 가장 자주 만나는 Docker 실패 다섯 가지를 일부러 만듭니다.
+> - 에러 메시지에서 원인을 찾는 연습을 합니다.
+> - "컨테이너는 Up인데 안 돼요"를 1주차 3일차 지식으로 풉니다.
+> - 나만의 문제 해결 표를 만들어 저장소에 올립니다.
 
-## 강의 전개
-port publish는 host 사용자가 container service에 들어오는 문이다. Docker network는 container끼리 통신하는 길이다. 둘을 섞으면 DB 접속 문자열을 계속 틀리게 된다. 이 교시는 같은 PostgreSQL을 host에서는 localhost:15432로, container 내부에서는 paperclip-net-pg:5432로 접근하는 차이를 비교한다.
+## 오늘의 디버깅 순서
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 원인을 좁히는 단서다. 실패한 명령, 에러 요약, 가설, 다시 실행할 명령을 순서대로 다룬다.
+1주차 3일차 6교시의 "앞에서부터 하나씩 좁혀 가기"를 컨테이너에 맞게 바꾸면 이렇습니다.
 
-## Imagegen 인포그래픽: port publish와 container network
-![Docker host port publish versus container network access](./assets/lesson-07-port-publish-vs-network.png)
+![컨테이너 디버깅 순서 — 이미지, 상태, 로그, 포트, 안쪽 순서로 좁혀 간다](../../assets/week2/day2/w2d2-debug-order.png)
 
-이 이미지는 host 접근과 container 접근을 위아래로 분리한다. host에서는 `localhost:15432`와 published port를 사용하고, 같은 Docker network 안에서는 service name과 container port를 사용한다.
-
-## 시각 자료 1: host port와 container port
-```mermaid
-flowchart LR
-  Host[host terminal] -->|localhost:15432| Published[port publish -p 15432:5432]
-  Published --> DB[paperclip-net-pg:5432]
-  Client[client container] -->|paperclip-net-pg:5432| DB
-  Client -.-> WrongPath[wrong: localhost:15432]
-  WrongPath -.-> Self[client 자신]
-```
-
-이 그림은 host에서 들어가는 경로와 container끼리 통신하는 경로를 분리한다. `15432`는 host 쪽 입구이고, `5432`는 PostgreSQL container 내부 service port다.
-
-## 시각 자료 2: 접속 문자열 선택
-```mermaid
-flowchart TD
-  Start
-  Start --> Host[host terminal]
-  Start --> SameNet[같은 Docker network의 container]
-  Host --> HostDSN["-h localhost -p 15432"]
-  SameNet --> NetDSN["-h paperclip-net-pg -p 5432"]
-  HostDSN --> OK1[host 접근]
-  NetDSN --> OK2[container 간 접근]
-  SameNet --> Bad["localhost 또는 15432 사용"]
-  Bad --> Fail[혼동으로 실패]
-```
-
-접속 문자열은 DB 종류보다 "명령을 실행하는 위치"가 먼저 결정한다. 위치를 먼저 말하고 host와 port를 고르면 실수가 줄어든다.
-
-## 실습 명령
-```bash
-docker run -d --name paperclip-net-pg --network paperclip-day2-net -e POSTGRES_PASSWORD=postgres -p 15432:5432 -v paperclip-pg16-data:/var/lib/postgresql/data postgres:16
-```
-
-## 검증 명령
-```bash
-docker ps --filter name=paperclip-net-pg
-PGPASSWORD=postgres psql -h localhost -p 15432 -U postgres -d paperclip -c "SELECT 1;" || true
-docker run --rm --network paperclip-day2-net -e PGPASSWORD=postgres postgres:16 psql -h paperclip-net-pg -U postgres -d paperclip -c "SELECT 1;"
-```
-
-## 실습 확장 흐름
-| 단계 | 할 일 | 기대되는 관찰 |
+| 순서 | 질문 | 명령 |
 |---|---|---|
-| 준비 | DB container를 custom network와 published port로 실행한다. | `docker ps` PORTS에 `15432->5432`가 보인다. |
-| host 접근 | host `psql` 또는 대체 client로 `localhost:15432`에 접근한다. | host 경로가 성공한다. |
-| 내부 접근 | client container에서 `paperclip-net-pg:5432`로 접근한다. | 같은 network 경로가 성공한다. |
-| 실패 재현 | client container에서 `localhost`를 사용한다. | client 자신을 가리켜 실패한다. |
-| 복구 | 접속 위치에 맞춰 host/port를 바꾼다. | 두 경로의 목적을 분리해 설명할 수 있다. |
-| 확인 | PORTS 출력과 DNS 접속을 함께 본다. | publish와 service discovery를 구분한다. |
+| 1 | 이미지 이름이 맞나? | `docker images`, 에러 메시지의 이름 |
+| 2 | 컨테이너가 살아 있나? | `docker ps -a` (STATUS와 종료 코드) |
+| 3 | 컨테이너가 무슨 말을 남겼나? | `docker logs 이름` |
+| 4 | 포트가 제대로 이어졌나? | `docker port 이름`, `-p 바깥:안` 순서 |
+| 5 | 안에서는 되나? | `docker exec 이름 …` |
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
+## 실패 1 · 이름 충돌
+
+> **🧪 실습: 만들어 보기**
+>
+> ```bash
+> docker run -d --name web -p 8080:80 nginx:1.30-alpine
+> docker run -d --name web -p 8081:80 nginx:1.30-alpine
+> ```
+
+> **🟢 확인: 보이는 에러**
+>
+> ```text
+> docker: Error response from daemon: Conflict. The container name "/web" is already in use by
+> container "7c1e3a9b…". You have to remove (or rename) that container to be able to reuse that name.
+> ```
+
+| 원인 | 해결 |
 |---|---|
-| host psql 없음 | docker run --rm postgres client 방식으로 대체한다. |
-| container에서 localhost 사용 | client container 자신을 가리키므로 실패한다. |
-| 15432와 5432 혼동 | host port는 외부용, container port는 내부 service port다. |
+| 같은 이름의 컨테이너가 이미 있다 (멈춘 것 포함!) | 다른 이름을 쓰거나 `docker rm -f web` 후 다시 |
 
-## Cleanup
+에러 메시지가 해결 방법(`remove (or rename)`)까지 알려 줍니다. 멈춘 컨테이너도 이름을 차지한다는 것이 함정입니다. `docker ps`가 아니라 **`docker ps -a`**로 확인해야 보입니다.
+
 ```bash
-docker stop paperclip-net-pg || true
-docker rm paperclip-net-pg || true
+docker rm -f web
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+## 실패 2 · 태그 오타
 
-## 주의할 점
-- Container를 삭제해도 named volume의 데이터는 남을 수 있다. 데이터를 초기화하려는 것이 아니라면 `docker volume rm`이나 `down -v`를 실행하지 않는다.
-- Host port publish(`-p`)와 container 간 통신은 다른 문제다. 브라우저나 host `psql`로 접근할 때만 host port가 필요하고, 같은 Docker network 안에서는 container name과 container port를 사용한다.
-- Volume target path는 image가 실제로 데이터를 쓰는 경로와 맞아야 한다. PostgreSQL은 `/var/lib/postgresql/data`와 `PGDATA` 설정을 확인하지 않으면 데이터가 남지 않거나 엉뚱한 위치에 쌓인다.
-- bind mount는 host 경로를 그대로 노출한다. 개인 경로, 권한 문제, 실수로 수정한 host 파일이 container 동작에 영향을 줄 수 있다.
-- Cleanup 전에는 지금 지우는 대상이 container인지, volume인지, network인지 먼저 구분한다.
+> **🧪 실습: 만들어 보기**
+>
+> ```bash
+> docker run -d --name web -p 8080:80 nginx:1.30-alpin
+> ```
 
-## 핵심 포인트
-이 실습의 핵심은 명령어 자체가 아니라 경계다. container는 실행 단위이고, volume은 data lifecycle이며, network는 통신 경계다. 학생이 `docker run` 한 줄을 볼 때 `-v`, `--network`, `-p`를 옵션 목록으로 외우면 뒤에서 Compose와 Kubernetes로 넘어갈 때 같은 혼란이 반복된다. 그래서 각 옵션을 "무엇을 container 밖으로 분리하는가"라는 질문으로 읽게 한다.
+> **🟢 확인: 보이는 에러**
+>
+> ```text
+> Unable to find image 'nginx:1.30-alpin' locally
+> docker: Error response from daemon: failed to resolve reference
+> "docker.io/library/nginx:1.30-alpin": docker.io/library/nginx:1.30-alpin: not found
+> ```
 
-강의 중에는 성공 출력보다 실패 출력의 의미를 더 오래 다룬다. port가 열리지 않은 것은 web server 문제가 아닐 수 있고, DB 접속 실패는 password 문제가 아니라 network boundary 문제일 수 있다. host terminal, container 내부, 같은 Docker network의 client container는 모두 서로 다른 관찰 위치다. 학생이 어디에서 명령을 실행하는지 말로 먼저 설명한 뒤 CLI를 실행하게 한다.
+| 원인 | 해결 |
+|---|---|
+| 레지스트리에 그 태그가 없다 (`alpin`) | Docker Hub의 이미지 페이지(Tags 탭)에서 정확한 태그 확인 |
 
-## 운영 해석
-실무에서 database container를 다룰 때 가장 위험한 실수는 cleanup을 단순 파일 정돈처럼 보는 것이다. container 삭제는 process와 container writable layer를 없애는 것이고, volume 삭제는 data를 삭제하는 것이다. network 삭제는 통신 경로를 없애는 것이다. 이 세 가지를 구분하지 않으면 실습은 성공해도 운영 사고를 배운 셈이 된다.
+어제 7교시의 **저장소 이름 오타**(`hello-wrold`)는 `repository does not exist`, 오늘의 **태그 오타**는 `not found`로 나옵니다. 메시지의 차이로 어느 부분이 틀렸는지 알 수 있습니다.
 
-운영에서는 "실행됐다"보다 어떤 data가 남고 무엇이 삭제되는지가 더 중요하다. Day 2의 storage/network 판단은 Day 5 Compose에서 `volumes`와 `networks`를 읽는 기준이 된다. Compose의 YAML 항목은 갑자기 생긴 문법이 아니라 Day 2에서 손으로 실행한 storage/network 결정을 파일로 옮긴 것이다.
+## 실패 3 · 컨테이너가 바로 꺼져요
 
-## 혼자 다시 따라오기
-최소 성공 경로는 `docker ps`의 PORTS 확인, host 접근 한 번, 같은 network client 접근 한 번이다. host에 `psql`이 없다면 `docker run --rm postgres:16 psql ...` 방식으로 대체한다. 실패하면 접속 위치, host 값, port 값을 한 줄씩 분리해 본다.
+> **🧪 실습: 만들어 보기**
+>
+> ```bash
+> docker run -d --name quick alpine:3.24
+> docker ps
+> docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Command}}"
+> ```
 
-## 다음 연결
-다음 교시는 storage와 network를 합쳐 Day 2의 실행 경계를 마무리한다.
+> **🟢 확인: 보이는 결과**
+>
+> ```text
+> NAMES     STATUS                     COMMAND
+> quick     Exited (0) 3 seconds ago   "/bin/sh"
+> ```
+> 에러는 없는데 `docker ps`에 없습니다.
+
+| 원인 | 해결 |
+|---|---|
+| alpine의 기본 명령은 `/bin/sh`. 백그라운드(`-d`)에서는 입력할 사람이 없으니 셸이 **바로 끝나고**, PID 1이 끝나면 컨테이너도 끝난다 | 들어가서 쓰려면 `docker run -it`, 계속 살려 두려면 끝나지 않는 명령을 준다 |
+
+```bash
+docker rm quick
+docker run -d --name alive alpine:3.24 sleep 3600
+docker ps --format "table {{.Names}}\t{{.Status}}"
+docker rm -f alive
+```
+
+`sleep 3600`(1시간 동안 잠자기)처럼 **끝나지 않는 PID 1**을 주면 계속 Up입니다. 3교시 학술 노트의 "PID 1이 끝나면 컨테이너도 끝난다"의 실제 사례입니다. 실무에서 "컨테이너가 계속 재시작해요"의 상당수가 **앱이 시작하자마자 에러로 끝나는** 경우이며, 그때는 `docker logs`가 답을 알려 줍니다.
+
+## 실패 4 · Up인데 접속이 안 돼요 (`127.0.0.1`의 함정)
+
+> **🧪 실습: 만들어 보기**
+>
+> 파이썬에 들어 있는 간단한 웹 서버를 **일부러 `127.0.0.1`에서만** 기다리게 실행합니다.
+>
+> ```bash
+> docker run -d --name py-bad -p 8090:8000 python:3.14-slim \
+>   python -m http.server 8000 --bind 127.0.0.1
+> docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+> curl http://localhost:8090
+> ```
+> - 줄 끝의 `\`는 "명령이 다음 줄로 이어진다"는 뜻입니다.
+
+> **🟢 확인: 보이는 결과**
+>
+> ```text
+> NAMES     PORTS                                       STATUS
+> py-bad    0.0.0.0:8090->8000/tcp, [::]:8090->8000/tcp   Up 5 seconds
+> curl: (56) Recv failure: Connection reset by peer
+> ```
+> (Docker Desktop에서는 `curl: (52) Empty reply from server`로 나오기도 합니다.) 컨테이너는 Up, 포트 연결도 화살표가 있는데 접속이 안 됩니다.
+
+> [!IMPORTANT]
+> **1주차 3일차 3교시의 그 함정**
+>
+> 컨테이너 안에서 앱이 **`127.0.0.1`(나 자신)**에서만 기다리면, 바깥에서 포트 연결을 타고 들어온 손님은 **컨테이너의 네트워크 카드**로 들어오기 때문에 앱에 닿지 못합니다. 건물(컨테이너)의 정문으로 손님을 안내했는데, 직원은 **안쪽 사무실 문(127.0.0.1)**만 열어 둔 셈입니다. 컨테이너 안의 앱은 **`0.0.0.0`(모든 문)**에서 기다려야 합니다.
+
+```bash
+docker exec py-bad python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000').status)"
+```
+
+> **🟢 확인: 안에서는 된다**
+>
+> ```text
+> 200
+> ```
+> 디버깅 순서 5번 — **안에서는 되고 밖에서는 안 된다**면, 앱이 기다리는 주소를 의심합니다.
+
+```bash
+docker rm -f py-bad
+docker run -d --name py-good -p 8090:8000 python:3.14-slim python -m http.server 8000
+curl -s http://localhost:8090 | head -3
+docker rm -f py-good
+```
+
+`--bind`를 빼면 파이썬 웹 서버는 모든 주소에서 기다리므로 이번에는 디렉터리 목록 HTML이 나옵니다. 3일차에 만드는 DevMart API가 `--bind 0.0.0.0:8000`으로 실행되는 이유입니다.
+
+## 실패 5 · 포트 순서를 거꾸로
+
+> **🧪 실습: 만들어 보기**
+>
+> ```bash
+> docker run -d --name rev -p 80:8080 nginx:1.30-alpine
+> curl http://localhost:8080
+> curl http://localhost:80
+> ```
+
+> **🟢 확인: 보이는 결과**
+>
+> ```text
+> curl: (7) Failed to connect to localhost port 8080 after 0 ms: Couldn't connect to server
+> curl: (56) Recv failure: Connection reset by peer
+> ```
+> (호스트의 80번이 이미 사용 중이면 `port is already allocated`가 날 수도 있습니다.)
+
+| 원인 | 해결 |
+|---|---|
+| `-p 80:8080`은 "노트북 80 → 컨테이너 8080". 그런데 nginx는 컨테이너 안 **80**에서 기다린다 | **바깥:안** — `-p 8080:80` |
+
+첫 번째 curl은 노트북 8080에 아무도 없어서(**refused**), 두 번째는 컨테이너 8080에 아무도 없어서 실패했습니다. 1주차 3일차의 에러 표가 여기서도 그대로 통합니다.
+
+```bash
+docker rm -f rev
+```
+
+## 실습 16 · 나만의 문제 해결 표
+
+> **🧪 실습: 실습 목표**
+>
+> 오늘 만난 에러를 내 말로 정리해 저장소에 남깁니다. 다음 주, 다음 달의 내가 읽을 **첫 번째 런북**입니다(1주차 5일차 6교시).
+
+VS Code에서 `~/devops-lab/day2/troubleshooting.md`를 만들고 아래 표를 **내 말로** 채웁니다.
+
+```markdown
+# Docker 문제 해결 표 (2주차 2일차)
+
+| 보인 에러 / 증상 | 원인 | 해결 명령 |
+|---|---|---|
+| port is already allocated | | |
+| Conflict. The container name ... is already in use | | |
+| ...: not found (이미지) | | |
+| docker ps에 없고 ps -a에서 Exited (0) | | |
+| Up인데 Connection reset / Empty reply | | |
+| Exited (137) | | |
+```
+
+```bash
+cd ~/devops-lab
+git add day2/troubleshooting.md
+git commit -m "2일차: Docker 문제 해결 표"
+git push
+```
+
+> **🧹 정리: 오늘의 정리**
+>
+> ```bash
+> docker ps -a
+> docker container prune
+> docker ps -a
+> ```
+> 머리줄만 남으면 깨끗합니다. 이미지(`alpine`, `nginx`, `python`)는 내일도 쓰므로 남겨 둡니다.
+
+> **🎓 학술 노트 — 디버깅은 가설 검증이다**
+>
+> 컴퓨터 과학자 안드레아스 첼러(Andreas Zeller)는 『Why Programs Fail』(2009)에서 디버깅을 **과학적 방법**으로 설명했습니다. ① 실패를 관찰하고, ② 원인에 대한 **가설**을 세우고, ③ 가설을 확인할 **실험**을 설계하고, ④ 결과로 가설을 받아들이거나 버리는 과정을 반복하는 것입니다. 무작정 이것저것 바꿔 보는 것이 아니라, **한 번에 하나씩** 바꾸며 범위를 좁혀 가는 것이 핵심입니다.
+>
+> 오늘 실패 4에서 우리는 "앱이 127.0.0.1에서만 기다린다"는 가설을 세우고, **안에서 접속하는 실험**(`docker exec … urlopen`)으로 확인한 뒤, `--bind`를 빼는 한 가지 변경으로 고쳤습니다. 이것이 디버깅의 정석입니다. 1주차 5일차 5교시 장애 대응에서 "원인을 몰라도 먼저 피해를 멈추고, 원인 분석은 차분히"라고 한 그 차분한 분석이 바로 이 과정입니다.
+>
+> - Zeller, A. (2009). *Why Programs Fail: A Guide to Systematic Debugging* (2nd ed.). Morgan Kaufmann.
+> - Agans, D. J. (2002). *Debugging: The 9 Indispensable Rules*. AMACOM.
+
+> **📈 트렌드 — AI에게 에러를 물을 때**
+>
+> 에러 메시지를 AI 도구에 붙여 넣고 원인을 묻는 것은 이제 흔한 일입니다. Docker Desktop에도 AI 도우미가 들어가 있습니다. 하지만 AI는 여러분의 노트북을 직접 볼 수 없으므로, 위 디버깅 순서 1~5의 **결과를 함께** 주어야 정확한 답을 받습니다(1주차 1일차의 "좋은 질문"). 그리고 AI가 제안한 명령, 특히 `prune`, `rm -rf`, `--volumes`, `sudo`가 들어간 명령은 **무엇을 지우는지 읽고 나서** 실행합니다. 오늘 만든 문제 해결 표를 AI에게 맥락으로 함께 주면, AI도 여러분 환경에 맞는 답을 더 잘 합니다.
+
+## 정리 — 오늘 손에 익힌 명령
+
+| 하고 싶은 것 | 명령 |
+|---|---|
+| 이미지 받기 / 목록 | `docker pull 이미지:태그` / `docker images` |
+| 들어가 보기 (새 컨테이너) | `docker run -it --rm 이미지 sh` |
+| 백그라운드 실행 + 포트 | `docker run -d --name 이름 -p 바깥:안 이미지` |
+| 목록 | `docker ps` / `docker ps -a` |
+| 관찰 | `docker logs -f`, `docker exec -it 이름 sh`, `docker inspect`, `docker stats` |
+| 멈추기 / 켜기 / 지우기 | `docker stop` / `docker start` / `docker rm -f` |
+| 정리 | `docker container prune`, `docker image rm`, `docker system df` |
+
+> **✅ 확인 문제**
+>
+> 1. 멈춘 컨테이너도 이름을 차지하나요? 어떻게 확인하나요?
+> 2. 이미지 **태그** 오타와 **저장소 이름** 오타는 에러 메시지가 어떻게 다른가요?
+> 3. `docker run -d alpine:3.24`가 바로 Exited (0)가 되는 이유는?
+> 4. 컨테이너가 Up이고 포트도 연결됐는데 Connection reset이 나면 무엇을 의심하나요?
+> 5. nginx를 `-p 80:8080`으로 띄우면 왜 접속이 안 되나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. 차지한다. `docker ps -a`로 확인한다
+> 2. 태그 오타는 `not found`, 저장소 이름 오타는 `repository does not exist`
+> 3. 기본 명령인 sh가 입력이 없어 바로 끝나고, PID 1이 끝나면 컨테이너도 끝나기 때문
+> 4. 앱이 컨테이너 안에서 127.0.0.1에서만 기다리는지 (0.0.0.0이어야 한다)
+> 5. 바깥 80 → 안 8080으로 연결되는데, nginx는 안의 80에서 기다리기 때문 (바깥:안 순서)
+>
+> </details>
+
+> [!NOTE]
+> **오늘의 배움일기**
+>
+> - 오늘 본 에러 중 가장 당황스러웠던 것과, 이제 원인을 한 문장으로 설명해 보기
+> - 이미지와 컨테이너의 차이를 1주차 2일차의 "프로그램과 프로세스"에 빗대어 설명해 보기
+> - `docker top`에서 PID 1이 다른 번호로 보인 것을 보고 든 생각
+> - 내일 Dockerfile 시간에 만들고 싶은 이미지 아이디어 하나
+
+## 참고 문헌
+
+- Docker Docs. *Troubleshoot Docker Engine*, *docker container run reference*. docs.docker.com
+- Python Docs. *http.server — HTTP servers (--bind)*. docs.python.org/3/library/http.server.html
+- Zeller, A. (2009). *Why Programs Fail* (2nd ed.). Morgan Kaufmann.
+- Agans, D. J. (2002). *Debugging: The 9 Indispensable Rules*. AMACOM.

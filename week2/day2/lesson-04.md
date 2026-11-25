@@ -1,107 +1,247 @@
-# 4교시: bind mount와 host path 주의
+# 4교시 · 포트 연결
 
-## 수업 목표
-- bind mount와 named volume을 비교한다.
-- host 파일 변경이 container 응답에 반영되는지 확인한다.
-- read-only mount를 사용해 안전한 실습 기준을 만든다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - `-p 호스트포트:컨테이너포트`의 뜻을 이해합니다.
+> - nginx를 포트 연결과 함께 실행하고 브라우저로 접속합니다.
+> - 같은 이미지로 컨테이너 여러 개를 다른 포트에 띄웁니다.
+> - 포트 충돌을 일부러 만들고, `127.0.0.1`로만 여는 방법도 봅니다.
 
-## 강의 전개
-bind mount는 host filesystem을 container path에 직접 연결한다. 개발 중 HTML, config, script를 빠르게 바꿔 확인할 때 유용하지만, host path가 강하게 드러난다. macOS와 Linux의 path 차이, 권한 차이, read/write mode를 이해해야 한다.
+## 두 건물 사이에 통로 뚫기
 
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 원인을 좁히는 단서다. 실패한 명령, 에러 요약, 가설, 다시 실행할 명령을 순서대로 다룬다.
+![포트 연결 — 내 노트북의 8080번 문을 컨테이너의 80번 문으로 이어 준다](../../assets/week2/day2/w2d2-port-mapping.png)
 
-## Imagegen 인포그래픽: bind mount host path
-![Docker bind mount host path to container path](./assets/lesson-04-bind-mount-host-path.png)
-
-이 이미지는 host directory가 container 내부 path에 직접 연결되는 구조를 보여준다. `:ro` 표시는 container가 host file을 마음대로 바꾸지 못하게 하는 안전 경계로 읽는다.
-
-## 시각 자료 1: bind mount 경로 연결
-```mermaid
-flowchart LR
-  Host["host: $PWD/week2/day2/tmp-bind/html"] -->|bind mount :ro| Container["container: /usr/share/nginx/html"]
-  Container --> Nginx[nginx reads index.html]
-  Nginx --> Browser[localhost:18082]
-  Host --> Change[host file 변경]
-  Change --> Browser2[응답 내용 변경]
+```text
+-p 8080:80
+   ────  ──
+   │     └─ 컨테이너 안의 포트 (nginx가 기다리는 곳)
+   └─────── 내 노트북(호스트)의 포트 (내가 접속할 곳)
 ```
 
-읽는 순서는 host 파일, container target path, nginx 응답이다. bind mount에서는 Docker가 data 위치를 숨기지 않고 host path를 그대로 container에 연결한다.
+**왼쪽이 바깥, 오른쪽이 안**입니다. "노트북의 8080번 문으로 들어온 손님을 컨테이너의 80번 방으로 안내하라"는 뜻입니다. 1주차 3일차에 배운 **NAT**와 같은 일을 Docker가 대신 해 주는 것입니다.
 
-## 시각 자료 2: read-only 안전 경계
-```mermaid
-flowchart TD
-  Mount[bind mount option] --> Mode{mode}
-  Mode --> RO[:ro]
-  Mode --> RW[read-write]
-  RO --> Safe[container가 host file 수정 불가]
-  RW --> Risk[container process가 host file 변경 가능]
-  Risk --> Check[개발 편의와 위험을 함께 판단]
-```
+## 실습 6 · 포트를 연결해 실행
 
-이 visual은 `:ro`가 단순 옵션이 아니라 host file 보호 경계라는 점을 보여준다. 개발 중에는 편의 때문에 read-write를 쓰더라도, 기본 실습은 read-only로 시작한다.
+> **🧪 실습: 실습 목표**
+>
+> nginx를 `-p 8080:80`으로 실행하고, 터미널과 브라우저 양쪽에서 환영 페이지를 확인합니다.
 
-## 실습 명령
-```bash
-mkdir -p week2/day2/tmp-bind/html
-printf "<h1>bind mount v1</h1>" > week2/day2/tmp-bind/html/index.html
-docker run -d --name paperclip-bind-web -p 18082:80 -v "$PWD/week2/day2/tmp-bind/html:/usr/share/nginx/html:ro" nginx:alpine
-```
+### 단계 1 — 실행
 
 ```bash
-printf "<h1>bind mount v2</h1>" > week2/day2/tmp-bind/html/index.html
+docker run -d --name web -p 8080:80 nginx:1.30-alpine
+docker ps
 ```
 
-## 검증 명령
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> CONTAINER ID   IMAGE               …   STATUS         PORTS                                     NAMES
+> 7c1e3a9b2f4d   nginx:1.30-alpine   …   Up 3 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
+> ```
+> 이번에는 PORTS에 **화살표**가 있습니다. `0.0.0.0:8080->80/tcp` = "모든 네트워크 카드의 8080 → 컨테이너 80". `[::]`는 같은 내용의 IPv6 표기입니다(1주차 3일차).
+
+### 단계 2 — 터미널에서 접속
+
 ```bash
-curl -s http://localhost:18082
-docker inspect paperclip-bind-web --format "{{ json .Mounts }}"
+curl http://localhost:8080
 ```
 
-## 실습 확장 흐름
-| 단계 | 할 일 | 기대되는 관찰 |
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> <!DOCTYPE html>
+> <html>
+> <head>
+> <title>Welcome to nginx!</title>
+> ...
+> ```
+
+### 단계 3 — 브라우저에서 접속
+
+Windows·Mac의 브라우저 주소창에 **`http://localhost:8080`**을 입력합니다.
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> **Welcome to nginx!** 페이지가 보입니다. WSL 안에서 띄운 컨테이너를 Windows 브라우저로 볼 수 있는 것은 Docker Desktop이 포트를 Windows까지 이어 주기 때문입니다.
+
+### 단계 4 — 연결 정보만 보기
+
+```bash
+docker port web
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 80/tcp -> 0.0.0.0:8080
+> 80/tcp -> [::]:8080
+> ```
+
+## 실습 7 · 같은 이미지로 여러 개
+
+> **🧪 실습: 실습 목표**
+>
+> 같은 nginx 이미지로 컨테이너 두 개를 더 띄워, 하나의 이미지 → 여러 컨테이너를 눈으로 확인합니다.
+
+### 단계 1 — 두 개 더
+
+```bash
+docker run -d --name web2 -p 8081:80 nginx:1.30-alpine
+docker run -d --name web3 -p 8082:80 nginx:1.30-alpine
+docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+```
+
+- `--format` : 보고 싶은 열만 골라 표로 보여 줍니다. `\t`는 칸 띄우기입니다.
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> NAMES     PORTS                                     STATUS
+> web3      0.0.0.0:8082->80/tcp, [::]:8082->80/tcp   Up 2 seconds
+> web2      0.0.0.0:8081->80/tcp, [::]:8081->80/tcp   Up 3 seconds
+> web       0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   Up 2 minutes
+> ```
+> 세 컨테이너 모두 **안에서는 똑같이 80번**을 쓰는데 충돌하지 않습니다. 각자 자기 건물(네트워크 네임스페이스) 안의 80호실이기 때문입니다. 바깥 문 번호(8080, 8081, 8082)만 다르면 됩니다. 1주차 5일차 7교시의 "PostgreSQL 두 버전을 5432와 5433으로"가 바로 이 원리였습니다.
+
+### 단계 2 — 하나씩 접속
+
+```bash
+curl -s http://localhost:8081 | grep title
+curl -s http://localhost:8082 | grep title
+```
+
+- `-s` : 진행 표시 없이 조용히(silent)
+- `| grep title` : 결과 중 `title`이 들어간 줄만 (1주차 2일차의 파이프)
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> <title>Welcome to nginx!</title>
+> <title>Welcome to nginx!</title>
+> ```
+
+## 실습 8 · 포트 충돌과 접근 범위
+
+> **🧪 실습: 실습 목표**
+>
+> 이미 쓰는 포트로 하나 더 띄워 충돌 에러를 보고, `127.0.0.1`로 접근 범위를 좁혀 봅니다.
+
+### 단계 1 — 일부러 충돌
+
+```bash
+docker run -d --name web4 -p 8080:80 nginx:1.30-alpine
+```
+
+> **🟢 확인: 예상되는 에러**
+>
+> ```text
+> docker: Error response from daemon: failed to set up container networking: driver failed
+> programming external connectivity on endpoint web4 (…): Bind for 0.0.0.0:8080 failed:
+> port is already allocated
+> ```
+> 1주차 1일차 "좋은 질문"의 그 에러, 1주차 3일차 "포트 충돌"의 실제 모습입니다. 끝부분 **`port is already allocated`**가 핵심입니다. 8080은 이미 `web`이 쓰고 있습니다.
+
+### 단계 2 — 실패의 흔적 확인
+
+```bash
+docker ps -a --format "table {{.Names}}\t{{.Status}}"
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> NAMES     STATUS
+> web4      Created
+> web3      Up 3 minutes
+> ...
+> ```
+> `web4`는 **만들어졌지만(Created) 시작하지 못한** 상태로 남아 있습니다. 이름 `web4`를 다시 쓰려면 지워야 합니다.
+
+```bash
+docker rm web4
+```
+
+### 단계 3 — 내 컴퓨터에서만 열기
+
+```bash
+docker run -d --name web-local -p 127.0.0.1:8083:80 nginx:1.30-alpine
+docker port web-local
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 80/tcp -> 127.0.0.1:8083
+> ```
+> `0.0.0.0`(모든 네트워크 카드)이 아니라 **`127.0.0.1`(나 자신)**에만 문을 열었습니다. 같은 와이파이의 다른 사람은 내 노트북 IP의 8083으로 들어올 수 없습니다. 1주차 3일차 3교시의 `127.0.0.1` vs `0.0.0.0`이 **호스트 쪽에서도** 똑같이 적용됩니다. DB 관리 도구처럼 외부에 노출하면 위험한 것은 이렇게 엽니다.
+
+| `-p` 형식 | 열리는 범위 | 쓰는 곳 |
 |---|---|---|
-| 준비 | host에 `tmp-bind/html/index.html`을 만든다. | host file이 container 입력이 된다. |
-| 실행 | nginx container에 host directory를 `:ro`로 mount한다. | 브라우저나 curl에서 v1 내용이 보인다. |
-| 변경 | host file을 v2로 바꾼다. | container 재빌드 없이 응답이 바뀐다. |
-| 실패 재현 | source path를 일부러 틀린 경로로 바꿔 본다. | 기본 nginx page 또는 예상과 다른 응답이 나올 수 있다. |
-| 복구 | source path와 `$PWD`를 확인하고 다시 실행한다. | host file 내용이 다시 응답에 반영된다. |
-| 확인 | `docker inspect ... .Mounts`로 source, destination, mode를 본다. | bind mount와 named volume의 차이를 설명할 수 있다. |
+| `-p 8080:80` | 모든 네트워크 카드 (`0.0.0.0`) | 다른 기기에서도 접속해야 하는 서비스 |
+| `-p 127.0.0.1:8080:80` | 내 컴퓨터만 | 관리 도구, DB, 개인 실습 |
+| `-p 80` (한쪽만) | 호스트의 **빈 포트를 Docker가 골라서** 연결 | 테스트용, `docker port`로 번호 확인 |
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
-|---|---|
-| host path가 틀림 | container는 뜨지만 expected file이 보이지 않을 수 있다. |
-| :ro를 빼먹음 | container 쪽에서 host file을 수정할 위험이 생긴다. |
-| Windows/mac path 문제 | Docker Desktop file sharing/path permission을 확인한다. |
+> **🧹 정리: 정리**
+>
+> ```bash
+> docker rm -f web web2 web3 web-local
+> docker ps -a
+> ```
+> `docker ps -a`가 머리줄만 남으면 깨끗합니다. 다음 시간에 `web`을 새로 만듭니다.
 
-## Cleanup
-```bash
-docker stop paperclip-bind-web || true
-docker rm paperclip-bind-web || true
-rm -rf week2/day2/tmp-bind
-```
+> **🛠️ 막혔다면: 막혔다면**
+>
+> | 증상 | 원인 | 해결 |
+> |---|---|---|
+> | `port is already allocated` | 그 호스트 포트를 다른 컨테이너가 사용 중 | `docker ps`로 누가 쓰는지 확인 → 그 컨테이너를 지우거나 다른 포트 |
+> | `address already in use` | 컨테이너가 아니라 **노트북의 다른 프로그램**이 사용 중 | `sudo ss -tlnp \| grep 8080`(Linux) 또는 다른 포트로 |
+> | 브라우저에서 안 열림, curl은 됨 | 주소 오타, `https://`로 입력 | `http://localhost:8080` 정확히 |
+> | `Conflict. The container name "/web" is already in use` | 같은 이름의 컨테이너가 남아 있음 | `docker rm -f web` 후 다시 (7교시) |
+> | `-p 80:8080`으로 썼더니 안 됨 | **순서를 거꾸로** 씀 | 바깥:안 — `-p 8080:80` |
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+> **🎓 학술 노트 — Docker는 포트를 어떻게 이을까**
+>
+> `-p 8080:80`을 쓰면 Docker는 호스트 커널의 **패킷 필터(iptables 또는 nftables)**에 규칙을 추가합니다. "8080으로 들어온 패킷의 목적지를 컨테이너 IP의 80으로 바꿔라"라는 **DNAT(Destination NAT)** 규칙입니다. 1주차 3일차의 공유기 NAT가 "나가는 패킷의 출발지를 바꾸는" 것이었다면, 이것은 "들어오는 패킷의 목적지를 바꾸는" 반대 방향입니다. 공유기 설정의 **포트 포워딩**과 같은 일입니다.
+>
+> 이 방식은 빠르지만, 패킷 필터를 직접 고치기 때문에 방화벽 설정과 부딪히기도 합니다. 예를 들어 Linux 서버에서 Ubuntu의 방화벽(ufw)으로 8080을 막아도, Docker가 넣은 규칙이 먼저 적용되어 **컨테이너 포트가 여전히 열려 있는** 일이 생깁니다. 실제로 이 때문에 DB 컨테이너가 인터넷에 노출되는 사고가 반복되어 왔습니다. 그래서 운영 서버에서는 꼭 필요한 포트만 `-p`로 열고, 내부용은 `127.0.0.1:`을 붙이거나 4일차에 배울 **Docker 네트워크**로만 연결합니다.
+>
+> - Docker Docs. *Packet filtering and firewalls*, *Port publishing and mapping*. docs.docker.com/engine/network
+> - Netfilter Project. *iptables / nftables documentation*. netfilter.org
 
-## 주의할 점
-- Container를 삭제해도 named volume의 데이터는 남을 수 있다. 데이터를 초기화하려는 것이 아니라면 `docker volume rm`이나 `down -v`를 실행하지 않는다.
-- Host port publish(`-p`)와 container 간 통신은 다른 문제다. 브라우저나 host `psql`로 접근할 때만 host port가 필요하고, 같은 Docker network 안에서는 container name과 container port를 사용한다.
-- Volume target path는 image가 실제로 데이터를 쓰는 경로와 맞아야 한다. PostgreSQL은 `/var/lib/postgresql/data`와 `PGDATA` 설정을 확인하지 않으면 데이터가 남지 않거나 엉뚱한 위치에 쌓인다.
-- bind mount는 host 경로를 그대로 노출한다. 개인 경로, 권한 문제, 실수로 수정한 host 파일이 container 동작에 영향을 줄 수 있다.
-- Cleanup 전에는 지금 지우는 대상이 container인지, volume인지, network인지 먼저 구분한다.
+> **📈 트렌드 — 노트북도 '외부 노출'을 조심한다**
+>
+> 공용 와이파이(카페, 학교)에서 `-p 5432:5432`처럼 DB를 모든 네트워크 카드에 열어 두면, 같은 네트워크의 누구나 접속을 시도할 수 있습니다. 그래서 최근 Docker Desktop과 보안 가이드는 **개발용 포트는 `127.0.0.1`에만 열기**를 기본 습관으로 권합니다. 회사에서는 노트북 보안 에이전트가 이런 노출을 감지해 경고하기도 합니다. 1주차 3일차 7교시의 **"0.0.0.0/0으로 SSH 열기 = 위험"**과 같은 감각을 내 노트북에도 적용하는 것입니다.
 
-## 핵심 포인트
-이 실습의 핵심은 명령어 자체가 아니라 경계다. container는 실행 단위이고, volume은 data lifecycle이며, network는 통신 경계다. 학생이 `docker run` 한 줄을 볼 때 `-v`, `--network`, `-p`를 옵션 목록으로 외우면 뒤에서 Compose와 Kubernetes로 넘어갈 때 같은 혼란이 반복된다. 그래서 각 옵션을 "무엇을 container 밖으로 분리하는가"라는 질문으로 읽게 한다.
+## 정리
 
-강의 중에는 성공 출력보다 실패 출력의 의미를 더 오래 다룬다. port가 열리지 않은 것은 web server 문제가 아닐 수 있고, DB 접속 실패는 password 문제가 아니라 network boundary 문제일 수 있다. host terminal, container 내부, 같은 Docker network의 client container는 모두 서로 다른 관찰 위치다. 학생이 어디에서 명령을 실행하는지 말로 먼저 설명한 뒤 CLI를 실행하게 한다.
+- `-p 호스트:컨테이너` — **왼쪽이 바깥, 오른쪽이 안**입니다.
+- 같은 이미지로 여러 컨테이너를 띄울 때, 안의 포트는 같아도 되고 **바깥 포트만 다르면** 됩니다.
+- 이미 쓰는 호스트 포트를 또 쓰면 **`port is already allocated`**, 컨테이너는 `Created`로 남습니다.
+- `-p 127.0.0.1:포트:포트`는 **내 컴퓨터에서만** 접속하게 합니다.
 
-## 운영 해석
-실무에서 database container를 다룰 때 가장 위험한 실수는 cleanup을 단순 파일 정돈처럼 보는 것이다. container 삭제는 process와 container writable layer를 없애는 것이고, volume 삭제는 data를 삭제하는 것이다. network 삭제는 통신 경로를 없애는 것이다. 이 세 가지를 구분하지 않으면 실습은 성공해도 운영 사고를 배운 셈이 된다.
+> **✅ 확인 문제**
+>
+> 1. `-p 9000:80`에서 브라우저로 접속할 주소는?
+> 2. 컨테이너 세 개가 모두 안에서 80번을 쓰는데 충돌하지 않는 이유는?
+> 3. `port is already allocated`가 나면 가장 먼저 확인할 명령은?
+> 4. 포트 충돌로 시작하지 못한 컨테이너의 STATUS는?
+> 5. DB 컨테이너를 내 노트북에서만 접속하게 열려면 `-p`를 어떻게 쓰나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. `http://localhost:9000`
+> 2. 각 컨테이너가 자기만의 네트워크 네임스페이스를 가지므로, 바깥(호스트) 포트만 다르면 된다
+> 3. `docker ps` — 그 포트를 쓰는 컨테이너 찾기
+> 4. `Created`
+> 5. `-p 127.0.0.1:5432:5432`
+>
+> </details>
 
-운영에서는 "실행됐다"보다 어떤 data가 남고 무엇이 삭제되는지가 더 중요하다. Day 2의 storage/network 판단은 Day 5 Compose에서 `volumes`와 `networks`를 읽는 기준이 된다. Compose의 YAML 항목은 갑자기 생긴 문법이 아니라 Day 2에서 손으로 실행한 storage/network 결정을 파일로 옮긴 것이다.
+## 참고 문헌
 
-## 혼자 다시 따라오기
-최소 성공 경로는 host file 생성, nginx 실행, curl 확인, host file 변경, curl 재확인이다. 응답이 바뀌지 않으면 `$PWD`가 repo root인지, mount source가 실제 파일을 포함하는 directory인지, container를 새로 띄울 때 기존 이름 충돌이 없는지 확인한다.
-
-## 다음 연결
-다음 교시는 storage에서 network로 넘어간다. host port 공개와 container 간 통신은 다른 문제다.
+- Docker Docs. *Port publishing and mapping*. docs.docker.com/engine/network/port-publishing
+- Docker Docs. *Packet filtering and firewalls*. docs.docker.com/engine/network/packet-filtering-firewalls
+- Docker Docs. *docker container port*. docs.docker.com/reference/cli
+- Netfilter Project. *Netfilter/iptables*. netfilter.org

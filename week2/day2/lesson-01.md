@@ -1,109 +1,172 @@
-# 1교시: Day 1 DB container 재생성과 데이터 소실 확인
+# 1교시 · 이미지와 컨테이너
 
-![Day 2 Storage and Network overview](./assets/day2-storage-network-overview.png)
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 어제 설치한 환경을 10분 동안 점검합니다.
+> - 이미지와 컨테이너의 차이를 비유와 그림으로 이해합니다.
+> - 이미지 이름(레지스트리/저장소:태그)을 읽습니다.
+> - `docker images`와 `docker ps -a`로 어제의 hello-world를 찾아봅니다.
 
-## 수업 목표
-- Day 1에서 volume 없이 만든 PostgreSQL data가 container lifecycle에 묶였는지 확인한다.
-- container 삭제와 database data 삭제의 관계를 실험으로 설명한다.
-- 데이터 소실을 Day 2 volume 학습의 출발점으로 삼는다.
+## 어제 요약 — 작업대 점검
 
-## 강의 전개
-Day 1에서 SQL로 user, database, table, row를 만들었다면 학생은 그것이 Docker 어딘가에 안전하게 저장되었다고 착각하기 쉽다. 이 교시는 그 착각을 의도적으로 깨는 시간이다. volume 없이 만든 database container를 삭제하고 같은 image로 다시 만들면, 이전에 만든 table과 row가 보이지 않는 상황을 확인한다. 핵심은 PostgreSQL이 나쁜 것이 아니라 container writable layer와 data lifecycle을 분리하지 않았다는 점이다.
-
-이 교시는 설명만 듣고 지나가지 않는다. 명령은 반드시 code block으로 실행하고, 바로 이어서 검증 명령을 실행한다. 정상 출력이 다를 수 있는 부분은 전체 문자열을 외우지 않고 성공 패턴을 확인한다. 실패는 원인을 좁히는 단서다. 실패한 명령, 에러 요약, 가설, 다시 실행할 명령을 순서대로 다룬다.
-
-## Imagegen 인포그래픽: volume 없는 데이터 소실
-![Volume 없는 PostgreSQL container data loss](./assets/lesson-01-no-volume-data-loss.png)
-
-이 이미지는 SQL data가 container의 writable layer에 머물다가 `docker rm`과 함께 사라지는 흐름을 보여준다. 왼쪽의 SQL 입력, 가운데 삭제된 container, 오른쪽의 새 container를 순서대로 보면 "같은 image로 다시 만들었다"와 "이전 data가 남아 있다"가 다른 말이라는 점이 드러난다.
-
-## 시각 자료 1: writable layer와 container 삭제
-```mermaid
-flowchart LR
-  Image[postgres:16 image] --> C1[paperclip-pg16 container]
-  C1 --> W1[writable layer<br/>table, row]
-  C1 --> Stop[docker stop]
-  Stop --> Remove[docker rm]
-  Remove --> Lost[writable layer 제거]
-  Image --> C2[new paperclip-pg16]
-  C2 --> Empty[초기 DB 상태]
-```
-
-읽는 순서는 image, 첫 container, writable layer, 삭제, 새 container다. 이 그림은 volume 없이 만든 DB row가 image에 저장되는 것이 아니라 실행 중 container layer에만 남는다는 점을 보여준다.
-
-## 시각 자료 2: no-volume failure 관찰 위치
-```mermaid
-flowchart TD
-  Run[docker run postgres:16] --> Insert[SQL table/row 생성]
-  Insert --> Query1[SELECT 결과 있음]
-  Query1 --> Recreate[container 삭제 후 재생성]
-  Recreate --> Query2["\\dt 또는 SELECT 실패"]
-  Query2 --> Cause{원인 구분}
-  Cause --> A[PostgreSQL 오류 아님]
-  Cause --> B[container lifecycle 문제]
-  Cause --> C[volume 미사용]
-```
-
-위 도식은 실패를 "DB가 이상하다"로 보지 않고 storage 경계 문제로 좁히는 흐름이다. 먼저 같은 image로 새 container를 만들었다는 조건을 확인하고, 그 다음 volume 연결 여부를 본다.
-
-## 실습 명령
 ```bash
-docker ps -a --filter name=paperclip-pg16
-docker stop paperclip-pg16 || true
-docker rm paperclip-pg16 || true
-docker run -d --name paperclip-pg16 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=paperclip -p 15432:5432 postgres:16
+cd ~/devops-lab
+bash tools/check-env.sh
 ```
 
-## 검증 명령
-```bash
-docker logs paperclip-pg16 --tail 30
-docker exec paperclip-pg16 psql -U postgres -d paperclip -c "\dt"
-```
+**실패 0개**가 나오면 오늘 실습을 시작할 준비가 된 것입니다. Docker Desktop이 꺼져 있다면 먼저 켜고 **Engine running**을 기다립니다(어제 7교시 실패 1).
 
-## 실습 확장 흐름
-| 단계 | 할 일 | 기대되는 관찰 |
+## 이미지와 컨테이너
+
+![이미지와 컨테이너 — 하나의 이미지로 여러 컨테이너를 찍어 낸다](../../assets/week2/day2/w2d2-image-container.png)
+
+| | 이미지 (Image) | 컨테이너 (Container) |
 |---|---|---|
-| 준비 | 기존 `paperclip-pg16`을 stop/rm한다. | 이름 충돌이 사라진다. |
-| 실행 | volume 없이 PostgreSQL을 새로 띄운다. | `docker ps`에 container가 보인다. |
-| 관찰 | `\dt`로 table 목록을 본다. | 이전 table이 보이지 않는다. |
-| 실패 재현 | 같은 이름의 container를 다시 만들기 전에 기존 container를 지우지 않는다. | 이름 충돌 에러가 난다. |
-| 복구 | `docker rm` 후 다시 실행한다. | 같은 image로 새 container가 뜬다. |
-| 확인 | table 없음과 container 정상 실행을 함께 본다. | data 소실과 process 정상 상태를 구분한다. |
+| 정체 | 실행에 필요한 파일들의 **읽기 전용 묶음** | 이미지를 바탕으로 **실행 중인(또는 멈춘) 프로세스** |
+| 상태 | 바뀌지 않는다 | 실행 중에 파일을 쓰고 바꿀 수 있다 |
+| 개수 | 하나 | 하나의 이미지로 **여러 개**를 만들 수 있다 |
+| 비유 | **붕어빵 틀** | **틀로 찍어 낸 붕어빵** |
+| 1주차와 연결 | 1주차 2일차의 "프로그램(디스크의 파일)" | 1주차 2일차의 "프로세스(실행 중인 프로그램)" |
+| 확인 명령 | `docker images` | `docker ps -a` |
 
-## 실패 드릴과 오해 교정
-| 상황 | 해석 |
-|---|---|
-| table이 없다 | volume 없이 새 container를 만들었으므로 이전 writable layer data가 사라진 상태다. |
-| container가 실행되지 않는다 | 이름 충돌, port 충돌, POSTGRES_PASSWORD 누락을 먼저 확인한다. |
-| 5432 접속이 안 된다 | host port 15432와 container port 5432를 구분한다. |
+> **🧩 비유 — 요리 레시피와 요리**
+>
+> 이미지는 **재료가 다 손질되어 들어 있는 밀키트**, 컨테이너는 그 밀키트로 **지금 만들고 있는 요리**입니다. 같은 밀키트로 요리를 세 번 하면 요리가 세 개 생기지만 밀키트 상자는 그대로입니다. 요리에 소금을 더 넣어도(컨테이너 안에서 파일을 바꿔도) **밀키트(이미지)는 변하지 않습니다.** 그래서 컨테이너를 지우면 그 안에서 바꾼 것도 함께 사라집니다. 이 사실이 4일차 볼륨 수업의 출발점입니다.
 
-## Cleanup
-```bash
-docker stop paperclip-pg16 || true
-docker rm paperclip-pg16 || true
+> **🎓 학술 노트 — 불변 인프라 (Immutable Infrastructure)**
+>
+> 전통적인 서버 운영은 서버를 한 번 설치한 뒤, 필요할 때마다 들어가서 고치는 방식이었습니다. 몇 년이 지나면 그 서버가 정확히 어떤 상태인지 아무도 모르게 됩니다. 마틴 파울러는 2012년 이런 서버를 **눈송이 서버(snowflake server)**라고 불렀습니다. 하나하나 모양이 달라 똑같이 다시 만들 수 없다는 뜻입니다.
+>
+> 그 반대가 **불변 인프라**입니다. 서버(또는 컨테이너)를 고치지 않고, 바꿀 일이 생기면 **새 이미지를 만들어 통째로 교체**합니다. 채드 파울러(Chad Fowler)가 2013년 글 「Trash Your Servers and Burn Your Code」에서 이 생각을 널리 알렸습니다. 이미지가 읽기 전용인 이유, 그리고 1주차 4일차의 "서버를 가축처럼"이 가능한 이유가 여기 있습니다. 3일차에 우리가 앱을 고치면 컨테이너 안을 고치는 대신 **이미지를 다시 빌드**하는 것도 이 원칙을 따르는 것입니다.
+>
+> - Fowler, M. (2012). *SnowflakeServer*. martinfowler.com/bliki
+> - Fowler, C. (2013). *Trash Your Servers and Burn Your Code: Immutable Infrastructure and Disposable Components*.
+
+## 이미지 이름 읽기
+
+```text
+docker.io / library / nginx : 1.30-alpine
+─────────   ───────   ─────   ───────────
+레지스트리   계정       저장소    태그
 ```
 
-Cleanup은 비용과 데이터 안전을 동시에 다룬다. container를 지우는 명령과 volume/network/image를 지우는 명령은 의미가 다르다. 특히 volume 삭제는 database data 삭제일 수 있으므로 실습 volume인지 확인한 뒤 실행한다.
+| 부분 | 뜻 | 생략하면 |
+|---|---|---|
+| 레지스트리 | 이미지가 있는 창고 | `docker.io` (Docker Hub) |
+| 계정 | 이미지를 올린 사람·조직 | `library` (Docker 공식 이미지) |
+| 저장소 | 이미지 이름 | 생략 불가 |
+| **태그** | 버전 표시 | **`latest`** |
 
-## 주의할 점
-- Container를 삭제해도 named volume의 데이터는 남을 수 있다. 데이터를 초기화하려는 것이 아니라면 `docker volume rm`이나 `down -v`를 실행하지 않는다.
-- Host port publish(`-p`)와 container 간 통신은 다른 문제다. 브라우저나 host `psql`로 접근할 때만 host port가 필요하고, 같은 Docker network 안에서는 container name과 container port를 사용한다.
-- Volume target path는 image가 실제로 데이터를 쓰는 경로와 맞아야 한다. PostgreSQL은 `/var/lib/postgresql/data`와 `PGDATA` 설정을 확인하지 않으면 데이터가 남지 않거나 엉뚱한 위치에 쌓인다.
-- bind mount는 host 경로를 그대로 노출한다. 개인 경로, 권한 문제, 실수로 수정한 host 파일이 container 동작에 영향을 줄 수 있다.
-- Cleanup 전에는 지금 지우는 대상이 container인지, volume인지, network인지 먼저 구분한다.
+그래서 `nginx`는 `docker.io/library/nginx:latest`의 줄임말입니다. 어제 `hello-world`를 실행했을 때 `hello-world:latest`를 받은 이유입니다.
 
-## 핵심 포인트
-이 실습의 핵심은 명령어 자체가 아니라 경계다. container는 실행 단위이고, volume은 data lifecycle이며, network는 통신 경계다. 학생이 `docker run` 한 줄을 볼 때 `-v`, `--network`, `-p`를 옵션 목록으로 외우면 뒤에서 Compose와 Kubernetes로 넘어갈 때 같은 혼란이 반복된다. 그래서 각 옵션을 "무엇을 container 밖으로 분리하는가"라는 질문으로 읽게 한다.
+> [!WARNING]
+> **`latest`는 '최신'이라는 약속이 아니다**
+>
+> `latest`는 단지 **태그를 안 적었을 때 붙는 기본 이름**일 뿐, 가장 최신 버전이라는 보장이 아닙니다. 또 오늘 받은 `nginx:latest`와 석 달 뒤 받은 `nginx:latest`는 **내용이 다를 수 있습니다.** "어제는 됐는데 오늘 안 돼요"의 흔한 원인입니다. 그래서 이 교재는 항상 `nginx:1.30-alpine`처럼 **버전을 적습니다.** 3일차에 더 정확한 방법(다이제스트)을 배웁니다.
 
-강의 중에는 성공 출력보다 실패 출력의 의미를 더 오래 다룬다. port가 열리지 않은 것은 web server 문제가 아닐 수 있고, DB 접속 실패는 password 문제가 아니라 network boundary 문제일 수 있다. host terminal, container 내부, 같은 Docker network의 client container는 모두 서로 다른 관찰 위치다. 학생이 어디에서 명령을 실행하는지 말로 먼저 설명한 뒤 CLI를 실행하게 한다.
+## 실습 1 · 이미지와 컨테이너 목록 보기
 
-## 운영 해석
-실무에서 database container를 다룰 때 가장 위험한 실수는 cleanup을 단순 파일 정돈처럼 보는 것이다. container 삭제는 process와 container writable layer를 없애는 것이고, volume 삭제는 data를 삭제하는 것이다. network 삭제는 통신 경로를 없애는 것이다. 이 세 가지를 구분하지 않으면 실습은 성공해도 운영 사고를 배운 셈이 된다.
+> **🧪 실습: 실습 목표**
+>
+> 어제 실행한 hello-world가 **이미지**와 **멈춘 컨테이너**로 남아 있는 것을 확인합니다.
 
-운영에서는 "실행됐다"보다 어떤 data가 남고 무엇이 삭제되는지가 더 중요하다. Day 2의 storage/network 판단은 Day 5 Compose에서 `volumes`와 `networks`를 읽는 기준이 된다. Compose의 YAML 항목은 갑자기 생긴 문법이 아니라 Day 2에서 손으로 실행한 storage/network 결정을 파일로 옮긴 것이다.
+### 단계 1 — 내 컴퓨터의 이미지
 
-## 혼자 다시 따라오기
-최소 성공 경로는 `docker rm`, `docker run`, `docker exec ... \dt` 세 단계다. table이 없으면 성공적으로 실패를 관찰한 것이다. container가 뜨지 않으면 `docker logs paperclip-pg16 --tail 30`으로 password 누락, port 충돌, 이름 충돌을 먼저 확인한다.
+```bash
+docker images
+```
 
-## 다음 연결
-다음 교시는 named volume을 만들어 같은 실험을 반복한다. 목표는 container를 교체해도 data가 남는 구조를 만드는 것이다.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+> hello-world:latest   f7931603f70e       20.3kB         3.96kB    U
+> ```
+> 밀키트(이미지)가 하나 있습니다. **EXTRA**의 `U`는 이 이미지를 쓰는(In Use) 컨테이너가 있다는 표시입니다. Docker 버전에 따라 `REPOSITORY  TAG  IMAGE ID  CREATED  SIZE` 형식으로 나올 수도 있습니다.
+
+### 단계 2 — 실행 중인 컨테이너
+
+```bash
+docker ps
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+> ```
+> 머리줄만 있고 비어 있습니다. hello-world는 메시지를 출력하고 **끝났기 때문에** 지금 실행 중인 것이 없습니다.
+
+### 단계 3 — 멈춘 것까지 모두
+
+```bash
+docker ps -a
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> CONTAINER ID   IMAGE         COMMAND    CREATED        STATUS                    PORTS     NAMES
+> a1b2c3d4e5f6   hello-world   "/hello"   18 hours ago   Exited (0) 18 hours ago             eager_turing
+> 9f8e7d6c5b4a   hello-world   "/hello"   18 hours ago   Exited (0) 18 hours ago             vibrant_hopper
+> ```
+> 어제 두 번 실행했으니 컨테이너가 **두 개**입니다. 이미지는 하나인데 컨테이너는 둘 — 붕어빵 틀 하나로 두 개를 찍은 것입니다.
+
+| 열 | 읽는 법 |
+|---|---|
+| CONTAINER ID | 컨테이너의 고유 번호 (앞 몇 글자만 써도 된다) |
+| IMAGE | 어떤 틀로 찍었나 |
+| COMMAND | 컨테이너 안에서 실행한 명령 |
+| STATUS | `Up` = 실행 중, **`Exited (0)`** = 끝남, 괄호 안은 **종료 코드** (1주차 2일차) |
+| NAMES | 이름. 안 정하면 Docker가 `형용사_과학자` 형식으로 지어 준다 |
+
+### 단계 4 — 첫 정리
+
+```bash
+docker rm eager_turing vibrant_hopper
+docker ps -a
+```
+
+이름은 **내 화면에 나온 이름**으로 바꿔 씁니다. CONTAINER ID 앞 3~4글자를 써도 됩니다(`docker rm a1b2 9f8e`).
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> 지운 이름이 한 줄씩 출력되고, `docker ps -a`가 머리줄만 남습니다. **이미지는 그대로** 있습니다(`docker images`로 확인).
+
+> **📈 트렌드 — '공식 이미지'와 '강화된 이미지'**
+>
+> Docker Hub에는 수백만 개의 이미지가 있지만, 그중 `library/`로 시작하는 **Docker 공식 이미지(Docker Official Images)**는 Docker와 각 프로젝트가 함께 관리하며 보안 업데이트를 꾸준히 반영합니다. 아무 계정의 이미지를 받아 쓰면 1주차 5일차에 배운 **공급망 공격**에 노출될 수 있으므로, 처음에는 공식 이미지를 기본으로 씁니다. 최근에는 여기서 더 나아가 불필요한 파일을 모두 걷어 내 취약점을 최소화한 **강화 이미지(hardened image)**를 Docker, Google, Chainguard 같은 회사들이 제공하고 있고, 기업들은 "허가된 이미지 목록"만 쓰도록 정책을 거는 경우가 늘고 있습니다. 4주차 Kyverno 정책 실습에서 이런 규칙을 직접 만들어 봅니다.
+
+## 정리
+
+- **이미지**는 읽기 전용 틀, **컨테이너**는 그 틀로 만든 실행 단위입니다. 하나의 이미지로 여러 컨테이너를 만듭니다.
+- 컨테이너 안에서 바꾼 것은 **컨테이너를 지우면 사라집니다.** (→ 4일차 볼륨)
+- 이미지 이름은 **레지스트리/계정/저장소:태그**, 태그를 안 쓰면 `latest`입니다. 버전을 적는 습관을 들입니다.
+- `docker ps`는 실행 중인 것만, `docker ps -a`는 멈춘 것까지 보여 줍니다. STATUS의 괄호는 **종료 코드**입니다.
+
+> **✅ 확인 문제**
+>
+> 1. 이미지와 컨테이너를 붕어빵에 비유하면?
+> 2. `nginx`라고만 쓰면 실제로 어떤 이미지 이름이 되나요?
+> 3. hello-world를 실행했는데 `docker ps`에 아무것도 없는 이유는?
+> 4. `Exited (0)`에서 0의 의미는?
+> 5. `latest` 태그를 피해야 하는 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 이미지 = 붕어빵 틀, 컨테이너 = 틀로 찍어 낸 붕어빵
+> 2. `docker.io/library/nginx:latest`
+> 3. 메시지를 출력하고 프로그램이 끝나서 컨테이너가 멈췄기 때문 (`docker ps -a`로는 보인다)
+> 4. 정상 종료 (종료 코드 0 = 성공)
+> 5. 받는 시점에 따라 내용이 달라질 수 있어 재현이 안 되기 때문
+>
+> </details>
+
+## 참고 문헌
+
+- Docker Docs. *What is an image?*, *What is a container?* docs.docker.com/get-started
+- Docker Docs. *docker container ls*, *docker image ls*. docs.docker.com/reference/cli
+- Fowler, M. (2012). *SnowflakeServer*. martinfowler.com
+- Morris, K. (2020). *Infrastructure as Code* (2nd ed.). O'Reilly.
+- Docker. *Docker Official Images*. docs.docker.com/docker-hub/image-library/trusted-content

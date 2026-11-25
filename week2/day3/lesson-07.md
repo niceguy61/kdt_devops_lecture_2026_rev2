@@ -1,95 +1,273 @@
-# 7교시: Tag/digest/registry gate - image 공유 기준 판단하기
+# 7교시 · 멀티 스테이지와 이미지 크기·보안
 
-![Tag push pull security gate](./assets/lesson-07-tag-push-pull-gate.png)
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 이미지 크기가 왜 중요한지 압니다.
+> - 베이스 이미지(full, slim, alpine, scratch)의 차이를 압니다.
+> - 멀티 스테이지 빌드로 "만드는 도구"와 "실행하는 결과물"을 분리해 이미지를 100분의 1로 줄입니다.
+> - 이미지 보안 점검(실행 사용자, 취약점 검사)을 맛봅니다.
 
-## 수업 목표
-- tag, digest, registry의 역할을 구분한다.
-- tag가 새 build가 아니라 image reference 추가일 수 있음을 확인한다.
-- version, latest, env, build id, git sha 같은 tag 기준을 상황별로 선택한다.
-- Docker Hub push를 credential/security gate 이후 선택으로 판단한다.
+## 이미지 크기가 왜 중요할까
 
-## 개념 설명
-Tag는 사람이 읽기 쉬운 image 이름표다. `paperclip-static-site:day3` 같은 tag는 협업과 수업 진행에 편하지만, tag는 바뀔 수 있다. 같은 tag가 항상 같은 content를 보장한다고 생각하면 안 된다.
-
-Digest는 registry에서 image content를 식별하는 값이다. 재현 가능한 배포에서는 tag와 digest를 함께 보는 이유가 여기에 있다. Registry는 image를 저장하고 공유하는 장소다. local image는 내 컴퓨터에만 있지만, registry에 push하면 다른 machine, CI runner, Kubernetes가 pull할 수 있다. 그래서 push 전에는 public 범위와 secret 포함 여부를 반드시 확인한다.
-
-Tag를 정할 때는 먼저 `누가 이 이름을 보고 무엇을 결정하는가`를 물어야 한다. 개발자는 debug와 추적을 원하고, 운영자는 배포 대상과 rollback 기준을 원하고, 보안 담당자는 어떤 source와 scan 결과에서 온 image인지 확인하고 싶어 한다. 그래서 하나의 image에도 여러 tag가 붙을 수 있다.
-
-## Tag 적용 기준
-| 기준 | 예시 | 적합한 상황 | 주의할 점 |
-|---|---|---|---|
-| application version | `1.4.2`, `v1.4.2` | 웹 애플리케이션 릴리즈와 image를 맞출 때 | 회사마다 semantic version, calendar version, sprint/release train 정책이 다를 수 있음 |
-| environment | `dev`, `staging`, `prod` | 환경별 배포 흐름을 사람이 빠르게 볼 때 | 같은 tag가 계속 바뀌므로 재현성 기준으로 단독 사용하지 않음 |
-| latest | `latest` | local demo나 기본 pull 편의가 필요할 때 | 운영 배포 기준으로 쓰면 어떤 build인지 흐려짐 |
-| build number | `build-128`, `ci-20260619-128` | CI 실행 번호와 image를 연결할 때 | application version 없이 build number만 있으면 제품 릴리즈 의미가 약함 |
-| git sha | `sha-a1b2c3d` | source commit 추적과 rollback evidence가 필요할 때 | 사람이 읽기 어렵기 때문에 version tag와 함께 쓰는 편이 좋음 |
-| release candidate | `1.4.2-rc.1` | QA, staging, pre-release 검증 | prod 승격 시 어떤 정식 version으로 이어졌는지 남겨야 함 |
-| review/status | `day3-reviewed`, `scan-passed` | 수업/검수 상태를 표시할 때 | 상태 tag는 시간이 지나면 사실과 달라질 수 있으므로 scan note와 함께 관리 |
-
-Version tag는 가능하면 웹 애플리케이션의 버전과 맞춘다. 회사마다 version을 붙이는 방식은 다르다. 어떤 회사는 `v1.4.2`처럼 semantic version을 쓰고, 어떤 회사는 `2026.06.19` 같은 calendar version을 쓰고, 어떤 회사는 release train이나 sprint 번호를 쓴다. 그래도 image version이 애플리케이션 version과 따로 놀면 장애 분석 때 `이 container가 어떤 앱 릴리즈인가`를 다시 추적해야 한다. 기본 원칙은 **웹 애플리케이션 릴리즈 버전이 image tag의 중심이 되고, git sha/build number/env tag는 보조 tag로 붙인다**는 것이다.
-
-같은 image에 여러 tag를 붙일 수 있다.
-
-```bash
-docker tag paperclip-static-site:day3 paperclip-static-site:v1.0.0
-docker tag paperclip-static-site:day3 paperclip-static-site:sha-demo123
-docker tag paperclip-static-site:day3 paperclip-static-site:staging
-```
-
-이때 `v1.0.0`은 앱 릴리즈를 말하고, `sha-demo123`은 source 추적을 돕고, `staging`은 현재 환경 배포 대상을 말한다. 세 tag가 모두 같은 image를 가리킬 수 있지만 의미는 다르다.
-
-## Tag 선택 예시
-| 상황 | 권장 tag 조합 | 이유 |
-|---|---|---|
-| 수업 실습 | `day3`, `day3-reviewed` | 학습 단계와 검수 상태를 빠르게 확인 |
-| 웹앱 정식 릴리즈 | `v1.4.2`, `sha-<short>`, 필요 시 `prod` | 앱 버전, source, 환경을 분리해서 추적 |
-| staging 검증 | `v1.4.2-rc.1`, `sha-<short>`, `staging` | 정식 전 후보와 commit 추적 |
-| CI 임시 build | `build-128`, `sha-<short>` | pipeline 결과와 source를 연결 |
-| 운영 배포 | `v1.4.2`와 digest pin | tag 가독성과 digest 재현성을 함께 확보 |
-
-## 실습 명령
-```bash
-docker tag paperclip-static-site:day3 paperclip-static-site:day3-reviewed
-docker tag paperclip-static-site:day3 paperclip-static-site:v1.0.0
-docker tag paperclip-static-site:day3 paperclip-static-site:staging
-docker images paperclip-static-site
-docker image inspect paperclip-static-site:day3-reviewed --format "{{json .RepoTags}} {{json .RepoDigests}}"
-```
-
-Expected:
-
-```text
-paperclip-static-site   day3
-paperclip-static-site   day3-reviewed
-paperclip-static-site   v1.0.0
-paperclip-static-site   staging
-```
-
-`day3-reviewed`, `v1.0.0`, `staging`은 모두 같은 image id를 가리킬 수 있다. 중요한 것은 tag가 많다는 사실이 아니라 각 tag의 의미를 설명할 수 있는가다.
-
-## Optional push gate
-```text
-Docker Hub push는 선택이다.
-1. public/private repository 범위를 설명할 수 있는가?
-2. `.dockerignore`와 context 점검으로 secret 포함 위험을 줄였는가?
-3. tag가 앱 버전, 환경, 빌드 출처, 검수 상태 중 무엇을 표현하는지 설명할 수 있는가?
-4. password/token/MFA가 README, screenshot, terminal output에 남지 않는가?
-5. version tag는 웹 애플리케이션의 실제 릴리즈 버전과 맞는가?
-```
-
-## 판단 기준
-| 항목 | 좋은 상태 |
+| 이미지가 크면 | 결과 |
 |---|---|
-| tag | `v1.0.0`, `sha-<short>`, `staging`, `day3-reviewed`처럼 목적이 보임 |
-| version | image tag가 웹 애플리케이션 릴리즈 버전과 연결됨 |
-| latest | 편의 tag로만 보고 운영 재현성 기준으로 단독 사용하지 않음 |
-| env | `dev/staging/prod`가 현재 배포 대상임을 알되 불변 version으로 착각하지 않음 |
-| provenance | base image와 custom build 출처를 설명 가능 |
-| digest | registry에서 content 식별 기준으로 확인 가능 |
-| push | gate 통과 시 선택, 아니면 local tag까지만 수행 |
+| 다운로드가 느리다 | 새 서버가 뜰 때까지 오래 걸린다 → **확장(스케일 아웃)이 느려진다** (1주차 4일차) |
+| 저장·전송 비용 | 레지스트리 저장 비용, 클라우드 데이터 전송 요금 (1주차 1일차 비용 함정) |
+| 들어 있는 프로그램이 많다 | **공격받을 곳(공격 표면)**이 넓어지고, 취약점 검사 결과도 많아진다 |
 
-## 핵심 포인트
-registry는 공유를 쉽게 하지만 실수도 공개한다. Day 3에서는 push 자체보다 push해도 되는 image인지 판단하는 gate가 더 중요하다.
+## 베이스 이미지 고르기
 
-## 다음 연결
-마지막 교시는 build/run/check/cleanup과 failure RCA를 README handoff로 정리한다.
+| 베이스 | 대략의 크기 | 들어 있는 것 | 언제 |
+|---|---|---|---|
+| `python:3.14` | 약 1GB | Debian 전체 + 컴파일러 등 빌드 도구 | 빌드에 도구가 많이 필요할 때 (빌드 단계용) |
+| **`python:3.14-slim`** | 수십~100MB대 | 꼭 필요한 것만 | **대부분의 Python 앱** (오늘 쓴 것) |
+| `python:3.14-alpine` | 더 작음 | Alpine(musl libc) 기반 | 작지만 일부 라이브러리 설치가 까다롭다 |
+| `scratch` | **0B** | **아무것도 없음** | 혼자서 실행되는 파일 하나(Go 등)만 넣을 때 |
+
+## 멀티 스테이지 빌드 — 주방과 식탁을 나눈다
+
+프로그램을 **만들 때** 필요한 것(컴파일러, 빌드 도구)과 **실행할 때** 필요한 것(완성된 실행 파일)은 다릅니다. 그런데 한 단계로 빌드하면 만드는 도구까지 전부 이미지에 남습니다. **멀티 스테이지 빌드**는 Dockerfile 하나 안에서 **빌드 단계**와 **실행 단계**를 나누고, 실행 단계에는 결과물만 복사합니다.
+
+![멀티 스테이지 빌드 — 빌드 단계의 도구는 버리고, 결과물만 작은 실행 이미지로 옮긴다](../../assets/week2/day3/w2d3-multistage.png)
+
+> **🧩 비유 — 주방과 식탁**
+>
+> 음식을 만들 때는 칼, 도마, 냄비, 가스레인지가 필요합니다. 하지만 손님 식탁에는 **완성된 요리만** 내갑니다. 냄비와 도마까지 식탁에 올리지 않지요. 멀티 스테이지에서 첫 단계는 **주방**, 마지막 단계는 **식탁**입니다.
+
+## 실습 14 · 멀티 스테이지로 100분의 1
+
+> **🧪 실습: 실습 목표**
+>
+> 아주 작은 Go 웹 서버를 한 단계 빌드와 멀티 스테이지 빌드로 각각 만들어 크기를 비교합니다. Go는 **혼자서 실행되는 파일 하나**를 만들어 주기 때문에 멀티 스테이지 효과가 가장 극적으로 보이는 언어입니다. Go 코드를 이해할 필요는 없습니다.
+
+### 단계 1 — 파일 준비
+
+```bash
+mkdir -p ~/devops-lab/day3/hello-go
+cd ~/devops-lab/day3/hello-go
+code .
+```
+
+`main.go`:
+
+```go
+// 멀티 스테이지 빌드 맛보기용 아주 작은 웹 서버
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"os"
+)
+
+func main() {
+	host, _ := os.Hostname()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "안녕하세요! Go 컨테이너 %s 입니다\n", host)
+	})
+	fmt.Println("listening on :8080")
+	http.ListenAndServe(":8080", nil)
+}
+```
+
+`go.mod`:
+
+```text
+module hello-go
+
+go 1.22
+```
+
+### 단계 2 — 한 단계 빌드 (`Dockerfile.single`)
+
+```dockerfile
+# 한 단계(single-stage): 빌드 도구가 든 큰 이미지를 그대로 실행에 쓴다
+FROM golang:1.27
+WORKDIR /src
+COPY go.mod main.go ./
+RUN go build -o /hello .
+EXPOSE 8080
+CMD ["/hello"]
+```
+
+### 단계 3 — 멀티 스테이지 빌드 (`Dockerfile`)
+
+```dockerfile
+# 1단계: 빌드 전용 — Go 컴파일러가 든 큰 이미지
+FROM golang:1.27 AS build
+WORKDIR /src
+COPY go.mod main.go ./
+RUN CGO_ENABLED=0 go build -o /hello .
+
+# 2단계: 실행 전용 — 아무것도 없는 빈 이미지에 결과물(실행 파일)만 복사
+FROM scratch
+COPY --from=build /hello /hello
+EXPOSE 8080
+USER 10001
+CMD ["/hello"]
+```
+
+| 새로 나온 것 | 뜻 |
+|---|---|
+| `FROM … AS build` | 이 단계에 `build`라는 이름을 붙인다 |
+| `CGO_ENABLED=0` | 다른 라이브러리에 기대지 않는 **혼자 실행되는 파일**로 만든다 (scratch에서 돌기 위해) |
+| `FROM scratch` | **완전히 빈** 이미지에서 다시 시작한다 |
+| `COPY --from=build` | 내 폴더가 아니라 **앞 단계(build)**에서 파일을 가져온다 |
+| `USER 10001` | scratch에는 사용자 목록 파일도 없으므로 **번호**로 지정 |
+
+### 단계 4 — 둘 다 빌드하고 크기 비교
+
+```bash
+docker build -f Dockerfile.single -t hello-go:single .
+docker build -t hello-go:multi .
+docker images hello-go
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> IMAGE             ID             DISK USAGE   CONTENT SIZE   EXTRA
+> hello-go:multi    5e1c…              11MB         …MB
+> hello-go:single   9a7b…             997MB         …MB
+> ```
+> **약 1GB → 약 10MB**, 100분의 1입니다. (정확한 숫자는 Go 버전과 플랫폼에 따라 다릅니다.) 같은 프로그램인데 크기가 이만큼 차이 나는 것은 single 이미지에 **Go 컴파일러와 Debian 전체**가 들어 있기 때문입니다.
+
+### 단계 5 — 작은 이미지도 똑같이 동작한다
+
+```bash
+docker run -d --name hello -p 8088:8080 hello-go:multi
+curl http://localhost:8088
+docker exec hello sh
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 안녕하세요! Go 컨테이너 608b8ad1d724 입니다
+> OCI runtime exec failed: exec failed: unable to start container process: exec: "sh": executable file not found in $PATH
+> ```
+> 웹 서버는 잘 동작하는데, `sh`로 들어갈 수는 **없습니다.** scratch 이미지에는 셸조차 없기 때문입니다. 침입자가 이 컨테이너를 장악해도 **쓸 도구가 아무것도 없습니다.** 반대로 디버깅할 때 불편하다는 트레이드오프도 있습니다(1주차 4일차).
+
+```bash
+docker rm -f hello
+docker image rm hello-go:single
+```
+
+> [!TIP]
+> **Python 앱도 멀티 스테이지를 쓸까?**
+>
+> Python은 컴파일된 실행 파일 하나가 아니라 **인터프리터 + 라이브러리**가 필요하므로 scratch까지 줄일 수는 없습니다. 오늘 쓴 `python:3.14-slim`만으로도 충분히 작습니다. 다만 C 언어로 된 라이브러리를 **직접 컴파일해야** 할 때는, 빌드 단계(컴파일러가 든 `python:3.14`)에서 설치하고 실행 단계(`slim`)로 결과만 옮기는 멀티 스테이지를 씁니다. 강의 저장소 `labs/week2/devmart/catalog-api/`에서 예시를 볼 수 있습니다. **언어마다 효과가 다르다**는 것을 기억하세요.
+
+## 실습 15 · 이미지 보안 점검 맛보기
+
+> **🧪 실습: 실습 목표**
+>
+> 내 이미지가 누구로 실행되는지 확인하고, 취약점 검사를 맛봅니다.
+
+### 단계 1 — 실행 사용자 확인
+
+```bash
+docker image inspect --format '사용자: {{.Config.User}}' devmart/catalog-api:1.0.1
+docker image inspect --format '사용자: {{.Config.User}}' nginx:1.30-alpine
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 사용자: appuser
+> 사용자:
+> ```
+> 우리 API는 **appuser**로 실행됩니다. nginx 공식 이미지는 빈칸(= **root**로 시작)입니다. nginx는 80번 포트를 열기 위해 root로 시작한 뒤 일하는 프로세스(worker)만 낮은 권한으로 내립니다(2일차 5교시 `docker top`에서 worker가 다른 사용자였던 이유). 운영 환경에서는 처음부터 root가 아닌 **`nginx-unprivileged`** 같은 변형 이미지를 쓰기도 합니다.
+
+### 단계 2 — 취약점 검사 (Docker Desktop의 Docker Scout)
+
+```bash
+docker scout quickview devmart/catalog-api:1.0.1
+```
+
+> **🟢 확인: 이렇게 나오면 성공 (예시)**
+>
+> ```text
+>   Target     │  devmart/catalog-api:1.0.1  │    0C     0H     2M    18L
+>     digest   │  7d2e41c0a9f3               │
+>   Base image │  python:3.14-slim           │    0C     0H     2M    18L
+> ```
+> C·H·M·L은 **심각(Critical)·높음(High)·중간(Medium)·낮음(Low)** 단계의 알려진 취약점 수입니다. 숫자는 검사하는 날에 따라 달라집니다(새 취약점이 계속 발견되므로). 대부분이 **베이스 이미지**에서 온다는 것에 주목하세요. 그래서 6교시 학술 노트처럼 **베이스를 최신으로 유지**하는 것이 가장 효과적인 보안 조치입니다. 처음 실행하면 로그인이나 동의를 물을 수 있고, 인터넷이 필요합니다.
+
+| 점검 | 확인 | 오늘 상태 |
+|---|---|---|
+| root로 실행하지 않는가 | `Config.User` | appuser ✓ |
+| 비밀값이 들어 있지 않은가 | `.dockerignore`, 4교시 | ✓ |
+| 버전이 고정되어 있는가 | `FROM`, `requirements.txt` | ✓ |
+| 필요 없는 것이 들어 있지 않은가 | slim / 멀티 스테이지 | ✓ |
+| 알려진 취약점 | `docker scout` | 정기적으로 다시 빌드 |
+
+> **🧹 정리: 오늘의 정리와 커밋**
+>
+> ```bash
+> docker ps -a
+> docker container prune
+> cd ~/devops-lab
+> git add day3/
+> git commit -m "3일차: 멀티 스테이지 빌드 실습 (hello-go)"
+> git push
+> ```
+> `devmart/catalog-api:1.0.0`, `1.0.1` 이미지는 **내일 쓰므로 남겨 둡니다.**
+
+> **🎓 학술 노트 — 작을수록 안전하다: 공격 표면과 디스트로리스**
+>
+> 마이크로소프트의 마이클 하워드(Michael Howard)는 2000년대 초 **공격 표면(attack surface)**이라는 개념을 정리했습니다. 시스템에서 공격자가 건드릴 수 있는 지점(열린 포트, 설치된 프로그램, 권한 있는 계정)의 총합이며, 이것을 **줄이는 것 자체가 보안**이라는 생각입니다(Howard, Pincus & Wing, 2005). 1주차 3일차의 "필요한 포트만 연다", 1주차 2일차의 "최소 권한(Saltzer & Schroeder, 1975)"과 같은 원리를 **이미지 내용물**에 적용하면, "필요한 파일만 넣는다"가 됩니다.
+>
+> 구글은 이 생각을 밀어붙여 셸도 패키지 관리자도 없이 **앱과 그 실행에 꼭 필요한 파일만** 든 **디스트로리스(distroless)** 이미지를 공개했고, 오늘의 `scratch`는 그 극단입니다. 2일차 1교시 트렌드에서 본 **강화 이미지**들도 같은 흐름입니다. 다만 학술 노트마다 반복하듯이 **트레이드오프**가 있습니다. 셸이 없으면 침입자도 못 쓰지만 운영자도 디버깅하기 어렵습니다. 그래서 Kubernetes는 필요할 때만 디버깅용 컨테이너를 잠깐 붙이는 기능(`kubectl debug`)을 제공합니다(3주차).
+>
+> - Howard, M., Pincus, J., & Wing, J. M. (2005). Measuring relative attack surfaces. In *Computer Security in the 21st Century*. Springer.
+> - Google. *Distroless container images*. github.com/GoogleContainerTools/distroless
+
+> **📈 트렌드 — 취약점 0개를 목표로 하는 이미지**
+>
+> 취약점 검사를 처음 돌려 보면 수십~수백 개가 나와 놀라는 경우가 많습니다. 그중 상당수는 앱이 실제로 쓰지도 않는 베이스 이미지의 패키지에서 나옵니다. 그래서 최근에는 **취약점이 거의 없도록 매일 다시 빌드하는 최소 이미지**를 제공하는 회사들(Chainguard, Docker Hardened Images, Google distroless 등)이 늘었고, 기업들은 "심각(Critical) 취약점이 있는 이미지는 배포 금지" 같은 규칙을 파이프라인에 겁니다. 1주차 5일차 2교시 파이프라인의 **④ 보안 검사**가 이것이고, 3주차 CI에서 이미지 검사를 자동화하며, 4주차 Kyverno로 규칙을 클러스터에 강제합니다.
+
+## 정리 — 오늘 만든 것
+
+| 만든 것 | 핵심 |
+|---|---|
+| `devmart/catalog-api` 이미지 1.0.0, 1.0.1 | 파이썬 없이 파이썬 앱 실행, appuser, 0.0.0.0 |
+| `.dockerignore` | 비밀값과 쓰레기를 빌드 컨텍스트에서 제외 |
+| Docker Hub의 `내아이디/devmart-catalog-api:1.0.1` | 어디서든 같은 이미지 — 다이제스트로 정확히 |
+| `hello-go:multi` | 멀티 스테이지로 약 1GB → 약 10MB |
+
+> **✅ 확인 문제**
+>
+> 1. 이미지가 크면 생기는 문제 세 가지는?
+> 2. 멀티 스테이지에서 `COPY --from=build`는 어디서 파일을 가져오나요?
+> 3. scratch 이미지 컨테이너에 `docker exec … sh`가 안 되는 이유는?
+> 4. 우리 API 이미지가 root로 실행되지 않는 것을 확인하는 명령은?
+> 5. 취약점 검사 결과의 대부분은 보통 어디서 오나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. 다운로드가 느려 확장이 느리다, 저장·전송 비용이 든다, 공격 표면이 넓다
+> 2. 같은 Dockerfile의 앞 단계(`build`라는 이름의 단계)
+> 3. scratch에는 셸을 포함해 아무 프로그램도 없기 때문
+> 4. `docker image inspect --format '{{.Config.User}}' 이미지`
+> 5. 베이스 이미지의 패키지
+>
+> </details>
+
+> [!NOTE]
+> **오늘의 배움일기**
+>
+> - 내 앱을 처음 이미지로 만든 소감, 그리고 "내 노트북에 파이썬이 없는데 파이썬 앱이 돈다"를 동료에게 설명해 보기
+> - 빌드 캐시 규칙을 블록 탑 비유로 내 말로 다시 써 보기
+> - `COPY . .` 실습에서 비밀번호가 보였을 때 든 생각
+> - 내 Docker Hub 이미지 주소와 다이제스트 앞 12자리 적어 두기
+> - 내일(볼륨·네트워크·환경 변수) 전에 궁금한 것: API와 DB는 어떻게 서로를 찾을까?
+
+## 참고 문헌
+
+- Docker Docs. *Multi-stage builds*. docs.docker.com/build/building/multi-stage
+- Docker Docs. *Docker Scout quickview*. docs.docker.com/scout
+- Docker Hub. *golang Docker Official Image*. hub.docker.com/_/golang
+- Howard, M., Pincus, J., & Wing, J. M. (2005). Measuring relative attack surfaces. Springer.
+- Google. *Distroless container images*. github.com/GoogleContainerTools/distroless

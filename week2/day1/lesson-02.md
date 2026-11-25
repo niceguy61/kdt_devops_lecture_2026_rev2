@@ -1,190 +1,203 @@
-# 2교시: Docker 설치 및 실행 확인 - macOS/Linux 경로 분리
+# 2교시 · 터미널과 VS Code
 
-## 수업 목표
-- 공식 문서를 기준으로 Docker 설치 또는 상태 확인을 진행한다.
-- `docker version`으로 client와 server 연결 상태를 구분한다.
-- 기본 실습 환경은 macOS Docker Desktop과 Linux Docker Engine 경로를 나누어 안내한다.
-- Docker Hub 로그인과 credential 보호 기준을 이해한다.
-- 설치 실패를 OS 종류, Mac chip, Linux 배포판, 권한, daemon 상태, error message 기준으로 확인한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 터미널의 기본 명령으로 폴더를 만들고 이동합니다.
+> - Windows 파일과 WSL 파일의 위치 차이를 압니다.
+> - VS Code를 설치하고, 터미널에서 `code .`로 폴더를 엽니다.
+> - VS Code 안의 터미널을 씁니다.
 
-## 설치 가이드
-Docker 설치 절차는 OS, CPU architecture, Linux 배포판, 조직 장비 정책에 따라 달라진다. 수업 중에는 아래 가이드를 먼저 열고, 자신의 환경에 맞는 macOS 또는 Linux 절차를 따른다.
+## 터미널 기본 — 1주차 시연을 이제 직접
 
-- macOS/Linux 설치 가이드: [필수 소프트웨어 설치 가이드](../../docs/software-installation-guide.md)
-- Docker Mac 공식 설치 문서: https://docs.docker.com/desktop/setup/install/mac-install/
-- Docker Engine Ubuntu 공식 설치 문서: https://docs.docker.com/engine/install/ubuntu/
-- Docker Engine Linux post-install 문서: https://docs.docker.com/engine/install/linux-postinstall/
-- Docker Desktop for Linux 예외 경로 문서: https://docs.docker.com/desktop/setup/install/linux/
+1주차 2일차 5교시에 강사가 보여 준 명령을 이제 직접 입력합니다.
 
-설치 완료 판단은 Docker Desktop 창이 열리는 것만으로 하지 않는다. `docker version`, `docker compose version`, `docker run --rm hello-world` 중 어디까지 성공했는지 확인한다.
-
-## 강의 전개
-
-이 교시는 설치 성공을 경쟁시키는 시간이 아니라, 실행 기반을 증거로 분리하는 시간이다. Docker 설치는 OS와 장비 정책의 영향을 많이 받는다. 같은 "Mac"이라고 해도 Apple silicon과 Intel Mac의 조건이 다를 수 있다. Linux에서는 Docker Engine을 기본 경로로 두고, Docker Desktop for Linux를 이미 쓰거나 조직 정책상 필요한 학생만 예외 경로로 표시한다.
-
-강의는 먼저 공식 문서 확인으로 시작한다. 검색 결과나 AI 답변이 설치 단계를 알려줄 수는 있지만, 수업의 기준은 Docker 공식 문서다. 공식 문서에서 system requirement, 권한 조건, 설치 후 확인 명령, 알려진 제약을 직접 확인하도록 만든다. 학생이 설치에 막혔을 때도 "무엇을 따라 했는지"가 남아야 도움을 줄 수 있다.
-
-그 다음은 GUI와 CLI를 분리한다. Docker Desktop 창이 열려도 Docker CLI가 daemon/server와 통신하지 못하면 container는 실행되지 않는다. 반대로 Linux Engine 경로에서는 Desktop GUI가 없어도 daemon과 CLI가 제대로 연결되어 있으면 실습을 진행할 수 있다. 그래서 `docker version`의 Client/Server 구분을 설치 확인의 중심에 둔다.
-
-설치 실패자는 수업에서 제외하지 않는다. 설치 실패도 OS, chip, 배포판, 권한, daemon 상태, error message를 기준으로 정리하면 유효한 운영 확인 지점가 된다. 이 방식은 뒤에서 container 실행 실패를 분석할 때 그대로 반복된다. 즉, 설치 수업은 Docker 개념 수업이기도 하다. 학생들은 "실패를 확인하는 방식"을 여기서 배운다.
-
-마지막에는 보안 기준을 명확히 한다. Docker Hub 로그인, token, MFA code, 개인 email, 조직 registry 주소는 screenshot이나 README에 그대로 남기면 안 된다. 설치와 로그인은 편의 기능이 아니라 credential을 다루는 작업이므로, public image pull 가능 여부와 credential 보호 기준을 함께 확인한다.
-
-## 선행 지식
-| 이미 알고 있어야 할 것 | 오늘 새로 확인할 것 |
-|---|---|
-| 공식 문서에서 prerequisite와 warning을 찾는 법 | Docker Desktop system requirements |
-| CLI에서 version output을 확인하는 법 | Docker client/server version |
-| OS와 kernel이 process 실행에 관여한다는 Week 1 개념 | Linux container 실행에 Linux kernel이 필요하다는 점 |
-| secret을 공개 문서에 남기지 않는 법 | Docker Hub password/token/MFA 보호 |
-| blocker를 증상 중심으로 쓰는 법 | 설치/daemon/login blocker |
-
-## OS와 설치 상태 확인
-
-Docker 설치 수업에서 가장 위험한 가정은 "모두 같은 장비 상태"라고 보는 것이다. 이번 수업은 macOS와 Linux 경로를 명확히 나눈다. macOS에서는 Apple silicon인지 Intel Mac인지에 따라 설치 파일과 요구사항이 달라질 수 있고, Docker Desktop 실행 권한이나 보안 설정이 영향을 줄 수 있다.
-
-Linux 장비는 Docker Engine을 기본 경로로 둔다. Engine은 host Linux daemon을 직접 사용하므로 `systemctl status docker`, `docker version`, `docker compose version`, `docker run --rm hello-world`를 중심으로 확인한다. Docker Desktop for Linux는 자체 Linux VM과 전용 Docker context를 쓰는 예외 경로로만 다룬다.
-
-Windows 장비를 사용하는 학생이 있을 수 있으므로 Windows 경로도 짧고 정확하게 남긴다. Windows에서는 Linux container 실행을 위해 WSL 2 backend, 가상화 설정, 조직 보안 정책, 관리자 권한이 영향을 줄 수 있다. 이 내용은 전체 수업의 기본 경로가 아니라 Windows 사용자를 위한 별도 점검 항목이다.
-
-오늘은 설치 성공자와 실패자를 나누어 확인하지 않는다. 대신 각자의 장비 상태를 확인 지점으로 남기고, 해결 가능한 blocker를 분류한다. 현업에서도 배포 실패를 볼 때 "누가 잘못했는가"보다 "어느 환경에서 어떤 조건이 맞지 않았는가"를 먼저 확인한다.
-
-### Visual 1: 설치 상태 triage 흐름
-![Docker Desktop 설치 점검 triage](./assets/lesson-02-docker-desktop-triage.png)
-
-이 이미지는 설치 확인을 OS 요구사항, Desktop 실행, `docker version`의 Client/Server 증거, blocker 확인으로 나눈다. 설치가 실패했을 때도 개인 문제가 아니라 환경 차이와 증거 수집 문제로 분류하는 흐름을 본다.
-
-### Visual 2: 설치 상태 Mermaid triage
-```mermaid
-flowchart TD
-    A["OS별 Docker 실행 기반 준비됐는가?"] -->|macOS Desktop yes| B["docker version 실행"]
-    A -->|Linux Engine yes| B
-    A -->|no| C["macOS 권한 / Linux daemon / Windows WSL 2 확인"]
-    B --> D{"server 응답이 있는가?"}
-    D -->|yes| E["hello-world 준비"]
-    D -->|no| F["Docker daemon / Desktop running 상태 확인"]
-    C --> G["공식 문서 URL과 error message 확인"]
-    F --> G
-```
-
-읽는 순서: 설치 실패를 하나의 큰 실패로 보지 않고, Desktop 실행, CLI 연결, daemon 응답, 공식 문서 확인 단계로 나누어 본다.
-
-## 공식 설치 문서 읽기
-
-공식 문서는 설치 파일 링크만 제공하는 곳이 아니다. system requirement, 권한 모델, 알려진 제약, 설치 후 확인 절차가 들어 있다. AI 답변이나 검색 결과가 설치 단계를 알려주더라도, 수업에서는 공식 문서에서 OS별 조건을 직접 확인한다.
-
-macOS 수강생은 Docker Desktop Mac 설치 문서에서 Apple silicon/Intel 구분, system requirements, 설치 파일, 실행 권한을 확인한다. 수업 중 화면 예시는 macOS Docker Desktop 기준으로 진행할 수 있다.
-
-Linux 수강생은 Docker Engine 공식 문서를 먼저 따른다. Ubuntu 기준으로는 apt repository 설정, package 설치, daemon 실행 상태, Compose plugin, post-install 권한 설정을 확인한다. Docker Desktop for Linux는 이미 해당 환경을 쓰고 있거나 조직 장비 정책상 필요한 경우에만 예외로 확인하며, Desktop이 자체 Linux VM과 Docker context를 만들고 host Engine과 port publish 충돌을 일으킬 수 있음을 분리해 설명한다.
-
-Windows 수강생은 별도 예외 경로로 Docker Desktop Windows 설치 문서를 확인한다. Windows에서는 WSL 2 backend, virtualization, 관리자 권한, 조직 보안 정책이 blocker가 될 수 있다. Linux container는 Linux kernel 기능에 의존하므로 Windows에서 WSL 2 문제가 발생하면 단순 설치 문제가 아니라 container 실행 기반이 준비되지 않은 상태로 확인한다.
-
-macOS에서도 Docker Desktop은 Linux container 실행을 위해 내부적으로 Linux VM 계층을 사용한다. 다만 학생이 직접 WSL 2를 설정하는 흐름은 아니다. 그래서 macOS 기본 경로에서는 Apple silicon/Intel 구분, Docker Desktop 실행 상태, `docker version`의 Client/Server 연결을 우선 확인한다.
-
-### Visual 3: 공식 문서 reading note
-| 확인 항목 | 확인할 내용 | 이유 |
+| 명령 | 뜻 | 기억하는 법 |
 |---|---|---|
-| 문서 URL | Docker Desktop Mac 설치 문서, Windows 사용자는 Windows 설치 문서 | AI 답변 검증 기준 |
-| Mac chip | Apple silicon 또는 Intel | 설치 파일과 요구사항 차이 |
-| 권한 조건 | 앱 실행 권한, 보안 설정, 관리자 권한 필요 여부 | 개인 장비 blocker 분류 |
-| Linux 경로 | Docker Engine 기본, Docker Desktop for Linux는 예외 | host daemon, docker group, Desktop VM/context 차이 |
-| Windows 예외 | WSL 2, virtualization, 관리자 권한 | Windows에서 Linux container runtime 제공 여부 |
-| 설치 후 확인 | `docker version`, macOS Desktop 또는 Linux daemon running | 성공 기준을 command로 확인 |
+| `pwd` | 지금 있는 폴더 | **p**rint **w**orking **d**irectory |
+| `ls` / `ls -la` | 폴더 안 목록 / 숨김 파일까지 자세히 | **l**i**s**t |
+| `cd 폴더` | 폴더로 이동 | **c**hange **d**irectory |
+| `cd ~` / `cd ..` | 홈으로 / 한 칸 위로 | `~`는 홈, `..`는 부모 |
+| `mkdir -p 경로` | 폴더 만들기 (중간 폴더까지) | **m**a**k**e **dir**ectory |
+| `touch 파일` | 빈 파일 만들기 | 파일을 "건드린다" |
+| `cat 파일` | 파일 내용 보기 | con**cat**enate |
+| `clear` | 화면 지우기 | `Ctrl` + `L`도 같다 |
 
-## Docker 설치 또는 실행 확인
+> [!TIP]
+> **손가락을 아끼는 두 가지 키**
+>
+> - **Tab** : 파일·폴더 이름을 몇 글자만 치고 Tab을 누르면 나머지를 자동 완성합니다. 오타를 줄이는 가장 좋은 방법입니다.
+> - **↑ (위 화살표)** : 방금 입력한 명령을 다시 불러옵니다. 조금 고쳐서 다시 실행할 때 씁니다.
 
-Docker Desktop은 local machine에서 containerized application을 build, share, run하도록 돕는 데스크톱 앱이다. 학생은 GUI를 보는 데서 멈추지 않고 CLI가 Docker daemon과 통신하는지 확인해야 한다. Linux Engine 경로를 선택한 학생은 Desktop GUI 대신 daemon/service와 CLI 연결을 확인한다.
+## 실습 3 · 작업 폴더 만들기
 
-설치가 이미 되어 있으면 update를 강제로 진행하지 않는다. 수업 시간에는 running 상태와 CLI 연결 상태를 확인 지점으로 남기는 것이 우선이다. 설치가 필요한 경우 공식 문서 기준으로 설치하되, 권한 요청이나 재부팅이 필요한 상황은 운영 지침에 따라 처리한다.
+> **🧪 실습: 실습 목표**
+>
+> 이번 주 모든 실습을 담을 `~/devops-lab` 폴더를 만들고, 그 안에서 첫 파일을 만들어 봅니다.
 
-### 실습 절차
-1. 본인 OS에 맞는 Docker 공식 설치 문서를 연다.
-2. macOS는 Docker Desktop을 설치했거나 이미 설치된 상태인지 확인한다.
-3. Linux는 Docker Engine 설치 상태와 daemon 실행 상태를 확인한다.
-4. macOS는 Desktop이, Linux Engine 경로는 daemon/service가 running 상태가 될 때까지 기다린다.
-5. terminal을 열고 다음 명령을 실행한다.
+### 단계 1 — 홈에서 시작
 
 ```bash
-docker version
-docker compose version
-docker run --rm hello-world
+cd ~
+pwd
 ```
 
-### 예상 결과
-- `Client` 정보만 보이고 `Server` 연결 error가 나오면 Docker CLI는 있지만 daemon에 연결되지 않은 상태일 수 있다.
-- `Client`와 `Server` 정보가 모두 나오면 Docker daemon이 실행 중이고 CLI가 연결된 상태다.
-- command 자체를 찾지 못하면 Docker CLI가 설치되지 않았거나 PATH에 잡히지 않은 상태다.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> /home/devops
+> ```
+> Mac은 `/Users/내이름`입니다. 이 위치를 **홈 디렉터리**라고 하고, 줄여서 `~`로 씁니다.
 
-## `docker version` 확인
+### 단계 2 — 작업 폴더 만들고 들어가기
 
-`docker version`은 "Docker가 설치되었다"는 주장보다 강한 확인 지점이다. 특히 client와 server를 나누어 읽어야 한다. Docker CLI client가 있어도 Docker daemon/server가 실행 중이 아니면 container를 실행할 수 없다.
+```bash
+mkdir -p ~/devops-lab
+cd ~/devops-lab
+pwd
+```
 
-### Visual 4: version output 읽는 방법
-| 출력 위치 | 의미 | 흔한 실패 |
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> /home/devops/devops-lab
+> ```
+
+### 단계 3 — 파일 만들고 내용 넣어 보기
+
+```bash
+echo "안녕, DevOps" > hello.txt
+cat hello.txt
+ls -la
+```
+
+- `echo "글자"` : 글자를 출력합니다.
+- `>` : 출력을 화면 대신 **파일에 씁니다** (기존 내용은 덮어씀). `>>`는 끝에 덧붙입니다.
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 안녕, DevOps
+> total 12
+> drwxr-xr-x 2 devops devops 4096 Nov 30 10:12 .
+> drwxr-x--- 5 devops devops 4096 Nov 30 10:12 ..
+> -rw-r--r-- 1 devops devops   17 Nov 30 10:12 hello.txt
+> ```
+> 1주차 2일차 4교시의 **권한 표기**(`-rw-r--r--`)가 보이나요? 날짜와 크기는 달라도 됩니다.
+
+> [!WARNING]
+> **Windows 사용자: 파일은 꼭 Linux 쪽에 두세요**
+>
+> WSL에서는 Windows의 C 드라이브가 `/mnt/c`로 보입니다. 하지만 실습 파일을 `/mnt/c/Users/...`(Windows 쪽)에 두면, Linux와 Windows 사이를 오가며 파일을 읽느라 **Docker와 Git이 몇 배 느려지고**, 파일 권한과 줄바꿈 문자가 꼬이는 문제가 생깁니다. Docker 공식 문서도 소스 코드를 **Linux 파일 시스템(`~`)**에 두라고 권합니다. 이번 주 모든 실습은 `~/devops-lab` 안에서 합니다.
+>
+> 반대로 Windows 탐색기에서 Linux 파일을 보고 싶다면, Ubuntu 터미널에서 `explorer.exe .`을 입력하면 됩니다.
+
+## 실습 4 · VS Code 설치와 연결
+
+> **🧪 실습: 실습 목표**
+>
+> VS Code를 설치하고, 터미널에서 `code .` 한 줄로 작업 폴더를 VS Code에서 엽니다.
+
+### 단계 1 — VS Code 설치
+
+- **Windows**: [code.visualstudio.com](https://code.visualstudio.com)에서 Windows용을 받아 **Windows에** 설치합니다(WSL 안이 아님). 설치 중 **"PATH에 추가"**가 체크되어 있는지 확인합니다.
+- **Mac**: 같은 사이트에서 Mac용을 받아 응용 프로그램 폴더로 옮깁니다. 또는 터미널에서 `brew install --cask visual-studio-code`.
+
+### 단계 2 — 확장 설치
+
+VS Code 왼쪽의 **확장(Extensions)** 아이콘(네모 네 개)을 누르고 검색해 설치합니다.
+
+| 확장 | 누가 | 하는 일 |
 |---|---|---|
-| `Client` | terminal에서 실행한 Docker CLI | command not found, old CLI |
-| `Server` | container를 실제로 관리하는 Docker daemon | daemon not running, permission denied |
-| Version 숫자 | 설치된 Docker component version | 문서/실습 예제와 차이가 날 수 있음 |
-| Error message | 연결 실패나 권한 문제 | Desktop 미실행, Linux daemon/권한 문제, Windows WSL 2 문제 |
+| **WSL** (Microsoft) | Windows만 | VS Code가 WSL 안의 파일과 터미널을 직접 다루게 함 |
+| **Container Tools** (Microsoft) | 모두 | Dockerfile·compose.yaml 문법 도움, 컨테이너 목록 보기 |
+| **Korean Language Pack** | 원하는 사람 | 메뉴를 한국어로 |
 
-`docker compose version`은 Week 2 Day 4 전까지 계속 사용할 기본 확인 명령이다. Docker Desktop에는 Docker Compose가 포함되지만, Linux Engine 경로에서는 Compose plugin 설치 여부를 별도로 확인해야 할 수 있다.
+### 단계 3 — Mac만: `code` 명령 등록
 
-### Docker version 주의점
-- `Client`만 보이고 `Server`가 없으면 Docker CLI는 있지만 daemon이 준비되지 않은 상태다. Docker Desktop 실행 상태나 Linux daemon 권한을 먼저 확인한다.
-- `permission denied`는 Docker 설치 실패가 아니라 Linux user 권한 문제일 수 있다. `sudo docker ...`로 되는지와 post-install 설정 여부를 구분한다.
-- Docker version 숫자는 학생마다 조금 다를 수 있다. 수업에서는 숫자를 외우지 말고 client/server가 모두 보이는지, compose plugin이 있는지를 본다.
-- 오류 화면을 공유할 때 token, username, 개인 경로가 보이면 가린다.
+VS Code에서 `Command` + `Shift` + `P` → **Shell Command: Install 'code' command in PATH** 선택.
 
-## Docker Hub 계정/로그인/보안 확인
+### 단계 4 — 터미널에서 VS Code 열기
 
-Docker Hub는 image를 저장하고 내려받을 수 있는 대표 registry다. Day 1에서는 로그인 성공 자체보다 image pull이 가능한 상태인지, credential을 안전하게 다루는지 확인한다.
+Ubuntu(또는 Mac) 터미널에서:
 
-공개 image를 pull하는 기본 실습은 로그인 없이도 가능한 경우가 많다. 다만 push, private repository, rate limit, 조직 정책에 따라 로그인이 필요할 수 있다. 로그인 과정에서 password, token, MFA code가 terminal output, screenshot, README에 남지 않도록 주의한다.
+```bash
+cd ~/devops-lab
+code .
+```
 
-### 보안 판단 표
-| 항목 | 공개 가능 | 공개 금지 |
-|---|---|---|
-| Docker Hub username | 수업 정책에 따라 가능 | 개인 식별 우려가 있으면 마스킹 |
-| image name/tag | 가능 | private naming 정책이 있으면 확인 |
-| password/token/MFA | 불가능 | 어떤 경우에도 README/screenshot에 남기지 않음 |
-| error message | secret 제거 후 가능 | token 일부가 포함되면 마스킹 |
-| login success 여부 | 가능 | credential 값은 확인하지 않음 |
+- `code` : VS Code를 실행합니다.
+- `.` : **지금 이 폴더**를 엽니다. (1주차의 `.`은 현재 폴더, `..`은 부모 폴더)
 
-## blocker triage와 다음 교시 준비
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> - VS Code가 열리고 왼쪽 탐색기에 `hello.txt`가 보입니다.
+> - **Windows**: 왼쪽 아래 구석에 초록(또는 파란) 표시로 **`WSL: Ubuntu-24.04`**가 보입니다. 이것이 보여야 VS Code가 Linux 쪽 파일을 직접 다루는 것입니다.
 
-설치가 막힌 경우에는 다음 순서로 blocker를 구분한다.
+### 단계 5 — VS Code 안의 터미널
 
-- OS와 설치 경로를 먼저 구분한다. macOS Docker Desktop, Linux Docker Engine, Windows WSL 2는 확인할 지점이 다르다.
-- 실패 단계가 다운로드, 설치, 앱 실행, daemon 연결, 권한 문제 중 어디인지 나눈다.
-- 에러 메시지는 전체를 복사하지 말고 핵심 문장만 본다. token, 개인 경로, 계정 정보가 섞이면 공유하지 않는다.
-- 이미 시도한 해결책을 반복하지 않도록 공식 문서에서 확인한 조건과 다음 확인 지점을 정한다.
+VS Code에서 `` Ctrl + ` `` (숫자 1 왼쪽 키)를 누르면 아래쪽에 터미널이 열립니다.
 
-### 흔한 오해
-| 오해 | 바로잡기 |
-|---|---|
-| Docker Desktop 창이 열리면 실습 준비가 끝났다. | CLI에서 `docker version`으로 daemon 연결까지 확인해야 한다. |
-| `Client` 정보가 보이면 container 실행이 가능하다. | `Server` 연결이 안 되면 container 실행은 실패할 수 있다. |
-| 로그인 실패는 Docker 설치 실패와 같다. | 설치/daemon 연결과 Docker Hub 인증은 다른 문제다. |
-| error screenshot은 그대로 공유해도 된다. | token, email, 인증코드, 개인 경로가 포함되어 있으면 마스킹해야 한다. |
+```bash
+pwd
+```
 
-### 확인 기준
-| 기준 | 확인 지점 |
-|---|---|
-| 공식 문서 사용 | 본인 OS용 Docker 설치 문서 URL과 확인한 requirement를 확인했다. |
-| 설치 상태 확인 | macOS Desktop running 또는 Linux Engine daemon 상태/blocker를 구체적으로 확인했다. |
-| CLI 연결 확인 | `docker version`의 Client/Server 상태를 구분했다. |
-| 보안 책임 | password/token/MFA code를 확인하지 않는다고 명시했다. |
-| 도움 요청 품질 | 실패 시 OS, 단계, error summary, 시도한 조치를 남겼다. |
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> /home/devops/devops-lab
+> ```
+> 이제 **편집은 위에서, 명령은 아래에서** 한 화면으로 할 수 있습니다. 이번 주 내내 이 화면 배치로 일합니다.
 
-### 공식/학술 근거 링크
-- Docker Docs: Docker Desktop, https://docs.docker.com/desktop/ - Docker Desktop이 local에서 containerized application을 build/share/run하는 도구라는 공식 기준이다.
-- Docker Docs: Install Docker Desktop on Mac, https://docs.docker.com/desktop/setup/install/mac-install/ - macOS 기본 설치 경로와 Apple silicon/Intel 차이를 확인하는 기준이다.
-- Docker Docs: Install Docker Engine on Ubuntu, https://docs.docker.com/engine/install/ubuntu/ - Linux Engine 설치 경로의 공식 기준이다.
-- Docker Docs: Linux post-installation steps for Docker Engine, https://docs.docker.com/engine/install/linux-postinstall/ - Linux Engine 권한과 docker group 설정의 공식 기준이다.
-- Docker Docs: Install Docker Desktop on Linux, https://docs.docker.com/desktop/setup/install/linux/ - Linux Desktop 예외 경로의 VM/context와 host Engine 차이를 확인하는 기준이다.
-- Docker Docs: Install Docker Desktop on Windows, https://docs.docker.com/desktop/setup/install/windows-install/ - Windows 사용자의 WSL 2, 가상화, 권한 조건을 별도 확인하는 기준이다.
-- Docker Docs: Sign in to Docker Desktop, https://docs.docker.com/desktop/setup/sign-in/ - Docker Desktop 로그인과 credential 관련 확인 기준이다.
-- OWASP Secrets Management Cheat Sheet, https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html - password, token, credential을 공개 문서와 screenshot에 남기지 않는 보안 기준이다.
+> **🛠️ 막혔다면: 막혔다면**
+>
+> | 증상 | 원인 | 해결 |
+> |---|---|---|
+> | `code: command not found` (WSL) | VS Code 설치 때 PATH 추가를 안 함 | VS Code 재설치 시 PATH 체크, 또는 Windows 재로그인 후 다시 시도 |
+> | `code: command not found` (Mac) | 단계 3을 안 함 | Shell Command 등록 |
+> | VS Code는 열리는데 왼쪽 아래에 WSL 표시가 없음 | WSL 확장이 없음 | 단계 2에서 WSL 확장 설치 후 다시 `code .` |
+> | 처음 `code .` 실행이 오래 걸림 | WSL 안에 VS Code 서버를 설치하는 중 | 1~2분 기다리면 된다 (처음 한 번만) |
 
-### 다음 연결
-다음 교시에는 Docker의 핵심 구성요소를 다룬다. `docker version`으로 준비 상태가 확인된 학생은 image와 container 개념을 실제 명령으로 연결하고, blocker가 있는 학생은 설치 단계, OS, error message를 계속 보완해 후반 DB 실습 참여 가능 여부를 분류한다.
+> **🎓 학술 노트 — 셸은 왜 아직도 쓰일까 (Bourne, 1979)**
+>
+> 그래픽 화면이 있는데 왜 아직도 글자로 명령을 칠까요? 1979년 벨 연구소의 스티븐 본(Stephen Bourne)이 만든 **본 셸(sh)**은 명령을 입력받는 도구이자 **프로그래밍 언어**였습니다. 변수, 조건문, 반복문을 써서 명령들을 묶을 수 있었고, 이것이 지금 우리가 쓰는 **bash**(Bourne Again Shell, 1989)와 **zsh**(Mac 기본)의 조상입니다.
+>
+> 셸이 50년 가까이 살아남은 이유는 **자동화** 때문입니다. 마우스 클릭은 기록하고 반복하기 어렵지만, 명령은 그대로 파일에 적으면 **스크립트**가 됩니다. 1주차 5일차의 런북에 "복사해 쓰는 명령"이 들어가는 이유, 그리고 2주차의 Dockerfile과 3주차의 CI 파이프라인이 결국 **명령의 목록**인 이유가 여기에 있습니다. 오늘 손에 익히는 명령 하나하나가 나중에 자동화의 재료가 됩니다.
+>
+> - Bourne, S. R. (1978). The UNIX shell. *The Bell System Technical Journal*, 57(6).
+
+> **📈 트렌드 — 편집기 안으로 들어온 AI**
+>
+> VS Code는 여러 해 동안 개발자가 가장 많이 쓰는 편집기 자리를 지키고 있고, 최근에는 편집기 안에서 AI가 코드를 제안하고, 터미널 명령을 대신 실행하고, 여러 파일을 한꺼번에 고치는 **코딩 에이전트** 기능이 기본처럼 들어오고 있습니다. Stack Overflow 2026 설문에서도 AI를 쓰는 개발자 중 다수가 코딩 에이전트를 사용한다고 답했습니다. 편리한 만큼 1주차에 배운 원칙이 더 중요해집니다. **AI가 실행하려는 명령을 읽고 이해한 뒤에 허락하기**, 그리고 **비밀값을 AI 대화창에 붙여 넣지 않기**입니다.
+
+## 정리
+
+- `pwd`, `ls`, `cd`, `mkdir -p`, `echo >`, `cat`이 기본 명령이며, **Tab**과 **↑**로 손을 아낍니다.
+- 실습 파일은 **`~/devops-lab`**(Linux 쪽)에 둡니다. `/mnt/c`는 느리고 꼬입니다.
+- `code .`로 지금 폴더를 VS Code에서 열고, Windows는 왼쪽 아래 **WSL 표시**를 확인합니다.
+- 편집은 위에서, 명령은 `` Ctrl + ` `` 터미널에서 합니다.
+
+> **✅ 확인 문제**
+>
+> 1. 지금 있는 폴더를 알려 주는 명령은?
+> 2. `echo "a" > x.txt`와 `echo "a" >> x.txt`의 차이는?
+> 3. WSL에서 실습 파일을 `/mnt/c` 아래에 두면 안 되는 이유는?
+> 4. `code .`에서 `.`의 의미는?
+> 5. Windows의 VS Code가 WSL에 연결되었는지 어디서 확인하나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. `pwd`
+> 2. `>`는 덮어쓰고, `>>`는 끝에 덧붙인다
+> 3. Windows와 Linux 파일 시스템을 오가느라 느리고, 권한·줄바꿈 문제가 생기기 때문
+> 4. 현재 폴더
+> 5. VS Code 왼쪽 아래 구석의 `WSL: Ubuntu-24.04` 표시
+>
+> </details>
+
+## 참고 문헌
+
+- Microsoft. *Developing in WSL* (VS Code docs). code.visualstudio.com/docs/remote/wsl
+- Docker. *WSL 2 best practices for Docker Desktop on Windows*. docs.docker.com
+- Bourne, S. R. (1978). The UNIX shell. *Bell System Technical Journal*, 57(6).
+- Stack Overflow (2026). *2026 Developer Survey*. survey.stackoverflow.co

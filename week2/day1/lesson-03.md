@@ -1,217 +1,175 @@
-# 3교시: Docker의 컨셉과 작동 방식
+# 3교시 · Git 설치와 설정
 
-## 수업 목표
-- Docker의 핵심 구성요소인 image, container, registry, Docker Engine, Docker Desktop의 역할을 구분한다.
-- Docker 공식 overview의 architecture diagram을 읽고, 강의 재구성 그림과 공식 그림을 구분한다.
-- CPU, RAM, disk, network, OS kernel 같은 PC 부품/구성요소와 Docker 컴포넌트를 연결해 이해한다.
-- VM 가상화와 Docker 컨테이너화의 OS/kernel 구조 차이를 설명한다.
-- `docker run`이 단순 실행 명령이 아니라 image 확보, container 생성, process 시작, network 연결을 포함하는 흐름임을 이해한다.
-- Week 1의 process/filesystem/network/config 개념이 Docker 안에서 어떻게 이름을 바꾸는지 설명한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - Git을 설치하고 버전을 확인합니다.
+> - 커밋에 남을 이름과 이메일을 설정합니다.
+> - 기본 브랜치 이름과 편집기를 설정합니다.
+> - 설정이 어디에 저장되는지 확인합니다.
 
-## 선행 지식
-| 이미 알고 있어야 할 것 | 오늘 새로 연결할 것 |
-|---|---|
-| process는 command로 시작되고 종료 상태를 가진다 | container는 image에서 시작된 격리된 process다 |
-| OS kernel은 process, filesystem, network resource를 중재한다 | container는 host kernel을 공유하는 격리된 process 모델이다 |
-| CPU, RAM, disk, network는 실제 PC 자원이다 | Docker는 새 하드웨어가 아니라 PC 자원을 나누어 쓰는 실행 계층이다 |
-| file path와 app folder가 실행 재료가 된다 | image는 실행에 필요한 파일과 설정을 포함한다 |
-| localhost와 port로 서비스에 접근한다 | port binding으로 host와 container port를 연결한다 |
-| README가 실행 절차를 문서화한다 | Dockerfile과 Docker command가 실행 계약을 더 명확히 한다 |
+## 왜 설정부터 하나요?
 
-## 강의 전개
+1주차 5일차에 "커밋에는 **누가, 언제, 무엇을, 왜**가 남는다"고 배웠습니다. 그 **"누가"**를 Git에게 알려 주는 것이 오늘의 설정입니다. 설정하지 않으면 커밋할 때 Git이 "당신은 누구인가요?"라며 멈춥니다.
 
-이 교시는 Docker 용어를 한꺼번에 외우게 하는 시간이 아니다. 공식 architecture diagram을 먼저 보고, 그 다음 학생이 이미 알고 있는 PC 구성요소와 연결한 뒤, 마지막에 `docker run` 한 줄 안에서 실제로 어떤 일이 일어나는지 풀어낸다. 이 순서를 지키면 image, container, registry, daemon, port 같은 단어가 따로 떠다니지 않는다.
+## 실습 5 · Git 설치와 설정
 
-첫 번째 축은 공식 문서의 언어다. 강의용 그림은 이해를 돕기 위해 단순화되어 있지만, 최종 기준은 Docker Docs의 overview와 container/image 문서다. 학생에게 "강의 그림은 기억용, 공식 그림은 기준 용어"라고 분리해 준다. 특히 Docker client와 daemon의 관계를 잡아야 `docker version`에서 Client만 보이는 상태와 Server까지 보이는 상태를 구분할 수 있다.
+> **🧪 실습: 실습 목표**
+>
+> Git을 설치하고, 이름·이메일·기본 브랜치·편집기를 설정한 뒤 `git config --list`로 확인합니다.
 
-두 번째 축은 PC 자원이다. container가 실행되면 CPU를 쓰고, RAM을 쓰고, disk에 image와 volume을 남기고, host network port를 통해 외부와 통신한다. Docker를 새 컴퓨터나 새 OS로 설명하면 오히려 헷갈린다. Docker는 기존 컴퓨터 자원을 더 명확한 실행 단위로 나누어 쓰게 하는 계층으로 설명한다.
+### 단계 1 — 설치
 
-세 번째 축은 VM과 container의 경계다. VM은 Guest OS를 포함하는 실행 단위로 이해하고, container는 보통 host kernel을 공유하는 격리된 process 모델로 이해한다. 다만 macOS와 Windows에서 Linux container를 실행할 때는 Docker Desktop 내부 Linux VM 또는 WSL 2 같은 기반이 관여할 수 있다. 그래서 "Docker는 VM이 아니다"라고만 말하지 말고, "container 모델과 Desktop 실행 기반은 다른 계층"이라고 설명한다.
+**Windows(WSL Ubuntu) / Linux:**
 
-마지막 축은 `docker run`의 내부 흐름이다. 학생이 `docker run nginx`를 단순 실행 명령으로만 보면 pull 실패, daemon 실패, port 충돌, process crash를 모두 같은 실패로 본다. local image 확인, registry pull, container 생성, process 시작, network publish, log 확인의 단계로 나누어야 이후 실습 실패를 정확히 읽을 수 있다.
-
-## Docker 설치 상태 재확인
-
-이 교시는 설치 성공자만을 위한 개념 수업이 아니다. 설치가 막힌 학생도 Docker가 어떤 구성요소로 동작하는지 알아야 이후 blocker를 정확히 설명할 수 있다. `docker version`에서 server가 보이지 않는 경우는 image/container 개념을 이해하지 못해서가 아니라 Docker daemon 연결이 아직 성립하지 않은 상태일 수 있다.
-
-### 빠른 확인 명령
 ```bash
-docker version
+sudo apt install -y git
+git --version
 ```
 
-확인할 것은 전체 출력 복사가 아니라 상태 요약이다. `Client visible`, `Server visible`, `Error summary` 세 가지로 충분하다.
+**Mac:**
 
-### Visual 1: Docker 공식 Architecture diagram
-![Docker 공식 Architecture diagram](./assets/official-docker-architecture.webp)
-
-출처: Docker Docs, Docker overview, `https://docs.docker.com/get-started/docker-overview/`.
-
-이 이미지는 Docker 공식 문서의 architecture diagram이다. Docker client가 Docker daemon에 요청하고, daemon이 image build/run/distribute 작업을 처리하며, registry와 image/container가 연결되는 구조를 먼저 공식 용어로 읽는다. 강의용 재구성 이미지는 이해를 돕기 위한 보조 자료이고, 최종 용어 기준은 이 공식 문서다.
-
-### Visual 2: 강의용 Docker 작동 구조
-![Docker 작동 구조](./assets/lesson-03-docker-architecture.png)
-
-이 이미지는 CLI, Docker Engine, Registry, Image, Container, Network, Volume의 관계를 한 화면에 배치한다. 왼쪽의 `docker run` 요청이 Engine으로 들어가고, Engine이 registry에서 image layer를 받고 container, network, volume을 관리하는 흐름을 본다.
-
-## PC 부품과 Docker 컴포넌트 연결
-
-Docker를 처음 배울 때 가장 먼저 잡아야 할 기준은 Docker가 새로운 물리 하드웨어를 만드는 도구가 아니라는 점이다. 컨테이너가 실행될 때도 실제 연산은 PC의 CPU가 수행하고, 실행 중인 데이터는 RAM을 사용하며, image와 volume은 disk 공간을 차지한다. 외부 접속은 PC의 network stack과 port를 통해 들어오고, 격리와 resource 제어는 OS kernel 기능을 기반으로 동작한다.
-
-그래서 Docker 컴포넌트를 PC 부품과 연결해 읽으면 추상 용어가 줄어든다. Docker Engine은 "컨테이너를 생성하고 실행하고 관리하는 관리자"에 가깝고, container는 "CPU/RAM을 사용해 실행 중인 격리된 process", image는 "disk에 저장된 실행 재료 묶음", volume은 "컨테이너 삭제와 분리해 disk에 남기는 데이터 공간", registry는 "image를 올리고 내려받는 원격 창고"로 이해할 수 있다.
-
-### Visual 3: PC 부품과 Docker 컴포넌트 연결
-![PC 부품과 Docker 컴포넌트 연결](./assets/lesson-03-pc-parts-to-docker-components.png)
-
-이 이미지는 CPU, RAM, SSD/disk, network, OS kernel이 Docker Engine, container, image, volume, port binding, registry와 어떻게 연결되는지 보여준다. 오른쪽 Docker 구성요소를 외울 때 왼쪽 PC 자원이 실제로 무엇을 제공하는지 함께 읽는다.
-
-### PC 부품 기반 Docker 컴포넌트 표
-| PC 구성요소 | Docker에서 연결되는 말 | 확인 질문 |
-|---|---|---|
-| CPU | container process 실행 | 어떤 process가 CPU를 쓰고 있는가 |
-| RAM | running container memory | container가 너무 많은 memory를 쓰는가 |
-| SSD/disk | image, layer, volume, build cache | image와 volume이 disk를 얼마나 차지하는가 |
-| Network | port binding, Docker network | host port와 container port가 어떻게 연결되는가 |
-| OS kernel | process 격리, filesystem/network/resource 제어 | container가 host kernel 기능에 의존한다는 점을 이해했는가 |
-| Remote storage | registry, Docker Hub | image 출처와 tag를 신뢰할 수 있는가 |
-
-## image와 container, VM/컨테이너 구조
-
-image는 container를 만들기 위한 표준 실행 패키지다. Docker 공식 문서는 image를 container 실행에 필요한 files, binaries, libraries, configurations를 포함하는 package로 설명한다. image는 만들어진 뒤 직접 수정하는 대상이 아니라 새 image를 만들거나 layer를 추가해 변경한다.
-
-container는 image에서 시작된 실행 상태다. Week 1에서 `python3 -m http.server` 같은 command가 process를 만들었던 것처럼, Docker에서는 image를 기준으로 container process를 시작한다. 같은 image에서 여러 container를 만들 수 있고, 각 container는 서로 다른 port, environment variable, volume을 가질 수 있다.
-
-### Visual 4: image와 container의 차이
-| 구분 | Image | Container |
-|---|---|---|
-| 상태 | 실행 전 package | 실행 중 또는 종료된 instance |
-| 바뀌는가 | 보통 immutable로 다룸 | 실행 상태, log, writable layer가 생김 |
-| 예시 | `nginx:latest` | `web-demo-1` container |
-| 확인 명령 | `docker images` | `docker ps`, `docker ps -a` |
-| 운영 질문 | 출처와 tag를 신뢰할 수 있는가 | 현재 running/exited 상태인가 |
-
-### Visual 5: VM 가상화와 컨테이너화의 OS/kernel 구조
-![VM 가상화와 컨테이너화의 OS/kernel 구조](./assets/lesson-03-vm-vs-container-os-kernel.png)
-
-Docker를 정확히 이해하려면 "컨테이너는 작은 VM인가?"라는 질문을 분리해야 한다. VM 가상화는 hypervisor 위에 여러 가상 머신을 만들고, 각 VM이 보통 자기 Guest OS와 kernel을 가진다. 그래서 OS 전체를 분리해 실행할 수 있지만, Guest OS까지 포함하므로 상대적으로 무겁다.
-
-컨테이너화는 다른 모델이다. 컨테이너는 보통 host OS kernel을 공유하면서 서로 격리된 process로 실행된다. container image 안에는 애플리케이션 실행에 필요한 파일, library, binary, 설정이 들어가지만 OS 전체와 별도 kernel이 들어간다고 이해하면 안 된다. Linux container가 Linux kernel 기능을 사용하기 때문에, macOS에서 Docker Desktop으로 Linux container를 실행할 때는 Docker Desktop이 내부 Linux VM 계층을 관리한다. Windows 사용자는 별도 경로로 WSL 2 backend와 가상화 조건을 확인한다.
-
-이 이미지는 왼쪽 VM 구조에서 각 가상 머신이 Guest OS를 갖는 방식과, 오른쪽 컨테이너 구조에서 여러 container가 host OS kernel을 공유하는 방식을 비교한다. 아래쪽 OS별 경로는 macOS의 Docker Desktop 내부 Linux VM 계층과 Windows 사용자의 WSL 2 경로를 구분해 읽는다.
-
-### 구조 비교 표
-| 관점 | VM 가상화 | Docker 컨테이너화 |
-|---|---|---|
-| 실행 단위 | Guest OS를 포함한 가상 머신 | host kernel을 공유하는 격리된 process |
-| OS/kernel | VM마다 Guest OS/kernel이 있을 수 있음 | container마다 별도 kernel을 갖지 않음 |
-| 무게 | OS 전체가 포함되어 상대적으로 무거움 | app/library 중심이라 상대적으로 가벼움 |
-| 격리 방식 | hypervisor 기반 가상 hardware/OS 격리 | namespace/cgroup 같은 kernel 기능 기반 격리 |
-| macOS에서 Linux container | Linux VM 계층 필요 | Docker Desktop이 내부 Linux VM 계층을 관리 |
-| Windows에서 Linux container | WSL 2 또는 Windows backend 조건 확인 필요 | Windows 사용자는 별도 설치 문서로 확인 |
-| 운영 오해 | VM처럼 OS 전체를 복제한다고 생각함 | host kernel 의존성을 잊고 아무 OS나 실행 가능하다고 생각함 |
-
-### 운영 판단
-- container image에는 "실행에 필요한 사용자 공간 파일과 library"가 들어간다. kernel 자체를 image에 넣어 실행한다고 설명하지 않는다.
-- Linux container는 Linux kernel 기능에 의존한다. macOS에서는 Docker Desktop이 내부 Linux VM 계층을 관리하고, Windows에서는 WSL 2와 virtualization 조건이 중요할 수 있다.
-- container가 VM보다 가볍다는 말은 "항상 안전하다"는 뜻이 아니다. host kernel을 공유하므로 kernel 취약점, 권한, runtime 설정도 운영 책임에 포함된다.
-
-## Docker Engine/Desktop 작동 흐름
-
-Docker Desktop은 사용자가 containerized application을 local machine에서 build, share, run하기 쉽게 해준다. 하지만 Desktop 창이 Docker의 전부는 아니다. CLI 명령은 Docker Engine 또는 daemon에 전달되고, daemon이 image와 container lifecycle을 처리한다.
-
-설치 문제를 분석할 때 이 구분이 중요하다. Desktop이 꺼져 있으면 CLI가 server에 연결하지 못할 수 있다. CLI가 설치되어 있어도 daemon이 실행 중이 아니면 container는 시작되지 않는다. registry 로그인 문제는 daemon 연결 문제와 다르다.
-
-registry는 image를 저장하고 내려받는 곳이다. Docker Hub는 대표적인 public registry다. 학생은 image를 pull할 때 "이름이 익숙하다"보다 출처, tag, 공식 이미지 여부, 업데이트 책임을 확인해야 한다. `nginx` 같은 공식 이미지는 학습과 실습에 적합하지만, 실무에서는 아무 image나 그대로 가져오지 않는다. base image 선택은 보안, 크기, 유지보수, 취약점 대응에 영향을 준다.
-
-### Visual 6: Docker 구성요소 관계
-```mermaid
-flowchart LR
-    A["Docker CLI"] --> B["Docker Engine / daemon"]
-    B --> C["Local images"]
-    B --> D["Containers"]
-    B --> E["Networks / Volumes"]
-    C <--> F["Registry / Docker Hub"]
-    G["Docker Desktop"] --> B
+```bash
+brew install git
+git --version
 ```
 
-읽는 순서: terminal의 Docker CLI는 Docker Engine에 요청을 보낸다. Engine은 local image, container, network, volume을 관리하고 필요한 image를 registry에서 가져온다. Docker Desktop은 이 과정을 GUI와 local runtime으로 보조한다.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> git version 2.43.0
+> ```
+> 숫자는 달라도 됩니다. Ubuntu 24.04에는 Git이 이미 들어 있는 경우가 많아 "이미 최신 버전"이라는 메시지가 나올 수도 있습니다.
 
-### 판단 표: 어느 구성요소 문제인가
-| 증상 | 가능성 | 확인할 것 |
-|---|---|---|
-| `docker: command not found` | CLI 설치/PATH 문제 | Docker Desktop 설치, terminal 재시작 |
-| `Cannot connect to the Docker daemon` | daemon/Desktop 미실행 | Desktop running, service status |
-| image pull 실패 | network, registry, auth 문제 | internet, Docker Hub, login |
-| container 실행 후 접속 실패 | port binding 또는 app process 문제 | `docker ps`, `docker logs`, `curl` |
-| container는 실행되지만 데이터 없음 | volume/config 문제 | volume mount, env var |
+### 단계 2 — 이름과 이메일
 
-## `docker run` 내부 흐름 읽기
-
-처음 보는 학생에게 `docker run nginx`는 한 줄 명령처럼 보이지만, 실제로는 여러 단계가 합쳐진다. local에 image가 없으면 registry에서 pull하고, image를 기준으로 container를 만들고, container 내부 process를 시작한다. port를 지정하지 않으면 container 안의 web server가 떠 있어도 host browser에서 바로 접근할 수 없을 수 있다.
-
-### Visual 7: Docker Desktop 공식 container run 화면
-![Docker Desktop 공식 container run 화면](./assets/official-docker-run-container.webp)
-
-출처: Docker Docs, What is a container?, `https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-container/`.
-
-이 공식 이미지는 Docker Desktop에서 container name과 host port를 지정해 container를 실행하는 화면이다. 오늘 후반 PostgreSQL 실습에서는 GUI 대신 CLI를 쓰지만, 같은 개념을 사용한다. `postgres:16` container 내부의 `5432` port를 host의 `15432`로, `postgres:18` container 내부의 `5432` port를 host의 `15433`으로 publish한다.
-
-### Visual 8: Docker 공식 container 접근 화면
-![Docker 공식 container 접근 화면](./assets/official-docker-access-frontend.webp)
-
-출처: Docker Docs, What is a container?, `https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-container/`.
-
-이 이미지는 publish된 host port로 container 안의 service에 접근하는 공식 예시다. 웹 서버 예시에서는 browser로 접근하지만, DB 실습에서는 같은 원리를 `psql -h localhost -p 15432`와 `psql -h localhost -p 15433`에 적용한다.
-
-### Visual 9: `docker run`이 하는 일
-```mermaid
-sequenceDiagram
-    participant U as User CLI
-    participant E as Docker Engine
-    participant R as Registry
-    participant C as Container
-    U->>E: docker run nginx
-    E->>E: local image 확인
-    E->>R: image가 없으면 pull
-    R-->>E: image layers
-    E->>C: container 생성
-    E->>C: process 시작
-    C-->>E: status/log
-    E-->>U: container id 또는 output
+```bash
+git config --global user.name "홍길동"
+git config --global user.email "gildong@example.com"
 ```
 
-읽는 순서: `run`은 image 확보와 container 시작을 함께 수행할 수 있다. 그래서 실패 메시지도 pull 실패, container 생성 실패, process 실패, port 충돌 등으로 나누어 읽어야 한다.
+- `--global` : 이 컴퓨터의 **내 계정 전체**에 적용합니다(모든 저장소 공통).
+- 이름과 이메일은 **커밋 기록에 영구히 남고, 공개 저장소라면 누구나 볼 수 있습니다.**
 
-## 오해 점검과 다음 교시 연결
+> [!TIP]
+> **이메일을 공개하고 싶지 않다면**
+>
+> 다음 시간에 GitHub 가입 후 **Settings → Emails**에서 **"Keep my email addresses private"**를 켜면 `숫자+아이디@users.noreply.github.com` 형식의 가림용 주소를 줍니다. 그 주소를 `user.email`로 다시 설정하면 커밋에 진짜 이메일이 남지 않습니다. 취업 포트폴리오로 쓸 저장소라면 고려해 볼 만합니다.
 
-### 흔한 오해
-| 오해 | 바로잡기 |
-|---|---|
-| image를 실행하면 image가 바뀐다. | 실행으로 생기는 상태는 container 쪽에서 다룬다. image는 재사용 가능한 package로 본다. |
-| container는 작은 VM이다. | container는 보통 host kernel을 공유하는 격리된 process 모델이다. Guest OS 전체를 매번 실행하는 VM 모델과 다르다. |
-| container image 안에는 완전한 OS와 kernel이 들어 있다. | image에는 사용자 공간 파일과 library가 들어갈 수 있지만, container는 host kernel을 사용한다. |
-| macOS에서 Docker를 쓰면 WSL 2가 필요하다. | macOS는 WSL 2를 쓰지 않는다. Docker Desktop이 내부 Linux VM 계층을 관리한다. |
-| Windows에서 Linux container를 바로 실행한다. | Windows 사용자는 Docker Desktop의 WSL 2 backend 또는 관련 가상화 조건을 공식 문서로 확인해야 한다. |
-| Docker Hub의 모든 image는 안전하다. | 출처, 공식 이미지 여부, tag, update 상태를 확인해야 한다. |
-| Docker Desktop만 배우면 Docker를 이해한 것이다. | Desktop은 도구 표면이고, 운영 판단은 image/container/network/volume 확인 지점에서 나온다. |
+### 단계 3 — 기본 브랜치 이름과 편집기
 
-### 확인 기준
-| 기준 | 확인 지점 |
-|---|---|
-| 개념 구분 | image와 container를 실행 전 package와 실행 상태로 구분했다. |
-| PC 부품 매핑 | CPU/RAM/disk/network/kernel을 container/image/volume/port binding과 연결했다. |
-| OS/kernel 구조 | VM의 Guest OS 모델과 container의 host kernel 공유 모델을 비교했다. |
-| 구성요소 이해 | CLI, Engine, Desktop, registry의 역할을 설명했다. |
-| 실패 분류 | pull, daemon, port, process 중 하나 이상의 실패 위치를 구분했다. |
-| 보안/출처 인식 | image 출처와 tag 확인 필요성을 설명했다. |
-| Week 1 연결 | process/filesystem/network/config 중 2개 이상을 Docker 표현과 연결했다. |
+```bash
+git config --global init.defaultBranch main
+git config --global core.editor "code --wait"
+```
 
-### 공식/학술 근거 링크
-- Docker Docs: Docker overview, https://docs.docker.com/get-started/docker-overview/ - Docker architecture와 image/container/registry 개념의 공식 기준이다.
-- Docker Docs: What is a container?, https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-container/ - isolated process, VM 비교, port exposure의 공식 기준이다.
-- Docker Docs: What is an image?, https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-an-image/ - image가 immutable하고 layer로 구성된다는 기준이다.
-- Docker Docs: Docker Desktop, https://docs.docker.com/desktop/ - Docker Desktop의 local build/share/run 역할을 확인하는 기준이다.
-- Docker Docs: Install Docker Desktop on Mac, https://docs.docker.com/desktop/setup/install/mac-install/ - macOS 기본 설치 경로와 chip별 설치 조건을 확인하는 공식 기준이다.
-- Docker Docs: Install Docker Desktop on Windows, https://docs.docker.com/desktop/setup/install/windows-install/ - Windows 사용자의 WSL 2와 가상화 조건을 별도로 확인하는 공식 기준이다.
+- `init.defaultBranch main` : 새 저장소의 첫 브랜치 이름을 `main`으로 합니다. GitHub의 기본값과 맞추기 위함입니다.
+- `core.editor "code --wait"` : 커밋 메시지를 길게 쓸 때 VS Code가 열리게 합니다. `--wait`은 창을 닫을 때까지 Git이 기다리라는 뜻입니다.
 
-### 다음 연결
-다음 교시는 Docker와 local computer 실행 방식을 비교한다. Docker가 좋아지는 지점뿐 아니라 host resource 사용, image 관리, secret 노출, cleanup 책임 같은 비용과 한계를 함께 판단한다.
+### 단계 4 — 줄바꿈 설정 (Windows WSL 사용자만)
+
+```bash
+git config --global core.autocrlf input
+```
+
+Windows와 Linux는 **줄바꿈 문자**가 다릅니다(Windows는 `CRLF`, Linux·Mac은 `LF`). 이 설정은 저장소에는 항상 `LF`로 저장되게 해서, 컨테이너 안(Linux)에서 셸 스크립트가 `\r: command not found` 같은 에러를 내는 것을 막습니다.
+
+### 단계 5 — 확인
+
+```bash
+git config --global --list
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> user.name=홍길동
+> user.email=gildong@example.com
+> init.defaultbranch=main
+> core.editor=code --wait
+> core.autocrlf=input
+> ```
+> Mac은 마지막 줄이 없어도 됩니다.
+
+### 단계 6 — 설정은 어디에 저장될까?
+
+```bash
+cat ~/.gitconfig
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> [user]
+>         name = 홍길동
+>         email = gildong@example.com
+> [init]
+>         defaultBranch = main
+> [core]
+>         editor = code --wait
+>         autocrlf = input
+> ```
+> `git config` 명령은 결국 **홈 폴더의 텍스트 파일 하나**를 고치는 것입니다. 1주차 2일차의 "설정은 파일이다"가 여기서도 나타납니다. 이름이 점(`.`)으로 시작하는 파일은 숨김 파일이라 `ls`로는 안 보이고 `ls -a`로 보입니다.
+
+| 설정 범위 | 옵션 | 저장 위치 | 적용 대상 |
+|---|---|---|---|
+| 시스템 | `--system` | `/etc/gitconfig` | 이 컴퓨터의 모든 사용자 |
+| 사용자 | `--global` | `~/.gitconfig` | 나의 모든 저장소 |
+| 저장소 | (없음) | 저장소 안 `.git/config` | 그 저장소만 |
+
+좁은 범위가 넓은 범위를 이깁니다. 회사 저장소에서만 회사 이메일을 쓰고 싶다면, 그 저장소 안에서 `--global` 없이 설정하면 됩니다.
+
+> **🛠️ 막혔다면: 막혔다면**
+>
+> | 증상 | 원인 | 해결 |
+> |---|---|---|
+> | `E: Unable to locate package git` | 패키지 목록이 오래됨 | `sudo apt update` 후 다시 설치 |
+> | Mac에서 `xcode-select` 설치 창이 뜸 | 개발자 도구가 없어서 | 창에서 **설치**를 누르고 기다린 뒤 다시 |
+> | 이름을 잘못 입력함 | — | 같은 명령을 올바른 값으로 다시 실행하면 덮어쓴다 |
+> | 따옴표 안의 한글이 깨져 보임 | 터미널 글꼴 문제 | 표시만의 문제이며 값은 정상. `cat ~/.gitconfig`로 확인 |
+
+> **🎓 학술 노트 — 내용으로 이름 짓기 (Content-Addressable Storage)**
+>
+> Git은 파일을 "파일 이름"이 아니라 **내용으로 만든 지문(해시)**으로 저장합니다. 파일 내용을 SHA-1(최근에는 SHA-256도 지원) 함수에 넣으면 40자리(또는 64자리) 16진수 값이 나오고, 이 값이 그 내용의 이름이 됩니다. 내용이 한 글자라도 바뀌면 이름도 완전히 바뀝니다.
+>
+> 이런 저장 방식을 **내용 주소 지정 저장소(content-addressable storage)**라고 합니다. 장점은 세 가지입니다. ① 같은 내용은 한 번만 저장되어 공간을 아낍니다. ② 내용이 몰래 바뀌면 이름이 안 맞아 바로 들통납니다(1주차 5일차의 "위변조 감지"). ③ 이름만 비교하면 두 저장소가 같은지 금방 알 수 있습니다.
+>
+> 이 아이디어는 Git만의 것이 아닙니다. **내일 배울 Docker 이미지의 레이어**와 **3일차의 이미지 다이제스트(`sha256:...`)**도 똑같은 원리입니다. 오늘 Git에서 본 긴 16진수 문자열을 내일 Docker에서 또 만나게 됩니다.
+>
+> - Chacon, S., & Straub, B. (2014). *Pro Git*, Ch. 10 Git Internals. Apress.
+> - Merkle, R. C. (1987). A digital signature based on a conventional encryption function. *CRYPTO '87*. (머클 트리)
+
+> **📈 트렌드 — 커밋에도 서명한다**
+>
+> `user.name`과 `user.email`은 누구나 아무 값으로나 설정할 수 있습니다. 즉 남의 이름으로 커밋을 만드는 것도 기술적으로 가능합니다. 그래서 공급망 보안(1주차 5일차)이 중요해지면서, 커밋에 **암호학적 서명**을 붙이는 회사가 늘고 있습니다. Git은 이제 GPG뿐 아니라 **SSH 키로도 커밋에 서명**할 수 있고, GitHub은 서명이 확인된 커밋에 **Verified** 표시를 붙입니다. 저장소 설정에서 "서명된 커밋만 허용"을 켜는 조직도 많아지고 있습니다. 지금은 몰라도 되지만, 첫 직장에서 "커밋 서명 설정하세요"라는 안내를 받으면 오늘의 설정 파일을 떠올리면 됩니다.
+
+## 정리
+
+- Git은 `apt`(Ubuntu) 또는 `brew`(Mac)로 설치합니다.
+- `user.name`, `user.email`은 **모든 커밋에 영구히 남습니다.** 가림용 이메일도 쓸 수 있습니다.
+- 기본 브랜치는 `main`, 편집기는 `code --wait`, Windows는 `core.autocrlf input`.
+- 설정은 `~/.gitconfig` **텍스트 파일**에 저장되고, 저장소 설정이 전역 설정을 이깁니다.
+
+> **✅ 확인 문제**
+>
+> 1. 커밋에 남을 내 이름을 설정하는 명령은?
+> 2. `--global` 설정은 어느 파일에 저장되나요?
+> 3. Windows에서 `core.autocrlf input`을 설정하는 이유는?
+> 4. 회사 저장소에서만 다른 이메일을 쓰려면?
+> 5. Git이 파일을 저장하는 방식의 이름은? (내일 Docker에서도 나온다)
+>
+> <details><summary>정답</summary>
+>
+> 1. `git config --global user.name "이름"`
+> 2. `~/.gitconfig`
+> 3. 줄바꿈 문자를 LF로 통일해, Linux(컨테이너)에서 스크립트 에러가 나지 않게 하려고
+> 4. 그 저장소 안에서 `--global` 없이 `git config user.email` 설정
+> 5. 내용 주소 지정 저장소(content-addressable storage, 해시)
+>
+> </details>
+
+## 참고 문헌
+
+- Git. *git-config Documentation*. git-scm.com/docs/git-config
+- Chacon, S., & Straub, B. (2014). *Pro Git* (2nd ed.), Ch. 1.6, Ch. 10. git-scm.com/book/ko/v2
+- GitHub Docs. *Setting your commit email address*, *About commit signature verification*. docs.github.com

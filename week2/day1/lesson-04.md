@@ -1,158 +1,193 @@
-# 4교시: Docker vs Local Computer
+# 4교시 · GitHub 계정과 인증
 
-## 수업 목표
-- Docker 실행과 local 실행의 차이를 compute, storage, network, configuration, observability 관점으로 비교한다.
-- Docker를 쓰면 좋아지는 점과 나빠지는 점을 비용, 보안, 관리 효율 기준으로 판단한다.
-- "언제 Docker를 쓰지 말아야 하는가"를 실습 난이도가 아니라 운영 적합성 관점에서 설명한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - GitHub 계정을 만들고 2단계 인증을 켭니다.
+> - Git이 왜 비밀번호로 로그인하지 않는지 이해합니다.
+> - GitHub CLI(`gh`)로 브라우저 로그인을 하고, Git이 그 인증을 쓰게 합니다.
+> - 토큰이 어디에 저장되는지, 왜 조심해야 하는지 압니다.
 
-## 선행 지식
-| Week 1 개념 | Docker 비교 지점 |
-|---|---|
-| process | container process |
-| OS/kernel | host kernel 공유, macOS의 Docker Desktop 내부 Linux VM 계층, Windows 사용자의 WSL 2 예외 경로 |
-| file path | image layer, volume, bind mount |
-| localhost/port | host port, container port |
-| env var/config | runtime environment injection |
-| log/status | `docker logs`, status, exit code |
-| cost/resource boundary | image size, disk usage, running container count |
+## 비밀번호 대신 토큰
 
-## 강의 전개
+GitHub은 2021년 8월부터 Git 명령(`git push` 등)에서 **계정 비밀번호를 받지 않습니다.** 대신 **토큰** 또는 **SSH 키**를 씁니다.
 
-이 교시는 Docker를 홍보하는 시간이 아니라 도구 선택 기준을 만드는 시간이다. 학생이 Docker를 배우기 시작하면 모든 것을 container로 감싸고 싶어질 수 있다. 하지만 실제 운영에서는 Docker가 줄여주는 문제와 새로 만드는 책임을 함께 봐야 한다. 그래서 local 실행과 Docker 실행을 compute, storage, network, configuration, observability 관점으로 비교한다.
-
-먼저 Week 1 local 실행을 복기한다. local process는 host OS에서 직접 실행되고, host file path를 읽고, host port를 사용하며, terminal에 log를 남긴다. Docker로 가면 같은 요소가 container process, image layer, volume, host/container port binding, `docker logs`로 이름을 바꾼다. 이름이 바뀌어도 underlying problem은 사라지지 않는다.
-
-그 다음 Docker의 장점을 구체화한다. 장점은 "편함"이 아니라 재현성, dependency isolation, handoff, cleanup 가능성이다. Dockerfile과 run command가 명확하면 동료가 같은 실행 조건을 더 빨리 만들 수 있다. cloud resource를 만들기 전에 local container로 DB나 web server를 검증할 수 있으므로 비용 낭비도 줄일 수 있다.
-
-하지만 같은 비중으로 단점을 다룬다. image가 커지면 pull/build가 느려지고, container와 volume을 방치하면 disk와 port가 지저분해진다. secret을 build context나 image layer에 넣으면 지우기 어렵다. container 내부에서만 보이는 실패는 local보다 debugging이 어려울 수 있다. Docker 도입은 운영 책임을 없애는 것이 아니라 책임의 경계를 바꾸는 일이다.
-
-수업 후반의 판단 활동에서는 "Docker를 써야 한다"가 정답이 아니다. 학생이 자기 Week 1 앱을 기준으로 실행 반복성, 의존성 복잡도, port 명확성, data persistence, secret 필요 여부를 확인하게 한다. Docker가 맞는 상황과 보류해야 하는 상황을 모두 말할 수 있어야 도구를 제대로 이해한 것이다.
-
-## local 실행 경험 복기
-
-Week 1의 local 실행은 Docker를 배우기 위한 필수 준비였다. local에서 실행 조건을 설명하지 못하면 container 안에서도 같은 문제가 반복된다. Docker는 실행 환경을 표준화하지만, 어떤 파일을 넣을지, 어떤 command를 실행할지, 어떤 port를 열지, 어떤 설정을 외부에서 받을지는 사람이 결정해야 한다.
-
-### Visual 1: local 실행과 Docker 실행 비교 spine
-![Local 실행과 Docker 실행 비교](./assets/lesson-04-docker-vs-local.png)
-
-이 이미지는 local computer의 process, file path, localhost port가 Docker 실행에서 image, container, port binding, volume으로 바뀌는 관계를 보여준다. 아래쪽의 "좋아지는 점"과 "새 책임"을 함께 읽어 Docker가 항상 더 좋은 선택이 아니라 상황에 따른 운영 판단이라는 점을 확인한다.
-
-### Visual 2: local 실행과 Docker 실행 비교 표
-| 관점 | Local computer | Docker |
+| 방식 | 비유 | 특징 |
 |---|---|---|
-| Compute | host에서 process 실행 | image에서 container process 실행 |
-| OS/kernel | host OS의 kernel이 직접 process를 관리 | container는 host kernel을 공유한다. macOS의 Linux container는 Docker Desktop의 내부 Linux VM 계층을 통해 실행되고, Windows 사용자는 WSL 2 조건을 별도 확인한다. |
-| Storage | host file path 직접 사용 | image layer, bind mount, volume |
-| Network | localhost와 host port | container port와 host port binding |
-| Configuration | host env/config file | `-e`, `.env`, Compose environment |
-| Observability | terminal log, process status | `docker logs`, `docker ps`, exit code |
-| Cleanup | process 종료, 파일 삭제 | stop/rm, image/volume 정리 |
+| 계정 비밀번호 | 집 열쇠 원본 | 유출되면 모든 것이 열린다 → Git에서는 사용 불가 |
+| **토큰** (Personal Access Token) | **용도·기간이 정해진 출입증** | 범위(어떤 저장소, 어떤 권한)와 만료일을 정할 수 있고, 언제든 폐기 가능 |
+| SSH 키 | 집에만 맞는 전용 열쇠 쌍 | 한 번 설정하면 편하지만 처음 설정이 조금 어렵다 |
 
-읽는 순서: Docker는 Week 1의 컴퓨팅 구성요소를 없애지 않는다. 각 요소에 더 명확한 경계와 명령을 붙인다.
+> [!IMPORTANT]
+> **토큰은 비밀번호와 똑같이 다룬다**
+>
+> 토큰은 "로그인된 상태" 그 자체입니다. 토큰을 가진 사람은 여러분인 척 저장소를 지우거나 코드를 바꿀 수 있습니다. 그래서 **채팅, 스크린샷, 코드, 커밋, AI 대화창에 절대 붙여 넣지 않습니다.** 실수로 노출했다면 GitHub **Settings → Developer settings** 또는 `gh auth logout`으로 즉시 폐기합니다.
 
-## Docker가 좋아지는 점
+오늘은 토큰을 손으로 만들어 복사하는 대신, **GitHub CLI(`gh`)**가 브라우저 로그인으로 토큰을 받아 안전하게 저장하고 Git에 연결해 주는 방법을 씁니다. 초보자가 토큰을 복사·붙여넣기하다 노출하는 사고를 줄이는 가장 쉬운 길입니다.
 
-Docker의 장점은 "편하다"보다 구체적으로 말해야 한다. 첫째, 실행 조건을 image로 포장해 다른 장비에서 재현하기 쉬워진다. 둘째, runtime과 dependency를 host에 직접 설치하지 않아 충돌을 줄일 수 있다. 셋째, Dockerfile과 Compose를 통해 handoff 문서가 code와 가까워진다.
+## 실습 6 · GitHub 계정 만들기
 
-이 장점은 비용 절감과도 연결된다. cloud resource를 바로 만들기 전에 local container로 실행 조건을 검증하면, 잘못된 설정으로 cloud 환경에서 시간을 낭비하거나 비용을 발생시키는 일을 줄일 수 있다. 단, local 검증이 production 검증을 대체하는 것은 아니다.
+> **🧪 실습: 실습 목표**
+>
+> GitHub 계정을 만들고 2단계 인증(2FA)을 켭니다. **이미 계정이 있다면 단계 2만 확인합니다.**
 
-### Visual 3: Docker benefit map
-```mermaid
-flowchart LR
-    A["명시된 Dockerfile"] --> B["재현 가능한 build"]
-    B --> C["동료 실행 가능"]
-    C --> D["handoff 시간 감소"]
-    E["격리된 dependency"] --> F["host 충돌 감소"]
-    G["run/check/cleanup 명령"] --> H["운영 확인 지점 증가"]
+### 단계 1 — 가입
+
+[github.com](https://github.com) → **Sign up**. 사용자 이름(username)은 **취업 포트폴리오 주소**가 됩니다(`github.com/아이디`). 장난스러운 이름보다 본인을 나타내는 이름을 추천합니다.
+
+### 단계 2 — 2단계 인증 켜기
+
+**프로필 사진 → Settings → Password and authentication → Two-factor authentication → Enable**.
+
+- 휴대폰 인증 앱(Google Authenticator, Microsoft Authenticator 등)으로 QR 코드를 찍습니다.
+- 화면에 나오는 **복구 코드(recovery codes)**를 반드시 내려받아 안전한 곳에 보관합니다. 휴대폰을 잃어버렸을 때 유일한 복구 수단입니다.
+
+GitHub은 코드를 올리는 사용자에게 2단계 인증을 요구합니다. 처음부터 켜 두면 나중에 갑자기 막히는 일이 없습니다.
+
+## 실습 7 · GitHub CLI로 로그인
+
+> **🧪 실습: 실습 목표**
+>
+> `gh`를 설치하고 브라우저로 로그인해, `git push`가 별도 비밀번호 없이 동작하도록 준비합니다.
+
+### 단계 1 — 설치
+
+**Windows(WSL Ubuntu) / Linux:**
+
+```bash
+sudo apt install -y gh
+gh --version
 ```
 
-읽는 순서: Docker의 장점은 명시성에서 시작해 재현성, 협업, 운영 확인 지점으로 이어진다.
+**Mac:**
 
-## Docker가 나빠질 수 있는 점
-
-Docker를 쓰면 책임도 늘어난다. image가 커지면 build/pull 시간이 길어지고 disk를 많이 쓴다. container를 정리하지 않으면 port 충돌과 resource 낭비가 생긴다. secret을 image layer에 넣으면 삭제하기 어렵고 registry로 push될 수 있다. container 내부에서만 발생하는 문제를 분석하려면 `docker logs`, `docker exec`, network/volume 확인 같은 추가 관찰 방법이 필요하다.
-
-따라서 Docker는 모든 프로젝트에 자동으로 좋은 선택이 아니다. 특히 아주 작은 일회성 script, 교육 초반의 개념 확인, host hardware를 직접 다루는 작업, GUI 중심 작업은 Docker 도입이 오히려 이해를 어렵게 할 수 있다.
-
-### 위험 표: Docker 도입으로 생기는 운영 책임
-| 위험 | 증상 | 예방/완화 |
-|---|---|---|
-| image 비대화 | pull/build 시간이 길어짐 | `.dockerignore`, 작은 base image, 불필요 파일 제외 |
-| secret 포함 | image나 repository에 credential 노출 | env var, secret 관리, build context 점검 |
-| port 충돌 | container는 실행됐지만 접속 실패 | `docker ps`, host port 변경, cleanup |
-| volume 오해 | DB 데이터가 사라지거나 남음 | named volume과 cleanup 절차 구분 |
-| debugging 복잡도 | host에서는 보이지 않는 실패 | logs, exec, inspect, README troubleshoot |
-
-## 언제 Docker를 쓰지 말아야 하는가
-
-도구 선택은 유행이 아니라 문제 적합성으로 결정한다. Docker는 반복 실행, dependency isolation, handoff, multi-service local environment가 필요한 경우에 강하다. 반대로 실행 조건이 단순하고 한 번만 쓰이며, host와 직접 상호작용해야 하고, container 경계가 학습 목표를 흐리게 만들면 도입을 늦출 수 있다.
-
-### Visual 4: Docker 사용 판단표
-| 상황 | Docker 사용 권장 | Docker 도입 보류 가능 |
-|---|---|---|
-| 팀원이 같은 앱을 반복 실행 | 예 | |
-| DB/cache 등 여러 service가 필요 | 예, Compose와 연결 | |
-| runtime version 충돌이 잦음 | 예 | |
-| 단일 HTML 파일 확인 | | local server로 충분 |
-| 일회성 CLI 연습 | | host command 학습 우선 |
-| secret 관리 기준이 없음 | 기준 수립 후 사용 | 무작정 image build 금지 |
-| host 장치/GUI 직접 의존 | 신중하게 검토 | local 실행이 더 명확할 수 있음 |
-
-## 운영 관점 비교 활동
-
-아래 표를 자기 Week 1 앱 또는 표준 실습 앱 기준으로 채운다. 답은 Docker를 무조건 쓰는 방향이어야 할 필요가 없다. 중요한 것은 판단 근거다.
-
-```markdown
-## Docker Fit Check
-
-| 질문 | 내 답 |
-|---|---|
-| 실행 command가 README에 명확한가? | |
-| runtime/dependency가 다른 장비에서도 필요할까? | |
-| port가 명확한가? | |
-| 외부 설정이나 secret이 필요한가? | |
-| 데이터가 container 삭제 후 남아야 하는가? | |
-| Docker가 handoff 시간을 줄일까? | |
-| Docker 도입으로 생기는 새 위험은 무엇인가? | |
+```bash
+brew install gh
+gh --version
 ```
 
-## 다음 명령 실습 준비
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> gh version 2.45.0 (…)
+> ```
+> 숫자는 달라도 됩니다.
 
-다음 교시부터는 기본 명령어를 다룬다. 명령어는 외우는 목록이 아니라 상태 확인 도구로 읽는다.
+### 단계 2 — 로그인 시작
 
-| 명령 | 확인하려는 상태 |
+```bash
+gh auth login
+```
+
+화살표 키로 고르고 Enter를 누릅니다. 질문과 고를 답은 이렇습니다.
+
+| 질문 | 고를 답 |
 |---|---|
-| `docker version` | CLI와 daemon 연결 상태 |
-| `docker pull` | registry에서 image를 받을 수 있는지 |
-| `docker images` | local에 어떤 image가 있는지 |
-| `docker run` | image에서 container를 시작할 수 있는지 |
-| `docker ps` | 현재 실행 중인 container가 무엇인지 |
-| `docker logs` | process가 남긴 stdout/stderr 확인 지점 |
-| `docker stop` | 실행 중인 container를 멈출 수 있는지 |
-| `docker rm` | 종료된 container를 정리했는지 |
+| Where do you use GitHub? | **GitHub.com** |
+| What is your preferred protocol for Git operations? | **HTTPS** |
+| Authenticate Git with your GitHub credentials? | **Yes** |
+| How would you like to authenticate GitHub CLI? | **Login with a web browser** |
 
-### 흔한 오해
-| 오해 | 바로잡기 |
-|---|---|
-| Docker를 쓰면 production과 완전히 같다. | host OS, network, resource, cloud permission 차이는 여전히 남는다. |
-| Docker container는 OS 전체를 들고 다니는 작은 VM이다. | container는 app/library 중심의 실행 환경이며 host kernel을 공유하는 격리된 process로 이해해야 한다. |
-| Docker는 항상 성능과 비용을 줄인다. | image 크기, build 시간, disk 사용량, 실행 container 수를 관리해야 한다. |
-| container 삭제는 항상 안전하다. | volume과 data lifecycle을 구분하지 않으면 필요한 데이터를 잃을 수 있다. |
-| local 실행은 이제 배울 필요 없다. | Docker 문제도 process, file, network, config 확인 지점으로 분석한다. |
+### 단계 3 — 브라우저에서 코드 입력
 
-### 확인 기준
-| 기준 | 확인 지점 |
-|---|---|
-| 비교 관점 | compute/storage/network/config/observability 중 3개 이상으로 local과 Docker를 비교했다. |
-| 장점 설명 | 재현성, dependency isolation, handoff 중 2개 이상을 구체적으로 설명했다. |
-| 위험 설명 | secret, disk, port, volume, debugging 중 2개 이상을 위험으로 확인했다. |
-| 도구 선택 | Docker 사용/보류 판단을 상황 기준으로 설명했다. |
-| 다음 실습 준비 | 기본 명령어를 상태 확인 목적과 연결했다. |
+```text
+! First copy your one-time code: ABCD-1234
+Press Enter to open https://github.com/login/device in your browser...
+```
 
-### 공식/학술 근거 링크
-- Docker Docs: Docker overview, https://docs.docker.com/get-started/docker-overview/ - Docker의 architecture와 container/image 관계를 local 실행과 비교하는 기준이다.
-- Docker Docs: Writing a Dockerfile, https://docs.docker.com/guides/docker-concepts/building-images/writing-a-dockerfile/ - 실행 조건을 Dockerfile instruction으로 명시하는 기준이다.
-- OWASP Secrets Management Cheat Sheet, https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html - secret을 image, repository, screenshot에 남기지 않는 보안 판단 기준이다.
+1. 화면의 **8자리 코드**를 기억합니다(이 코드는 몇 분 뒤 만료되는 일회용이라 보여도 괜찮습니다).
+2. Enter를 누릅니다. 브라우저가 자동으로 안 열리면(WSL에서 흔함) Windows 브라우저에서 **`https://github.com/login/device`**를 직접 엽니다.
+3. 코드를 입력하고 **Authorize**를 누릅니다.
 
-### 다음 연결
-다음 교시는 Docker 기본 명령어 첫 실습이다. 각 명령은 "무엇을 확인하는가"라는 질문과 함께 실행하고, 실행 후에는 반드시 중지와 정리까지 확인한다.
+### 단계 4 — 로그인 확인
+
+```bash
+gh auth status
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> github.com
+>   ✓ Logged in to github.com account 내아이디 (…)
+>   - Active account: true
+>   - Git operations protocol: https
+>   - Token: gho_************************************
+>   - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+> ```
+> 토큰이 `*`로 가려져 표시되는 것을 보세요. 도구도 토큰을 화면에 함부로 보여 주지 않습니다.
+
+### 단계 5 — Git이 이 인증을 쓰는지 확인
+
+```bash
+git config --global --list | grep credential
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> credential.https://github.com.helper=
+> credential.https://github.com.helper=!/usr/bin/gh auth git-credential
+> ```
+> `git push`가 GitHub에 로그인해야 할 때 **`gh`에게 토큰을 물어보도록** 연결되었다는 뜻입니다. 단계 2에서 "Authenticate Git… Yes"를 고른 결과입니다. 줄이 안 보이면 `gh auth setup-git`을 실행합니다.
+
+> [!WARNING]
+> **토큰은 어디에 저장되나요?**
+>
+> `gh`는 운영체제의 **안전한 비밀번호 저장소**(Mac 키체인 등)를 쓰려고 합니다. 그런데 WSL처럼 그런 저장소가 없는 환경에서는 `~/.config/gh/hosts.yml` **파일에 평문으로** 저장합니다. 그래서 이 파일은 다른 사람에게 보내거나, 저장소에 넣거나, 화면 공유로 열면 안 됩니다. 1주차 2일차의 **파일 권한**이 여기서 지켜 주는데, `ls -l ~/.config/gh/`로 보면 나만 읽을 수 있게(`-rw-------`) 되어 있습니다.
+
+> **🛠️ 막혔다면: 막혔다면**
+>
+> | 증상 | 원인 | 해결 |
+> |---|---|---|
+> | 브라우저가 열리지 않음 | WSL에서 Windows 브라우저를 못 찾음 | 직접 `https://github.com/login/device` 열고 코드 입력 |
+> | `code expired` | 일회용 코드 시간 초과 | `gh auth login`을 처음부터 다시 |
+> | `E: Unable to locate package gh` | 패키지 목록이 오래됨 | `sudo apt update` 후 다시 |
+> | 회사 네트워크에서 로그인 실패 | 방화벽·프록시 | 강사에게 알리고 휴대폰 핫스팟으로 시도 |
+> | 이미 다른 계정으로 로그인됨 | — | `gh auth logout` 후 다시 `gh auth login` |
+
+> **🎓 학술 노트 — 비밀번호의 오래된 문제 (Morris & Thompson, 1979)**
+>
+> Unix를 만든 켄 톰프슨(Ken Thompson)과 로버트 모리스(Robert Morris)는 1979년 논문 「비밀번호 보안: 사례 연구(Password Security: A Case History)」에서 실제 시스템의 비밀번호를 분석했습니다. 놀랍게도 상당수가 짧은 단어나 이름처럼 **쉽게 추측할 수 있는 것**이었습니다. 이 연구는 비밀번호를 원문이 아니라 **해시로 저장**하고, 같은 비밀번호도 다른 값이 되도록 **솔트(salt)**를 섞는 방식을 널리 퍼뜨렸습니다.
+>
+> 40년이 지난 지금도 문제의 본질은 같습니다. 사람은 기억하기 쉬운 비밀번호를 여러 곳에 재사용하고, 한 곳이 털리면 다른 곳도 털립니다. 그래서 보안은 인증 수단을 여러 종류로 겹칩니다. **아는 것**(비밀번호), **가진 것**(휴대폰, 보안 키), **나 자신**(지문, 얼굴). 오늘 켠 2단계 인증이 바로 "아는 것 + 가진 것"의 조합입니다.
+>
+> - Morris, R., & Thompson, K. (1979). Password security: A case history. *Communications of the ACM*, 22(11).
+> - NIST (2024). *SP 800-63B-4: Digital Identity Guidelines — Authentication and Authenticator Management*.
+
+> **📈 트렌드 — 패스키와 '짧게 사는 토큰'**
+>
+> 비밀번호를 아예 없애려는 흐름이 빨라지고 있습니다. **패스키(passkey)**는 휴대폰이나 노트북에 저장된 암호 키로 로그인하며, 피싱 사이트에 속아 입력할 비밀번호 자체가 없습니다. GitHub, Google, Apple, Microsoft 모두 패스키 로그인을 지원합니다. 서버와 서버 사이에서도 같은 변화가 있습니다. 오래 유지되는 토큰 대신 **몇 분~몇 시간만 유효한 토큰**을 그때그때 발급하는 방식이 표준이 되어 가고 있습니다. 3주차의 GitHub Actions와 5주차 AWS에서 "키를 저장하지 않고 임시 자격 증명을 받는" OIDC 방식으로 다시 만납니다.
+
+## 정리
+
+- GitHub은 Git 명령에서 **비밀번호를 받지 않습니다.** 토큰 또는 SSH 키를 씁니다.
+- 계정에는 **2단계 인증**을 켜고, **복구 코드**를 보관합니다.
+- `gh auth login` → 브라우저 로그인 → `gh auth status`로 확인 → Git이 `gh`의 토큰을 씁니다.
+- 토큰은 비밀번호와 같습니다. **어디에도 붙여 넣지 않고**, 노출되면 즉시 폐기합니다.
+
+> **✅ 확인 문제**
+>
+> 1. `git push`할 때 GitHub 계정 비밀번호를 쓸 수 없는 이유는?
+> 2. 토큰이 계정 비밀번호보다 안전한 이유 두 가지는?
+> 3. 로그인 상태를 확인하는 명령은?
+> 4. WSL에서 `gh`의 토큰이 저장되는 파일은?
+> 5. 2단계 인증은 인증 요소 중 어떤 두 가지를 겹친 것인가요?
+>
+> <details><summary>정답</summary>
+>
+> 1. GitHub이 2021년 8월부터 Git 작업에서 비밀번호 인증을 없앴기 때문
+> 2. 범위(권한·저장소)와 만료일을 정할 수 있고, 언제든 그 토큰만 폐기할 수 있다
+> 3. `gh auth status`
+> 4. `~/.config/gh/hosts.yml`
+> 5. 아는 것(비밀번호)과 가진 것(휴대폰 인증 앱)
+>
+> </details>
+
+## 참고 문헌
+
+- GitHub Blog (2020). *Token authentication requirements for Git operations*.
+- GitHub Docs. *About two-factor authentication*, *Managing your personal access tokens*. docs.github.com
+- GitHub CLI Manual. *gh auth login*. cli.github.com/manual
+- Morris, R., & Thompson, K. (1979). Password security: A case history. *CACM*, 22(11).
+- FIDO Alliance. *Passkeys*. fidoalliance.org/passkeys

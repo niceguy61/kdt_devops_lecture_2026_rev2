@@ -1,225 +1,214 @@
-# 6교시: Failure drill - 실패 출력으로 원인 찾기
+# 6교시 · 태그와 Docker Hub
 
-![Docker image build failure RCA infographic](./assets/lesson-08-build-failure-rca.png)
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 태그가 이미지의 "이름표"일 뿐이라는 것을 확인합니다.
+> - Docker Hub 계정을 만들고 CLI로 로그인합니다.
+> - 내 이미지에 태그를 붙여 Docker Hub에 push합니다.
+> - 다이제스트로 이미지를 정확히 가리키는 법을 배우고, 동료의 이미지를 받아 실행해 봅니다.
 
-## 수업 목표
-- missing file, wrong CMD, wrong port, bloated context를 실제 실패 출력으로 구분한다.
-- 실패를 build 단계, run 단계, verify 단계로 나눈다.
-- 에러 문구에서 힌트를 찾고, 첫 확인 명령과 복구 명령을 연결한다.
+## 지금까지의 이미지는 내 노트북에만 있다
 
-## 개념 설명
-`Docker가 안 돼요`는 원인이 아니다. 먼저 마지막으로 성공한 단계가 어디인지 나눠야 한다. build가 실패했다면 Dockerfile과 build context를 본다. run에서 container가 죽었다면 image tag, container name, CMD, logs를 본다. HTTP verify만 실패했다면 host port와 container port mapping을 본다.
+3~5교시에 만든 `devmart/catalog-api:1.0.1`은 **내 노트북 안에만** 있습니다. 동료, CI 서버, Kubernetes, AWS가 이 이미지를 쓰려면 모두가 접근할 수 있는 **창고(레지스트리)**에 올려야 합니다. 1주차 5일차 2교시 파이프라인의 **⑤ 이미지 저장** 단계입니다.
 
-실패 실습에서는 일부러 망가뜨리는 명령보다 **망가졌을 때 출력되는 문구**가 더 중요하다. 초보자는 에러 메시지를 외우지 않아도 된다. 대신 에러 안에서 `COPY`, `not found`, `PORTS`, `Exited`, `connection refused`, `Empty reply` 같은 힌트를 찾아야 한다.
+![레지스트리를 거쳐 어디서든 같은 이미지를 받는다 — build, tag, push, pull](../../assets/week2/day3/w2d3-registry-flow.png)
 
-## 실패 1: Missing file - build 단계 실패
-### 재현 명령
+## 태그는 이름표일 뿐
+
 ```bash
-cd /mnt/d/paperclip
-cp -r week2/day3/labs/static-site week2/day3/labs/static-site-broken
-rm -f week2/day3/labs/static-site-broken/index.html
-cd week2/day3/labs/static-site-broken
-docker build -t paperclip-static-site:broken . || true
+docker tag devmart/catalog-api:1.0.1 devmart/catalog-api:latest
+docker images devmart/catalog-api
 ```
 
-### 예상 실패 출력
-Docker/BuildKit 버전에 따라 문구는 조금 다르지만 다음 패턴을 찾는다.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> IMAGE                        ID             DISK USAGE   CONTENT SIZE   EXTRA
+> devmart/catalog-api:1.0.0    b5965886b8ee        …MB          …MB
+> devmart/catalog-api:1.0.1    7d2e41c0a9f3        …MB          …MB
+> devmart/catalog-api:latest   7d2e41c0a9f3        …MB          …MB
+> ```
+> `1.0.1`과 `latest`의 **ID가 같습니다.** `docker tag`는 이미지를 복사하지 않고 **같은 이미지에 이름표를 하나 더** 붙인 것입니다. 이름표는 언제든 다른 이미지로 옮겨 붙일 수 있습니다. 그래서 2일차 1교시에서 "`latest`는 받는 시점에 따라 다르다"고 한 것입니다.
 
-```text
-=> ERROR [3/4] COPY index.html ./index.html
-------
-failed to calculate checksum of ref ...
-"/index.html": not found
-```
-
-또는:
-
-```text
-COPY failed: file not found in build context or excluded by .dockerignore: stat index.html: file does not exist
-```
-
-### 출력에서 찾을 힌트
-| 힌트 | 의미 |
-|---|---|
-| `ERROR [3/4] COPY index.html` | Dockerfile의 `COPY index.html` 단계에서 실패 |
-| `not found` | source file이 build context 안에 없음 |
-| `build context` | container 실행 전 build 입력 문제 |
-
-### 첫 확인 명령
 ```bash
-pwd
-ls -la
-sed -n '1,120p' Dockerfile
-find . -maxdepth 1 -type f | sort
+docker image rm devmart/catalog-api:latest
 ```
 
-### 복구 명령
+이름표만 떼어집니다(`Untagged`). 이미지는 `1.0.1` 이름표로 남아 있습니다.
+
+## 실습 11 · Docker Hub 계정과 로그인
+
+> **🧪 실습: 실습 목표**
+>
+> Docker Hub 계정을 만들고 터미널에서 로그인합니다.
+
+### 단계 1 — 계정 만들기
+
+[hub.docker.com](https://hub.docker.com)에서 **Sign up**. 사용자 이름(Docker ID)이 이미지 이름 앞에 붙습니다(`내아이디/이미지`). GitHub처럼 **2단계 인증**도 켭니다(2주차 1일차 4교시).
+
+### 단계 2 — 로그인
+
 ```bash
-cd /mnt/d/paperclip
-cp week2/day3/labs/static-site/index.html week2/day3/labs/static-site-broken/index.html
-cd week2/day3/labs/static-site-broken
-docker build -t paperclip-static-site:broken-fixed .
+docker login
 ```
 
-## 실패 2: Wrong port - verify 단계 실패
-### 재현 명령
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> USING WEB-BASED LOGIN
+>
+> Your one-time device confirmation code is: ABCD-EFGH
+> Press ENTER to open your browser or submit your device code here: https://login.docker.com/activate
+>
+> Waiting for authentication in the browser…
+>
+> Login Succeeded
+> ```
+> 어제 GitHub CLI와 같은 **브라우저 로그인** 방식입니다. 브라우저가 안 열리면 주소를 직접 열고 코드를 입력합니다. Docker Desktop에 이미 로그인했다면 바로 `Login Succeeded`가 나옵니다.
+
+> [!WARNING]
+> **비밀번호를 터미널에 치지 않습니다**
+>
+> `docker login -u 아이디 -p 비밀번호`처럼 비밀번호를 명령에 쓰면 **셸 기록(history)**에 남습니다. 자동화(3주차 CI)에서는 계정 비밀번호 대신 Docker Hub의 **개인 액세스 토큰(PAT)**을 만들어 쓰고, 그 토큰도 GitHub의 **Secrets**에 넣어 둡니다. 2주차 1일차 4교시의 "토큰은 비밀번호와 똑같이 다룬다"가 여기서도 적용됩니다.
+
+## 실습 12 · 내 이미지를 Docker Hub에 올리기
+
+> **🧪 실습: 실습 목표**
+>
+> `devmart/catalog-api:1.0.1`에 내 Docker ID가 들어간 이름표를 붙이고 push합니다. 아래 `내아이디`는 **본인의 Docker ID**로 바꿉니다.
+
+### 단계 1 — 올릴 이름으로 태그 붙이기
+
 ```bash
-cd /mnt/d/paperclip
-docker run -d --name paperclip-day3-static-wrong -p 18084:8080 paperclip-static-site:day3 || true
-curl -I http://localhost:18084 || true
-docker ps -a --filter name=paperclip-day3-static-wrong
+docker tag devmart/catalog-api:1.0.1 내아이디/devmart-catalog-api:1.0.1
+docker images | grep catalog
 ```
 
-### 예상 실패 출력
-```text
-curl: (52) Empty reply from server
-```
+Docker Hub에 올리려면 이름이 **`Docker ID/저장소이름:태그`** 형식이어야 합니다. `devmart/…`는 내 계정 이름이 아니므로 그대로는 올릴 수 없습니다.
 
-또는 환경에 따라:
+### 단계 2 — push
 
-```text
-curl: (7) Failed to connect to localhost port 18084
-```
-
-`docker ps`에서는 다음처럼 보일 수 있다.
-
-```text
-PORTS
-0.0.0.0:18084->8080/tcp
-```
-
-### 출력에서 찾을 힌트
-| 힌트 | 의미 |
-|---|---|
-| `18084->8080/tcp` | host 18084가 container 8080으로 연결됨 |
-| Dockerfile `EXPOSE 80` | nginx는 container 내부 80을 기대 |
-| curl 실패 | build가 아니라 host에서 접근하는 verify 단계 문제 |
-
-### 첫 확인 명령
 ```bash
-docker ps -a --filter name=paperclip-day3-static-wrong
-sed -n '1,120p' week2/day3/labs/static-site/Dockerfile
+docker push 내아이디/devmart-catalog-api:1.0.1
 ```
 
-### 복구 명령
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> The push refers to repository [docker.io/내아이디/devmart-catalog-api]
+> a7f3c2e1b9d0: Pushed
+> 5c1e8b2a4f6d: Pushed
+> 3e9a0d7c1b5f: Pushed
+> 8b4f2e6a1c3d: Mounted from library/python
+> ...
+> 1.0.1: digest: sha256:3b8a9f1e…c42d size: 856
+> ```
+> - **Pushed** : 내가 만든 층(라이브러리, 코드)을 올렸다.
+> - **Mounted from library/python** : 파이썬 베이스 층은 Docker Hub에 **이미 있으므로** 올리지 않고 연결만 했다. 1교시의 "층 공유"가 레지스트리에서도 일어난다.
+> - 마지막 줄의 **digest**가 이 이미지의 **내용 지문**이다.
+
+### 단계 3 — 웹에서 확인
+
+브라우저에서 `https://hub.docker.com/r/내아이디/devmart-catalog-api`를 엽니다. **Tags** 탭에 `1.0.1`이 보이면 성공입니다.
+
+> [!WARNING]
+> **Docker Hub 저장소는 기본이 '공개'입니다**
+>
+> 처음 push하면 저장소가 **공개(public)**로 만들어집니다. 전 세계 누구나 받을 수 있다는 뜻입니다. 4교시에서 `.dockerignore`를 만든 이유가 여기 있습니다. 회사 코드나 비밀값이 든 이미지는 **비공개 저장소**나 회사 전용 레지스트리(5주차의 AWS ECR 등)에 올립니다. 저장소 설정에서 공개 여부를 바꿀 수 있습니다.
+
+## 실습 13 · 다이제스트와 동료의 이미지
+
+> **🧪 실습: 실습 목표**
+>
+> 태그와 다이제스트의 차이를 이해하고, 옆자리 동료가 올린 이미지를 받아 실행합니다.
+
+### 단계 1 — 다이제스트 보기
+
 ```bash
-docker rm -f paperclip-day3-static-wrong || true
-docker run -d --name paperclip-day3-static-fixed -p 18084:80 paperclip-static-site:day3
-curl -I http://localhost:18084
+docker image inspect --format '{{index .RepoDigests 0}}' 내아이디/devmart-catalog-api:1.0.1
 ```
 
-Expected recovery:
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> 내아이디/devmart-catalog-api@sha256:3b8a9f1e…c42d
+> ```
 
-```text
-HTTP/1.1 200 OK
-```
+| | 태그 (`:1.0.1`) | 다이제스트 (`@sha256:…`) |
+|---|---|---|
+| 정체 | 사람이 붙인 **이름표** | 내용으로 계산한 **지문** |
+| 바뀔 수 있나 | 누군가 같은 태그로 다시 push하면 **다른 이미지를 가리킨다** | 내용이 같으면 항상 같고, **절대 다른 이미지를 가리키지 않는다** |
+| 쓰는 곳 | 사람이 읽고 말할 때 | 운영 배포, 보안 검증 — "정확히 이 이미지" |
 
-## 실패 3: Wrong CMD - run 단계 실패
-### 재현 명령
+### 단계 2 — 동료의 이미지 실행 (짝 실습)
+
+옆자리 동료에게 Docker ID를 물어보고, 그 사람의 이미지를 실행합니다.
+
 ```bash
-cd /mnt/d/paperclip/week2/day3/labs/static-site
-awk '{ if ($1 == "CMD") print "CMD [\"nginx-bad-command\"]"; else print $0 }' Dockerfile > Dockerfile.bad-cmd
-docker build -f Dockerfile.bad-cmd -t paperclip-static-site:bad-cmd .
-docker run -d --name paperclip-day3-bad-cmd paperclip-static-site:bad-cmd || true
-docker ps -a --filter name=paperclip-day3-bad-cmd
-docker logs paperclip-day3-bad-cmd --tail 30 || true
+docker run -d --name friend -p 8002:8000 동료아이디/devmart-catalog-api:1.0.1
+curl http://localhost:8002/api/products
+docker rm -f friend
 ```
 
-### 예상 실패 출력
-`docker ps -a`:
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> `Unable to find image … locally` → `Pulling` 후, 동료가 바꾼 **에코백 가격**이 보입니다. 동료의 노트북에서 만든 이미지가 **내 노트북에서 똑같이** 실행되었습니다. 1주차 4일차 7교시의 "**어디서든 똑같이 실행**"이 완성되는 순간입니다. 짝이 없으면 내 이미지를 지웠다가(`docker image rm 내아이디/devmart-catalog-api:1.0.1`) 다시 받아 실행해 봅니다.
 
-```text
-STATUS
-Exited (127) ...
-```
+## 태그를 붙이는 관례
 
-`docker logs`:
+| 태그 | 뜻 | 쓰임 |
+|---|---|---|
+| `1.0.1` | 정확한 버전 | 운영 배포, 되돌리기 |
+| `1.0` | 1.0.x 중 최신 | "작은 수정은 자동으로 따라가기" (오늘 nginx:1.30처럼) |
+| `latest` | 태그를 안 적었을 때의 기본 | 개인 실험용. **운영에는 쓰지 않는다** |
+| `git-3f2a1c9` | 이 이미지를 만든 **커밋 해시** | 3주차 CI — 어떤 코드로 만들었는지 추적 |
 
-```text
-exec: "nginx-bad-command": executable file not found in $PATH
-```
+버전 번호 `주.부.수`는 **유의적 버전(Semantic Versioning)** 관례를 따릅니다. 호환되지 않게 바뀌면 **주** 버전(2.0.0), 기능이 추가되면 **부** 버전(1.1.0), 버그만 고치면 **수** 버전(1.0.1)을 올립니다. 오늘 가격 하나를 바꾼 것은 1.0.0 → **1.0.1**입니다.
 
-### 출력에서 찾을 힌트
-| 힌트 | 의미 |
-|---|---|
-| `Exited` | container process가 유지되지 못하고 종료됨 |
-| `executable file not found` | CMD 또는 ENTRYPOINT 명령이 잘못됨 |
-| `$PATH` | image 안에서 해당 command를 찾지 못함 |
+> **🎓 학술 노트 — 낡은 이미지의 위험 (Zerouali et al., 2019)**
+>
+> 벨기에 몽스 대학교와 스페인 연구진(Zerouali, Mens, Robles, González-Barahona)은 2019년 SANER 학회 논문에서 Docker Hub의 Debian 기반 이미지 **7,380개**를 분석했습니다. 대부분의 이미지에 **최신이 아닌(outdated) 패키지**가 들어 있었고, 그 낡은 패키지들이 알려진 보안 취약점과 버그를 함께 가지고 있었습니다. 핵심은 이미지가 **한 번 만들어지면 그 순간에 멈춘다**는 것입니다. 오늘 만든 1.0.1 이미지 안의 파이썬과 Debian 패키지는, 내가 다시 빌드하지 않는 한 1년 뒤에도 오늘 버전 그대로입니다.
+>
+> 그래서 실무에서는 코드를 바꾸지 않아도 **정기적으로 이미지를 다시 빌드**해 베이스 이미지의 보안 패치를 받고, 7교시에 배울 **취약점 검사**로 낡은 패키지를 찾아냅니다. 2일차 3교시의 "주 버전은 고정, 패치는 따라가기"가 이미지 관리 전체로 넓어진 원칙입니다.
+>
+> - Zerouali, A., Mens, T., Robles, G., & González-Barahona, J. M. (2019). On the relation between outdated Docker containers, severity vulnerabilities, and bugs. *IEEE SANER 2019*.
+> - Preston-Werner, T. *Semantic Versioning 2.0.0*. semver.org
 
-### 첫 확인 명령
-```bash
-docker ps -a --filter name=paperclip-day3-bad-cmd
-docker logs paperclip-day3-bad-cmd --tail 30
-docker image inspect paperclip-static-site:bad-cmd --format "{{json .Config.Cmd}}"
-```
+> **📈 트렌드 — 레지스트리는 Docker Hub만이 아니다**
+>
+> Docker Hub는 가장 큰 공개 레지스트리지만, 회사들은 목적에 따라 여러 레지스트리를 씁니다. 코드와 같은 곳에 두는 **GitHub Container Registry(ghcr.io)**, 클라우드 안에서 빠르고 권한 관리가 쉬운 **AWS ECR**(5주차), 회사 내부에 직접 두는 **Harbor** 같은 것들입니다. 모두 OCI 표준(2주차 1일차 6교시)을 따르므로 `docker tag`·`push`·`pull` 사용법은 같고 **주소만** 다릅니다(`ghcr.io/아이디/이미지`). 또 Docker Hub는 로그인하지 않은 사용자의 이미지 받기 횟수를 제한하므로, CI처럼 이미지를 많이 받는 환경에서는 로그인하거나 회사 레지스트리에 **사본(미러)**을 두는 것이 보통입니다.
 
-### 복구 명령
-```bash
-docker rm -f paperclip-day3-bad-cmd || true
-docker image rm paperclip-static-site:bad-cmd || true
-rm -f /mnt/d/paperclip/week2/day3/labs/static-site/Dockerfile.bad-cmd
-# 원래 Dockerfile의 CMD는 다음이어야 한다.
-# CMD ["nginx", "-g", "daemon off;"]
-```
+## 정리
 
-## 실패 4: Bloated context - build는 되지만 느리고 위험한 상태
-### 재현 명령
-```bash
-cd /mnt/d/paperclip/week2/day3/labs/static-site
-mkdir -p node_modules __pycache__ dist build coverage tmp
-printf "DO_NOT_COMMIT_TOKEN=example" > .env
-printf "large dependency placeholder" > node_modules/example.txt
-printf "compiled output" > dist/app.bundle.js
-du -sh .
-find . -maxdepth 2 -type f | sort
-sed -n '1,160p' .dockerignore
-```
+- `docker tag`는 같은 이미지에 **이름표를 하나 더** 붙인다. 이름표는 옮겨 붙일 수 있다.
+- Docker Hub에 올리려면 **`Docker ID/저장소:태그`** 이름이 필요하고, `docker login` → `docker push`.
+- push 출력의 **Mounted from**은 이미 있는 층을 재사용한 것, **digest**는 내용 지문이다.
+- 태그는 바뀔 수 있고, **다이제스트는 절대 바뀌지 않는다.**
+- 버전은 **주.부.수**, 운영에는 `latest`를 쓰지 않는다. 이미지는 **정기적으로 다시 빌드**한다.
 
-### 예상 출력
-```text
-.env
-node_modules/example.txt
-dist/app.bundle.js
-__pycache__/...
-```
+> **✅ 확인 문제**
+>
+> 1. `docker tag` 후 두 이름의 IMAGE ID가 같은 이유는?
+> 2. `devmart/catalog-api:1.0.1`을 그대로 Docker Hub에 push할 수 없는 이유는?
+> 3. push 출력의 `Mounted from library/python`은 무엇을 뜻하나요?
+> 4. "정확히 이 이미지"를 가리키려면 태그와 다이제스트 중 무엇을 쓰나요?
+> 5. 가격 하나를 고친 변경은 1.0.0에서 어떤 버전이 되나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. 이미지를 복사한 것이 아니라 같은 이미지에 이름표만 하나 더 붙였기 때문
+> 2. 이름 앞부분이 내 Docker ID가 아니기 때문 (`내아이디/저장소:태그`여야 한다)
+> 3. 파이썬 베이스 층이 Docker Hub에 이미 있어서 다시 올리지 않고 연결만 했다
+> 4. 다이제스트 (`@sha256:…`)
+> 5. 1.0.1 (버그·작은 수정 = 수 버전)
+>
+> </details>
 
-`.dockerignore`에 다음 패턴이 있어야 한다.
+## 참고 문헌
 
-```text
-.env
-.env.*
-__pycache__/
-node_modules/
-dist/
-build/
-coverage/
-tmp/
-```
-
-### 출력에서 찾을 힌트
-| 힌트 | 의미 |
-|---|---|
-| `.env` | secret이 context에 섞일 위험 |
-| `node_modules` | context 크기와 platform 의존성 위험 |
-| `dist`, `build` | 의도하지 않은 build output 포함 위험 |
-| `du -sh .` 증가 | build context 전송과 scan 시간이 늘어날 수 있음 |
-
-### 복구 명령
-```bash
-rm -rf .env node_modules __pycache__ dist build coverage tmp
-sed -n '1,160p' .dockerignore
-```
-
-## RCA 표
-| 실패 유형 | 단계 | 대표 출력 | 첫 확인 명령 | 수정 방향 |
-|---|---|---|---|---|
-| missing file | build | `COPY ... not found` | `ls`, `Dockerfile`, `find` | source path/context 복구 |
-| wrong CMD | run | `Exited`, `executable file not found` | `docker logs`, `inspect .Config.Cmd` | start command 수정 |
-| wrong port | verify | `curl failed`, `18084->8080/tcp` | `docker ps`, Dockerfile `EXPOSE` | container port 기준 publish |
-| bloated context | build hygiene | `.env`, `node_modules`, 큰 `du -sh` | `.dockerignore`, `find`, `du` | 제외 규칙 추가/정리 |
-
-## 핵심 포인트
-실패 분석의 첫 질문은 `어느 단계까지 성공했는가`다. 하지만 그 다음 질문은 `출력에서 어떤 힌트를 찾았는가`다. 에러 메시지를 읽으면 build/run/verify 중 어디를 봐야 할지 좁힐 수 있다.
-
-## 다음 연결
-다음 교시는 정상 image에 tag를 붙이고 registry에 올려도 되는지 gate를 확인한다.
+- Docker Docs. *docker image tag / push / login*, *Docker Hub repositories*. docs.docker.com
+- Docker Docs. *Usage and pull limits*. docs.docker.com/docker-hub/usage
+- OCI. *Distribution Specification*. github.com/opencontainers/distribution-spec
+- Preston-Werner, T. *Semantic Versioning 2.0.0*. semver.org
+- Zerouali, A. et al. (2019). On the relation between outdated Docker containers, severity vulnerabilities, and bugs. *IEEE SANER 2019*.

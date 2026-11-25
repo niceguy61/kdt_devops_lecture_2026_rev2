@@ -1,130 +1,141 @@
-# 1교시: Image artifact 기준 잡기 - image, layer, tag, digest, registry
+# 1교시 · 이미지 레이어
 
-![Day 3 Image Build Registry overview](./assets/day3-image-build-registry-overview.png)
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 어제 배운 Docker 기본 명령을 10분 동안 되짚습니다.
+> - 이미지가 여러 층(레이어)으로 쌓여 있다는 것을 확인합니다.
+> - 레이어가 왜 저장 공간과 다운로드 시간을 아껴 주는지 이해합니다.
+> - 컨테이너의 "쓰기 가능한 층"과 복사 후 쓰기(Copy-on-Write)를 압니다.
 
-## 수업 목표
-- image, container, artifact, layer, tag, digest, registry를 각각 다른 개념으로 설명한다.
-- official image를 `docker pull`, `docker images`, `docker history`, `docker image inspect`로 읽는다.
-- 오늘 만들 `paperclip-static-site:day3` image의 납품 기준을 정한다.
+## 어제 요약 — 손으로 확인하기
 
-## 왜 이 교시가 필요한가
-Day 1~2에서는 이미 만들어진 official image를 가져와서 container를 실행했다. 학생 입장에서는 `docker run postgres`나 `docker run nginx`가 마법처럼 보일 수 있다. Day 3는 그 마법을 풀어 보는 날이다. 누군가 만든 image를 가져다 쓰는 수준에서 멈추지 않고, 우리가 가진 앱 파일을 image로 만들고, 그 image가 어떤 기준으로 실행 가능한 산출물인지 설명해야 한다.
+다음 명령을 **보지 않고** 쳐 보세요. 막히면 어제 7교시의 정리 표를 봅니다.
 
-여기서 중요한 것은 명령어 암기가 아니다. `docker pull`, `docker images`, `docker history`, `docker inspect`는 각각 다른 질문에 답한다.
-
-```text
-docker pull      : registry에서 image를 가져온다.
-docker images    : local에 어떤 image reference가 있는지 본다.
-docker history   : image가 어떤 layer 흐름으로 만들어졌는지 본다.
-docker inspect   : image metadata, tag, digest, architecture, size를 본다.
-```
-
-## 요소별 설명
-### 1. Image
-Image는 container를 만들기 위한 읽기 전용 실행 재료다. 운영 관점에서는 `앱 코드 + 실행에 필요한 파일 + 기본 실행 명령 + 기본 port 정보`가 포장된 artifact에 가깝다. image 자체는 실행 중이 아니다. 실행하려면 `docker run`으로 container를 만들어야 한다.
-
-예를 들어 `nginx:1.27-alpine` image는 nginx 실행에 필요한 파일과 기본 명령을 담고 있다. 우리가 오늘 만들 `paperclip-static-site:day3` image는 nginx base 위에 `index.html`, `styles.css`를 넣은 정적 웹앱 artifact가 된다.
-
-### 2. Container
-Container는 image로부터 만들어진 실행 중인 process다. 같은 image로 container를 여러 개 만들 수 있고, 각각은 다른 이름, 다른 host port, 다른 환경변수, 다른 volume을 가질 수 있다. 그래서 image 문제와 container 실행 조건 문제를 섞으면 안 된다.
-
-Day 3에서는 image를 만드는 데 집중하고, Day 4에서는 같은 image를 다른 runtime config로 실행하며 logs/inspect/exec/stats를 확인한다.
-
-### 3. Artifact
-Artifact는 다른 사람이 재사용할 수 있게 남긴 결과물이다. 소스 폴더만 있으면 실행 환경이 사람마다 달라진다. 하지만 image tag, build 명령, run 명령, verify 결과, cleanup 방법이 함께 있으면 다른 사람이 같은 결과를 재현할 수 있다.
-
-Day 3의 artifact 기준은 다음과 같다.
-
-```text
-image tag: paperclip-static-site:day3
-build evidence: docker build 성공과 docker images 출력
-run evidence: container Up 상태
-verify evidence: HTTP/1.1 200 OK와 HTML 본문 확인
-handoff evidence: README에 build/run/check/cleanup 기록
-```
-
-### 4. Layer
-Image는 한 덩어리 파일처럼 보이지만 내부적으로는 layer가 쌓인 구조다. Dockerfile의 `FROM`, `WORKDIR`, `COPY`, `RUN`, `CMD`, `EXPOSE` 같은 instruction은 image history에 흔적을 남긴다. layer를 보면 image가 어떤 과정을 거쳐 만들어졌는지 추적할 수 있다.
-
-`docker history nginx:1.27-alpine`은 nginx official image가 어떤 layer 흐름을 가졌는지 보여준다. 나중에 우리가 만든 image에서 `COPY index.html`, `COPY styles.css` 흔적을 확인하면, 앱 파일이 image에 들어갔다는 증거가 된다.
-
-### 5. Tag
-Tag는 사람이 읽기 쉬운 image 이름표다. `nginx:1.27-alpine`에서 `nginx`는 repository 이름이고 `1.27-alpine`은 tag다. `paperclip-static-site:day3`에서 `day3`도 tag다.
-
-중요한 점은 tag가 content 자체가 아니라는 것이다. tag는 바뀔 수 있다. `latest`처럼 느슨한 tag는 특히 재현성을 보장하지 않는다. 수업에서는 `day3`, `day3-v2`, `day3-reviewed`처럼 목적이 보이는 tag를 사용한다.
-
-### 6. Digest
-Digest는 registry에서 image content를 식별하는 값이다. tag가 사람이 읽기 쉬운 이름표라면 digest는 content를 더 강하게 식별하는 지문에 가깝다. 운영에서 재현성이 중요해질수록 tag만 보지 않고 digest도 함께 본다.
-
-단, local에서 직접 build한 image는 아직 registry에 push/pull되지 않았기 때문에 `RepoDigests`가 비어 있을 수 있다. 이것은 곧바로 오류가 아니다. `digest가 없네?`가 아니라 `이 image는 아직 registry 기준 content 식별자가 없을 수 있구나`라고 해석해야 한다.
-
-### 7. Registry
-Registry는 image를 저장하고 공유하는 장소다. Docker Hub, AWS ECR 같은 서비스가 registry 역할을 한다. local image는 내 컴퓨터에만 있다. 다른 컴퓨터, GitHub Actions runner, Kubernetes cluster가 같은 image를 쓰려면 registry에 push되어 있어야 한다.
-
-하지만 registry push는 무조건 좋은 일이 아니다. public repository에 secret이 포함된 image를 올리면 사고다. 그래서 Day 3에서는 push 자체보다 push gate를 먼저 가르친다.
-
-```text
-- image context에 .env/token/개인 파일이 들어가지 않았는가?
-- repository가 public인지 private인지 아는가?
-- tag 이름이 수업/버전/용도를 설명하는가?
-- credential이 README나 screenshot에 남지 않는가?
-```
-
-### 8. Run and verify
-Image가 만들어졌다고 서비스가 정상이라는 뜻은 아니다. `docker run`으로 container를 실행하고, host에서 접근할 port를 열고, `curl`로 HTTP 응답을 확인해야 한다.
-
-`docker ps`에서 `Up`은 process가 떠 있다는 뜻이다. `curl -I http://localhost:18083`에서 `HTTP/1.1 200 OK`가 나와야 사용자가 접근 가능한 정상 상태라고 말할 수 있다.
-
-## 실습 명령
 ```bash
-docker pull nginx:1.27-alpine
-docker images nginx
-docker history nginx:1.27-alpine
-docker image inspect nginx:1.27-alpine --format "{{.Id}} {{.Architecture}} {{.Size}}"
-docker image inspect nginx:1.27-alpine --format "{{json .RepoTags}} {{json .RepoDigests}}"
+docker run -d --name warmup -p 8080:80 nginx:1.30-alpine
+docker ps
+curl -s http://localhost:8080 | grep title
+docker logs --tail 2 warmup
+docker rm -f warmup
 ```
 
-## 기대 결과와 해석
-`docker images nginx`의 기대 패턴:
+| 어제 배운 것 | 한 문장 |
+|---|---|
+| 이미지 · 컨테이너 | 읽기 전용 틀과 그 틀로 만든 실행 단위 |
+| 안에 들어가기 | 안에서는 내가 PID 1, 커널은 바깥과 공유 |
+| 포트 | `-p 바깥:안`, `127.0.0.1`은 내 컴퓨터만 |
+| 관찰 | logs · exec · inspect · stats, exec로 고친 건 임시 |
+| 생명주기 | stop은 0, kill은 137, 정리는 좁은 범위부터 |
 
-```text
-REPOSITORY   TAG           IMAGE ID       CREATED       SIZE
-nginx        1.27-alpine   <image-id>     <time>        <size>
+## 이미지는 여러 층이다
+
+어제 `docker pull`에서 `Pull complete`가 여러 줄 나온 것을 기억하나요? 이미지는 **투명한 필름을 여러 장 겹친 것**과 같습니다. 각 필름(레이어)에는 "이전 층에서 무엇이 바뀌었나"만 담겨 있고, 위에서 내려다보면 하나의 완성된 파일 시스템으로 보입니다.
+
+![이미지 레이어 — 읽기 전용 층들이 쌓이고, 맨 위에 컨테이너마다 쓰기 가능한 층이 올라간다](../../assets/week2/day3/w2d3-layers.png)
+
+## 실습 1 · 레이어 들여다보기
+
+> **🧪 실습: 실습 목표**
+>
+> nginx 이미지가 어떤 층으로 이루어져 있는지 `docker image history`로 확인합니다.
+
+### 단계 1 — 이미지의 역사
+
+```bash
+docker image history nginx:1.30-alpine
 ```
 
-해석: local image store에 `nginx:1.27-alpine` reference가 생겼다.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> IMAGE          CREATED       CREATED BY                                      SIZE
+> a1b2c3d4e5f6   3 weeks ago   CMD ["nginx" "-g" "daemon off;"]                0B
+> <missing>      3 weeks ago   STOPSIGNAL SIGQUIT                              0B
+> <missing>      3 weeks ago   EXPOSE map[80/tcp:{}]                           0B
+> <missing>      3 weeks ago   ENTRYPOINT ["/docker-entrypoint.sh"]            0B
+> <missing>      3 weeks ago   COPY 30-tune-worker-processes.sh /docker-ent…   16.4kB
+> ...
+> <missing>      3 weeks ago   RUN /bin/sh -c set -x && addgroup -g 101 -S …   …MB
+> <missing>      3 weeks ago   ENV NGINX_VERSION=1.30.6                        0B
+> ...
+> <missing>      5 weeks ago   ADD alpine-minirootfs-3.24.4-x86_64.tar.gz /…   …MB
+> ```
+> **아래에서 위로** 읽습니다. 맨 아래는 Alpine Linux의 기본 파일(`ADD alpine-minirootfs…`), 그 위에 nginx 설치(`RUN …`), 맨 위에 실행 명령(`CMD`)이 쌓여 있습니다. 어제 1교시에서 본 `STOPSIGNAL SIGQUIT`도 보입니다. 각 줄이 **Dockerfile의 명령 한 줄**에 해당합니다. 2교시에 우리가 쓸 Dockerfile도 이렇게 쌓입니다.
 
-`docker history nginx:1.27-alpine`의 기대 패턴:
+### 단계 2 — 크기가 0B인 층
 
-```text
-IMAGE        CREATED BY                                      SIZE
-<layer>      CMD ["nginx" "-g" "daemon off;"]               0B
-<layer>      EXPOSE map[80/tcp:{}]                           0B
-...
-```
+`CMD`, `EXPOSE`, `ENV` 줄은 크기가 **0B**입니다. 파일을 바꾸지 않고 **설정(메타데이터)**만 기록하기 때문입니다. 파일을 추가·변경하는 `RUN`, `COPY`, `ADD`만 크기를 가집니다.
 
-해석: image가 layer 흐름을 가지고 있고, nginx가 foreground로 실행되는 기본 명령과 80번 container port 정보를 가진다.
+| Dockerfile 명령 | 층에 담기는 것 | 크기 |
+|---|---|---|
+| `FROM` | 베이스 이미지의 층들을 그대로 가져온다 | 베이스 크기 |
+| `RUN`, `COPY`, `ADD` | **파일 변경분** | 있음 |
+| `CMD`, `ENV`, `EXPOSE`, `USER`, `WORKDIR` | 설정 정보 | 0B (WORKDIR은 폴더 하나) |
 
-`docker image inspect`의 기대 패턴:
+## 레이어가 주는 세 가지 이익
 
-```text
-sha256:<id> amd64 <size>
-["nginx:1.27-alpine"] ["nginx@sha256:..."]
-```
+| 이익 | 설명 | 예 |
+|---|---|---|
+| **저장 공간 공유** | 같은 층은 한 번만 저장 | `nginx:1.30-alpine`과 `alpine:3.24`가 Alpine 층을 공유 |
+| **빠른 다운로드** | 이미 있는 층은 다시 받지 않음 | pull할 때 `Already exists` |
+| **빠른 빌드** | 바뀌지 않은 층은 다시 만들지 않음 | 5교시의 **빌드 캐시** |
 
-해석: image ID, architecture, size, tag, digest를 metadata로 확인했다.
+> **🧩 비유 — 겹쳐 그린 투명 필름**
+>
+> 수업 시간에 투명 필름을 여러 장 겹쳐 그림을 완성하는 것을 떠올려 보세요. 첫 장에는 배경(Alpine), 둘째 장에는 건물(nginx), 셋째 장에는 간판(설정 파일)을 그립니다. 간판만 바꾸고 싶으면 **셋째 장만** 새로 그리면 됩니다. 그리고 다른 그림에서도 같은 배경 필름을 **빌려 쓸** 수 있습니다.
 
-## 학생이 말할 수 있어야 하는 문장
-```text
-Image는 container의 실행 재료이고, container는 image로 만든 실행 중 process다.
-Layer는 image가 만들어진 흔적이고, tag는 사람이 읽는 이름표다.
-Digest는 registry 기준 content 식별자이며, local build image에서는 비어 있을 수 있다.
-Registry는 image를 다른 runner나 cluster가 pull할 수 있게 공유하는 장소다.
-Build 성공만으로 끝나지 않고 run과 HTTP verify까지 해야 납품 기준을 통과한다.
-```
+## 컨테이너의 쓰기 가능한 층
 
-## 핵심 포인트
-1교시는 명령어 준비 운동이 아니다. Day 3 전체에서 계속 사용할 언어를 맞추는 시간이다. image, layer, tag, digest, registry, run, verify를 구분하지 못하면 Dockerfile build와 push gate도 전부 흐릿해진다.
+이미지 층은 모두 **읽기 전용**입니다. 그런데 어제 컨테이너 안에서 `index.html`을 바꿀 수 있었지요. 어떻게 된 걸까요?
 
-## 다음 연결
-다음 교시는 이 artifact를 직접 만드는 계약서인 Dockerfile을 줄 단위로 읽는다. `FROM`, `WORKDIR`, `COPY`, `EXPOSE`, `CMD`가 각각 어떤 운영 약속을 담는지 확인한다.
+컨테이너를 만들 때 Docker는 이미지 층들 맨 위에 **얇은 쓰기 가능한 층**을 하나 올립니다. 컨테이너 안에서 파일을 바꾸면, 원본(아래 층)은 그대로 두고 **바뀐 파일을 위층에 복사해서** 고칩니다. 이것을 **복사 후 쓰기(Copy-on-Write, CoW)**라고 합니다.
+
+- 컨테이너 세 개가 같은 이미지를 써도 이미지 층은 **한 벌만** 있으면 됩니다. 각자 얇은 위층만 따로 가집니다.
+- 컨테이너를 지우면 **위층만** 사라집니다. 그래서 어제 "지우면 변경도 사라진다"였던 것입니다.
+- 이 층은 **데이터 보관용이 아닙니다.** DB 데이터처럼 남겨야 할 것은 내일 **볼륨**에 둡니다.
+
+> **🎓 학술 노트 — 겹쳐 보이는 파일 시스템 (Union File System)**
+>
+> 여러 디렉터리를 겹쳐서 하나처럼 보이게 하는 **유니온 마운트(union mount)**의 아이디어는 1990년대 벨 연구소의 Plan 9 운영체제와 BSD의 연구로 거슬러 올라갑니다. 1995년 펜드리(Pendry)와 맥쿠식(McKusick)은 USENIX 학회 논문에서 BSD의 **union 파일 시스템**을 발표했는데, CD-ROM처럼 읽기 전용인 층 위에 쓰기 가능한 층을 겹쳐 마치 쓸 수 있는 것처럼 만드는 용도였습니다. 컨테이너의 "읽기 전용 이미지 + 쓰기 가능한 층"과 정확히 같은 구조입니다.
+>
+> Linux에서는 이 기능이 여러 구현을 거쳐 2014년 커널 3.18에 **OverlayFS**로 정식 포함되었고, 오늘날 Docker의 기본 저장 방식(`overlay2`, 그리고 최신 Docker의 containerd 기반 `overlayfs`)이 바로 이것입니다. 30년 된 아이디어가 컨테이너 시대의 핵심 기술이 된 셈입니다. 그리고 각 층을 **내용의 지문(해시)**으로 부르는 것은 2주차 1일차 3교시의 Git과 같은 **내용 주소 지정** 방식입니다.
+>
+> - Pendry, J.-S., & McKusick, M. K. (1995). Union mounts in 4.4BSD-Lite. *USENIX 1995 Technical Conference*.
+> - Linux Kernel Documentation. *Overlay Filesystem*. kernel.org/doc/html/latest/filesystems/overlayfs.html
+
+> **📈 트렌드 — 레이어를 필요할 때만 받기**
+>
+> 이미지가 커질수록(특히 AI 모델이 든 수 GB짜리 이미지) **다 받을 때까지 기다리는 시간**이 문제가 됩니다. 연구에 따르면 컨테이너가 시작할 때 실제로 읽는 데이터는 이미지 전체의 일부에 불과합니다(Harter 외, FAST 2016 — 시작 시간의 대부분이 이미지 다운로드이고, 그중 읽는 데이터는 소량). 그래서 **필요한 파일만 그때그때 받으며 먼저 실행을 시작하는**(lazy pulling) 기술이 발전해 왔습니다. AWS의 SOCI, containerd의 stargz 스냅샷터 같은 것들입니다. Docker도 containerd 기반 이미지 저장소로 옮겨 가면서 이런 기능을 쓸 수 있는 바탕이 마련되었습니다. 2주차 1일차의 `docker images` 표가 예전과 다르게 생긴 것도 이 변화 때문입니다.
+
+## 정리
+
+- 이미지는 **읽기 전용 층(레이어)**이 쌓인 것이며, `docker image history`로 아래에서 위로 읽습니다.
+- `RUN`·`COPY`·`ADD`는 파일 변경을 담아 크기가 있고, `CMD`·`ENV`·`EXPOSE`는 설정만 담아 0B입니다.
+- 같은 층은 **공유**되어 공간·다운로드·빌드 시간을 아낍니다.
+- 컨테이너는 맨 위에 **쓰기 가능한 얇은 층**을 가지며(Copy-on-Write), 지우면 그 층만 사라집니다.
+
+> **✅ 확인 문제**
+>
+> 1. `docker image history`는 어느 방향으로 읽나요?
+> 2. `CMD`와 `EXPOSE` 층의 크기가 0B인 이유는?
+> 3. pull할 때 `Already exists`가 나오는 층은 무엇을 뜻하나요?
+> 4. 같은 이미지로 컨테이너 세 개를 만들면 이미지 층은 몇 벌 필요한가요?
+> 5. 컨테이너 안에서 파일을 바꿀 때 원본은 그대로 두고 위층에 복사해 고치는 방식의 이름은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 아래에서 위로 (맨 아래가 베이스, 맨 위가 마지막 명령)
+> 2. 파일을 바꾸지 않고 설정(메타데이터)만 기록하기 때문
+> 3. 이미 내 컴퓨터에 있는 층이라 다시 받지 않는다
+> 4. 한 벌 (각 컨테이너는 얇은 쓰기 가능한 층만 따로)
+> 5. 복사 후 쓰기 (Copy-on-Write)
+>
+> </details>
+
+## 참고 문헌
+
+- Docker Docs. *Understanding the image layers*, *Storage drivers*. docs.docker.com
+- Pendry, J.-S., & McKusick, M. K. (1995). Union mounts in 4.4BSD-Lite. *USENIX 1995*.
+- Harter, T. et al. (2016). Slacker: Fast distribution with lazy Docker containers. *USENIX FAST '16*.
+- OCI. *Image Format Specification — Layer*. github.com/opencontainers/image-spec
