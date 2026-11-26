@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 2/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 2/8교시</sub>
 
 # 2교시 · 계정 만들기와 루트 지키기
 

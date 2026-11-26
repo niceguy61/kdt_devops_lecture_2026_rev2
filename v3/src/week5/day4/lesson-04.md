@@ -127,7 +127,7 @@ sleep 120; curl -s -o /dev/null -w '%{http_code}\n' http://$NLB/
     `404` — **Envoy가 답했습니다.** 아직 HTTPRoute(앱)가 없어서 갈 곳이 없을 뿐입니다. 4주차 1일차에 Gateway만 만들었을 때와 같은 상태입니다.
 
 !!! warn "이 NLB는 Terraform 장부에 없다"
-    NLB는 **LBC가** 만들었으므로 `terraform state list`에 나오지 않습니다. 이것을 지우지 않고 `terraform destroy`하면, NLB가 public 서브넷을 붙잡고 있어 VPC 삭제가 **실패**하거나 NLB만 남아 계속 과금됩니다. 7교시에 **Kubernetes 쪽부터** 지우는 이유입니다.
+    NLB는 **LBC가** 만들었으므로 `terraform state list`에 나오지 않습니다. 이것을 지우지 않고 `terraform destroy`하면, NLB가 public 서브넷을 붙잡고 있어 VPC 삭제가 **실패**하거나 NLB만 남아 계속 과금됩니다. 8교시에 **Kubernetes 쪽부터** 지우는 이유입니다.
 
 !!! myth "오해 — Kubernetes Service 'LoadBalancer'면 어디서나 똑같다"
     `type: LoadBalancer`는 "**이 클러스터의 클라우드에게** 로드 밸런서를 만들어 달라"는 요청일 뿐입니다. kind에서는 아무도 받지 않아 영원히 `<pending>`이고, EKS에서는 LBC가 NLB를, GKE에서는 구글의 컨트롤러가 GCP 로드 밸런서를 만듭니다. 그래서 주석은 **클라우드마다** 다르고, 그것이 '플랫폼' 쪽에 있어야 합니다.

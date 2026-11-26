@@ -31,7 +31,9 @@ hours: 8
 | 5교시 | k6 부하 테스트 | 부하 + 장애 중의 그래프 |
 | 6교시 | 알림 | DevMartHighErrorRate 발생 · 잠재우기 |
 | 7교시 | 관찰 런북과 SLO | 런북 한 장 |
-| 8교시 | 배움일기 | |
+| 8교시 | 로그 모으기 — Loki로 DevMart 로그 검색 | 요청 하나의 로그를 서비스 셋에 걸쳐 한 화면에 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -42,6 +44,7 @@ hours: 8
 5. [k6 부하 테스트](lesson-05.md)
 6. [알림](lesson-06.md)
 7. [관찰 런북과 SLO](lesson-07.md)
+8. [로그 모으기 — Loki](lesson-08.md)
 
 !!! key "오늘 실습 전에 확인할 것"
     - 오늘 설치하는 도구들이 메모리를 **1.5~2GB** 더 씁니다. Docker Desktop 메모리를 **6GB 이상**으로 권합니다(3주차 3일차 6교시). 4GB라면 2교시 values의 Prometheus 메모리 한도를 그대로 두고, podinfo-canary를 지워 자리를 만듭니다(`helm uninstall podinfo-canary`).

@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 7/8교시</sub>
 
 # 7교시 · 메시 운영 판단
 
@@ -98,7 +98,7 @@ kubectl delete pod client -n devmart
 > [!WARNING]
 > **'5분 복구'에 더할 것**
 >
-> 클러스터를 다시 만들 때 순서가 하나 늘었습니다: Secret → kps · Argo CD · **Istio 네 차트** `helm install` → `envoy-gateway-system` 라벨 → `kubectl apply -f devmart-app-auto.yaml`. Istio가 Argo CD보다 **먼저** 있어야 devmart의 waypoint · 정책 리소스가 바로 적용됩니다(CRD가 없으면 Sync가 실패한다).
+> 클러스터를 다시 만들 때 순서가 하나 늘었습니다: Secret → kps · Argo CD · **Istio 네 차트** `helm install` → `envoy-gateway-system` 라벨 → `kubectl apply -f root.yaml`(3일차 8교시). Istio가 Argo CD보다 **먼저** 있어야 devmart의 waypoint · 정책 리소스가 바로 적용됩니다(CRD가 없으면 Sync가 실패한다).
 
 > **🎓 학술 노트 — 미들웨어의 순환**
 >
@@ -124,16 +124,6 @@ kubectl delete pod client -n devmart
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - 남북과 동서를 DevMart의 예로 한 문장씩, 각각 무엇이 다루나
-> - ztunnel 로그에서 본 신원(SPIFFE ID)을 그대로 옮겨 적고, 각 부분의 뜻
-> - 3초 지연을 넣었을 때 products와 orders가 다르게 반응한 이유
-> - STRICT를 켰을 때의 사고 — 무엇을 먼저 셌어야 했나?
-> - 오늘 잰 메시 비용(메모리)과, DevMart에 메시가 정말 필요한지 내 판단
-> - 내일 전에 궁금한 것: 오늘 허가 규칙은 "네임스페이스 단위"였다. DevMart의 Pod들이 **모두 같은 신원(sa/default)**인데, 서비스마다 · 사람마다 할 수 있는 일을 어떻게 나눌까? 그리고 "이미지 태그 latest 금지" 같은 규칙은 누가 지키게 할까?
-
 ## 참고 문헌
 
 - Istio Docs. *Canary Upgrades (revisions)*, *Ambient — Upgrade*. istio.io
@@ -146,4 +136,4 @@ kubectl delete pod client -n devmart
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · mTLS STRICT와 호출 허가](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [4주차 5일차 목차](../day5/README.md) ➡️ |
+| ⬅️ [6교시 · mTLS STRICT와 호출 허가](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [8교시 · 메시 문제 해결 — istioctl로 진단하기](lesson-08.md) ➡️ |

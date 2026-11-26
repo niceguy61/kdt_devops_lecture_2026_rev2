@@ -1,13 +1,32 @@
 #!/usr/bin/env bash
-# 클러스터 둘러보기 — 상태를 바꾸지 않는 명령만 모았습니다.
-set -u
-CTX=${1:-kind-devmart}
-run() { echo; echo "\$ $*"; "$@"; }
+# kubectl(최신 안정판)과 kind v0.33.0을 /usr/local/bin에 설치합니다. Linux · WSL2 Ubuntu용.
+# Mac은 이 스크립트 대신: brew install kubectl kind
+set -euo pipefail
 
-run kubectl config current-context
-run kubectl --context "$CTX" cluster-info
-run kubectl --context "$CTX" get nodes -o wide
-run kubectl --context "$CTX" get namespaces
-run kubectl --context "$CTX" get pods -n kube-system -o wide
-run docker ps --filter "label=io.x-k8s.kind.cluster=devmart" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-run docker exec devmart-control-plane ls /etc/kubernetes/manifests
+KIND_VERSION=v0.33.0
+
+case "$(uname -m)" in
+  x86_64)  ARCH=amd64 ;;
+  aarch64) ARCH=arm64 ;;
+  *) echo "지원하지 않는 CPU: $(uname -m)"; exit 1 ;;
+esac
+
+tmp=$(mktemp -d)
+cd "$tmp"
+
+echo "== kubectl =="
+KVER=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+curl -fsSLO "https://dl.k8s.io/release/${KVER}/bin/linux/${ARCH}/kubectl"
+curl -fsSLO "https://dl.k8s.io/release/${KVER}/bin/linux/${ARCH}/kubectl.sha256"
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+sudo install -m 0755 kubectl /usr/local/bin/kubectl
+
+echo "== kind =="
+curl -fsSLo kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${ARCH}"
+sudo install -m 0755 kind /usr/local/bin/kind
+
+cd - >/dev/null
+rm -rf "$tmp"
+
+kubectl version --client
+kind version

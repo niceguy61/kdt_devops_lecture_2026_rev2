@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md) › 3/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md) › 3/8교시</sub>
 
 # 3교시 · 프로그램·프로세스·스레드
 

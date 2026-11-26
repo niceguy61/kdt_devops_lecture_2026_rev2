@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md) › 7/8교시</sub>
 
 # 7교시 · 실패 사례 다섯 가지
 
@@ -259,14 +259,6 @@ git push
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - 오늘 본 에러 중 가장 당황스러웠던 것과, 이제 원인을 한 문장으로 설명해 보기
-> - 이미지와 컨테이너의 차이를 1주차 2일차의 "프로그램과 프로세스"에 빗대어 설명해 보기
-> - `docker top`에서 PID 1이 다른 번호로 보인 것을 보고 든 생각
-> - 내일 Dockerfile 시간에 만들고 싶은 이미지 아이디어 하나
-
 ## 참고 문헌
 
 - Docker Docs. *Troubleshoot Docker Engine*, *docker container run reference*. docs.docker.com
@@ -278,4 +270,4 @@ git push
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · 생명주기와 정리](lesson-06.md) | [⬆️ 2일차 목차](README.md) | [2주차 3일차 목차](../day3/README.md) ➡️ |
+| ⬅️ [6교시 · 생명주기와 정리](lesson-06.md) | [⬆️ 2일차 목차](README.md) | [8교시 · 자원 제한과 안전한 실행 옵션](lesson-08.md) ➡️ |

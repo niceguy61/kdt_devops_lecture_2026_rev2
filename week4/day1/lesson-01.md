@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 1/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 1/8교시</sub>
 
 # 1교시 · 3주차 요약 + Helm 개념
 
@@ -35,7 +35,7 @@ curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/api/products
 
 > **🛠️ 막혔다면: Pod 몇 개가 0/1이거나 web이 CrashLoopBackOff**
 >
-> 노드가 켜지는 순서에 따라 order-api가 DB보다 먼저 떠서 잠시 준비되지 않을 수 있습니다(3주차 5일차 5교시). 1분 기다려 봅니다. web이 `host not found in upstream`으로 죽어 있으면 `kubectl rollout restart deployment/web -n devmart`. 클러스터 자체가 망가졌다면 3주차 5일차 7교시의 '5분 복구' 순서대로 다시 만듭니다.
+> 노드가 켜지는 순서에 따라 order-api가 DB보다 먼저 떠서 잠시 준비되지 않을 수 있습니다(3주차 5일차 5교시). 1분 기다려 봅니다. web이 `host not found in upstream`으로 죽어 있으면 `kubectl rollout restart deployment/web -n devmart`. 클러스터 자체가 망가졌다면 3주차 5일차 8교시의 '5분 복구' 순서대로 다시 만듭니다.
 
 3주차를 한 줄씩 짚습니다.
 

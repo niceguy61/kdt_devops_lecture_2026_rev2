@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 5/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 5/8교시</sub>
 
 # 5교시 · DevMart MSA를 Kubernetes에
 
@@ -276,7 +276,7 @@ kubectl exec -n devmart deployment/db -- psql -U devmart -d orders -tc "SELECT c
 
 ## Compose ↔ Kubernetes 대응표
 
-1일차의 `compose.yaml` 한 서비스가 Kubernetes에서 어디로 갔는지 정리합니다. 7교시 회고 양식에 이 표가 들어 있습니다.
+1일차의 `compose.yaml` 한 서비스가 Kubernetes에서 어디로 갔는지 정리합니다. 8교시 회고 양식에 이 표가 들어 있습니다.
 
 | Compose | Kubernetes | 오늘 본 곳 |
 |---|---|---|

@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/%EA%B3%BC%EC%A0%95-5%EC%A3%BC%20%C2%B7%20200%EC%8B%9C%EA%B0%84-0F2A44?style=flat-square" alt="과정 5주 · 200시간">
-  <img src="https://img.shields.io/badge/%EA%B5%AC%EC%84%B1-25%EC%9D%BC%20%C2%B7%20173%EA%B5%90%EC%8B%9C-0089A0?style=flat-square" alt="구성 25일 · 173교시">
+  <img src="https://img.shields.io/badge/%EA%B5%AC%EC%84%B1-25%EC%9D%BC%20%C2%B7%20197%EA%B5%90%EC%8B%9C-0089A0?style=flat-square" alt="구성 25일 · 197교시">
   <img src="https://img.shields.io/badge/%EC%9D%B4%EB%B6%81-PDF%206%EA%B6%8C-C8651B?style=flat-square" alt="이북 PDF 6권">
   <img src="https://img.shields.io/badge/%EC%8A%AC%EB%9D%BC%EC%9D%B4%EB%93%9C-PPTX%2025%EA%B0%9C-C8651B?style=flat-square" alt="슬라이드 PPTX 25개">
   <img src="https://img.shields.io/badge/%EC%8B%A4%EC%8A%B5%20%ED%99%98%EA%B2%BD-WSL2%20%C2%B7%20macOS-475569?style=flat-square" alt="실습 환경 WSL2 · macOS">
@@ -61,10 +61,10 @@ ls ~/course/labs        # week2 … week5
 | 일차 | 주제 | 교시 |
 |:--|:--|:--|
 | [**1일차**](week1/day1/README.md) | OT와 클라우드의 큰 그림 | [1](week1/day1/lesson-01.md) [2](week1/day1/lesson-02.md) [3](week1/day1/lesson-03.md) [4](week1/day1/lesson-04.md) [5](week1/day1/lesson-05.md) |
-| [**2일차**](week1/day2/README.md) | 컴퓨터와 운영체제, 가상화 | [1](week1/day2/lesson-01.md) [2](week1/day2/lesson-02.md) [3](week1/day2/lesson-03.md) [4](week1/day2/lesson-04.md) [5](week1/day2/lesson-05.md) [6](week1/day2/lesson-06.md) [7](week1/day2/lesson-07.md) |
-| [**3일차**](week1/day3/README.md) | 네트워크 기초 | [1](week1/day3/lesson-01.md) [2](week1/day3/lesson-02.md) [3](week1/day3/lesson-03.md) [4](week1/day3/lesson-04.md) [5](week1/day3/lesson-05.md) [6](week1/day3/lesson-06.md) [7](week1/day3/lesson-07.md) |
-| [**4일차**](week1/day4/README.md) | 현대 애플리케이션 구조 | [1](week1/day4/lesson-01.md) [2](week1/day4/lesson-02.md) [3](week1/day4/lesson-03.md) [4](week1/day4/lesson-04.md) [5](week1/day4/lesson-05.md) [6](week1/day4/lesson-06.md) [7](week1/day4/lesson-07.md) |
-| [**5일차**](week1/day5/README.md) | DevOps 문화와 협업 | [1](week1/day5/lesson-01.md) [2](week1/day5/lesson-02.md) [3](week1/day5/lesson-03.md) [4](week1/day5/lesson-04.md) [5](week1/day5/lesson-05.md) [6](week1/day5/lesson-06.md) [7](week1/day5/lesson-07.md) |
+| [**2일차**](week1/day2/README.md) | 컴퓨터와 운영체제, 가상화 | [1](week1/day2/lesson-01.md) [2](week1/day2/lesson-02.md) [3](week1/day2/lesson-03.md) [4](week1/day2/lesson-04.md) [5](week1/day2/lesson-05.md) [6](week1/day2/lesson-06.md) [7](week1/day2/lesson-07.md) [8](week1/day2/lesson-08.md) |
+| [**3일차**](week1/day3/README.md) | 네트워크 기초 | [1](week1/day3/lesson-01.md) [2](week1/day3/lesson-02.md) [3](week1/day3/lesson-03.md) [4](week1/day3/lesson-04.md) [5](week1/day3/lesson-05.md) [6](week1/day3/lesson-06.md) [7](week1/day3/lesson-07.md) [8](week1/day3/lesson-08.md) |
+| [**4일차**](week1/day4/README.md) | 현대 애플리케이션 구조 | [1](week1/day4/lesson-01.md) [2](week1/day4/lesson-02.md) [3](week1/day4/lesson-03.md) [4](week1/day4/lesson-04.md) [5](week1/day4/lesson-05.md) [6](week1/day4/lesson-06.md) [7](week1/day4/lesson-07.md) [8](week1/day4/lesson-08.md) |
+| [**5일차**](week1/day5/README.md) | DevOps 문화와 협업 | [1](week1/day5/lesson-01.md) [2](week1/day5/lesson-02.md) [3](week1/day5/lesson-03.md) [4](week1/day5/lesson-04.md) [5](week1/day5/lesson-05.md) [6](week1/day5/lesson-06.md) [7](week1/day5/lesson-07.md) [8](week1/day5/lesson-08.md) |
 
 <br>
 
@@ -72,11 +72,11 @@ ls ~/course/labs        # week2 … week5
 
 | 일차 | 주제 | 교시 |
 |:--|:--|:--|
-| [**1일차**](week2/day1/README.md) | 개발 환경 세팅과 Git 첫걸음 | [1](week2/day1/lesson-01.md) [2](week2/day1/lesson-02.md) [3](week2/day1/lesson-03.md) [4](week2/day1/lesson-04.md) [5](week2/day1/lesson-05.md) [6](week2/day1/lesson-06.md) [7](week2/day1/lesson-07.md) |
-| [**2일차**](week2/day2/README.md) | Docker 기본 | [1](week2/day2/lesson-01.md) [2](week2/day2/lesson-02.md) [3](week2/day2/lesson-03.md) [4](week2/day2/lesson-04.md) [5](week2/day2/lesson-05.md) [6](week2/day2/lesson-06.md) [7](week2/day2/lesson-07.md) |
-| [**3일차**](week2/day3/README.md) | 이미지와 Dockerfile | [1](week2/day3/lesson-01.md) [2](week2/day3/lesson-02.md) [3](week2/day3/lesson-03.md) [4](week2/day3/lesson-04.md) [5](week2/day3/lesson-05.md) [6](week2/day3/lesson-06.md) [7](week2/day3/lesson-07.md) |
-| [**4일차**](week2/day4/README.md) | 볼륨 · 네트워크 · 환경 변수 | [1](week2/day4/lesson-01.md) [2](week2/day4/lesson-02.md) [3](week2/day4/lesson-03.md) [4](week2/day4/lesson-04.md) [5](week2/day4/lesson-05.md) [6](week2/day4/lesson-06.md) [7](week2/day4/lesson-07.md) |
-| [**5일차**](week2/day5/README.md) | Docker Compose와 GitHub 협업 | [1](week2/day5/lesson-01.md) [2](week2/day5/lesson-02.md) [3](week2/day5/lesson-03.md) [4](week2/day5/lesson-04.md) [5](week2/day5/lesson-05.md) [6](week2/day5/lesson-06.md) [7](week2/day5/lesson-07.md) |
+| [**1일차**](week2/day1/README.md) | 개발 환경 세팅과 Git 첫걸음 | [1](week2/day1/lesson-01.md) [2](week2/day1/lesson-02.md) [3](week2/day1/lesson-03.md) [4](week2/day1/lesson-04.md) [5](week2/day1/lesson-05.md) [6](week2/day1/lesson-06.md) [7](week2/day1/lesson-07.md) [8](week2/day1/lesson-08.md) |
+| [**2일차**](week2/day2/README.md) | Docker 기본 | [1](week2/day2/lesson-01.md) [2](week2/day2/lesson-02.md) [3](week2/day2/lesson-03.md) [4](week2/day2/lesson-04.md) [5](week2/day2/lesson-05.md) [6](week2/day2/lesson-06.md) [7](week2/day2/lesson-07.md) [8](week2/day2/lesson-08.md) |
+| [**3일차**](week2/day3/README.md) | 이미지와 Dockerfile | [1](week2/day3/lesson-01.md) [2](week2/day3/lesson-02.md) [3](week2/day3/lesson-03.md) [4](week2/day3/lesson-04.md) [5](week2/day3/lesson-05.md) [6](week2/day3/lesson-06.md) [7](week2/day3/lesson-07.md) [8](week2/day3/lesson-08.md) |
+| [**4일차**](week2/day4/README.md) | 볼륨 · 네트워크 · 환경 변수 | [1](week2/day4/lesson-01.md) [2](week2/day4/lesson-02.md) [3](week2/day4/lesson-03.md) [4](week2/day4/lesson-04.md) [5](week2/day4/lesson-05.md) [6](week2/day4/lesson-06.md) [7](week2/day4/lesson-07.md) [8](week2/day4/lesson-08.md) |
+| [**5일차**](week2/day5/README.md) | Docker Compose와 GitHub 협업 | [1](week2/day5/lesson-01.md) [2](week2/day5/lesson-02.md) [3](week2/day5/lesson-03.md) [4](week2/day5/lesson-04.md) [5](week2/day5/lesson-05.md) [6](week2/day5/lesson-06.md) [7](week2/day5/lesson-07.md) [8](week2/day5/lesson-08.md) |
 
 <br>
 
@@ -84,11 +84,11 @@ ls ~/course/labs        # week2 … week5
 
 | 일차 | 주제 | 교시 |
 |:--|:--|:--|
-| [**1일차**](week3/day1/README.md) | MSA 개념과 실행 | [1](week3/day1/lesson-01.md) [2](week3/day1/lesson-02.md) [3](week3/day1/lesson-03.md) [4](week3/day1/lesson-04.md) [5](week3/day1/lesson-05.md) [6](week3/day1/lesson-06.md) [7](week3/day1/lesson-07.md) |
-| [**2일차**](week3/day2/README.md) | MSA 장애와 CI | [1](week3/day2/lesson-01.md) [2](week3/day2/lesson-02.md) [3](week3/day2/lesson-03.md) [4](week3/day2/lesson-04.md) [5](week3/day2/lesson-05.md) [6](week3/day2/lesson-06.md) [7](week3/day2/lesson-07.md) |
-| [**3일차**](week3/day3/README.md) | Kubernetes 아키텍처 | [1](week3/day3/lesson-01.md) [2](week3/day3/lesson-02.md) [3](week3/day3/lesson-03.md) [4](week3/day3/lesson-04.md) [5](week3/day3/lesson-05.md) [6](week3/day3/lesson-06.md) [7](week3/day3/lesson-07.md) |
-| [**4일차**](week3/day4/README.md) | Pod · Deployment · Service | [1](week3/day4/lesson-01.md) [2](week3/day4/lesson-02.md) [3](week3/day4/lesson-03.md) [4](week3/day4/lesson-04.md) [5](week3/day4/lesson-05.md) [6](week3/day4/lesson-06.md) [7](week3/day4/lesson-07.md) |
-| [**5일차**](week3/day5/README.md) | 운영 가능한 워크로드 | [1](week3/day5/lesson-01.md) [2](week3/day5/lesson-02.md) [3](week3/day5/lesson-03.md) [4](week3/day5/lesson-04.md) [5](week3/day5/lesson-05.md) [6](week3/day5/lesson-06.md) [7](week3/day5/lesson-07.md) |
+| [**1일차**](week3/day1/README.md) | MSA 개념과 실행 | [1](week3/day1/lesson-01.md) [2](week3/day1/lesson-02.md) [3](week3/day1/lesson-03.md) [4](week3/day1/lesson-04.md) [5](week3/day1/lesson-05.md) [6](week3/day1/lesson-06.md) [7](week3/day1/lesson-07.md) [8](week3/day1/lesson-08.md) |
+| [**2일차**](week3/day2/README.md) | MSA 장애와 CI | [1](week3/day2/lesson-01.md) [2](week3/day2/lesson-02.md) [3](week3/day2/lesson-03.md) [4](week3/day2/lesson-04.md) [5](week3/day2/lesson-05.md) [6](week3/day2/lesson-06.md) [7](week3/day2/lesson-07.md) [8](week3/day2/lesson-08.md) |
+| [**3일차**](week3/day3/README.md) | Kubernetes 아키텍처 | [1](week3/day3/lesson-01.md) [2](week3/day3/lesson-02.md) [3](week3/day3/lesson-03.md) [4](week3/day3/lesson-04.md) [5](week3/day3/lesson-05.md) [6](week3/day3/lesson-06.md) [7](week3/day3/lesson-07.md) [8](week3/day3/lesson-08.md) |
+| [**4일차**](week3/day4/README.md) | Pod · Deployment · Service | [1](week3/day4/lesson-01.md) [2](week3/day4/lesson-02.md) [3](week3/day4/lesson-03.md) [4](week3/day4/lesson-04.md) [5](week3/day4/lesson-05.md) [6](week3/day4/lesson-06.md) [7](week3/day4/lesson-07.md) [8](week3/day4/lesson-08.md) |
+| [**5일차**](week3/day5/README.md) | 운영 가능한 워크로드 | [1](week3/day5/lesson-01.md) [2](week3/day5/lesson-02.md) [3](week3/day5/lesson-03.md) [4](week3/day5/lesson-04.md) [5](week3/day5/lesson-05.md) [6](week3/day5/lesson-06.md) [7](week3/day5/lesson-07.md) [8](week3/day5/lesson-08.md) |
 
 <br>
 
@@ -96,11 +96,11 @@ ls ~/course/labs        # week2 … week5
 
 | 일차 | 주제 | 교시 |
 |:--|:--|:--|
-| [**1일차**](week4/day1/README.md) | Helm + Gateway API | [1](week4/day1/lesson-01.md) [2](week4/day1/lesson-02.md) [3](week4/day1/lesson-03.md) [4](week4/day1/lesson-04.md) [5](week4/day1/lesson-05.md) [6](week4/day1/lesson-06.md) [7](week4/day1/lesson-07.md) |
-| [**2일차**](week4/day2/README.md) | Observability | [1](week4/day2/lesson-01.md) [2](week4/day2/lesson-02.md) [3](week4/day2/lesson-03.md) [4](week4/day2/lesson-04.md) [5](week4/day2/lesson-05.md) [6](week4/day2/lesson-06.md) [7](week4/day2/lesson-07.md) |
-| [**3일차**](week4/day3/README.md) | GitOps | [1](week4/day3/lesson-01.md) [2](week4/day3/lesson-02.md) [3](week4/day3/lesson-03.md) [4](week4/day3/lesson-04.md) [5](week4/day3/lesson-05.md) [6](week4/day3/lesson-06.md) [7](week4/day3/lesson-07.md) |
-| [**4일차**](week4/day4/README.md) | Service Mesh | [1](week4/day4/lesson-01.md) [2](week4/day4/lesson-02.md) [3](week4/day4/lesson-03.md) [4](week4/day4/lesson-04.md) [5](week4/day4/lesson-05.md) [6](week4/day4/lesson-06.md) [7](week4/day4/lesson-07.md) |
-| [**5일차**](week4/day5/README.md) | Kubernetes 보안 | [1](week4/day5/lesson-01.md) [2](week4/day5/lesson-02.md) [3](week4/day5/lesson-03.md) [4](week4/day5/lesson-04.md) [5](week4/day5/lesson-05.md) [6](week4/day5/lesson-06.md) [7](week4/day5/lesson-07.md) |
+| [**1일차**](week4/day1/README.md) | Helm + Gateway API | [1](week4/day1/lesson-01.md) [2](week4/day1/lesson-02.md) [3](week4/day1/lesson-03.md) [4](week4/day1/lesson-04.md) [5](week4/day1/lesson-05.md) [6](week4/day1/lesson-06.md) [7](week4/day1/lesson-07.md) [8](week4/day1/lesson-08.md) |
+| [**2일차**](week4/day2/README.md) | Observability | [1](week4/day2/lesson-01.md) [2](week4/day2/lesson-02.md) [3](week4/day2/lesson-03.md) [4](week4/day2/lesson-04.md) [5](week4/day2/lesson-05.md) [6](week4/day2/lesson-06.md) [7](week4/day2/lesson-07.md) [8](week4/day2/lesson-08.md) |
+| [**3일차**](week4/day3/README.md) | GitOps | [1](week4/day3/lesson-01.md) [2](week4/day3/lesson-02.md) [3](week4/day3/lesson-03.md) [4](week4/day3/lesson-04.md) [5](week4/day3/lesson-05.md) [6](week4/day3/lesson-06.md) [7](week4/day3/lesson-07.md) [8](week4/day3/lesson-08.md) |
+| [**4일차**](week4/day4/README.md) | Service Mesh | [1](week4/day4/lesson-01.md) [2](week4/day4/lesson-02.md) [3](week4/day4/lesson-03.md) [4](week4/day4/lesson-04.md) [5](week4/day4/lesson-05.md) [6](week4/day4/lesson-06.md) [7](week4/day4/lesson-07.md) [8](week4/day4/lesson-08.md) |
+| [**5일차**](week4/day5/README.md) | Kubernetes 보안 | [1](week4/day5/lesson-01.md) [2](week4/day5/lesson-02.md) [3](week4/day5/lesson-03.md) [4](week4/day5/lesson-04.md) [5](week4/day5/lesson-05.md) [6](week4/day5/lesson-06.md) [7](week4/day5/lesson-07.md) [8](week4/day5/lesson-08.md) |
 
 <br>
 
@@ -108,11 +108,11 @@ ls ~/course/labs        # week2 … week5
 
 | 일차 | 주제 | 교시 |
 |:--|:--|:--|
-| [**1일차**](week5/day1/README.md) | AWS 계정과 VPC | [1](week5/day1/lesson-01.md) [2](week5/day1/lesson-02.md) [3](week5/day1/lesson-03.md) [4](week5/day1/lesson-04.md) [5](week5/day1/lesson-05.md) [6](week5/day1/lesson-06.md) [7](week5/day1/lesson-07.md) |
-| [**2일차**](week5/day2/README.md) | EC2 · ALB · Auto Scaling · S3 | [1](week5/day2/lesson-01.md) [2](week5/day2/lesson-02.md) [3](week5/day2/lesson-03.md) [4](week5/day2/lesson-04.md) [5](week5/day2/lesson-05.md) [6](week5/day2/lesson-06.md) [7](week5/day2/lesson-07.md) |
-| [**3일차**](week5/day3/README.md) | Terraform 기초 | [1](week5/day3/lesson-01.md) [2](week5/day3/lesson-02.md) [3](week5/day3/lesson-03.md) [4](week5/day3/lesson-04.md) [5](week5/day3/lesson-05.md) [6](week5/day3/lesson-06.md) [7](week5/day3/lesson-07.md) |
-| [**4일차**](week5/day4/README.md) | Terraform으로 EKS | [1](week5/day4/lesson-01.md) [2](week5/day4/lesson-02.md) [3](week5/day4/lesson-03.md) [4](week5/day4/lesson-04.md) [5](week5/day4/lesson-05.md) [6](week5/day4/lesson-06.md) [7](week5/day4/lesson-07.md) |
-| [**5일차**](week5/day5/README.md) | 통합 · 장애 · 정리 · 회고 | [1](week5/day5/lesson-01.md) [2](week5/day5/lesson-02.md) [3](week5/day5/lesson-03.md) [4](week5/day5/lesson-04.md) [5](week5/day5/lesson-05.md) [6](week5/day5/lesson-06.md) [7](week5/day5/lesson-07.md) |
+| [**1일차**](week5/day1/README.md) | AWS 계정과 VPC | [1](week5/day1/lesson-01.md) [2](week5/day1/lesson-02.md) [3](week5/day1/lesson-03.md) [4](week5/day1/lesson-04.md) [5](week5/day1/lesson-05.md) [6](week5/day1/lesson-06.md) [7](week5/day1/lesson-07.md) [8](week5/day1/lesson-08.md) |
+| [**2일차**](week5/day2/README.md) | EC2 · ALB · Auto Scaling · S3 | [1](week5/day2/lesson-01.md) [2](week5/day2/lesson-02.md) [3](week5/day2/lesson-03.md) [4](week5/day2/lesson-04.md) [5](week5/day2/lesson-05.md) [6](week5/day2/lesson-06.md) [7](week5/day2/lesson-07.md) [8](week5/day2/lesson-08.md) |
+| [**3일차**](week5/day3/README.md) | Terraform 기초 | [1](week5/day3/lesson-01.md) [2](week5/day3/lesson-02.md) [3](week5/day3/lesson-03.md) [4](week5/day3/lesson-04.md) [5](week5/day3/lesson-05.md) [6](week5/day3/lesson-06.md) [7](week5/day3/lesson-07.md) [8](week5/day3/lesson-08.md) |
+| [**4일차**](week5/day4/README.md) | Terraform으로 EKS | [1](week5/day4/lesson-01.md) [2](week5/day4/lesson-02.md) [3](week5/day4/lesson-03.md) [4](week5/day4/lesson-04.md) [5](week5/day4/lesson-05.md) [6](week5/day4/lesson-06.md) [7](week5/day4/lesson-07.md) [8](week5/day4/lesson-08.md) |
+| [**5일차**](week5/day5/README.md) | 통합 · 장애 · 정리 · 회고 | [1](week5/day5/lesson-01.md) [2](week5/day5/lesson-02.md) [3](week5/day5/lesson-03.md) [4](week5/day5/lesson-04.md) [5](week5/day5/lesson-05.md) [6](week5/day5/lesson-06.md) [7](week5/day5/lesson-07.md) [8](week5/day5/lesson-08.md) |
 
 <br>
 

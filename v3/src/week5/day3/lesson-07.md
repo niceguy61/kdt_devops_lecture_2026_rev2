@@ -154,14 +154,6 @@ aws ec2 describe-vpcs --query 'Vpcs[].[Tags[?Key==`Name`]|[0].Value,IsDefault]' 
         3. GitHub의 아무 저장소의 워크플로나 이 역할을 맡을 수 있게 된다
         4. PR에서 자동으로 돈 terraform plan (모듈이 태그를 여러 자원에 퍼뜨린 결과)
 
-!!! diary "오늘의 배움일기"
-    - 콘솔 · CLI 스크립트 · Terraform을 한 줄씩, 어제의 경험을 예로
-    - plan 기호 넷(+ ~ - -/+) 중 가장 무서운 것과 그 이유
-    - 콘솔에서 바꾼 버전 관리 · 태그를 plan이 잡은 장면 — Argo CD의 OutOfSync와 무엇이 같고 다른가
-    - state를 S3에 두고 잠금을 건 이유 셋
-    - GitHub Actions가 키 없이 AWS에 들어간 순서를 그림으로
-    - 내일 전에 궁금한 것: 오늘 VPC는 22개 자원이었다. **EKS 클러스터**를 코드로 만들면 몇 개일까? 그 위에 4주차의 DevMart를 **그대로** 올릴 수 있을까?
-
 ## 참고 문헌
 
 - GitHub Docs. *Configuring OpenID Connect in Amazon Web Services*. docs.github.com/actions/security-for-github-actions

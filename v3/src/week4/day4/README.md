@@ -31,7 +31,9 @@ hours: 8
 | 5교시 | 장애 주입 · 타임아웃 · 재시도 | 늦어진 catalog와 주문 오류 그래프 |
 | 6교시 | mTLS STRICT와 호출 허가 | 메시 밖 · 허가 없는 손님 거절 |
 | 7교시 | 메시 운영 판단 | 비용 · 대안 · 정리 |
-| 8교시 | 배움일기 | |
+| 8교시 | 메시 문제 해결 — istioctl로 진단하기 | 장애 3종을 도구별로 구분 · 진단표 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -42,6 +44,7 @@ hours: 8
 5. [장애 주입 · 타임아웃 · 재시도](lesson-05.md)
 6. [mTLS STRICT와 호출 허가](lesson-06.md)
 7. [메시 운영 판단](lesson-07.md)
+8. [메시 문제 해결](lesson-08.md)
 
 !!! key "오늘 실습 전에 확인할 것"
     - Istio(ambient) + Kiali가 **약 0.6~1GB** 더 씁니다. 빠듯하면 1일차의 `podinfo` · `podinfo-canary`를 지웁니다(`helm uninstall … -n default`).

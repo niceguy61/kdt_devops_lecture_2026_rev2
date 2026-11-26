@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 6/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 6/8교시</sub>
 
 # 6교시 · 이미지 자동 빌드와 GHCR
 

@@ -106,7 +106,7 @@ resource "aws_s3_object" "notice" {
 | `cond ? a : b` | 조건 | |
 
 !!! key "참조 = 의존"
-    `aws_s3_bucket_versioning`이 `aws_s3_bucket.this[...].id`를 **참조**하므로, Terraform은 "버킷을 먼저 만들고 버전 설정을 나중에" 해야 한다는 것을 **스스로** 압니다. 지울 때는 거꾸로 합니다. 2일차 7교시에 사람이 표로 정리했던 의존 순서를 코드의 참조에서 자동으로 뽑는 것입니다.
+    `aws_s3_bucket_versioning`이 `aws_s3_bucket.this[...].id`를 **참조**하므로, Terraform은 "버킷을 먼저 만들고 버전 설정을 나중에" 해야 한다는 것을 **스스로** 압니다. 지울 때는 거꾸로 합니다. 2일차 8교시에 사람이 표로 정리했던 의존 순서를 코드의 참조에서 자동으로 뽑는 것입니다.
 
 ## 실습 4 · 만들기와 그래프
 
@@ -152,7 +152,7 @@ terraform graph | grep -E '"aws_s3_(bucket|object)' | grep -- '->' | head -6
     "aws_s3_object.notice (expand)" -> "data.aws_caller_identity.me (expand)"
     …
     ```
-    화살표가 "**이것은 저것에 기댄다**"입니다. 2일차 7교시 학술 노트의 위상 정렬을 Terraform이 이 그래프로 합니다. (`terraform graph | dot -Tpng > graph.png`로 그림도 됩니다 — graphviz가 있으면.)
+    화살표가 "**이것은 저것에 기댄다**"입니다. 2일차 8교시 학술 노트의 위상 정렬을 Terraform이 이 그래프로 합니다. (`terraform graph | dot -Tpng > graph.png`로 그림도 됩니다 — graphviz가 있으면.)
 
 ## for_each로 하나 더
 

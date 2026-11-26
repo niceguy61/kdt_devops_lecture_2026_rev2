@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md) › 7/8교시</sub>
 
 # 7교시 · 롤링 업데이트와 되돌리기
 
@@ -263,16 +263,6 @@ kubectl get pods -l app=catalog-api -o wide
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - kubectl 루프 다섯 동사 중 오늘 가장 많이 쓴 것과, 가장 도움이 된 것
-> - 장애 셋(Pending · ImagePullBackOff · CrashLoopBackOff) 중 하나를 골라, 처음 보는 동료에게 진단 순서를 설명하듯이
-> - 자가 치유 실험 넷 중 가장 의외였던 것 — 왜?
-> - Pod · ReplicaSet · Deployment · Service의 관계를 **라벨**이라는 말을 넣어 한 문단으로
-> - 롤링 업데이트 중 FAIL이 몇 번 났는지, 그게 실제 쇼핑몰이었다면 어떤 일이 생겼을지
-> - 내일 전에 궁금한 것: catalog-api가 DB 비밀번호를 받으려면? DB 데이터는 Pod가 바뀌면 어떻게 될까?
-
 ## 참고 문헌
 
 - Kubernetes Docs. *Deployments — Updating a Deployment · Rolling Back · Rolling Update Deployment · Progress Deadline Seconds*. kubernetes.io/docs/concepts/workloads/controllers/deployment
@@ -284,4 +274,4 @@ kubectl get pods -l app=catalog-api -o wide
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · Service와 DNS](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [3주차 5일차 목차](../day5/README.md) ➡️ |
+| ⬅️ [6교시 · Service와 DNS](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [8교시 · Pod 디버깅 종합 — 안 닿을 때 · `kubectl debug`](lesson-08.md) ➡️ |

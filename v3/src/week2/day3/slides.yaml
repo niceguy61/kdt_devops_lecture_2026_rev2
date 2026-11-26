@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "빌드 컨텍스트와 .dockerignore"]
       - ["5교시", "5", "빌드 캐시와 명령 순서"]
       - ["6교시", "6", "태그와 Docker Hub"]
-      - ["7교시", "7", "멀티 스테이지와 크기·보안 + 배움일기"]
+      - ["7교시", "7", "멀티 스테이지와 크기·보안"]
+      - ["8교시", "8", "이미지 취약점 스캔과 SBOM"]
     notes: "6교시 전에 Docker Hub 가입을 미리 하게 하면 시간이 절약된다."
 
   # 1교시
@@ -356,6 +357,77 @@ slides:
       - ["C·H·M·L", "대부분 베이스에서 온다 → 베이스 최신 유지"]
     notes: "학술: 공격 표면 (Howard, Pincus & Wing 2005), distroless. 트렌드: 취약점 0개 목표 이미지, Critical 있으면 배포 금지 규칙 → 3주차 CI, 4주차 Kyverno."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "이미지 취약점 스캔과 SBOM — Trivy"
+    goals: ["Trivy를 컨테이너로", "베이스 OS vs 내 라이브러리", "--exit-code 검문소", "SBOM — 이미지의 부품 목록"]
+    notes: "7교시 scout의 숫자 네 개를 한 줄씩 열어 보고, 고치고, 기록으로 남긴다. 3주차 CI에 그대로 넣는다."
+
+  - type: code
+    title: "실습 16~17 · 설치 없이 검사"
+    shell: "bash"
+    code: |
+      alias trivy='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+        -v trivy-cache:/root/.cache/ -v "$PWD":/work -w /work aquasec/trivy:0.76.2'
+      trivy image --severity HIGH,CRITICAL devmart/catalog-api:1.0.1
+    out: |2
+      devmart/catalog-api:1.0.1 (debian 13.2)
+      Total: 1 (HIGH: 1, CRITICAL: 0)
+      Python (python-pkg)
+      Total: 0 (HIGH: 0, CRITICAL: 0)
+    points:
+      - ["첫 묶음", "베이스 이미지의 OS 패키지"]
+      - ["Python", "requirements.txt의 라이브러리"]
+      - ["docker.sock", "믿을 만한 도구에만 — 열쇠 꾸러미"]
+    notes: "숫자는 검사하는 날마다 다르다. CVE = 전 세계 공통 취약점 번호."
+
+  - type: compare
+    title: "가장 큰 처방은 '다시 빌드'"
+    left: ["python:3.14 vs -slim", ["Total 37 vs 1 (예시)", "짐이 많으면 취약점도 많다", "7교시 '작을수록 안전'"]]
+    right: ["Fixed Version이 있으면", ["docker build --pull", "코드는 그대로, 이미지는 안전해진다", "운영은 매주 다시 빌드 → 3주차 CI"]]
+
+  - type: code
+    title: "실습 18 · 검문소 — 종료 코드"
+    shell: "bash"
+    code: |
+      trivy image -q --exit-code 1 --severity CRITICAL devmart/catalog-api:1.0.2 >/dev/null
+      echo $?
+    out: |2
+      0
+    points:
+      - ["하나라도 있으면 1", "1일차 8교시의 $?"]
+      - [".trivyignore", "이유 · 사람 · 기한(exp:)을 적어 넘긴다"]
+
+  - type: code
+    title: "실습 19 · SBOM — 부품 목록"
+    shell: "bash"
+    code: |
+      trivy image --format cyclonedx --output sbom.cdx.json devmart/catalog-api:1.0.2
+      jq '.components | length' sbom.cdx.json
+      trivy sbom -q --severity HIGH,CRITICAL sbom.cdx.json
+    out: |2
+      143
+    points:
+      - ["requirements 3줄", "실제 부품은 백 개 넘게"]
+      - ["목록만으로 재검사", "Log4Shell 같은 날 몇 분 안에"]
+      - ["trivy config .", "Dockerfile 설정 실수도"]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["SBOM 최소 요소 (NTIA, 2021)", ["공급자 · 이름 · 버전 · 고유 식별자", "의존 관계 · 작성자 · 시각", "대부분이 간접 의존성"]]
+    right: ["VEX — 정말 위험한 것만", ["'이 CVE는 우리 제품에 영향 없음'을 기계가 읽게", "공급자가 함께 배포 → 스캐너가 반영", "EU CRA도 SBOM 요구"]]
+    notes: "NTIA (2021) Minimum Elements for SBOM. EO 14028. CISA (2023) VEX."
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "Fixed Version이 있는 취약점을 없애는 가장 쉬운 방법은?"
+      - "--pull을 붙이는 이유는?"
+      - "CI를 멈추게 하는 Trivy 옵션 두 개는?"
+      - "SBOM을 보관하면 무엇이 빨라지나?"
+    answers: "1) 베이스를 새로 받아 다시 빌드  2) 낡은 로컬 베이스 대신 최신 패치  3) --exit-code 1, --severity CRITICAL  4) 새 취약점 영향 여부 판단"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -365,5 +437,6 @@ slides:
       - ["5교시", "자주 바뀌는 것을 뒤로 — 순서 하나에 10배"]
       - ["6교시", "tag · push · digest — 어디서든 같은 이미지"]
       - ["7교시", "멀티 스테이지 1GB → 10MB, 작을수록 안전"]
+      - ["8교시", "Trivy — 베이스 vs 라이브러리, --pull로 다시 빌드, --exit-code 검문소, SBOM은 부품 목록"]
     diary: "배움일기 — 파이썬 없이 파이썬 앱이 도는 이유 · 캐시 규칙을 블록 탑으로 · 비밀번호가 보였을 때 · 내 Hub 주소와 digest · API와 DB는 어떻게 서로를 찾을까?"
     notes: "내일은 볼륨·네트워크·환경 변수. API가 PostgreSQL과 대화한다. 1.0.0, 1.0.1 이미지는 남겨 둔다."

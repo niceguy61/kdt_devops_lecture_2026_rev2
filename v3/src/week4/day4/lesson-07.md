@@ -90,7 +90,7 @@ kubectl delete pod client -n devmart
 | envoy-gateway-system 메시 등록 | STRICT를 유지하려면 필요 — `platform-changes.md`에 적었다 |
 
 !!! warn "'5분 복구'에 더할 것"
-    클러스터를 다시 만들 때 순서가 하나 늘었습니다: Secret → kps · Argo CD · **Istio 네 차트** `helm install` → `envoy-gateway-system` 라벨 → `kubectl apply -f devmart-app-auto.yaml`. Istio가 Argo CD보다 **먼저** 있어야 devmart의 waypoint · 정책 리소스가 바로 적용됩니다(CRD가 없으면 Sync가 실패한다).
+    클러스터를 다시 만들 때 순서가 하나 늘었습니다: Secret → kps · Argo CD · **Istio 네 차트** `helm install` → `envoy-gateway-system` 라벨 → `kubectl apply -f root.yaml`(3일차 8교시). Istio가 Argo CD보다 **먼저** 있어야 devmart의 waypoint · 정책 리소스가 바로 적용됩니다(CRD가 없으면 Sync가 실패한다).
 
 !!! academic "학술 노트 — 미들웨어의 순환"
     서비스 사이 통신의 공통 기능(재시도 · 보안 · 관찰)을 어디에 둘지는 오래된 질문입니다. 2000년대의 **ESB**(Enterprise Service Bus)는 그것을 중앙 버스에 두었다가 병목과 단일 장애점이 되었고, 마이크로서비스는 그 반동으로 "똑똑한 끝점, 멍청한 파이프"(Fowler & Lewis, 2014)를 외쳤습니다. 그러자 끝점마다 같은 코드(Netflix Hystrix · Ribbon 같은 라이브러리)가 쌓였고, 서비스 메시는 그것을 다시 **인프라로 끌어내린** 것입니다. Morgan(Buoyant, 2017)의 *What's a service mesh?*가 이 이름을 처음 널리 쓴 글입니다. 오늘의 ambient는 그 인프라를 다시 **노드 단위로** 모은 것 — 같은 질문에 대한 시대별 답입니다.
@@ -109,14 +109,6 @@ kubectl delete pod client -n devmart
         2. 목적이 네트워크 차단뿐일 때 — 더 단순하고 싸다
         3. 새 revision의 istiod를 옆에 설치 → 네임스페이스 하나 옮겨 지켜봄 → 나머지 옮김 → 옛 istiod 제거
         4. waypoint · AuthorizationPolicy 같은 Istio CRD가 없으면 Argo CD의 Sync가 실패하기 때문
-
-!!! diary "오늘의 배움일기"
-    - 남북과 동서를 DevMart의 예로 한 문장씩, 각각 무엇이 다루나
-    - ztunnel 로그에서 본 신원(SPIFFE ID)을 그대로 옮겨 적고, 각 부분의 뜻
-    - 3초 지연을 넣었을 때 products와 orders가 다르게 반응한 이유
-    - STRICT를 켰을 때의 사고 — 무엇을 먼저 셌어야 했나?
-    - 오늘 잰 메시 비용(메모리)과, DevMart에 메시가 정말 필요한지 내 판단
-    - 내일 전에 궁금한 것: 오늘 허가 규칙은 "네임스페이스 단위"였다. DevMart의 Pod들이 **모두 같은 신원(sa/default)**인데, 서비스마다 · 사람마다 할 수 있는 일을 어떻게 나눌까? 그리고 "이미지 태그 latest 금지" 같은 규칙은 누가 지키게 할까?
 
 ## 참고 문헌
 

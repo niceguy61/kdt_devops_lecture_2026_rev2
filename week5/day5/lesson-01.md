@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md) › 1/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md) › 1/8교시</sub>
 
 # 1교시 · 4일차 요약 + 5주 지도
 
@@ -70,7 +70,7 @@ mkdir -p ~/devops-lab/aws/w5d5 && cp -r ~/course/labs/week5/day5/* ~/devops-lab/
 
 > **🎓 학술 노트 — 추상화의 누수**
 >
-> Spolsky의 *The Law of Leaky Abstractions*(2002)는 "모든 쓸 만한 추상화는 어느 정도 샌다"고 했습니다 — TCP가 신뢰성을 약속해도 케이블이 끊기면 앱이 그것을 겪는다. Kubernetes · EKS · Terraform도 같습니다. Pod IP 상한(4일차 6교시), EBS의 AZ(오늘 4교시), 장부 밖의 NLB(4일차 7교시)는 모두 아래층이 위로 **새어 나온** 순간입니다. 좋은 엔지니어는 추상화를 쓰되, 샐 때 **한 층 아래를 볼 줄** 압니다.
+> Spolsky의 *The Law of Leaky Abstractions*(2002)는 "모든 쓸 만한 추상화는 어느 정도 샌다"고 했습니다 — TCP가 신뢰성을 약속해도 케이블이 끊기면 앱이 그것을 겪는다. Kubernetes · EKS · Terraform도 같습니다. Pod IP 상한(4일차 6교시), EBS의 AZ(오늘 4교시), 장부 밖의 NLB(4일차 8교시)는 모두 아래층이 위로 **새어 나온** 순간입니다. 좋은 엔지니어는 추상화를 쓰되, 샐 때 **한 층 아래를 볼 줄** 압니다.
 
 > **📈 트렌드 2026 — 플랫폼 엔지니어링**
 >

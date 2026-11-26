@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md) › 3/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md) › 3/8교시</sub>
 
 # 3교시 · Compose로 하는 일상 작업
 

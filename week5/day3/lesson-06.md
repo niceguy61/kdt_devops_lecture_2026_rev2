@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 6/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 6/8교시</sub>
 
 # 6교시 · 모듈로 VPC
 
@@ -128,7 +128,7 @@ done
 
 **VPC → 사용자의 VPC → `devmart-vpc` 체크 → 작업 → VPC 삭제**
 
-삭제 확인 화면에 **함께 지워질 것**의 목록이 나옵니다 — 서브넷 넷, 라우팅 테이블, 인터넷 게이트웨이, 보안 그룹 둘, S3 엔드포인트. 2일차 7교시에 고민했던 의존 순서를 콘솔이 이번에는 대신 처리합니다. `delete`를 입력해 삭제.
+삭제 확인 화면에 **함께 지워질 것**의 목록이 나옵니다 — 서브넷 넷, 라우팅 테이블, 인터넷 게이트웨이, 보안 그룹 둘, S3 엔드포인트. 2일차 8교시에 고민했던 의존 순서를 콘솔이 이번에는 대신 처리합니다. `delete`를 입력해 삭제.
 
 ```bash
 aws iam delete-role-policy --role-name devmart-ec2-role --policy-name devmart-s3-read

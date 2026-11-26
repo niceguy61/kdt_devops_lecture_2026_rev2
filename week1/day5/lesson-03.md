@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 3/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 3/8교시</sub>
 
 # 3교시 · Git과 GitHub 맛보기 (강사 시연)
 

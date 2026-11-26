@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 5/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 5/8교시</sub>
 
 # 5교시 · 장애 커뮤니케이션과 포스트모템
 

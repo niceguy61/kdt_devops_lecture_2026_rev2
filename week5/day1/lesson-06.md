@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 6/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 6/8교시</sub>
 
 # 6교시 · 콘솔로 VPC 만들기
 

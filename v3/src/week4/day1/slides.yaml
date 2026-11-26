@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "Gateway API 구조"]
       - ["5교시", "5", "Envoy Gateway 설치와 Gateway"]
       - ["6교시", "6", "HTTPRoute — 경로 · Host · 가중치"]
-      - ["7교시", "7", "장애 분석 + 배움일기"]
+      - ["7교시", "7", "장애 분석"]
+      - ["8교시", "8", "HTTPS — cert-manager"]
     notes: "주말에 껐다면 docker start 노드 셋 → 40초. values 파일이 원하는 상태 — --set은 쓰지 않는다."
 
   # 1교시
@@ -242,6 +243,73 @@ slides:
     colw: [2.6, 2.4, 3.9, 3.2]
     notes: "정리: devmart-routes · podinfo-split 다시 apply. 오늘 것은 지우지 않는다 — 5분 복구 순서에 helm install eg → apply gateway/ 추가. 학술: Gray Failure(Huang 외 HotOS 2017). 트렌드: egctl x translate, CEL 검증, 배포 뒤 스모크 테스트."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "HTTPS — cert-manager와 TLS Gateway"
+    goals: ["인증서의 진짜 문제는 만료", "cert-manager — Issuer · Certificate · Secret", "실습용 사설 CA", "Gateway에 443 리스너"]
+    notes: "HTTPS를 켜는 것보다 사람이 갱신을 기억하지 않아도 되게 만드는 것이 핵심."
+
+  - type: table
+    title: "인증서를 자동으로 — 세 리소스"
+    head: ["리소스", "하는 일", "비유"]
+    rows:
+      - ["ClusterIssuer", "누가 서명하나 (Let's Encrypt · 사내 CA · 자체 서명)", "도장 찍는 기관"]
+      - ["Certificate", "도메인 · 기간 · Secret 이름", "신청서"]
+      - ["Secret (tls)", "발급된 인증서 + 개인 키", "받은 증명서"]
+    colw: [2.8, 6.4, 2.9]
+    callout: "cert-manager가 watch하다가 만료가 다가오면 스스로 다시 발급한다"
+
+  - type: code
+    title: "실습 15~16 · 설치하고 신청하기"
+    shell: "bash"
+    code: |
+      helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
+        --version v1.21.3 -n cert-manager --create-namespace --set crds.enabled=true
+      kubectl apply -f tls/issuers.yaml        # selfsigned → 루트 CA → devmart-ca
+      kubectl apply -f tls/devmart-cert.yaml   # dnsNames · duration 720h · renewBefore 240h
+      kubectl get certificate -n devmart
+    out: |2
+      NAME      READY   SECRET        AGE
+      devmart   True    devmart-tls   5s
+    points:
+      - ["사설 CA", "kind는 인터넷에서 안 보인다"]
+      - ["renewalTime", "사람이 달력에 적지 않는다"]
+      - ["SAN", "도메인은 이 칸에"]
+
+  - type: code
+    title: "실습 17 · Gateway에 443 문"
+    shell: "yaml"
+    code: |
+      - name: https
+        protocol: HTTPS
+        port: 443
+        tls:
+          mode: Terminate
+          certificateRefs: [{ name: devmart-tls }]
+    out: |2
+      $ curl https://devmart.localhost:8443/api/products        → 000
+      $ curl --cacert devmart-ca.crt https://devmart.localhost:8443/api/products → 200
+    points:
+      - ["라우트", "sectionName 없으면 두 리스너 모두"]
+      - ["port-forward", "kind는 30080만 열려 있다"]
+      - ["--cacert", "사내 CA를 믿게 하기"]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["Let's Encrypt (Aas 외, CCS 2019)", ["무료 + 완전 자동 (ACME, RFC 8555)", "4년 만에 세계 최대 CA", "보안이 수고로우면 안 한다 → 기본값으로"]]
+    right: ["인증서 수명 47일로", ["2026.3 — 200일", "2027.3 — 100일", "2029.3 — 47일 (CA/B Forum SC-081)"]]
+    notes: "Aas et al. (2019) ACM CCS. CA/Browser Forum Ballot SC-081 (2025)."
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "Issuer · Certificate · Secret의 역할은?"
+      - "kind에서 Let's Encrypt를 못 쓰는 이유는?"
+      - "라우트를 안 고쳤는데 HTTPS로 동작한 이유는?"
+      - "unable to get local issuer certificate — 해결은?"
+    answers: "1) 서명자 · 신청서 · 결과물  2) 도메인 확인을 인터넷에서 못 한다  3) sectionName 없음 → 모든 리스너  4) --cacert로 CA를 믿게"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -251,5 +319,6 @@ slides:
       - ["5교시", "Envoy Gateway v1.10 · NodePort 30080의 Gateway"]
       - ["6교시", "DevMart 경로 셋 · Host로 podinfo · 80:20 카나리"]
       - ["7교시", "404는 길 없음, 500은 끝이 막힘 · ReferenceGrant"]
+      - ["8교시", "인증서의 문제는 만료 — cert-manager가 신청서(Certificate)대로 발급·갱신, Gateway는 Secret만 읽는다"]
     diary: "배움일기 — Helm을 앱 스토어에 빗대어 · rollback vs rollout undo · 은퇴는 기술 탓? 사람 탓? · 세 리소스를 세 사람에게 · 응답 코드만 봤다면 놓친 장애 · 하루 100만 요청의 카나리는 누가 세나?"
     notes: "내일: Observability — kube-prometheus-stack, Grafana, k6 부하 테스트, 알림."

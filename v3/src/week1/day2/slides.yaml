@@ -18,8 +18,9 @@ slides:
       - ["4교시", "4", "파일과 저장소"]
       - ["5교시", "5", "Linux 명령어 맛보기 (강사 시연)"]
       - ["6교시", "6", "가상화와 하이퍼바이저"]
-      - ["7교시", "7", "VM에서 컨테이너로 + 배움일기"]
-    notes: "8교시는 배움일기."
+      - ["7교시", "7", "VM에서 컨테이너로"]
+      - ["8교시", "8", "자원과 성능 — 병목 읽기"]
+    notes: "배움일기는 수업 뒤 각자 쓴다(마지막 정리 슬라이드의 질문)."
 
   # 1교시
   - type: section
@@ -382,6 +383,84 @@ slides:
     colw: [4.8, 7.3]
     notes: "학생들이 먼저 답하게 한 뒤 공개."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "자원과 성능 — 병목 읽기"
+    goals: ["느려요 = 어느 자원에 줄이 생겼나", "USE — 사용률 · 포화 · 오류", "top · free · df에서 숫자 몇 개만", "OOM Killer → 137 → OOMKilled"]
+    notes: "강사 시연. 따라 치지 않고 출력에서 어디를 보는지만 본다. 주방 비유: 요리사(CPU), 조리대(메모리), 냉장고 문(디스크), 서빙 통로(네트워크)."
+
+  - type: table
+    title: "USE — 자원마다 같은 세 질문"
+    head: ["자원", "사용률", "포화", "오류"]
+    rows:
+      - ["CPU", "top의 us+sy", "load average > 코어 수", "—"]
+      - ["메모리", "free의 used/available", "swap 증가", "OOM Killer"]
+      - ["디스크", "df Use% · wa", "I/O 대기열", "No space left on device"]
+      - ["네트워크", "송수신 바이트", "재전송 · 버려진 패킷", "연결 실패"]
+    colw: [2.0, 3.2, 3.6, 3.3]
+    callout: "사용률 100%는 괜찮다. 포화(기다림)가 생기면 사용자가 느낀다"
+    notes: "Gregg (2013) CACM 56(2). 가로등 아래에서 열쇠 찾기 반패턴 대신 체크리스트."
+
+  - type: code
+    title: "시연 1 · top — load average와 코어 수"
+    shell: "bash"
+    code: |
+      top -bn1 | head -5
+      nproc
+    out: |2
+      load average: 7.85, 6.12, 3.40
+      %Cpu(s): 92.3 us,  5.1 sy,  0.4 id,  2.2 wa,  0.0 st
+      4
+    points:
+      - ["7.85 ÷ 4 ≈ 2", "코어보다 일이 두 배 → 포화"]
+      - ["wa 높음", "범인은 디스크"]
+      - ["st", "옆 VM에 CPU를 뺏김"]
+    notes: "1분·5분·15분 평균. 1분 값이 커지는 중이면 나빠지는 중. %CPU 389%는 코어 4개 거의 다."
+
+  - type: compare
+    title: "시연 2 · free — 봐야 할 칸은 available"
+    left: ["free가 작다 ≠ 부족", ["남는 메모리는 파일 캐시로 쓴다", "필요하면 바로 내준다", "available = 실제로 쓸 수 있는 양"]]
+    right: ["정말 모자라면", ["① swap — 수천 배 느린 디스크를 메모리처럼", "② OOM Killer — 커널이 프로세스를 죽인다", "dmesg | grep -i killed"]]
+    notes: "OOM = Out Of Memory."
+
+  - type: table
+    title: "같은 사건, 다른 이름"
+    head: ["어디서", "보이는 모습"]
+    rows:
+      - ["Linux 서버", "dmesg의 Killed process"]
+      - ["2주차 Docker", "종료 코드 137 (128 + 9 = SIGKILL)"]
+      - ["3주차 Kubernetes", "Pod 상태 OOMKilled, 재시작 반복"]
+    colw: [3.6, 8.5]
+    callout: "cgroups 한도 때문에 서버가 넉넉해도 컨테이너 하나는 죽을 수 있다 → 3주차 5일차 limits"
+    callout_color: orange
+
+  - type: table
+    title: "증상에서 명령으로"
+    head: ["증상", "먼저 볼 것", "이런 숫자면"]
+    rows:
+      - ["모든 요청이 느리다", "load average · nproc", "코어 수를 오래 넘음 → CPU"]
+      - ["프로세스가 사라졌다", "dmesg | grep -i killed", "Killed process → 메모리"]
+      - ["CPU 한가한데 느리다", "top의 wa · swap", "디스크 · 메모리"]
+      - ["저장이 실패한다", "df -h · df -i", "Use% 100% → 로그 정리, logrotate"]
+    colw: [3.4, 4.0, 4.7]
+
+  - type: statement
+    icon: Gauge
+    title: "트렌드 — '얼마나 썼나'에서 '얼마나 기다렸나'로"
+    text: "PSI: /proc/pressure/{cpu,memory,io}\n= 기다리느라 멈춘 시간의 비율"
+    sub: "커널 4.20부터. USE의 '포화'를 커널이 직접 잰다 — Kubernetes kubelet도 PSI 지표로 넓히는 중, eBPF는 관찰 도구의 기본기"
+    notes: "docs.kernel.org/accounting/psi.html"
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "8코어 서버 load average 2.1 — CPU 포화인가?"
+      - "free 200Mi, available 3.1Gi — 메모리 부족인가?"
+      - "CPU 낮고 wa 40% — 어느 자원?"
+      - "컨테이너 종료 코드 137 — 원인은?"
+    answers: "1) 아니다, 여유  2) 아니다, 캐시를 내줄 수 있다  3) 디스크(I/O)  4) 메모리 한도 초과로 SIGKILL"
+
   - type: summary
     title: "오늘 하루 정리"
     items:
@@ -391,5 +470,6 @@ slides:
       - ["4교시", "설정은 /etc, 로그는 /var/log — 권한은 최소로"]
       - ["5~6교시", "명령은 질문별로 읽고, 클라우드는 Type 1 하이퍼바이저 위에"]
       - ["7교시", "컨테이너 = 네임스페이스 + cgroups로 격리된 프로세스"]
+      - ["8교시", "느려요 = 어느 자원에 줄이 생겼나 — USE, available, OOM은 137·OOMKilled로"]
     diary: "배움일기 — 가장 '아하!' 했던 순간 · 아직 헷갈리는 개념과 이유 · 내일(네트워크) 전에 궁금한 것"
     notes: "내일은 네트워크 기초. 오늘 본 NIC를 통해 데이터가 어떻게 오가는지."

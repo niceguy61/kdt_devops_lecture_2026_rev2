@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "GitHub Actions 개념과 첫 워크플로"]
       - ["5교시", "5", "PR마다 자동 테스트"]
       - ["6교시", "6", "이미지 자동 빌드와 GHCR"]
-      - ["7교시", "7", "CI 실패 읽기와 main 보호 + 배움일기"]
+      - ["7교시", "7", "CI 실패 읽기와 main 보호"]
+      - ["8교시", "8", "CI 검문소 늘리기"]
     notes: "시작 전: cd ~/course && git pull, 새 catalog-api · order-api 복사 후 up --build, 커밋. gh auth status 확인."
 
   # 1교시
@@ -349,6 +350,71 @@ slides:
       - ["강제 push 금지", "Block force pushes → main 직접 push는 GH013로 거절"]
     notes: "함정: paths 필터 때문에 notes만 고친 PR에서는 CI가 안 돌고, 필수 검사를 영원히 기다린다(Expected — Waiting for status). 해결: 요약 잡 하나만 필수, paths 대신 잡 안에서 판단, 또는 우회. 학술: 토요타 안돈 줄 (Ohno), Humble & Farley (2010) 빌드가 깨지면 먼저 고쳐라. 트렌드: 실패 로그를 AI가 먼저 요약 — 판단은 사람."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "CI 검문소 늘리기"
+    goals: ["올리기 전에 Trivy 검문", "계약 테스트를 CI에서", "concurrency · timeout", "액션을 SHA로 고정 + Dependabot"]
+    notes: "만들어진 이미지가 안전한가, 다른 서비스와의 약속을 지키나. 검문소는 싸고 빨라야 한다."
+
+  - type: code
+    title: "실습 18 · 만들고 → 검사하고 → 올린다"
+    shell: "yaml"
+    code: |
+      - name: 빌드 (러너에 싣기만)
+        uses: docker/build-push-action@v7
+        with: { load: true, push: false }
+      - name: 취약점 검문
+        run: >
+          docker run … aquasec/trivy:0.76.2 image
+          --exit-code 1 --severity CRITICAL --ignore-unfixed "$IMAGE"
+      - name: GHCR에 올리기
+        if: github.event_name == 'push'
+        run: docker push --all-tags "${IMAGE%:*}"
+    points:
+      - ["load: true", "러너 안에만 — 검사 전엔 아무 데도"]
+      - ["--ignore-unfixed", "고칠 수 없는 건 기록으로"]
+      - ["${IMAGE%:*}", "태그를 뗀 저장소 이름 — 소문자"]
+
+  - type: code
+    title: "실습 19 · 계약 테스트 잡"
+    shell: "yaml"
+    code: |
+      contract:
+        timeout-minutes: 10
+        env: { DB_PASSWORD: ci-dummy-not-secret }
+        steps:
+          - run: docker compose up -d --build --wait
+          - run: ./contract/catalog-for-order.sh
+          - if: failure()
+            run: docker compose logs --tail 50
+          - if: always()
+            run: docker compose down -v
+    points:
+      - ["--wait", "healthy까지 기다린다"]
+      - ["100755", "실행 권한이 커밋돼야 한다"]
+      - ["needs", "build는 contract 뒤에"]
+
+  - type: compare
+    title: "실습 20 · 낡은 실행 취소 · 액션 고정"
+    left: ["concurrency", ["group: ci-${{ github.ref }}", "cancel-in-progress: true", "연달아 올린 커밋 — 마지막 것만"]]
+    right: ["actions/checkout@<40자리 SHA>  # v6.1.0", ["태그는 움직인다 · SHA는 안 움직인다", "git ls-remote --tags로 조회", "Dependabot이 갱신 PR — 고정 + 최신"]]
+
+  - type: compare
+    title: "학술 노트 · 사고"
+    left: ["Koishybayev 외 (USENIX Security 2022)", ["넓은 토큰 권한", "움직이는 태그로 가져온 액션", "외부 입력을 그대로 명령에"]]
+    right: ["tj-actions/changed-files (2025.3)", ["태그가 악성 커밋으로 옮겨짐", "CI 로그에 비밀값 노출 (CVE-2025-30066)", "SHA로 고정한 저장소는 무사"]]
+    notes: "트렌드: GitHub 정책으로 SHA 고정 강제, OpenSSF Scorecard의 Pinned-Dependencies · Token-Permissions."
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "이미지 검사를 push 뒤에 하면 문제는?"
+      - "--ignore-unfixed를 쓰는 이유는?"
+      - "@v6 대신 @<SHA>로 막을 수 있는 사고는?"
+      - "SHA 고정의 단점과 보완책은?"
+    answers: "1) 이미 올라가 누군가 받아 쓴다  2) 지금 할 조치가 없는 건 막기만 한다  3) 태그를 악성 커밋으로 옮기는 공격  4) 패치가 안 들어옴 → Dependabot"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -358,5 +424,6 @@ slides:
       - ["4교시", "Actions: 이벤트 · 잡 · 스텝 · 러너 · 액션 — 남의 액션은 남의 코드"]
       - ["5교시", "PR마다 테스트 · compose 검사 — 빨간 X 읽기"]
       - ["6~7교시", "main이면 GHCR push (sha 태그) · 초록이어야 병합"]
+      - ["8교시", "만들고→검사하고→올린다, 계약 테스트도 CI에서, 액션은 SHA로 고정 + Dependabot"]
     diary: "배움일기 — 장애 전파를 내 비유로 · 재시도의 득과 실(초) · /health와 /ready를 섞으면 · 유령 vs 유실 · 내 GHCR 이미지 주소 · 처리기가 죽으면 누가 다시 띄워 줄까?"
     notes: "정리: docker compose down (볼륨은 남긴다), hello.yml은 PR로 끄기. 내일: Kubernetes 아키텍처와 kind."

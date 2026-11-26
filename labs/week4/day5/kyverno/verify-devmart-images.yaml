@@ -1,0 +1,35 @@
+# 7교시 · DevMart 이미지는 우리 CI(main)가 keyless로 서명한 것만 — 먼저 Audit, 확인 뒤 Deny
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: verify-devmart-images
+spec:
+  validationActions: [Audit]          # 먼저 보고만 (5교시와 같은 순서)
+  failurePolicy: Ignore               # Kyverno가 아프면 일단 통과 — Deny로 바꿀 때 Fail로
+  webhookConfiguration:
+    timeoutSeconds: 20                # 서명 확인은 인터넷(Rekor)을 다녀온다
+  matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - { key: kubernetes.io/metadata.name, operator: In, values: [devmart] }
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [pods]
+  matchImageReferences:
+    - glob: "ghcr.io/YOUR_ID/devmart-*"   # 우리 이미지만 — postgres · redis · nginx는 대상 아님
+  validationConfigurations:
+    mutateDigest: false               # Pod의 이미지 주소를 바꾸지 않는다 (Argo CD와 다툼 방지)
+    verifyDigest: false
+    required: true
+  attestors:
+    - name: ourci
+      cosign:
+        keyless:
+          identities:
+            - issuer: https://token.actions.githubusercontent.com
+              subjectRegExp: "^https://github.com/YOUR_ID/devops-lab/\\.github/workflows/devmart-ci\\.yml@refs/heads/main$"
+  validations:
+    - expression: images.containers.map(image, verifyImageSignatures(image, [attestors.ourci])).all(e, e > 0)
+      message: "DevMart 이미지는 우리 CI(main)가 서명한 것만 실행할 수 있습니다."

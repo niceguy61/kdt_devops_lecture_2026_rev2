@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "포트 연결"]
       - ["5교시", "5", "관찰하기 — logs · exec · inspect · stats"]
       - ["6교시", "6", "생명주기와 정리"]
-      - ["7교시", "7", "실패 사례 다섯 가지 + 배움일기"]
+      - ["7교시", "7", "실패 사례 다섯 가지"]
+      - ["8교시", "8", "자원 제한과 안전한 실행 옵션"]
     notes: "시작 전 bash tools/check-env.sh 로 실패 0개 확인."
 
   # 1교시
@@ -343,6 +344,84 @@ slides:
       - ["AI에게 물을 때", "이 표와 디버깅 1~5 결과를 함께"]
     notes: "이미지(alpine, nginx, python)는 내일도 쓰므로 남긴다."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "자원 제한과 안전한 실행 옵션"
+    goals: ["메모리 한도 — 넘으면 죽는다(137)", "CPU 한도 — 넘으면 기다린다", "--user · --read-only · --cap-drop", "다섯 옵션을 합친 nginx"]
+    notes: "기본값은 무제한 · root. 노트북에선 편하지만 서버에선 시끄러운 이웃과 큰 피해."
+
+  - type: code
+    title: "실습 17 · 메모리 한도를 넘기면"
+    shell: "bash"
+    code: |
+      docker run --name oom -m 64m --memory-swap 64m alpine:3.24 \
+        sh -c 'head -c 500m /dev/zero | tail'
+      echo $?
+      docker inspect oom --format 'OOMKilled={{.State.OOMKilled}}'
+    out: |2
+      137
+      OOMKilled=true
+    points:
+      - ["137 = 128 + 9", "SIGKILL — 마지막 말도 못 남긴다"]
+      - ["logs가 조용하면", "inspect의 OOMKilled부터"]
+      - ["3주차", "Pod 상태 OOMKilled"]
+
+  - type: compare
+    title: "실습 18 · 메모리는 죽고, CPU는 기다린다"
+    left: ["메모리 -m 256m", ["넘으면 강제 종료", "137 · OOMKilled", "K8s limits.memory"]]
+    right: ["CPU --cpus 0.5", ["넘으면 기다림(throttling)", "docker stats에서 50% 근처", "K8s limits.cpu"]]
+
+  - type: code
+    title: "실습 19 · root가 아니게, 읽기 전용으로, 권한을 덜고"
+    shell: "bash"
+    code: |
+      docker run --rm --user 1000:1000 alpine:3.24 touch /etc/hacked
+      docker run --rm --read-only alpine:3.24 touch /tmp/x
+      docker run --rm --read-only --tmpfs /tmp alpine:3.24 touch /tmp/x
+      docker run --rm --cap-drop ALL alpine:3.24 chown nobody /tmp
+    out: |2
+      touch: /etc/hacked: Permission denied
+      touch: /tmp/x: Read-only file system
+      (성공)
+      chown: /tmp: Operation not permitted
+    points:
+      - ["--user", "최소 권한 — 내일 Dockerfile USER"]
+      - ["--read-only + --tmpfs", "필요한 곳만 쓰기"]
+      - ["capability", "root라는 이름보다 가진 조각"]
+
+  - type: code
+    title: "실습 20 · 다섯 옵션을 합친 nginx"
+    shell: "bash"
+    code: |
+      docker run -d --name safe-web -p 8082:80 -m 128m --cpus 0.5 \
+        --read-only --tmpfs /var/cache/nginx --tmpfs /run \
+        --cap-drop ALL --cap-add CHOWN --cap-add SETUID \
+        --cap-add SETGID --cap-add NET_BIND_SERVICE \
+        --security-opt no-new-privileges nginx:1.30-alpine
+      curl -sI http://localhost:8082 | head -1
+    out: |2
+      HTTP/1.1 200 OK
+    points:
+      - ["읽기 전용 에러", "로그의 경로를 --tmpfs로"]
+      - ["Compose · K8s", "mem_limit · securityContext로 적는다"]
+    notes: "정리: docker rm -f safe-web"
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["cgroups의 시작 (Menage, 2007)", ["구글 — 한 서버에 여러 작업", "서로 자원을 빼앗지 못하게", "커널 2.6.24 → 오늘의 -m · --cpus"]]
+    right: ["안의 root를 밖에서는 아무것도 아니게", ["사용자 네임스페이스", "Docker rootless · Podman", "Kubernetes 1.33 Pod 기본 지원"]]
+    notes: "Menage (2007) Linux Symposium. Kubernetes Blog (2025.4) User Namespaces enabled by default."
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "로그 없이 137 — 먼저 확인할 것은?"
+      - "--cpus 0.5가 더 쓰려 하면?"
+      - "--read-only 앱이 /tmp에 써야 한다면?"
+      - "안에서 uid=0 — 무엇이든 할 수 있나?"
+    answers: "1) inspect의 OOMKilled  2) 기다린다(느려짐)  3) --tmpfs /tmp  4) 아니다 — capability · 사용자 네임스페이스에 달렸다"
+
   - type: summary
     title: "오늘 손에 익힌 것"
     items:
@@ -352,5 +431,6 @@ slides:
       - ["5교시", "logs · exec · inspect · stats — exec로 고친 건 임시"]
       - ["6교시", "stop 0 · kill 137 · 재시작은 고침이 아니다 · 정리는 좁게"]
       - ["7교시", "이미지 → 상태 → 로그 → 포트 → 안쪽 순서로 좁힌다"]
+      - ["8교시", "기본값은 무제한·root — 메모리는 넘으면 죽고(137) CPU는 기다린다, --user·--read-only·--cap-drop"]
     diary: "배움일기 — 가장 당황한 에러와 원인 한 문장 · 이미지/컨테이너를 프로그램/프로세스에 빗대기 · docker top의 PID · 내일 만들고 싶은 이미지"
     notes: "내일은 Dockerfile. DevMart의 상품 API를 직접 이미지로 포장한다."

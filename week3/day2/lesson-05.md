@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 5/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 5/8교시</sub>
 
 # 5교시 · PR마다 자동 테스트
 

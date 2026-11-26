@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 6/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 6/8교시</sub>
 
 # 6교시 · HTTPRoute — 경로 · Host · 가중치
 

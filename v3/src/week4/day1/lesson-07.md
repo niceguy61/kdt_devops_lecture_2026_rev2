@@ -169,7 +169,7 @@ for p in / /api/products /api/orders; do printf '%-15s ' $p; curl -s -o /dev/nul
     ```
 
 !!! warn "오늘 만든 것은 지우지 않는다"
-    Envoy Gateway · Gateway · 라우트 · podinfo 두 릴리스는 **내일 그대로** 씁니다. 내일(Observability)은 이 Gateway를 지나는 요청을 숫자와 그래프로 봅니다. 클러스터 '5분 복구' 순서(3주차 5일차 7교시)에 오늘 것을 덧붙여 적어 두세요 — `helm install eg …` → `kubectl apply -f gateway/…` 순서입니다.
+    Envoy Gateway · Gateway · 라우트 · podinfo 두 릴리스는 **내일 그대로** 씁니다. 내일(Observability)은 이 Gateway를 지나는 요청을 숫자와 그래프로 봅니다. 클러스터 '5분 복구' 순서(3주차 5일차 8교시)에 오늘 것을 덧붙여 적어 두세요 — `helm install eg …` → `kubectl apply -f gateway/…` 순서입니다.
 
 !!! academic "학술 노트 — 조용한 실패와 '관찰 가능한 실패'"
     오늘 장애 넷 중 둘(1 · 3)은 **에러 메시지 없이** 틀렸습니다. Huang 외의 *Gray Failure: The Achilles' Heel of Cloud-Scale Systems*(HotOS 2017)는 클라우드 장애 중 상당수가 시스템 스스로는 "정상"이라고 보고하는데 **사용자 쪽에서만 이상이 보이는** 회색 실패(gray failure)라고 분석했습니다. 해결 방향은 "다르게 보는 관점을 늘리는 것" — 오늘처럼 status(시스템의 자기 보고)와 curl의 응답 **내용**(사용자 관점)을 함께 보는 것입니다. 내일의 Observability가 이 관점들을 체계적으로 만드는 일입니다.
@@ -190,14 +190,6 @@ for p in / /api/products /api/orders; do printf '%-15s ' $p; curl -s -o /dev/nul
         3. 맞는 Host의 라우트가 없어, Host를 정하지 않은 DevMart 라우트(`/` → web)가 대신 받았다
         4. 허락하는 쪽 — 가리킴을 받는 Service가 있는 네임스페이스
         5. Gateway PROGRAMMED → 라우트 Accepted → 라우트 ResolvedRefs (그다음 EndpointSlice · Pod)
-
-!!! diary "오늘의 배움일기"
-    - Helm을 친구에게 `apt`나 앱 스토어에 빗대어 한 문단으로
-    - `helm rollback`과 `kubectl rollout undo`의 차이를 오늘 실제 상황으로
-    - ingress-nginx 은퇴에서 가장 인상적이었던 점 — 기술 때문인가, 사람(유지보수) 때문인가
-    - GatewayClass · Gateway · HTTPRoute를 회사의 세 사람에게 나눠 준다면 누구에게 무엇을
-    - 오늘 장애 넷 중 응답 코드만 봤다면 놓쳤을 것과 그 이유
-    - 내일 전에 궁금한 것: 오늘 50번 요청 중 카나리가 9번이었다. 하루 100만 번이라면 누가 세고, 오류가 늘었는지는 어떻게 알까?
 
 ## 참고 문헌
 

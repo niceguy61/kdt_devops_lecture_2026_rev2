@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "state · 어긋남 · import"]
       - ["5교시", "5", "원격 state와 잠금"]
       - ["6교시", "6", "모듈로 VPC"]
-      - ["7교시", "7", "GitHub Actions에서 plan (OIDC) + 배움일기"]
+      - ["7교시", "7", "GitHub Actions에서 plan (OIDC)"]
+      - ["8교시", "8", "Terraform 품질"]
     notes: "오늘 만드는 것은 모두 무료에 가깝다. 그래도 7교시에 정리."
 
   - type: section
@@ -155,6 +156,80 @@ slides:
     img: week5/day3/w5d3-oidc.png
     notes: "STS가 확인: 발급자 · aud · sub. sub 조건을 빼면 아무 저장소나. 역할 = ReadOnly + state — apply는 못 한다. PR Summary: 태그 한 줄 → 9 to change. apply는 사람 → 다음 단계: main 브랜치 apply · Atlantis. 학술: OIDC · 연합 신원(Maler & Reed 2008). 트렌드: PR에 Checkov · Infracost · OPA."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "Terraform 품질 — lint · 보안 검사 · 리뷰"
+    goals: ["validate가 못 잡는 것", "tflint — AWS를 아는 lint", "Trivy config — 인프라 코드의 보안 실수", "lint 잡 + plan 리뷰 다섯 질문"]
+    notes: "apply 뒤에 드러나면 비싸다(-/+). 싸고 빠른 검사부터 앞에 — 모두 AWS 없이 돈다."
+
+  - type: table
+    title: "검사마다 잡는 것"
+    head: ["검사", "잡는 것"]
+    rows:
+      - ["fmt -check", "모양"]
+      - ["validate", "문법 · 참조 · 타입 — t3.mirco는 통과"]
+      - ["tflint (+aws 규칙)", "없는 인스턴스 타입 · 쓰지 않는 선언"]
+      - ["Trivy config", "0.0.0.0/0 · 암호화 없음 · 로그 꺼짐"]
+      - ["plan + 사람", "실제로 무엇이 바뀌나"]
+    colw: [3.6, 8.5]
+    mono_col: 0
+
+  - type: code
+    title: "실습 17~18 · tflint"
+    shell: "bash"
+    code: |
+      # lint-demo.tf: instance_type = "t3.mirco", 쓰지 않는 variable
+      terraform validate                  # Success!
+      docker run … ghcr.io/terraform-linters/tflint:v0.66.0 -c "tflint --init && tflint"
+    out: |2
+      Error - "t3.mirco" is an invalid value as instance_type
+      Warning - variable "unused_name" is declared but not used
+    points:
+      - [".tflint.hcl", "terraform recommended + aws 0.50.0"]
+      - ["플러그인 볼륨", "다시 안 받는다"]
+
+  - type: code
+    title: "실습 19 · Trivy — 의도한 예외엔 이유를"
+    shell: "hcl"
+    code: |
+      # 예외 이유: web은 인터넷 손님을 받는 ALB용 (2026-12, 리뷰: 짝)
+      #trivy:ignore:aws-ec2-no-public-ingress-sgr
+      resource "aws_vpc_security_group_ingress_rule" "web_http" {
+    out: |2
+      $ trivy config --severity HIGH,CRITICAL --tf-exclude-downloaded-modules --exit-code 1 .
+      CRITICAL: Security group rule allows unrestricted ingress …
+    points:
+      - ["config", "이미지 말고 설정 파일"]
+      - ["모듈 안쪽은 빼고", "우리 코드만"]
+      - ["Checkov", "같은 일 — 회사 것을 따른다"]
+
+  - type: table
+    title: "실습 20 · lint 잡 + plan 리뷰 다섯 질문"
+    head: ["질문", "plan에서"]
+    rows:
+      - ["① 지워지는 것?", "N to destroy"]
+      - ["② 지우고 다시 만드는 것?", "-/+ must be replaced"]
+      - ["③ 변경 수가 너무 많지 않나?", "N to change — 모듈이 퍼뜨린다"]
+      - ["④ 공개 · 암호화 끔?", "+ cidr_ipv4 = 0.0.0.0/0"]
+      - ["⑤ 돈 드는 것?", "NAT · LB · EIP · 큰 인스턴스"]
+    colw: [5.2, 6.9]
+    callout: "lint 잡은 init -backend=false (AWS 권한 없이), plan은 needs: lint"
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["일곱 가지 죄 (Rahman 외, ICSE 2019)", ["박힌 비밀번호 · 0.0.0.0 · 빈 비밀번호", "의심스러운 주석 · HTTP · 약한 암호", "수천 개, 오래 남았다 → PR마다 자동 검사"]]
+    right: ["AI가 쓴 인프라 코드", ["없는 인자 · 지난 문법 · 넓은 권한", "그래서 검문소가 더 중요", "정책 코드 — OPA · Sentinel"]]
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "t3.mirco를 validate가 통과시키는 이유와 잡는 도구는?"
+      - "web의 0.0.0.0/0이 CRITICAL — 처리는?"
+      - "lint 잡에 init -backend=false를 쓰는 이유는?"
+      - "must be replaced를 조심할 이유는?"
+    answers: "1) 그냥 문자열 — tflint aws 규칙  2) 이유를 적은 trivy:ignore 또는 좁히기  3) AWS 권한 없이  4) 지우고 다시 만든다 — 데이터 · 주소"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -164,5 +239,6 @@ slides:
       - ["4교시", "콘솔 수정을 plan이 잡는다 · import · removed"]
       - ["5~6교시", "S3 원격 state + 잠금 · 모듈로 VPC 22개 · 콘솔 VPC 정리"]
       - ["7교시", "OIDC 역할 · devmart-infra PR plan · destroy 두 줄"]
+      - ["8교시", "싼 검사부터 — validate · tflint · Trivy config · plan 리뷰 다섯 질문, 예외엔 이유를"]
     diary: "배움일기 — 콘솔 · 스크립트 · Terraform · 가장 무서운 plan 기호 · plan이 잡은 어긋남 vs OutOfSync · 원격 state 이유 셋 · 키 없는 CI 순서 · EKS는 몇 개 자원? DevMart를 그대로?"
     notes: "남긴 것: state 버킷, plan 역할, devmart-infra. 내일: Terraform으로 EKS."

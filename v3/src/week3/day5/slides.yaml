@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "requests와 limits"]
       - ["5교시", "5", "DevMart MSA를 Kubernetes에"]
       - ["6교시", "6", "장애 연습"]
-      - ["7교시", "7", "3주차 회고 + 배움일기"]
+      - ["7교시", "7", "HPA — 자동으로 늘고 줄기"]
+      - ["8교시", "8", "3주차 회고"]
     notes: "세 이미지가 GHCR에 있는지. kind 노드는 postgres · redis · nginx · python 이미지를 따로 받는다. 오늘은 -n devmart를 빠뜨리지 않는다."
 
   # 1교시
@@ -223,6 +224,70 @@ slides:
   # 7교시
   - type: section
     num: "7교시"
+    title: "HPA — 부하에 따라 늘고 줄기"
+    goals: ["metrics-server · kubectl top", "HPA는 requests 대비로 계산", "늘리기는 빠르게, 줄이기는 천천히", "replicas와 HPA가 싸운다"]
+    notes: "replicas는 사람이 정한 숫자. HPA는 숫자 대신 목표를 적는다 — 측정값을 보고 도는 reconcile."
+
+  - type: code
+    title: "실습 18 · metrics-server와 kubectl top"
+    shell: "bash"
+    code: |
+      kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.1/components.yaml
+      kubectl -n kube-system patch deployment metrics-server --type=json \
+        -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+      kubectl top pods -n devmart
+    out: |2
+      NAME                       CPU(cores)   MEMORY(bytes)
+      catalog-api-7d9c…-4xk2p    2m           48Mi
+    points:
+      - ["15초마다", "kubelet에게 사용량을 묻는다"]
+      - ["insecure-tls", "kind 실습용만 — EKS는 애드온"]
+      - ["URL apply", "버전 고정 · 공식 릴리스만"]
+
+  - type: code
+    title: "실습 19 · HPA 걸고 부하 주기"
+    shell: "yaml"
+    code: |
+      spec:
+        scaleTargetRef: { kind: Deployment, name: catalog-api }
+        minReplicas: 2
+        maxReplicas: 6
+        metrics:
+          - resource: { name: cpu, target: { averageUtilization: 50 } }
+        behavior:
+          scaleDown: { stabilizationWindowSeconds: 60 }
+    out: |2
+      cpu: 4%/50%     REPLICAS 2
+      cpu: 186%/50%   REPLICAS 6
+      (부하 멈춤 → 1분 뒤) REPLICAS 2
+    points:
+      - ["원하는 개수", "올림(지금 × 사용률 ÷ 목표)"]
+      - ["<unknown>", "requests가 없다"]
+      - ["Pod는 HPA", "노드는 Karpenter (5주차)"]
+
+  - type: compare
+    title: "실습 20 · HPA와 apply가 싸운다"
+    left: ["매니페스트 replicas: 2", ["HPA가 6으로 늘림", "kubectl apply -k", "→ 2로 되돌림 → 다시 6"]]
+    right: ["개수의 주인은 하나", ["HPA를 쓰면 replicas 줄을 지운다", "min/max로만 정한다", "4주차 Argo CD selfHeal도 같은 싸움"]]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["피드백 제어 (Hellerstein 외, 2004)", ["목표와 측정의 차이로 조절", "너무 민감하면 진동, 둔하면 늦다", "±10% 허용 · 5분 안정화 창"]]
+    right: ["CPU 말고 일의 양으로", ["KEDA — 큐 길이 · 지연으로", "일이 없으면 0개까지", "in-place resize — 가로 + 세로"]]
+    notes: "Hellerstein et al. (2004) Feedback Control of Computing Systems."
+
+  - type: quiz
+    title: "7교시 확인 문제"
+    questions:
+      - "TARGETS가 <unknown>/50% — 확인할 두 가지는?"
+      - "3개가 평균 100%, 목표 50% — 몇 개로?"
+      - "부하가 끝났는데 바로 줄지 않는다 — 고장?"
+      - "apply할 때마다 Pod가 줄었다 늘어난다 — 해결은?"
+    answers: "1) metrics-server · requests.cpu  2) 6개  3) 아니다, 안정화 창  4) 매니페스트에서 replicas 삭제"
+
+  # 8교시
+  - type: section
+    num: "8교시"
     title: "3주차 회고"
     goals: ["한 주의 지도", "대응표를 내 말로", "KPT", "주말 동안"]
     notes: "Try는 '다음 주 언제 무엇을 하면 지켰는지 알 수 있는' 문장으로."
@@ -249,6 +314,8 @@ slides:
       - ["3교시", "readiness + preStop → FAIL 0 · liveness는 가볍게"]
       - ["4교시", "requests는 스케줄러, limits는 커널 · OOMKilled 137"]
       - ["5교시", "apply -k 한 줄로 DevMart 전체 · localhost:30080에서 주문"]
-      - ["6~7교시", "장애 넷을 바깥에서 안으로 · 3주차 KPT"]
+      - ["6교시", "장애 넷을 바깥에서 안으로"]
+      - ["7교시", "HPA — requests 대비 목표, 늘리기는 빠르게 줄이기는 천천히, replicas의 주인은 하나"]
+      - ["8교시", "3주차 KPT · Compose ↔ Kubernetes 대응표"]
     diary: "배움일기 — ConfigMap vs .env · FAIL 전후와 세 조각 · 내 앱의 limit · 첫 주문의 기분 · 가장 오래 걸린 진단 단계 · 가장 크게 바뀐 생각 · 서비스 50개면?"
     notes: "클러스터는 지우지 않는다. 월요일: docker start 노드 셋 → get pods -n devmart. 망가지면 delete → create → Secret → apply -k, 5분."

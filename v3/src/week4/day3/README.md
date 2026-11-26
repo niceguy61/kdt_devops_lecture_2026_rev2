@@ -31,7 +31,9 @@ hours: 8
 | 5교시 | Sync와 어긋남 | `argocd app diff`로 손 수정 찾기 |
 | 6교시 | selfHeal과 prune | 스스로 되돌리는 클러스터 |
 | 7교시 | Actions → Argo CD 전체 파이프라인 | PR 하나로 v2.1.0 배포 · revert로 되돌리기 |
-| 8교시 | 배움일기 | |
+| 8교시 | 플랫폼도 Git으로 — App of Apps | 루트 Application 하나로 앱 + 플랫폼 설정 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -42,6 +44,7 @@ hours: 8
 5. [Sync와 어긋남](lesson-05.md)
 6. [selfHeal과 prune](lesson-06.md)
 7. [Actions → Argo CD 전체 파이프라인](lesson-07.md)
+8. [플랫폼도 Git으로 — App of Apps](lesson-08.md)
 
 !!! key "오늘 실습 전에 확인할 것"
     - 어제의 모니터링 도구 위에 Argo CD가 **약 0.5~1GB** 더 씁니다. 빠듯하면 `helm uninstall podinfo-canary -n default`로 자리를 만듭니다.

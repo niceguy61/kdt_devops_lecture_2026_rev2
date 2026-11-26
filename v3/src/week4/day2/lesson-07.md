@@ -140,14 +140,6 @@ gh pr create --fill
         4. 알림 이름으로 찾을 수 있다, 명령과 판단 기준이 있다, 되돌리는 법이 있다, 도움을 부를 시점이 있다, 장애 후 고친다 중 셋
         5. 원인을 끝까지 찾기 전에 되돌려서(rollout undo · helm rollback) 손님부터 살린다
 
-!!! diary "오늘의 배움일기"
-    - 로그 · 메트릭 · 트레이스를 각각 한 문장으로, DevMart 예와 함께
-    - 오늘 만든 PromQL 중 가장 쓸모 있다고 느낀 것 하나와 그 이유
-    - 5교시 장애에서 k6 · Grafana · events가 각각 알려 준 것
-    - 알림이 Firing이 되기까지 걸린 시간 — 줄여야 할까, 늘려야 할까?
-    - DevMart 주문의 SLO를 내가 정한다면 몇 %로? 근거는?
-    - 내일 전에 궁금한 것: 런북 · 대시보드 · 규칙을 모두 Git에 올렸다. 그렇다면 **클러스터 자체도** Git에 있는 대로 맞춰지게 할 수는 없을까?
-
 ## 참고 문헌
 
 - Beyer, B. 외 (2016). *Site Reliability Engineering*, Ch. 3 "Embracing Risk", Ch. 4 "Service Level Objectives". O'Reilly.

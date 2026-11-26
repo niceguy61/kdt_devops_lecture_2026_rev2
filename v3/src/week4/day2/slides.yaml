@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "Grafana 대시보드"]
       - ["5교시", "5", "k6 부하 테스트"]
       - ["6교시", "6", "알림"]
-      - ["7교시", "7", "관찰 런북과 SLO + 배움일기"]
+      - ["7교시", "7", "관찰 런북과 SLO"]
+      - ["8교시", "8", "로그 모으기 — Loki"]
     notes: "Docker 메모리 6GB 이상 권장. 4GB면 podinfo-canary를 지운다."
 
   # 1교시
@@ -190,6 +191,72 @@ slides:
     callout_color: teal
     notes: "런북 조건: 알림 이름 = 파일 이름, 명령과 판단 기준, 되돌리는 법, 도움을 부를 시점, 장애 후 고친다. 최근 변경을 먼저 의심 — 되돌려서 손님부터. ~/devops-lab/runbooks/ → PR → runbook_url. 학술: SRE 3 · 4장, Hidalgo 2020. 트렌드: Grafana Assistant — 좋은 라벨 · 알림 · 런북이 먼저."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "로그 모으기 — Loki"
+    goals: ["kubectl logs의 세 한계", "Loki는 라벨만 색인", "LogQL — 고르고 · 거르고 · 풀고 · 세기", "요청 하나를 여러 서비스에 걸쳐"]
+    notes: "세 기둥 중 비어 있던 로그. Pod가 지워지면 사라지고, 하나씩 보고, 집계를 못 한다."
+
+  - type: compare
+    title: "Loki는 무엇이 다른가"
+    left: ["전통적 로그 검색", ["본문의 모든 단어를 색인", "빠르지만 색인이 크고 비싸다", "모든 단어로 찾아보기가 있는 도서관"]]
+    right: ["Loki", ["라벨만 색인 — Prometheus와 같은 라벨", "본문은 압축 덩어리 — 싸다", "서가 번호로 좁힌 뒤 훑는다"]]
+
+  - type: code
+    title: "실습 15 · Loki + Alloy"
+    shell: "bash"
+    code: |
+      helm install loki grafana/loki --version 7.7.0 -n monitoring -f monitoring/loki-values.yaml
+      helm install alloy grafana/alloy --version 1.16.0 -n monitoring -f monitoring/alloy-values.yaml
+      # Grafana 데이터 소스도 ConfigMap으로 (label grafana_datasource: "1")
+    out: |2
+      alloy-6b9f…-k2x8p   2/2   Running
+      loki-0              2/2   Running
+    points:
+      - ["SingleBinary", "Pod 하나 + 로컬 디스크 (운영은 S3)"]
+      - ["Alloy", "apiserver로 로그를 읽어 라벨 네 개만"]
+      - ["라벨은 적게", "요청 ID를 라벨로 하면 안 된다"]
+
+  - type: table
+    title: "실습 16 · LogQL 한 단계씩"
+    head: ["단계", "쿼리"]
+    rows:
+      - ["고르기", "{namespace=\"devmart\", app=\"order-api\"}"]
+      - ["거르기", "… |= \"order_saved\"   (!=, |~ 정규식)"]
+      - ["풀기", "… | json | event=\"order_saved\" | total_price > 50000"]
+      - ["세기", "sum by (app) (count_over_time({namespace=\"devmart\"} | json | event=~\".*error.*\" [1m]))"]
+    colw: [1.8, 10.3]
+    mono_col: 1
+
+  - type: code
+    title: "실습 17 · 요청 하나를 한 화면에"
+    shell: "logql"
+    code: |
+      {namespace="devmart"} |= "<RID>"
+    out: |2
+      order-api     order_received → order_saved → order_queued
+      catalog-api   get_product
+      order-worker  order_processing → order_completed
+    points:
+      - ["3주차 5일차", "kubectl logs | grep $RID를 서비스마다"]
+      - ["오늘", "한 쿼리 · Pod가 지워져도 남는다"]
+      - ["알림 vs 로그", "무언가 잘못됐다 vs 무엇이, 어떤 요청에서"]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["Dapper (Sigelman 외, 2010)", ["요청마다 추적 ID", "수천 서비스를 지나는 길을 잇는다", "→ X-Request-ID · 오늘의 |= RID"]]
+    right: ["수집기는 하나로", ["Promtail 지원 종료 → Alloy", "OpenTelemetry · OTLP로 보내고", "저장소는 골라 쓴다"]]
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "Loki가 저장 비용이 싼 이유는?"
+      - "|= \"error\" 와 | json | event=\"catalog_error\"의 차이는?"
+      - "요청 ID를 라벨로 붙이면 안 되는 이유는?"
+      - "사라진 옛 Pod의 로그는 어디서?"
+    answers: "1) 라벨만 색인  2) 글자 포함 vs 칸이 정확히 같은 줄  3) 높은 카디널리티  4) Loki"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -199,5 +266,6 @@ slides:
       - ["4교시", "코드로 관리하는 DevMart 대시보드"]
       - ["5교시", "k6 thresholds · 부하 중 장애를 세 곳에서"]
       - ["6~7교시", "증상 기반 알림 · Watchdog · SLO 99.5% · 런북 PR"]
+      - ["8교시", "로그는 모은다 — Loki는 라벨만 색인, LogQL로 고르고·거르고·풀고·세고, 요청 ID로 여러 서비스를 한 화면에"]
     diary: "배움일기 — 세 기둥 한 문장씩 · 가장 쓸모 있는 PromQL · k6 · Grafana · events가 각각 알려 준 것 · Firing까지 걸린 시간 · 내가 정할 SLO · 클러스터 자체도 Git대로 맞출 수 없을까?"
     notes: "지우지 않는다. 내일: GitOps — Argo CD."

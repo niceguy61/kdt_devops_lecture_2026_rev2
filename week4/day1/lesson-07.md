@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 7/8교시</sub>
 
 # 7교시 · 장애 분석
 
@@ -190,7 +190,7 @@ for p in / /api/products /api/orders; do printf '%-15s ' $p; curl -s -o /dev/nul
 > [!WARNING]
 > **오늘 만든 것은 지우지 않는다**
 >
-> Envoy Gateway · Gateway · 라우트 · podinfo 두 릴리스는 **내일 그대로** 씁니다. 내일(Observability)은 이 Gateway를 지나는 요청을 숫자와 그래프로 봅니다. 클러스터 '5분 복구' 순서(3주차 5일차 7교시)에 오늘 것을 덧붙여 적어 두세요 — `helm install eg …` → `kubectl apply -f gateway/…` 순서입니다.
+> Envoy Gateway · Gateway · 라우트 · podinfo 두 릴리스는 **내일 그대로** 씁니다. 내일(Observability)은 이 Gateway를 지나는 요청을 숫자와 그래프로 봅니다. 클러스터 '5분 복구' 순서(3주차 5일차 8교시)에 오늘 것을 덧붙여 적어 두세요 — `helm install eg …` → `kubectl apply -f gateway/…` 순서입니다.
 
 > **🎓 학술 노트 — 조용한 실패와 '관찰 가능한 실패'**
 >
@@ -218,16 +218,6 @@ for p in / /api/products /api/orders; do printf '%-15s ' $p; curl -s -o /dev/nul
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - Helm을 친구에게 `apt`나 앱 스토어에 빗대어 한 문단으로
-> - `helm rollback`과 `kubectl rollout undo`의 차이를 오늘 실제 상황으로
-> - ingress-nginx 은퇴에서 가장 인상적이었던 점 — 기술 때문인가, 사람(유지보수) 때문인가
-> - GatewayClass · Gateway · HTTPRoute를 회사의 세 사람에게 나눠 준다면 누구에게 무엇을
-> - 오늘 장애 넷 중 응답 코드만 봤다면 놓쳤을 것과 그 이유
-> - 내일 전에 궁금한 것: 오늘 50번 요청 중 카나리가 9번이었다. 하루 100만 번이라면 누가 세고, 오류가 늘었는지는 어떻게 알까?
-
 ## 참고 문헌
 
 - Gateway API. *HTTPRoute — Status* · *ReferenceGrant* · *Troubleshooting*. gateway-api.sigs.k8s.io
@@ -239,4 +229,4 @@ for p in / /api/products /api/orders; do printf '%-15s ' $p; curl -s -o /dev/nul
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · HTTPRoute — 경로 · Host · 가중치](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [4주차 2일차 목차](../day2/README.md) ➡️ |
+| ⬅️ [6교시 · HTTPRoute — 경로 · Host · 가중치](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [8교시 · HTTPS — cert-manager와 TLS Gateway](lesson-08.md) ➡️ |

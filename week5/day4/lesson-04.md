@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 4/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 4/8교시</sub>
 
 # 4교시 · 플랫폼 올리기
 
@@ -136,7 +136,7 @@ sleep 120; curl -s -o /dev/null -w '%{http_code}\n' http://$NLB/
 > [!WARNING]
 > **이 NLB는 Terraform 장부에 없다**
 >
-> NLB는 **LBC가** 만들었으므로 `terraform state list`에 나오지 않습니다. 이것을 지우지 않고 `terraform destroy`하면, NLB가 public 서브넷을 붙잡고 있어 VPC 삭제가 **실패**하거나 NLB만 남아 계속 과금됩니다. 7교시에 **Kubernetes 쪽부터** 지우는 이유입니다.
+> NLB는 **LBC가** 만들었으므로 `terraform state list`에 나오지 않습니다. 이것을 지우지 않고 `terraform destroy`하면, NLB가 public 서브넷을 붙잡고 있어 VPC 삭제가 **실패**하거나 NLB만 남아 계속 과금됩니다. 8교시에 **Kubernetes 쪽부터** 지우는 이유입니다.
 
 > **❓ 오해 — Kubernetes Service 'LoadBalancer'면 어디서나 똑같다**
 >

@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 3/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 3/8교시</sub>
 
 # 3교시 · mTLS 확인과 Kiali
 

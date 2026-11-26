@@ -1,146 +1,234 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 7/8교시</sub>
 
-# 7교시 · 지우는 순서 + 비용 점검
+# 7교시 · CloudWatch — 지표 · 알람 · 대시보드로 서버 무리 보기
 
 > [!NOTE]
 > **이번 시간에 할 일**
 >
-> - 오늘 만든 것을 **의존 순서대로** 지웁니다.
-> - 지우는 순서가 왜 있는지 그림으로 이해합니다.
-> - 남은 것과 오늘의 비용을 확인합니다.
-> - 내일(Terraform)이 왜 필요한지 몸으로 느낍니다.
+> - AWS가 **설치 없이** 모아 두는 지표(ALB · 대상 그룹 · EC2 · ASG)를 CLI로 꺼내 봅니다.
+> - "건강하지 않은 서버가 생기면 **메일**로 알려라" 알람을 만들고, 6교시의 '앱만 죽었을 때'를 다시 일으켜 **실제로 울려** 봅니다.
+> - 지표 네 개를 담은 **대시보드**를 코드(JSON)로 만듭니다.
+> - 4주차의 Prometheus · Grafana · Alertmanager가 AWS에서는 무엇인지 짝을 맞춥니다.
 
-## 무엇이 무엇에 기대고 있나
+> [!IMPORTANT]
+> **4주차 2일차를 클라우드에서**
+>
+> kind에서는 Prometheus를 **직접 설치**해서 지표를 긁었습니다. AWS의 관리형 서비스(ALB · EC2 · ASG)는 **스스로 지표를 CloudWatch에 보냅니다.** 우리가 할 일은 무엇을 볼지, 언제 깨울지를 정하는 것뿐입니다.
+>
+> | 4주차 (kind) | AWS |
+> |---|---|
+> | Prometheus — 지표 저장 · PromQL | **CloudWatch 지표** — 네임스페이스 · 차원 · 통계 |
+> | Alertmanager — 규칙 → 사람에게 | **CloudWatch 알람** → **SNS** → 메일 · 슬랙 |
+> | Grafana — 대시보드 | **CloudWatch 대시보드** (Grafana도 연결 가능) |
+> | Loki — 로그 | **CloudWatch Logs** (에이전트가 보냄 — 내일 · 4일차) |
 
-| 자원 | 기대고 있는 것 | 먼저 지워야 할 것 |
-|---|---|---|
-| Auto Scaling 그룹 | 시작 템플릿, 대상 그룹, 서브넷 | — (먼저 지운다, 인스턴스도 함께) |
-| ALB | 서브넷, web-sg | 리스너(함께 지워짐) |
-| 대상 그룹 | VPC | ALB 리스너 · ASG 연결 |
-| 시작 템플릿 | 역할 · 보안 그룹 | ASG |
-| S3 버킷 | — | **안의 객체** (비어 있어야 지워진다) |
-| (남김) VPC · 보안 그룹 · 역할 | | 무료 · 내일 쓴다 |
+## 실습 15 · 지표 꺼내 보기
 
-## 실습 15 · 지우기
-
-```bash
-cat ~/devops-lab/aws/w5d2/cleanup-checklist.md
-```
-
-콘솔로 해도 되고, CLI로 같은 순서를 밟아도 됩니다. 오늘은 **CLI**로 해 봅니다 — 명령이 곧 기록입니다.
+6교시의 손님 흉내 반복문이 다른 터미널에서 아직 돌고 있으면 그대로 둡니다(요청 수가 쌓입니다). 멈췄다면 다시 켭니다. 서버는 둘로 맞춥니다.
 
 ```bash
-# 1. Auto Scaling 그룹 — 인스턴스까지 강제 종료
-aws autoscaling delete-auto-scaling-group --auto-scaling-group-name devmart-asg --force-delete
-# 2. ALB와 대상 그룹
-ALB=$(aws elbv2 describe-load-balancers --names devmart-alb --query 'LoadBalancers[0].LoadBalancerArn' --output text)
-aws elbv2 delete-load-balancer --load-balancer-arn $ALB
-aws elbv2 wait load-balancers-deleted --load-balancer-arns $ALB
-TG=$(aws elbv2 describe-target-groups --names devmart-tg --query 'TargetGroups[0].TargetGroupArn' --output text)
-aws elbv2 delete-target-group --target-group-arn $TG
-# 3. 시작 템플릿
-aws ec2 delete-launch-template --launch-template-name devmart-lt --query 'LaunchTemplate.LaunchTemplateName'
-# 4. S3 — 비우고 지운다
-B=devmart-assets-$(gh api user -q .login | tr 'A-Z' 'a-z')
-aws s3 rb s3://$B --force
+aws autoscaling set-desired-capacity --auto-scaling-group-name devmart-asg --desired-capacity 2
+ALB_ARN=$(aws elbv2 describe-load-balancers --names devmart-alb --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+TG_ARN=$(aws elbv2 describe-target-groups --names devmart-tg --query 'TargetGroups[0].TargetGroupArn' --output text)
+LB_DIM=${ALB_ARN#*:loadbalancer/}          # app/devmart-alb/1a2b3c…
+TG_DIM=${TG_ARN##*:}                       # targetgroup/devmart-tg/4d5e6f…
+echo $LB_DIM $TG_DIM
 ```
 
-> **🟢 확인: 확인**
+- 지표는 **네임스페이스**(`AWS/ApplicationELB`) · **이름**(`RequestCount`) · **차원**(어느 ALB, 어느 대상 그룹)으로 찾습니다. 4주차 PromQL의 `{label="…"}`이 차원입니다
+- `${ALB_ARN#*:loadbalancer/}` : 3주차 2일차 8교시의 `${IMAGE%:*}`와 같은 셸 잘라 내기 — ARN에서 **차원 값**만 남긴다
+
+```bash
+aws cloudwatch get-metric-statistics --namespace AWS/ApplicationELB --metric-name RequestCount \
+  --dimensions Name=LoadBalancer,Value=$LB_DIM \
+  --start-time "$(date -u -d '-30 minutes' +%FT%TZ)" --end-time "$(date -u +%FT%TZ)" \
+  --period 300 --statistics Sum --query 'sort_by(Datapoints,&Timestamp)[].[Timestamp,Sum]' --output text
+aws cloudwatch get-metric-statistics --namespace AWS/ApplicationELB --metric-name HealthyHostCount \
+  --dimensions Name=LoadBalancer,Value=$LB_DIM Name=TargetGroup,Value=$TG_DIM \
+  --start-time "$(date -u -d '-10 minutes' +%FT%TZ)" --end-time "$(date -u +%FT%TZ)" \
+  --period 60 --statistics Minimum --query 'sort_by(Datapoints,&Timestamp)[-1].Minimum'
+```
+
+Mac은 `date -u -v-30M +%FT%TZ`처럼 바꿉니다.
+
+> **🟢 확인: 보이는 것 (숫자는 다름)**
 >
 > ```text
-> "devmart-lt"
-> delete: s3://devmart-assets-niceguy61/notice.txt
-> remove_bucket: devmart-assets-niceguy61
+> 2026-12-01T05:35:00+00:00  288.0
+> 2026-12-01T05:40:00+00:00  300.0
+> 2026-12-01T05:45:00+00:00  297.0
+> 2.0
 > ```
-> 대상 그룹 삭제에서 `ResourceInUse`가 나면 ALB가 아직 지워지는 중입니다 — `wait`가 끝난 뒤 다시 합니다.
+> 5분마다 약 300건 — 손님 흉내가 1초에 한 번이니 맞습니다. 건강한 서버 2대. **아무것도 설치하지 않았는데** 이미 모이고 있었습니다.
 
-몇 분 뒤 인스턴스가 모두 종료되었는지 확인합니다.
+| 지표 (AWS/ApplicationELB) | 4주차에 무엇과 같나 |
+|---|---|
+| `RequestCount` | `rate(envoy_…_rq_total)` — 요청 수 |
+| `HTTPCode_Target_5XX_Count` | 5xx 비율의 분자 — 오류 |
+| `TargetResponseTime` (p95) | 지연 분위수 — 4주차 2일차의 p95 · p99 |
+| `HealthyHostCount` · `UnHealthyHostCount` | 준비된 Pod 수(readiness) |
+
+요청 수 · 오류 · 지연 — 4주차의 **RED**가 그대로 있습니다.
+
+## 실습 16 · 알람 — 메일로 깨우기
+
+### 단계 1 — 받을 곳(SNS 주제)
 
 ```bash
-sleep 120
-aws ec2 describe-instances --filters Name=instance-state-name,Values=pending,running,stopping,stopped \
-  --query 'Reservations[].Instances[].[InstanceId,Tags[?Key==`Name`]|[0].Value]' --output text
-~/devops-lab/aws/w5d1/check-account.sh | tail -5
+TOPIC=$(aws sns create-topic --name devmart-alerts --tags Key=Project,Value=devmart Key=Env,Value=lab \
+  --query TopicArn --output text)
+aws sns subscribe --topic-arn $TOPIC --protocol email --notification-endpoint 내메일@example.com
 ```
 
-> **🟢 확인: 확인**
+메일함에 **AWS Notification - Subscription Confirmation**이 옵니다. 메일의 **Confirm subscription**을 누릅니다.
+
+```bash
+aws sns list-subscriptions-by-topic --topic-arn $TOPIC --query 'Subscriptions[].SubscriptionArn' --output text
+```
+
+`PendingConfirmation`이 아니라 ARN이 보이면 확인된 것입니다.
+
+### 단계 2 — 알람 만들기
+
+```bash
+aws cloudwatch put-metric-alarm --alarm-name devmart-unhealthy-hosts \
+  --alarm-description "DevMart 대상 그룹에 건강하지 않은 서버가 있다 — 6교시 런북 참고" \
+  --namespace AWS/ApplicationELB --metric-name UnHealthyHostCount \
+  --dimensions Name=LoadBalancer,Value=$LB_DIM Name=TargetGroup,Value=$TG_DIM \
+  --statistic Maximum --period 60 --evaluation-periods 1 \
+  --threshold 1 --comparison-operator GreaterThanOrEqualToThreshold \
+  --treat-missing-data notBreaching \
+  --alarm-actions $TOPIC --ok-actions $TOPIC \
+  --tags Key=Project,Value=devmart Key=Env,Value=lab
+aws cloudwatch describe-alarms --alarm-names devmart-unhealthy-hosts --query 'MetricAlarms[0].StateValue'
+```
+
+| 옵션 | 뜻 | 4주차 2일차 6교시 |
+|---|---|---|
+| `--period 60 --evaluation-periods 1` | 1분 동안의 값을 1번 보고 판단 | `for: 1m` |
+| `--threshold 1 … GreaterThanOrEqual` | 1대라도 아프면 | `expr: … >= 1` |
+| `--treat-missing-data notBreaching` | 데이터가 없으면 정상으로 본다 | — |
+| `--ok-actions` | 회복했을 때도 알린다 | `send_resolved: true` |
+| `--alarm-description` | 메일에 실린다 — **무엇을 할지**를 적는다 | 런북 링크 |
+
+> **🟢 확인: 처음 상태**
 >
-> 첫 명령은 **아무것도 출력하지 않습니다**(종료된 것만 남았다). `check-account.sh`의 "돈이 나가는 것" 세 줄도 비어 있습니다.
+> ```text
+> "INSUFFICIENT_DATA"
+> ```
+> 1~2분 뒤 `OK`가 됩니다.
+
+### 단계 3 — 울려 보기
+
+6교시 실습 13을 **CLI로** 다시 합니다. 이번에는 Session Manager 화면 대신 **Run Command**로 서버 한 대에 명령을 보냅니다.
+
+```bash
+ONE=$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names devmart-asg \
+  --query 'AutoScalingGroups[0].Instances[0].InstanceId' --output text)
+aws ssm send-command --instance-ids $ONE --document-name AWS-RunShellScript \
+  --parameters 'commands=["docker update --restart=no podinfo","docker stop podinfo"]' \
+  --query 'Command.CommandId' --output text
+for i in $(seq 10); do date +%T; aws cloudwatch describe-alarms --alarm-names devmart-unhealthy-hosts \
+  --query 'MetricAlarms[0].StateValue' --output text; sleep 30; done
+```
+
+> **🟢 확인: 이렇게 바뀝니다**
+>
+> ```text
+> 06:02:10  OK
+> 06:02:40  OK
+> 06:03:10  ALARM          ← 메일 도착: "ALARM: devmart-unhealthy-hosts …"
+> …
+> 06:06:40  OK             ← 그룹이 서버를 교체 · 회복 메일 도착
+> ```
+> 메일 본문에 `--alarm-description`의 문장이 실려 옵니다. **새벽 3시에 이 메일을 받은 사람**이 무엇을 해야 할지 알 수 있게 쓰는 것이 4주차 2일차 7교시의 런북 원칙입니다.
+
+> [!TIP]
+> **Run Command가 Session Manager보다 나은 점**
+>
+> 한 번에 **여러 서버**(태그로 고르기)에 같은 명령을 보내고, 누가 무엇을 보냈는지가 **CloudTrail과 SSM 기록**에 남습니다(어제 8교시). SSH 열쇠도 22번 포트도 필요 없습니다.
+
+## 실습 17 · 대시보드를 코드로
+
+```bash
+mkdir -p ~/devops-lab/aws/w5d2 && cd ~/devops-lab/aws/w5d2
+cat > dashboard.json <<EOF
+{
+  "widgets": [
+    {"type":"metric","x":0,"y":0,"width":12,"height":6,"properties":{"title":"요청 수 (5분 합)","region":"ap-northeast-2","stat":"Sum","period":300,
+      "metrics":[["AWS/ApplicationELB","RequestCount","LoadBalancer","$LB_DIM"]]}},
+    {"type":"metric","x":12,"y":0,"width":12,"height":6,"properties":{"title":"5xx (대상)","region":"ap-northeast-2","stat":"Sum","period":60,
+      "metrics":[["AWS/ApplicationELB","HTTPCode_Target_5XX_Count","LoadBalancer","$LB_DIM"]]}},
+    {"type":"metric","x":0,"y":6,"width":12,"height":6,"properties":{"title":"응답 시간 p95","region":"ap-northeast-2","stat":"p95","period":60,
+      "metrics":[["AWS/ApplicationELB","TargetResponseTime","LoadBalancer","$LB_DIM"]]}},
+    {"type":"metric","x":12,"y":6,"width":12,"height":6,"properties":{"title":"건강한 / 아픈 서버","region":"ap-northeast-2","stat":"Minimum","period":60,
+      "metrics":[["AWS/ApplicationELB","HealthyHostCount","LoadBalancer","$LB_DIM","TargetGroup","$TG_DIM"],
+                 ["AWS/ApplicationELB","UnHealthyHostCount","LoadBalancer","$LB_DIM","TargetGroup","$TG_DIM"]]}}
+  ]
+}
+EOF
+aws cloudwatch put-dashboard --dashboard-name devmart --dashboard-body file://dashboard.json
+```
+
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> {
+>     "DashboardValidationMessages": []
+> }
+> ```
+> 콘솔 **CloudWatch → 대시보드 → devmart**에서 네 그래프가 보입니다. 방금의 알람 때 아픈 서버 그래프가 1로 솟았다 내려온 것이 보입니다. 4주차 2일차 4교시처럼 **대시보드도 파일**로 두면, 내일 Terraform으로 옮기기 쉽습니다.
 
 > [!WARNING]
-> **종료됨(terminated)은 잠시 보인다**
+> **무료 한도 안에서**
 >
-> 종료된 인스턴스는 콘솔 목록에 **한 시간쯤** 회색으로 남았다가 사라집니다. 요금은 나가지 않습니다. 반대로 **중지됨(stopped)**은 인스턴스 요금은 멈추지만 디스크(EBS) 요금은 계속 나갑니다 — 실습 서버는 '중지'가 아니라 '**종료**'합니다.
+> 대시보드는 계정당 3개, 표준 알람은 10개, SNS 메일은 월 1,000건까지 무료입니다(프리 플랜 기준). 오늘 것은 모두 그 안입니다. 그래도 8교시에 **함께 지웁니다** — 알람이 지워진 대상 그룹을 계속 보며 `INSUFFICIENT_DATA`로 남는 것을 막으려고.
 
-## 오늘의 비용
-
-**결제 및 비용 관리 → Cost Explorer**(처음 켜면 데이터가 하루 뒤부터 보인다) 또는 **청구서**에서 오늘 날짜의 EC2 · ELB · VPC(공인 IPv4) 항목을 봅니다.
-
-| 오늘 쓴 것 | 대략 |
-|---|---|
-| EC2 t3.micro × 평균 2대 × 4시간 | $0.10 |
-| 공인 IPv4 × 평균 4개(EC2 2 + ALB 2) × 4시간 | $0.08 |
-| ALB × 4시간 + 사용량 | $0.10 |
-| S3 · 데이터 전송 | ≈ 0 |
-| 합계 | **약 $0.3** — 크레딧에서 |
-
-ALB도 AZ마다 **공인 IP**를 가지므로 공인 IPv4 요금이 붙습니다. 1일차 5교시 트렌드에서 말한 "공인 IP 줄이기"가 이렇게 숫자로 보입니다.
-
-## 오늘 클릭을 세어 보면
-
-| 만들기 | 지우기 |
-|---|---|
-| 역할 · 인스턴스 · 템플릿 · 그룹 · 대상 그룹 · ALB · 버킷 — 화면 열 개 남짓, 칸 백 개 가까이 | 순서를 알아야 하는 명령 여섯 줄 |
-| 내일 다시 만들려면 — **다시 전부** | 하나라도 빠뜨리면 — **계속 과금** |
-
-이 두 칸이 내일 Terraform의 동기입니다. 내일은 오늘의 VPC를 **코드 몇십 줄**로 만들고, `terraform destroy` **한 줄**로 순서까지 알아서 지웁니다.
-
-> **❓ 오해 — 콘솔에서 지우면 깔끔하다**
+> **🎓 학술 노트 — 무엇을 알람으로 만들 것인가**
 >
-> 콘솔은 화면마다 따로 지우므로, ALB가 만든 네트워크 인터페이스 · 남은 EBS 볼륨 · 해제 안 한 탄력적 IP · 다른 리전에 만든 것을 놓치기 쉽습니다. 그래서 7교시마다 **CLI로 다시 확인**합니다. 마지막 날에는 리소스 탐색기(Resource Explorer)로 **모든 리전**을 훑습니다.
-
-> **🎓 학술 노트 — 의존 그래프와 위상 정렬**
+> 구글 SRE의 **롭 이워쇽(Rob Ewaschuk)**은 「My Philosophy on Alerting」(2013, 이후 『Site Reliability Engineering』 6장)에서, 사람을 깨우는 알람은 **"사용자가 지금 아프다"는 증상**이어야 하고, 원인(CPU 높음 · 디스크 70%)이 아니어야 한다고 했습니다. 원인 알람은 사용자에게 아무 일이 없어도 울려서 **알람 피로**를 만들고, 결국 진짜 알람도 무시하게 만든다는 것입니다. 오늘 고른 `UnHealthyHostCount`는 "손님이 아픈 서버로 갈 수 있다"에 가까운 증상이고, 더 좋은 알람은 대시보드의 **5xx 비율 · p95 지연**처럼 손님이 직접 느끼는 숫자입니다.
 >
-> "무엇을 먼저 지워야 하나"는 자원들 사이의 **의존 그래프**를 **위상 정렬**(topological sort, Kahn 1962)하는 문제입니다. 만들 때는 정렬 순서대로, 지울 때는 그 **역순**으로 하면 됩니다. Terraform은 코드에서 이 그래프를 자동으로 만들고(`terraform graph`) 정렬해 실행합니다 — 내일 직접 그래프를 그려 봅니다.
+> - Beyer, B., Jones, C., Petoff, J., & Murphy, N. R. (Eds.). (2016). *Site Reliability Engineering*. O'Reilly. — 6장 Monitoring Distributed Systems (Ewaschuk).
 
-> **📈 트렌드 2026 — 남은 자원 찾기의 자동화**
+> **📈 트렌드 — 관리형 Prometheus · Grafana와 OpenTelemetry**
 >
-> 클라우드 비용 사고의 큰 부분이 '잊힌 자원'이라, AWS는 **Resource Explorer**(계정 · 리전 전체 검색), **Cost Optimization Hub**(쓰지 않는 자원 추천)를 넓혔고, 실습 · 데모 환경에는 **만료 태그**(예: `expires=2026-12-01`)를 붙여 스케줄러가 자동으로 지우는 방식이 흔해졌습니다. 내일 Terraform으로 만드는 모든 자원에는 `Project` · `Owner` 태그가 자동으로 붙습니다.
+> CloudWatch만 쓰는 회사도 있지만, 4주차의 PromQL · Grafana 대시보드를 그대로 가져가려는 회사가 많습니다. AWS는 **Amazon Managed Service for Prometheus**와 **Amazon Managed Grafana**를 제공하고, CloudWatch 자체도 **OpenTelemetry**로 지표 · 로그 · 트레이스를 받는 쪽으로 넓히고 있습니다. 4일차의 EKS에서는 metrics-server와 함께 이 선택지를 다시 봅니다. 도구 이름은 달라도 **RED · 증상 알람 · 대시보드는 파일로**라는 원칙은 그대로입니다.
+
+## 정리
+
+- AWS 관리형 서비스는 지표를 **스스로** CloudWatch에 보냅니다. 네임스페이스 · 이름 · **차원**으로 찾습니다.
+- **알람 → SNS → 메일**: 기간 · 횟수 · 임계값 · 빈 데이터 처리 · 회복 알림. 설명에는 **할 일**을 적습니다.
+- Run Command로 서버에 명령을 보내면 SSH 없이 **기록이 남습니다**.
+- 대시보드도 **JSON 파일**로. 알람은 원인보다 **증상**으로.
 
 > **✅ 확인 문제**
 >
-> 1. Auto Scaling 그룹을 먼저 지우는 이유는?
-> 2. S3 버킷이 바로 지워지지 않는 이유와 `--force`가 하는 일은?
-> 3. 실습 서버를 '중지'가 아니라 '종료'하는 이유는?
-> 4. ALB도 공인 IPv4 요금이 붙는 이유는?
+> 1. CloudWatch 지표에서 4주차 PromQL의 라벨에 해당하는 것은?
+> 2. `--treat-missing-data notBreaching`이 없으면 어떤 일이 생길 수 있나요?
+> 3. 알람의 `--alarm-description`에는 무엇을 적어야 하나요?
+> 4. "CPU 80% 넘으면 깨워라"보다 "5xx 비율 1% 넘으면 깨워라"가 나은 이유는?
+> 5. 대상 그룹을 지운 뒤 알람을 남겨 두면 어떻게 되나요?
 >
 > <details><summary>정답</summary>
 >
-> 1. 그룹이 인스턴스를 다시 만들고, 템플릿 · 대상 그룹을 붙잡고 있기 때문
-> 2. 버킷이 비어 있어야 지워진다. --force는 안의 객체를 먼저 지운다
-> 3. 중지는 디스크(EBS) 요금이 계속 나가고, 종료는 디스크까지 지운다
-> 4. 인터넷 경계 ALB는 AZ마다 공인 IPv4 주소를 갖기 때문
+> 1. 차원(Dimensions) — 어느 ALB, 어느 대상 그룹
+> 2. 서버가 없거나 지표가 끊겼을 때 판단이 흔들려, 상황에 따라 엉뚱하게 울리거나 `INSUFFICIENT_DATA`에 머문다
+> 3. 받은 사람이 무엇을 해야 하는지 — 런북 링크나 첫 확인 명령
+> 4. 손님이 실제로 아픈 증상이라서 — CPU는 높아도 손님이 멀쩡할 수 있어 알람 피로를 만든다
+> 5. 볼 지표가 사라져 `INSUFFICIENT_DATA`로 남고, 쓸모없는 알람이 쌓인다
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - 오늘 만든 것들을 3 · 4주차 Kubernetes의 무엇과 짝지었나 (최소 넷)
-> - Session Manager로 들어간 서버에서 본 신원(assumed-role/…)과, 그것이 키 없이 S3를 읽은 원리
-> - 서버를 종료했을 때: 502가 몇 번, 새 서버까지 몇 분? Pod와 비교하면?
-> - 앱만 죽은 서버를 바꾼 것은 무엇이었나 — 그것을 켜지 않았다면?
-> - 오늘 지운 순서와, 하나를 빠뜨렸다면 무엇이 계속 과금되었을지
-> - 내일 전에 궁금한 것: 오늘 클릭 백 번을 **코드로 적어 두고**, 한 줄로 만들고 한 줄로 지울 수는 없을까? 그 코드가 실제 계정과 **어긋나면** 어떻게 알까?
-
 ## 참고 문헌
 
-- AWS Docs. *Delete your Auto Scaling infrastructure*, *Delete an Application Load Balancer*, *Deleting a bucket*. docs.aws.amazon.com
-- AWS Docs. *AWS Resource Explorer*, *Cost Optimization Hub*. docs.aws.amazon.com
-- Kahn, A. B. (1962). *Topological sorting of large networks*. Communications of the ACM 5(11).
+- Beyer, B., Jones, C., Petoff, J., & Murphy, N. R. (Eds.). (2016). *Site Reliability Engineering*. O'Reilly. — Ch. 6.
+- Ewaschuk, R. (2013). *My Philosophy on Alerting*. Google.
+- AWS Docs. *CloudWatch metrics for your Application Load Balancer*; *Using Amazon CloudWatch alarms*; *put-dashboard — Dashboard body structure*. docs.aws.amazon.com/AmazonCloudWatch
+- AWS Docs. *Amazon SNS — Email notifications*; *AWS Systems Manager Run Command*. docs.aws.amazon.com
+- AWS. *Amazon CloudWatch pricing — Free tier*. aws.amazon.com/cloudwatch/pricing
 
 ---
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · 장애와 교체 · 늘리기](lesson-06.md) | [⬆️ 2일차 목차](README.md) | [5주차 3일차 목차](../day3/README.md) ➡️ |
+| ⬅️ [6교시 · 장애와 교체 · 늘리기](lesson-06.md) | [⬆️ 2일차 목차](README.md) | [8교시 · 지우는 순서 + 비용 점검](lesson-08.md) ➡️ |

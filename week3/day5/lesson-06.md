@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 6/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 6/8교시</sub>
 
 # 6교시 · 장애 연습
 
@@ -248,4 +248,4 @@ curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/api/products
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [5교시 · DevMart MSA를 Kubernetes에](lesson-05.md) | [⬆️ 5일차 목차](README.md) | [7교시 · 3주차 회고](lesson-07.md) ➡️ |
+| ⬅️ [5교시 · DevMart MSA를 Kubernetes에](lesson-05.md) | [⬆️ 5일차 목차](README.md) | [7교시 · HPA — 부하에 따라 늘어나고 줄어들기](lesson-07.md) ➡️ |

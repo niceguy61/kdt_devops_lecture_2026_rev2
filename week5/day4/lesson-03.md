@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 3/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 3/8교시</sub>
 
 # 3교시 · 기다리는 동안 — 신원 두 방향 · kubeconfig
 

@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md) › 6/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md) › 6/8교시</sub>
 
 # 6교시 · 충돌 해결
 
@@ -271,4 +271,4 @@ git log --oneline -3
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [5교시 · Pull Request와 코드 리뷰](lesson-05.md) | [⬆️ 5일차 목차](README.md) | [7교시 · 2주차 회고와 정리](lesson-07.md) ➡️ |
+| ⬅️ [5교시 · Pull Request와 코드 리뷰](lesson-05.md) | [⬆️ 5일차 목차](README.md) | [7교시 · Compose 심화 — 덧씌우기 파일과 환경별 설정](lesson-07.md) ➡️ |

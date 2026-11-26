@@ -33,7 +33,9 @@ hours: 8
 | 5교시 | 장단점과 선택지 | "우리 팀에 Kubernetes가 필요한가" 판단표 |
 | 6교시 | kubectl과 kind 설치 | `kubectl version` · `kind version` |
 | 7교시 | 첫 클러스터 — 둘러보고, 지우고, 끄기 | 노드 3대 클러스터 + 관찰 기록 |
-| 8교시 | 배움일기 | |
+| 8교시 | API 서버와 etcd 들여다보기 — 클러스터의 기억과 감시 | watch 흐름 관찰, etcd 속 Secret 확인 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -44,6 +46,7 @@ hours: 8
 5. [장단점과 선택지](lesson-05.md)
 6. [kubectl과 kind 설치](lesson-06.md)
 7. [첫 클러스터](lesson-07.md)
+8. [API 서버와 etcd 들여다보기](lesson-08.md)
 
 !!! key "오늘 실습 전에 확인할 것"
     - **Docker Desktop이 켜져 있어야** 합니다. 메모리는 **4GB 이상**을 권합니다(노드 세 대 + 내일 DevMart). Docker Desktop → Settings → Resources에서 확인합니다. WSL2 연동을 쓰는 Windows는 WSL이 쓰는 메모리 한도(기본: PC 메모리의 절반)가 적용됩니다.

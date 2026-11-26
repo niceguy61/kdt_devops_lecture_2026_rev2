@@ -107,7 +107,7 @@ curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/
     AGE가 몇 초입니다 — **새로 만들어졌습니다.** 3주차 4일차에 Pod를 지우면 ReplicaSet이 다시 만들던 것과 같은 일이, 이제 **Deployment 단위**에서 일어납니다.
 
 !!! warn "selfHeal과 HPA가 싸운다"
-    4주차 4일차 이후 HPA(자동 늘리기)를 붙이면, HPA가 replicas를 5로 바꾸고 → selfHeal이 Git의 2로 되돌리고 → HPA가 다시 5로… 싸움이 납니다. 해결책은 둘입니다. ① Git의 Deployment에서 `replicas` 줄을 **지운다**(HPA에게 맡긴다), ② Application에 `ignoreDifferences`로 `/spec/replicas`를 **비교에서 뺀다.** 어느 필드를 **누가 소유하나**를 정하는 문제입니다(3교시 학술 노트).
+    3주차 5일차 7교시의 HPA(자동 늘리기)를 붙이면, HPA가 replicas를 5로 바꾸고 → selfHeal이 Git의 2로 되돌리고 → HPA가 다시 5로… 싸움이 납니다. 해결책은 둘입니다. ① Git의 Deployment에서 `replicas` 줄을 **지운다**(HPA에게 맡긴다), ② Application에 `ignoreDifferences`로 `/spec/replicas`를 **비교에서 뺀다.** 어느 필드를 **누가 소유하나**를 정하는 문제입니다(3교시 학술 노트).
 
 ## 실습 15 · prune — 지운 것은 사라진다
 

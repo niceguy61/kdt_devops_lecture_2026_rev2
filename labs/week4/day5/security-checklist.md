@@ -4,6 +4,7 @@
 |---|---|---|---|
 | 코드 · 이미지 | 이미지 태그를 고정한다 (latest 금지) | | Kyverno disallow-latest-tag |
 | | 컨테이너가 root가 아니다 | | Kyverno 보고서 (Audit) |
+| | 이미지는 우리 CI가 서명한 것만 | | Kyverno verify-devmart-images (7교시) |
 | 클러스터 접근 | 사람은 devmart를 읽기만 | | `kubectl auth can-i --as` |
 | | 비밀 값은 Git에 없다 | | `grep -r password ~/devmart-deploy` |
 | | CI는 클러스터 열쇠가 없다 | | 3일차 구조 |

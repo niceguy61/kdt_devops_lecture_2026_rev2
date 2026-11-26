@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md) › 7/8교시</sub>
 
 # 7교시 · 설치 점검과 문제 해결
 
@@ -255,14 +255,6 @@ docker rnu hello-world
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - 오늘 설치하면서 막혔던 곳 하나와, 어떻게 풀었는지 (또는 아직 못 푼 것)
-> - hello-world 출력의 네 단계를 내 말로 한 줄씩 다시 써 보기
-> - 내 GitHub 저장소 주소를 적고, 커밋이 몇 개인지 세어 보기
-> - 내일 Docker 기본 시간에 꼭 알고 싶은 것 하나
-
 ## 참고 문헌
 
 - Docker. *docker run reference*, *Get started*. docs.docker.com
@@ -273,4 +265,4 @@ docker rnu hello-world
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · Docker Desktop 설치](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [2주차 2일차 목차](../day2/README.md) ➡️ |
+| ⬅️ [6교시 · Docker Desktop 설치](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [8교시 · 셸 다지기 — 파이프 · 리다이렉트 · 변수 · 첫 스크립트](lesson-08.md) ➡️ |

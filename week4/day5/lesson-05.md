@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 5/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 5/8교시</sub>
 
 # 5교시 · Kyverno 정책
 

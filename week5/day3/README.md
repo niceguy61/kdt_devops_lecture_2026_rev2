@@ -28,7 +28,9 @@
 | 5교시 | 원격 state와 잠금 | `devmart-tfstate-…` 버킷, 잠금 충돌 |
 | 6교시 | 모듈로 VPC | `devmart-tf` VPC, 콘솔 VPC 정리 |
 | 7교시 | GitHub Actions에서 plan (OIDC) | `devmart-infra` 저장소, PR의 plan 요약 |
-| 8교시 | 배움일기 | |
+| 8교시 | Terraform 품질 — fmt · validate · tflint · Trivy · 리뷰 | PR의 lint 잡 · plan 리뷰 질문 다섯 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -39,6 +41,7 @@
 5. [원격 state와 잠금](lesson-05.md)
 6. [모듈로 VPC](lesson-06.md)
 7. [GitHub Actions에서 plan (OIDC)](lesson-07.md)
+8. [Terraform 품질](lesson-08.md)
 
 > [!IMPORTANT]
 > **오늘 실습 전에 확인할 것**
@@ -52,4 +55,4 @@
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [7교시 · 지우는 순서 + 비용 점검](../day2/lesson-07.md) | [⬆️ 5주차 목차](../README.md) | [1교시 · 2일차 요약 + 코드로 인프라](lesson-01.md) ➡️ |
+| ⬅️ [8교시 · 지우는 순서 + 비용 점검](../day2/lesson-08.md) | [⬆️ 5주차 목차](../README.md) | [1교시 · 2일차 요약 + 코드로 인프라](lesson-01.md) ➡️ |

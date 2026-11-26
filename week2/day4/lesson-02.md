@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 2/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 2/8교시</sub>
 
 # 2교시 · 이름 있는 볼륨
 

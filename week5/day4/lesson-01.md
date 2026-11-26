@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 1/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 1/8교시</sub>
 
 # 1교시 · 3일차 요약 + EKS의 구조
 
@@ -81,7 +81,7 @@ gh repo view $ID/devmart-infra --json name -q .name
 > [!WARNING]
 > **지우는 시각을 먼저 정한다**
 >
-> 오늘 7교시 시작에 `cleanup.sh` → `terraform destroy`를 합니다. 노트북 배터리 · 네트워크가 끊길 일이 있으면 그 전에 지웁니다. **잊으면 하루 $7, 한 달 $200** — 크레딧을 다 씁니다.
+> 오늘 8교시 시작에 `cleanup.sh` → `terraform destroy`를 합니다. 노트북 배터리 · 네트워크가 끊길 일이 있으면 그 전에 지웁니다. **잊으면 하루 $7, 한 달 $200** — 크레딧을 다 씁니다.
 
 > **❓ 오해 — EKS를 쓰면 Kubernetes 운영이 필요 없다**
 >

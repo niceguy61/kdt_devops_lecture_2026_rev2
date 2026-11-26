@@ -122,11 +122,6 @@
         4. ALB (Application Load Balancer, L7)
         5. 제로 트러스트(Zero Trust)
 
-!!! diary "오늘의 배움일기"
-    - 오늘 배운 것 중 2주차 Docker 실습에서 바로 쓸 것 같은 한 가지 (예: 0.0.0.0과 127.0.0.1)
-    - 3교시의 에러 메시지 표(refused, timed out…)를 내 말로 한 줄씩 다시 써 보기
-    - 내일(현대 애플리케이션 구조) 수업 전에 궁금한 것 하나
-
 ## 참고 문헌
 
 - Ward, R., & Beyer, B. (2014). BeyondCorp: A new approach to enterprise security. *;login:*, 39(6).

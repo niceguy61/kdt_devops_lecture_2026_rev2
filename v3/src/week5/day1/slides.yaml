@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "AWS CLI와 aws login"]
       - ["5교시", "5", "VPC의 구성 요소"]
       - ["6교시", "6", "콘솔로 VPC 만들기"]
-      - ["7교시", "7", "보안 그룹 · NACL + 비용 점검 + 배움일기"]
+      - ["7교시", "7", "보안 그룹 · NACL + 비용 점검"]
+      - ["8교시", "8", "CloudTrail과 태그 전략"]
     notes: "본인 카드 · 휴대폰 · 인증 앱. 나만의 새 계정. 그날 만든 것은 그날 지운다."
 
   - type: section
@@ -155,6 +156,68 @@ slides:
     img: week5/day1/w5d1-sg-nacl.png
     notes: "web-sg: HTTP 80 from 0.0.0.0/0. app-sg: 9898 from web-sg (podinfo). 학술: 상태 저장 검사(FireWall-1 1994, Cheswick & Bellovin). 트렌드: Reachability Analyzer, PR 정책 검사."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "누가 무엇을 했나 — CloudTrail과 태그"
+    goals: ["모든 API 호출이 남는다", "이벤트 하나 읽기", "태그 규칙 넷", "태그로 찾고, 빠진 것 골라내기"]
+    notes: "콘솔 클릭도 API 호출이다(4교시). 사고 때 가장 먼저 여는 곳."
+
+  - type: code
+    title: "실습 16 · 오늘 한 일 되짚기"
+    shell: "bash"
+    code: |
+      aws cloudtrail lookup-events \
+        --lookup-attributes AttributeKey=Username,AttributeValue=devops-admin \
+        --query 'Events[?starts_with(EventName, `Create`)].[EventTime, EventName]' --output table
+    out: |2
+      07:47:55  CreateSecurityGroup
+      06:12:02  CreateSubnet
+      06:11:58  CreateVpc
+    points:
+      - ["마법사 클릭 몇 번", "API 호출 수십 개"]
+      - ["이벤트 기록", "90일 · 무료 · 관리 이벤트"]
+      - ["추적(Trail)", "실무 필수 — 잠긴 S3에"]
+
+  - type: table
+    title: "이벤트 하나에서 읽는 것"
+    head: ["칸", "묻는 것"]
+    rows:
+      - ["userIdentity.arn", "누가 — 사용자 · 역할 · 루트"]
+      - ["eventTime · sourceIPAddress", "언제 · 어디서"]
+      - ["userAgent", "콘솔 · CLI · Terraform"]
+      - ["errorCode", "AccessDenied가 줄줄이 → 권한을 더듬는 중"]
+      - ["requestParameters", "정확히 무엇을 — 어떤 포트를 누구에게"]
+    colw: [4.2, 7.9]
+    mono_col: 0
+
+  - type: table
+    title: "실습 17 · 이 과정의 태그 규칙 넷"
+    head: ["키", "값", "묻는 질문"]
+    rows:
+      - ["Project", "devmart", "어느 서비스의 돈인가"]
+      - ["Owner", "내 GitHub 아이디", "누구에게 묻나"]
+      - ["Env", "lab", "지워도 되나"]
+      - ["ManagedBy", "console · terraform", "어디서 고쳐야 하나"]
+    colw: [2.4, 3.6, 6.1]
+    mono_col: 0
+    callout: "get-resources --tag-filters로 내 것만 · 태그 빠진 default SG를 골라낸다 · 비용 할당 태그는 첫날"
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["Lampson (2004) — 보안의 금 Au", ["Authentication — 누구인가", "Authorization — 해도 되나", "Auditing — 무엇을 했나"]]
+    right: ["기록으로 권한을 줄인다", ["IAM Access Analyzer — 90일 안 쓴 권한", "쓴 동작만으로 정책 생성", "ABAC — Owner 태그로 권한"]]
+    notes: "Lampson (2004) IEEE Computer 37(6)."
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "콘솔 클릭으로 만든 것도 CloudTrail에 남나?"
+      - "AccessDenied가 수십 개 — 의심할 것은?"
+      - "ManagedBy 태그가 3일차부터 중요한 이유는?"
+      - "Au 세 가지는?"
+    answers: "1) 남는다 — 같은 API  2) 권한을 더듬는 누군가  3) Terraform 자원을 콘솔에서 고치면 어긋난다  4) 인증 · 인가 · 감사"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -164,5 +227,6 @@ slides:
       - ["4교시", "aws login — 키 없는 CLI"]
       - ["5~6교시", "devmart-vpc — 서브넷 4 · 라우팅 3 · IGW · S3 엔드포인트"]
       - ["7교시", "web-sg · app-sg · 남은 것 확인 (NAT · EIP · LB 없음)"]
+      - ["8교시", "모든 API 호출이 CloudTrail에 — 누가·언제·어디서, 태그 넷으로 찾고 빠진 것을 골라낸다"]
     diary: "배움일기 — 바뀌는 것 · 그대로인 것 · 루트/사용자/역할 · Deny의 일 · 내 VPC 그림 · 가장 무서운 비용 줄 · 서버를 띄우고 늘리고 죽어도 모르게 하려면?"
     notes: "VPC는 무료라 내일까지 둔다. 내일: EC2 · ALB · Auto Scaling · S3 — 콘솔로."

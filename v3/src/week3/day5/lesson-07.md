@@ -1,126 +1,214 @@
-# 7교시 · 3주차 회고
+# 7교시 · HPA — 부하에 따라 늘어나고 줄어들기
 
 !!! goal "이번 시간에 할 일"
-    - 3주차 닷새를 **한 장의 지도**로 되짚습니다.
-    - Compose ↔ Kubernetes 대응표를 **내 말로** 채웁니다.
-    - KPT로 한 주를 회고하고, 4주차에 가져갈 것을 정합니다.
-    - 다음 주를 위해 클러스터 상태를 정리합니다.
+    - Pod의 CPU · 메모리 사용량을 모으는 **metrics-server**를 설치하고 `kubectl top`으로 봅니다.
+    - **HorizontalPodAutoscaler(HPA)**로 `catalog-api`가 바쁘면 늘고, 한가하면 줄게 합니다.
+    - HPA가 **4교시의 requests를 기준으로** 계산한다는 것을 확인합니다.
+    - 부하를 걸어 늘어나는 것, 멈춰서 **천천히** 줄어드는 것을 지켜봅니다.
+    - `replicas`를 매니페스트에 적어 둔 채 `apply`하면 HPA와 **싸운다**는 것을 보고, 피하는 법을 압니다.
 
-## 한 주의 지도
+!!! key "4일차의 `replicas: 3`은 사람이 정한 숫자였다"
+    4일차부터 `replicas`를 손으로 정했습니다. 그런데 DevMart의 손님은 낮에 많고 새벽에 적습니다. 낮 기준으로 정하면 새벽에 돈이 새고, 새벽 기준으로 정하면 낮에 느려집니다. HPA는 **숫자 대신 목표**("CPU를 평균 50%쯤 쓰게")를 적으면, 컨트롤러가 그 목표에 맞게 `replicas`를 바꿔 줍니다. 3일차 4교시의 reconcile이 **사람이 정한 값**이 아니라 **측정한 값**을 보고 돈다는 점이 다릅니다.
 
-| 날 | 한 일 | 핵심 한 줄 | 남은 것 |
-|---|---|---|---|
-| 1일차 | 모놀리식 → MSA, Compose로 여섯 서비스 | 나누면 독립적으로 배포 · 확장할 수 있지만, **연결이 새 장애 지점**이 된다 | `devmart-msa/` |
-| 2일차 | 장애 전파 · 타임아웃 · 재시도 · 큐 유실, GitHub Actions CI | 느린 것이 죽은 것보다 무섭다. 사람 대신 **CI가 매번 똑같이** 검사 · 빌드 | GHCR의 세 이미지 |
-| 3일차 | Kubernetes 구조, kind 클러스터 | 여러 대를 한 대처럼 + **원하는 상태를 계속 지킨다**(reconcile) | `devmart` 클러스터 |
-| 4일차 | Pod · Deployment · Service, 롤링 업데이트 | **라벨**로 이어진 리소스들, 되돌릴 수 있는 배포 | — |
-| 5일차 | ConfigMap · Secret · probe · 자원, MSA 전체 배포, 장애 연습 | 같은 이미지가 운영 모델만 바꿔 클러스터에 — **probe가 장애의 번짐을 정한다** | `devmart` 네임스페이스 |
+## 실습 18 · metrics-server 설치와 `kubectl top`
 
-!!! key "이번 주를 한 문장으로"
-    **"여러 서비스로 나뉜 앱을, 사람 대신 기계가 검증하고(CI), 사람 대신 클러스터가 지키게(Kubernetes) 만들었다."** 1주차 5일차에 그림으로만 본 파이프라인의 ①~③, ⑤ 칸과 그 결과물이 도는 자리까지 손으로 만들었습니다. 남은 칸(④ 보안 검사, ⑥ 자동 배포, ⑦ 모니터링)이 4주차입니다.
-
-## 실습 18 · 회고
-
-!!! lab "실습 목표"
-    `retro-week3.md`를 채웁니다. 혼자 10분, 짝과 10분 나눕니다.
+### 단계 1 — 설치
 
 ```bash
 cd ~/devops-lab/k8s/day5
-cp retro-week3.md ~/devops-lab/retro-week3.md
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.1/components.yaml
+kubectl -n kube-system patch deployment metrics-server --type=json \
+  -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+kubectl -n kube-system rollout status deployment metrics-server
 ```
 
-### 1 — 이번 주에 만든 것 체크
+- metrics-server는 각 노드의 kubelet에게 "지금 Pod들이 CPU · 메모리를 얼마나 쓰나"를 **15초마다** 물어 모아 둡니다
+- `--kubelet-insecure-tls` : kind의 kubelet 인증서는 정식 인증 기관이 서명한 것이 아니라서, 실습 클러스터에서만 검사를 끕니다. **운영(EKS)에서는 쓰지 않습니다** — 5주차 4일차의 EKS 애드온은 이 옵션 없이 동작합니다
 
-양식 맨 위의 다섯 칸을 확인합니다. 체크하지 못한 칸이 있으면 어디서 막혔는지 한 줄 적습니다. 그것이 Problem 칸의 첫 줄이 됩니다.
+!!! warn "다른 사람의 매니페스트를 URL로 바로 적용한다는 것"
+    `kubectl apply -f https://…`는 인터넷에 있는 YAML을 **읽지 않고** 내 클러스터에 넣는 일입니다. 오늘은 Kubernetes 공식 프로젝트(SIG Instrumentation)의 **버전을 고정한** 릴리스 파일이라 씁니다. 처음 보는 주소라면 `curl -sL 주소 | less`로 먼저 읽습니다(2주차 1일차 "받아서, 읽고, 실행").
 
-### 2 — Compose ↔ Kubernetes 대응표
+### 단계 2 — 숫자 보기
 
-5교시 끝의 대응표를 보지 않고 **내 말로** '차이' 칸을 채웁니다.
-
-!!! example "예시 — 이렇게 쓰면 좋다"
-    | Compose | Kubernetes | 내 말로 차이 |
-    |---|---|---|
-    | `healthcheck:` | readiness · liveness probe | Compose는 표시만, Kubernetes는 **행동**한다 — 목록에서 빼거나 재시작 |
-    | `restart: unless-stopped` | kubelet 재시작 + ReplicaSet | Compose는 그 컴퓨터 안에서만, Kubernetes는 **다른 노드에** 새로 만든다 |
-
-### 3 — KPT
-
-| 칸 | 묻는 것 | 예 |
-|---|---|---|
-| **Keep** | 잘 됐고 계속할 것 | "describe의 Events를 맨 아래부터 읽는 습관" |
-| **Problem** | 막혔거나 아쉬웠던 것 — **사실**로 | "장애 3을 15분 안에 못 찾았다. get pods만 봤다" |
-| **Try** | 다음 주에 **구체적으로** 해 볼 것 | "장애 진단은 항상 사용자 증상(curl)부터 시작한다" |
-
-!!! tip "좋은 Try의 조건"
-    "더 열심히 하자"는 Try가 아닙니다. **다음 주 언제, 무엇을 하면 지켰는지 알 수 있는** 문장이어야 합니다. 예: "4주차 매일 아침 `bash cluster-tour.sh`로 클러스터 상태를 먼저 본다."
-
-### 4 — 장애 연습 기록
-
-6교시에 맡았던 장애와 **원인을 찾은 명령**, 걸린 시간을 적습니다. 짝과 비교해, 같은 장애를 다른 명령으로 찾았다면 그것도 적습니다.
-
-## 4주차 미리 보기
-
-| 4주차 | 이번 주에서 이어지는 것 |
-|---|---|
-| 1일차 Helm + Gateway API | 오늘의 매니페스트 여덟 개를 **차트**로 묶는다 · NodePort 대신 도메인 · 경로로 들어오는 표준 입구 |
-| 2일차 Observability | 오늘 손으로 센 FAIL · `kubectl logs | grep $RID`를 **메트릭 · 로그 · 트레이스** 도구로 |
-| 3일차 GitOps — Argo CD | 장애 3의 드리프트를 **화면에 보여 주고 되돌린다** · CI(2일차) → CD 완성 |
-| 4일차 Service Mesh — Istio | 2일차의 타임아웃 · 재시도를 **코드 밖에서** · 카나리 배포 |
-| 5일차 보안 + 종합 | 누가 `kubectl scale`을 할 수 있었나(RBAC) · "requests 없으면 거절"(Kyverno) |
-
-!!! warn "주말 동안 — 클러스터는 지우지 않는다"
-    `devmart` 클러스터와 네임스페이스는 **4주차 1일차에 그대로** 씁니다. 노트북을 꺼도 됩니다. 월요일 아침에는 Docker Desktop을 켜고 노드 셋을 켭니다.
-    ```bash
-    docker start devmart-control-plane devmart-worker devmart-worker2
-    sleep 40 && kubectl get pods -n devmart
-    ```
-    망가져 있으면 `kind delete cluster --name devmart` → 다시 만들고 → 2교시의 Secret을 다시 만든 뒤 → `kubectl apply -k devmart/`. 이 순서를 지금 회고 노트에 적어 두세요. **5분이면 처음부터 되살릴 수 있다**는 것이 이번 주에 만든 것의 진짜 가치입니다.
-
-디스크가 부족하면 이번 주에 쌓인 것 중 안 쓰는 이미지만 정리합니다.
+1분쯤 기다린 뒤:
 
 ```bash
-docker system df
-docker image prune
+kubectl top nodes
+kubectl top pods -n devmart
 ```
 
-- `docker image prune` : 태그 없는 이미지(`<none>`)만 지운다. kind 노드 이미지와 실행 중인 것은 지우지 않는다
+!!! check "이렇게 나오면 성공 (숫자는 다름)"
+    ```text
+    NAME                    CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)
+    devmart-control-plane   182m         2%       812Mi           10%
+    devmart-worker          64m          0%       402Mi           5%
+    …
+    NAME                            CPU(cores)   MEMORY(bytes)
+    catalog-api-7d9c…-4xk2p         2m           48Mi
+    catalog-api-7d9c…-9qz7w         2m           47Mi
+    db-6b8f…-x2lzq                  6m           38Mi
+    …
+    ```
+    `m`은 1000분의 1 코어입니다. `catalog-api`는 지금 거의 놀고 있습니다(2m). `error: Metrics API not available`이 나오면 아직 첫 수집 전이니 30초 더 기다립니다.
 
-!!! academic "학술 노트 — 회고의 기본 지침"
-    애자일 회고는 Kerth의 *Project Retrospectives*(2001)와 Derby & Larsen의 *Agile Retrospectives*(2006)가 틀을 잡았습니다. Kerth가 회고를 시작할 때 읽으라고 제안한 **기본 지침**(Prime Directive)은 이렇습니다 — "무엇을 발견하든, 우리는 모두가 그때 알던 것, 가진 기술과 능력, 주어진 자원과 상황에서 할 수 있는 최선을 다했다고 믿고 이해한다." 6교시의 '비난 없는 사후 검토'와 같은 정신입니다. 회고는 잘못한 사람을 찾는 자리가 아니라, **다음에 더 나은 선택을 하게 해 줄 조건**을 찾는 자리입니다.
+## 실습 19 · HPA 걸고 부하 주기
 
-!!! trend "트렌드 2026 — 4주차 도구들의 지금"
-    4주차는 '요즘 표준'을 기준으로 합니다. 외부 트래픽 입구로 오래 쓰인 **ingress-nginx는 2026년 3월 은퇴**했고, 그 자리를 **Gateway API**가 이어받았습니다. GitOps 도구 Argo CD와 서비스 메시 Istio는 CNCF 졸업 프로젝트로 널리 쓰이고, Istio는 Pod마다 프록시를 붙이지 않는 **ambient 모드**를 정식으로 내놓았습니다. 이번 주에 익힌 Pod · Service · 라벨 · reconcile이 이 모든 도구가 서 있는 바닥입니다.
+### 단계 1 — HPA 만들기
 
-!!! quiz "3주차 종합 확인 문제"
-    1. MSA로 나눴을 때 얻는 것 하나와, 새로 생기는 장애 지점 하나는?
-    2. 2일차 CI가 PR에서는 하지 않고 main에서만 하는 일은?
-    3. reconcile 반복의 세 단계는?
-    4. Service가 Pod를 찾는 방법과, 찾은 목록을 담는 리소스는?
-    5. readiness와 liveness가 실패했을 때 각각 일어나는 일은?
-    6. 메모리 limit을 넘으면? CPU limit을 넘으면?
-    7. `kubectl set env`로 넣은 값이 `kubectl apply -k`로 지워지지 않는 이유는?
+```bash
+code hpa-catalog.yaml
+```
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: catalog-api
+  namespace: devmart
+spec:
+  scaleTargetRef:                 # 무엇을 늘리고 줄이나
+    apiVersion: apps/v1
+    kind: Deployment
+    name: catalog-api
+  minReplicas: 2                  # 아무리 한가해도 2개 (한 대가 죽어도 버티게)
+  maxReplicas: 6                  # 아무리 바빠도 6개 (노트북과 지갑을 지킨다)
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50  # requests의 50%를 목표로
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60   # 실습용: 기본 300초 → 60초
+```
+
+```bash
+kubectl apply -f hpa-catalog.yaml
+kubectl get hpa -n devmart
+```
+
+!!! check "이렇게 나오면 성공"
+    ```text
+    NAME          REFERENCE                TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+    catalog-api   Deployment/catalog-api   cpu: 4%/50%   2         6         2          20s
+    ```
+    `4%/50%` — **지금 / 목표**입니다. 4%는 `requests.cpu: 50m`의 4%(2m)라는 뜻입니다. 4교시에 requests를 적지 않았다면 여기에 `<unknown>`이 뜨고 HPA는 아무것도 하지 못합니다.
+
+!!! key "HPA의 계산은 한 줄"
+    **원하는 개수 = 올림( 지금 개수 × 지금 사용률 ÷ 목표 사용률 )**
+
+    지금 2개가 평균 150%를 쓰면 → 2 × 150 ÷ 50 = **6개**. 평균 30%로 떨어지면 → 6 × 30 ÷ 50 = 3.6 → **4개**. 목표와 비슷하면(기본 ±10%) 바꾸지 않습니다 — 숫자가 조금 흔들릴 때마다 Pod를 늘렸다 줄였다 하지 않게.
+
+### 단계 2 — 지켜볼 창
+
+**터미널 A**:
+
+```bash
+kubectl get hpa -n devmart -w
+```
+
+### 단계 3 — 부하 걸기
+
+**터미널 B** — 클러스터 안에서 상품 목록을 쉬지 않고 부르는 Pod 세 개를 띄웁니다.
+
+```bash
+kubectl create deployment load -n devmart --image=busybox:1.37 --replicas=3 -- \
+  sh -c 'while true; do wget -q -O /dev/null http://catalog-api:8000/api/products; done'
+```
+
+!!! check "1~3분 안에 터미널 A가 이렇게 바뀝니다"
+    ```text
+    catalog-api   Deployment/catalog-api   cpu: 4%/50%     2   6   2
+    catalog-api   Deployment/catalog-api   cpu: 186%/50%   2   6   2
+    catalog-api   Deployment/catalog-api   cpu: 186%/50%   2   6   6
+    catalog-api   Deployment/catalog-api   cpu: 71%/50%    2   6   6
+    ```
+    사용률이 목표를 넘자 **최대 6개**까지 늘었고, 일을 나눠 가지자 사용률이 내려왔습니다. `kubectl get pods -n devmart -l app=catalog-api`로 새 Pod들을 확인합니다. 새 Pod는 readiness probe(3교시)를 통과해야 Service에 들어갑니다.
+
+!!! tip "6개로도 목표를 못 맞추면"
+    `maxReplicas`에 막혀 사용률이 계속 높게 남습니다. 이때는 최대치를 올리거나, **노드가 모자라 Pending**이 생기면 노드를 늘려야 합니다. Pod를 늘리는 것은 HPA, **노드**를 늘리는 것은 클러스터 오토스케일러 · Karpenter(5주차 4일차)의 일입니다.
+
+### 단계 4 — 부하 멈추기와 천천히 줄기
+
+```bash
+kubectl delete deployment load -n devmart
+```
+
+!!! check "터미널 A — 1분쯤 지나서"
+    ```text
+    catalog-api   Deployment/catalog-api   cpu: 3%/50%     2   6   6
+    catalog-api   Deployment/catalog-api   cpu: 3%/50%     2   6   2
+    ```
+    사용률은 바로 떨어졌는데 **Pod는 1분을 기다렸다** 줄었습니다. `stabilizationWindowSeconds` 동안 "정말 한가해졌나"를 지켜본 것입니다. 기본값 5분은 잠깐 조용했다가 다시 몰리는 트래픽에 Pod를 줄였다 늘렸다 **출렁이지(flapping)** 않게 하려는 것입니다. **늘리기는 빠르게, 줄이기는 천천히**가 원칙입니다.
+
+## 실습 20 · HPA와 `apply`가 싸운다
+
+부하를 다시 걸어 6개로 늘려 둔 상태에서, 4교시처럼 매니페스트 전체를 다시 적용해 봅니다.
+
+```bash
+kubectl create deployment load -n devmart --image=busybox:1.37 --replicas=3 -- \
+  sh -c 'while true; do wget -q -O /dev/null http://catalog-api:8000/api/products; done'
+sleep 120
+kubectl get deploy catalog-api -n devmart
+kubectl apply -k devmart/ | grep catalog-api
+kubectl get deploy catalog-api -n devmart
+```
+
+!!! check "이렇게 나옵니다"
+    ```text
+    catalog-api   6/6     6            6           …
+    deployment.apps/catalog-api configured
+    catalog-api   2/6     6            2           …
+    ```
+    매니페스트의 `replicas: 2`가 HPA가 늘린 **6을 2로 되돌렸습니다.** 잠시 뒤 HPA가 다시 6으로 늘리지만, 그사이 Pod 넷이 사라졌다 다시 생깁니다 — 손님이 가장 많을 때 배포했다면 장애입니다.
+
+!!! key "HPA를 쓰면 `replicas`를 매니페스트에서 뺀다"
+    개수를 정하는 주인은 **하나**여야 합니다. HPA가 붙은 Deployment는 매니페스트에서 `replicas:` 줄을 지우고, 개수는 HPA의 `minReplicas`/`maxReplicas`로만 정합니다. 4주차 3일차 GitOps에서 Argo CD의 자동 되돌리기(selfHeal)가 같은 이유로 HPA와 싸우는 장면을 다시 봅니다.
+
+!!! cleanup "정리"
+    ```bash
+    kubectl delete deployment load -n devmart
+    kubectl delete -f hpa-catalog.yaml
+    kubectl apply -k devmart/          # replicas: 2로 돌아온다
+    kubectl get deploy catalog-api -n devmart
+    ```
+    metrics-server는 **남겨 둡니다**(4주차에도 `kubectl top`을 씁니다). `hpa-catalog.yaml`은 `kustomization.yaml`에 넣지 **않습니다** — 4주차 매니페스트는 강의 저장소에서 새로 받고, HPA는 그 매니페스트에 맞춰 다시 붙입니다.
+
+!!! academic "학술 노트 — 자동 확장은 피드백 제어다"
+    HPA의 한 줄 공식은 제어 공학의 **피드백 루프**입니다. 목표(set point)와 측정값의 차이를 보고 조절 장치(replicas)를 움직입니다. 제어 이론은 이런 루프가 **너무 민감하면 출렁이고(진동), 너무 둔하면 늦는다**는 것을 오래전부터 다뤄 왔습니다. 헬러스타인(Hellerstein) 등은 『Feedback Control of Computing Systems』(2004)에서 웹 서버 · DB의 자원 조절을 제어 이론으로 분석하며, 측정의 **지연**(metrics-server의 15초 수집, Pod가 준비되는 시간)이 클수록 루프가 불안정해진다고 보였습니다. HPA의 **허용 범위(±10%)**와 **줄이기 안정화 창(5분)**은 바로 이 진동을 막는 장치입니다.
+
+    - Hellerstein, J. L., Diao, Y., Parekh, S., & Tilbury, D. M. (2004). *Feedback Control of Computing Systems*. Wiley-IEEE Press.
+
+!!! trend "트렌드 — CPU 말고 '일의 양'으로 늘리기"
+    CPU 사용률은 늦게 반응하는 지표입니다. 큐에 주문이 쌓이는 `order-worker`라면 **큐의 길이**로 늘리는 게 더 정확합니다. **KEDA**(CNCF 졸업 프로젝트)는 Redis 큐 길이, Kafka 지연, 초당 요청 수 같은 **이벤트 지표**로 HPA를 움직이고, 일이 없으면 **0개까지** 줄입니다. Kubernetes 자체도 Pod를 다시 만들지 않고 CPU · 메모리를 바꾸는 **제자리 크기 조정(in-place resize)**을 정식 기능으로 만들어, "개수(가로)"와 "크기(세로)"를 함께 조절하는 방향으로 가고 있습니다.
+
+## 정리
+
+- **metrics-server**가 사용량을 모으고, `kubectl top`과 HPA가 그것을 씁니다.
+- HPA는 **requests 대비 사용률**로 계산합니다. requests가 없으면 `<unknown>` — 4교시가 전제입니다.
+- 원하는 개수 = 올림(지금 개수 × 지금 ÷ 목표). **늘리기는 빠르게, 줄이기는 천천히**(안정화 창).
+- HPA를 붙이면 매니페스트에서 `replicas`를 뺍니다. 개수의 주인은 하나.
+- Pod를 늘리는 것은 HPA, 노드를 늘리는 것은 클러스터 오토스케일러 · Karpenter.
+
+!!! quiz "확인 문제"
+    1. `kubectl get hpa`의 TARGETS가 `<unknown>/50%`입니다. 가장 먼저 확인할 두 가지는?
+    2. Pod 3개가 평균 CPU 100%를 쓰고 목표가 50%입니다. HPA는 몇 개로 늘리나요? (최대치는 충분)
+    3. 부하가 끝났는데 Pod가 바로 줄지 않습니다. 고장인가요?
+    4. HPA를 붙인 뒤 `kubectl apply -k`를 할 때마다 Pod가 줄었다 늘어납니다. 원인과 해결은?
+    5. 큐에 쌓인 주문 수로 `order-worker`를 늘리고 싶습니다. 어떤 도구를 찾아보나요?
 
     ??? answer "정답"
-        1. 얻는 것 — 서비스별 독립 배포 · 확장 · 장애 격리 중 하나. 새 장애 지점 — 서비스 사이의 네트워크 호출(타임아웃 · 연결 오류), 큐 유실 등
-        2. GHCR 로그인 후 이미지 push (PR에서는 빌드만)
-        3. 관찰 → 비교 → 행동
-        4. 라벨 셀렉터, EndpointSlice
-        5. readiness — Service 목록에서 뺀다(죽이지 않음). liveness — 컨테이너를 다시 시작한다
-        6. 메모리 — OOMKilled(Exit 137), CPU — 느려진다(throttling)
-        7. apply는 지난번 자기가 적용한 기록과 비교해 바꾸므로, 기록에 없는 칸(명령형으로 들어온 값)은 남의 것으로 보고 건드리지 않는다
-
-!!! diary "오늘의 배움일기 (3주차 마무리)"
-    - ConfigMap과 Secret을 나눈 이유를, 2주차 `.env`와 비교해 한 문단으로
-    - probe를 넣기 전과 후의 FAIL 숫자, 그리고 그 차이를 만든 세 조각
-    - OOMKilled를 직접 보고 든 생각 — 내가 만든 앱이라면 limit을 어떻게 정할지
-    - DevMart가 Kubernetes에서 처음 주문을 처리했을 때의 기분 (진심으로)
-    - 장애 연습에서 가장 오래 걸린 단계와, 다음엔 무엇부터 볼지
-    - 3주차 전체에서 **가장 크게 바뀐 생각** 하나
-    - 4주차 전에 궁금한 것: 매니페스트 여덟 개를 서비스 50개로 늘리면? 누가 언제 무엇을 바꿨는지 어떻게 남길까?
+        1. metrics-server가 동작하는지(`kubectl top pods`), 대상 컨테이너에 `requests.cpu`가 있는지
+        2. 올림(3 × 100 ÷ 50) = 6개
+        3. 아닙니다. 줄이기 안정화 창(기본 5분, 오늘 60초) 동안 기다리는 것입니다.
+        4. 매니페스트의 `replicas`가 HPA가 정한 개수를 덮어씁니다. 매니페스트에서 `replicas`를 지웁니다.
+        5. KEDA (이벤트 기반 오토스케일링)
 
 ## 참고 문헌
 
-- Kerth, N. L. (2001). *Project Retrospectives: A Handbook for Team Reviews*. Dorset House.
-- Derby, E., & Larsen, D. (2006). *Agile Retrospectives: Making Good Teams Great*. Pragmatic Bookshelf.
-- Kubernetes Blog (2025). *Ingress NGINX Retirement: What You Need to Know*. kubernetes.io/blog
-- kind. *Known Issues — Docker Desktop restart*. kind.sigs.k8s.io/docs/user/known-issues
+- Hellerstein, J. L., Diao, Y., Parekh, S., & Tilbury, D. M. (2004). *Feedback Control of Computing Systems*. Wiley-IEEE Press.
+- Kubernetes Documentation. *Horizontal Pod Autoscaling* — algorithm details, stabilization window; *HorizontalPodAutoscaler Walkthrough*; *Resize CPU and Memory Resources assigned to Containers*.
+- Kubernetes SIGs. *metrics-server* v0.9 — Requirements, `--kubelet-insecure-tls`. github.com/kubernetes-sigs/metrics-server
+- KEDA. *Kubernetes Event-driven Autoscaling*. keda.sh

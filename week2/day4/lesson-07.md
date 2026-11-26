@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 7/8교시</sub>
 
 # 7교시 · 세 컨테이너 손으로 조립하기
 
@@ -9,7 +9,6 @@
 > - **web → catalog-api → db** 세 컨테이너를 손으로 띄워 브라우저에서 DevMart 화면을 완성합니다.
 > - 띄우는 **순서**가 틀리면 어떻게 되는지 확인합니다.
 > - 긴 명령을 스크립트로 묶어 보고, 그 한계에서 내일의 **Docker Compose**가 왜 필요한지 느낍니다.
-> - 배움일기를 씁니다.
 
 ## 오늘의 완성 그림
 
@@ -349,16 +348,6 @@ bash ../day4/devmart-up.sh
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - 볼륨 없이 DB를 지웠을 때와, 볼륨을 붙이고 지웠을 때의 차이를 '호텔 방과 금고'로 설명해 보기
-> - 이름 있는 볼륨과 바인드 마운트를 각각 언제 쓰는지 내 말로 한 줄씩
-> - 5교시 고장 세 가지 중 가장 헷갈렸던 것과, 로그의 어떤 문장으로 구분했는지
-> - 오늘 `history | grep`으로 비밀번호를 찾았을 때 든 생각
-> - DevMart 화면을 처음 봤을 때 소감 — 그리고 세 컨테이너를 띄우는 명령을 동료에게 어떻게 전해 줄지
-> - 내일(Compose + GitHub 협업) 전에 궁금한 것
-
 ## 참고 문헌
 
 - nginx Docs. *Module ngx_http_proxy_module — proxy_pass*. nginx.org/en/docs/http/ngx_http_proxy_module.html
@@ -371,4 +360,4 @@ bash ../day4/devmart-up.sh
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · 환경 변수와 비밀값](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [2주차 5일차 목차](../day5/README.md) ➡️ |
+| ⬅️ [6교시 · 환경 변수와 비밀값](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [8교시 · 백업과 복구 — pg_dump와 복원 훈련](lesson-08.md) ➡️ |

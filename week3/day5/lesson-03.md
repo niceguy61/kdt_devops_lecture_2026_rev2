@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 3/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 3/8교시</sub>
 
 # 3교시 · probe — 준비됐나, 살아 있나
 

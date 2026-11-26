@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 7/8교시</sub>
 
 # 7교시 · CI 실패 읽기와 main 보호
 
@@ -8,7 +8,7 @@
 > - CI가 실패하는 **대표적인 세 가지**를 일부러 만들고 로그로 원인을 찾습니다.
 > - `main`에 **"CI가 초록이어야 병합 가능"** 규칙을 겁니다.
 > - 경로 필터와 필수 검사가 부딪히는 **함정**을 압니다.
-> - 오늘을 정리하고 배움일기를 씁니다.
+> - 오늘을 정리합니다.
 
 ## CI 실패 읽는 순서
 
@@ -225,17 +225,6 @@ git push origin main          # 이제 거절되어야 한다 (새 커밋이 없
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - catalog-api를 얼렸을 때 주문 목록까지 느려진 이유를 '콜센터' 말고 **내 비유**로
-> - 재시도가 도움이 된 경우와 해가 된 경우를 숫자(초)와 함께
-> - `/health`와 `/ready`를 섞어 쓰면 생기는 사고를 한 문장으로
-> - 유령 주문과 유실 주문 — 어느 쪽이 더 무섭다고 느꼈는지, 왜
-> - 내 GHCR 이미지 주소 하나와 그 SHA 태그
-> - 오늘 본 CI 실패 네 가지 중 실무에서 가장 자주 만날 것 같은 것
-> - 내일(Kubernetes) 전에 궁금한 것: 처리기가 죽으면 **누가** 다시 띄워 줄까? 컴퓨터가 여러 대라면?
-
 ## 참고 문헌
 
 - GitHub Docs. *About rulesets*, *Available rules for rulesets — Require status checks to pass*. docs.github.com/repositories
@@ -248,4 +237,4 @@ git push origin main          # 이제 거절되어야 한다 (새 커밋이 없
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · 이미지 자동 빌드와 GHCR](lesson-06.md) | [⬆️ 2일차 목차](README.md) | [3주차 3일차 목차](../day3/README.md) ➡️ |
+| ⬅️ [6교시 · 이미지 자동 빌드와 GHCR](lesson-06.md) | [⬆️ 2일차 목차](README.md) | [8교시 · CI 검문소 늘리기 — 이미지 스캔 · 계약 테스트 · 액션 고정](lesson-08.md) ➡️ |

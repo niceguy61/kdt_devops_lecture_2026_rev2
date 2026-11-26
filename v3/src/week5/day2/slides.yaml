@@ -18,8 +18,9 @@ slides:
       - ["4교시", "4", "시작 템플릿과 Auto Scaling 그룹"]
       - ["5교시", "5", "대상 그룹과 ALB"]
       - ["6교시", "6", "장애와 교체 · 늘리기"]
-      - ["7교시", "7", "지우는 순서 + 비용 점검 + 배움일기"]
-    notes: "시간당 요금이 나가는 것을 만든다 — 7교시에 반드시 지운다. 하루 $0.5 이하."
+      - ["7교시", "7", "CloudWatch — 지표 · 알람 · 대시보드"]
+      - ["8교시", "8", "지우는 순서 + 비용 점검"]
+    notes: "시간당 요금이 나가는 것을 만든다 — 8교시에 반드시 지운다. 하루 $0.5 이하."
 
   - type: section
     num: "1교시"
@@ -137,14 +138,80 @@ slides:
     colw: [2.4, 4.2, 3.4, 2.6]
     notes: "Pod는 몇 초, 서버는 분 단위 — 부팅 + user data + 상태 검사. 나만의 AMI(Packer · Image Builder)로 줄인다. readiness = 대상 그룹, liveness(교체) = ELB 상태 확인. 오해: 서버가 바뀌니 데이터도 안전 — 디스크가 사라진다. 학술: 가축과 애완동물. 트렌드: 웜 풀 · 인스턴스 새로 고침."
 
+  # 7교시
   - type: section
     num: "7교시"
+    title: "CloudWatch — 지표 · 알람 · 대시보드"
+    goals: ["설치 없이 모이는 지표", "알람 → SNS → 메일, 실제로 울려 보기", "Run Command로 서버에 명령", "대시보드도 JSON"]
+    notes: "4주차 2일차를 클라우드에서. 관리형 서비스는 스스로 지표를 보낸다 — 무엇을 볼지, 언제 깨울지만 정한다."
+
+  - type: table
+    title: "4주차 kind ↔ AWS"
+    head: ["4주차", "AWS"]
+    rows:
+      - ["Prometheus · PromQL 라벨", "CloudWatch 지표 · 네임스페이스 · 차원"]
+      - ["Alertmanager", "CloudWatch 알람 → SNS → 메일 · 슬랙"]
+      - ["Grafana", "CloudWatch 대시보드 (Managed Grafana도)"]
+      - ["Loki", "CloudWatch Logs (에이전트 — 4일차)"]
+    colw: [5.0, 7.1]
+
+  - type: code
+    title: "실습 15 · 지표 꺼내 보기 — RED가 이미 있다"
+    shell: "bash"
+    code: |
+      LB_DIM=${ALB_ARN#*:loadbalancer/}     # app/devmart-alb/1a2b…
+      aws cloudwatch get-metric-statistics --namespace AWS/ApplicationELB \
+        --metric-name RequestCount --dimensions Name=LoadBalancer,Value=$LB_DIM \
+        --period 300 --statistics Sum …
+    out: |2
+      05:35  288.0
+      05:40  300.0
+      HealthyHostCount  2.0
+    points:
+      - ["RequestCount", "요청 수"]
+      - ["HTTPCode_Target_5XX", "오류"]
+      - ["TargetResponseTime p95", "지연"]
+
+  - type: code
+    title: "실습 16 · 알람을 실제로 울려 보기"
+    shell: "bash"
+    code: |
+      aws cloudwatch put-metric-alarm --alarm-name devmart-unhealthy-hosts \
+        --metric-name UnHealthyHostCount --threshold 1 --period 60 \
+        --alarm-actions $TOPIC --ok-actions $TOPIC --alarm-description "…런북…"
+      aws ssm send-command --instance-ids $ONE --document-name AWS-RunShellScript \
+        --parameters 'commands=["docker stop podinfo"]'
+    out: |2
+      06:02:40  OK
+      06:03:10  ALARM   ← 메일
+      06:06:40  OK      ← 교체 · 회복 메일
+    points:
+      - ["SNS 메일", "Confirm subscription 먼저"]
+      - ["설명", "새벽 3시의 사람이 할 일"]
+      - ["Run Command", "SSH 없이 · 기록이 남는다"]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["무엇을 알람으로 (Ewaschuk, SRE 6장)", ["사람을 깨우는 건 증상", "원인 알람은 알람 피로", "5xx 비율 · p95가 더 좋은 알람"]]
+    right: ["관리형 Prometheus · Grafana", ["4주차 PromQL · 대시보드를 그대로", "CloudWatch도 OpenTelemetry로", "원칙은 같다 — RED · 증상 · 파일"]]
+
+  - type: quiz
+    title: "7교시 확인 문제"
+    questions:
+      - "PromQL 라벨에 해당하는 CloudWatch 개념은?"
+      - "알람 설명에 적어야 할 것은?"
+      - "CPU 80%보다 5xx 비율 알람이 나은 이유는?"
+      - "대상 그룹을 지우고 알람을 남기면?"
+    answers: "1) 차원  2) 받은 사람이 할 일(런북)  3) 손님이 느끼는 증상이라서  4) INSUFFICIENT_DATA로 남는다"
+
+  - type: section
+    num: "8교시"
     title: "지우는 순서"
     goals: ["의존 관계", "CLI로 지우기", "남은 것 확인", "오늘의 비용"]
     notes: "중지가 아니라 종료 — 중지는 EBS 요금이 계속."
 
   - type: steps
-    title: "실습 15 · 기대는 것부터 거꾸로"
+    title: "실습 18 · 기대는 것부터 거꾸로"
     steps:
       - ["ASG", "delete-auto-scaling-group --force-delete (인스턴스까지)"]
       - ["ALB → 대상 그룹", "wait load-balancers-deleted 뒤에"]
@@ -160,6 +227,7 @@ slides:
       - ["3교시", "Session Manager · IMDSv2 · 키 없는 S3 · Deny"]
       - ["4교시", "시작 템플릿 · Auto Scaling 그룹 (AZ 둘에 2대)"]
       - ["5~6교시", "ALB · 대상 그룹 · 종료 · 앱 정지 · 늘리기 줄이기"]
-      - ["7교시", "의존 순서대로 지우기 · 남은 것 0"]
+      - ["7교시", "관리형 서비스는 스스로 지표를 보낸다 — 알람→SNS→메일, 설명엔 할 일, 대시보드도 JSON"]
+      - ["8교시", "의존 순서대로 지우기 · 남은 것 0"]
     diary: "배움일기 — Kubernetes와 짝지은 넷 · assumed-role 신원과 키 없는 S3 · 502 몇 번, 교체 몇 분 · 앱만 죽은 서버를 바꾼 것 · 지운 순서 · 클릭 백 번을 코드로?"
     notes: "VPC · SG · 역할은 무료라 남긴다. 내일: Terraform 기초."

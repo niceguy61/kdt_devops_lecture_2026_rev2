@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 7/8교시</sub>
 
 # 7교시 · GitHub Actions에서 plan (OIDC)
 
@@ -173,16 +173,6 @@ aws ec2 describe-vpcs --query 'Vpcs[].[Tags[?Key==`Name`]|[0].Value,IsDefault]' 
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - 콘솔 · CLI 스크립트 · Terraform을 한 줄씩, 어제의 경험을 예로
-> - plan 기호 넷(+ ~ - -/+) 중 가장 무서운 것과 그 이유
-> - 콘솔에서 바꾼 버전 관리 · 태그를 plan이 잡은 장면 — Argo CD의 OutOfSync와 무엇이 같고 다른가
-> - state를 S3에 두고 잠금을 건 이유 셋
-> - GitHub Actions가 키 없이 AWS에 들어간 순서를 그림으로
-> - 내일 전에 궁금한 것: 오늘 VPC는 22개 자원이었다. **EKS 클러스터**를 코드로 만들면 몇 개일까? 그 위에 4주차의 DevMart를 **그대로** 올릴 수 있을까?
-
 ## 참고 문헌
 
 - GitHub Docs. *Configuring OpenID Connect in Amazon Web Services*. docs.github.com/actions/security-for-github-actions
@@ -194,4 +184,4 @@ aws ec2 describe-vpcs --query 'Vpcs[].[Tags[?Key==`Name`]|[0].Value,IsDefault]' 
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · 모듈로 VPC](lesson-06.md) | [⬆️ 3일차 목차](README.md) | [5주차 4일차 목차](../day4/README.md) ➡️ |
+| ⬅️ [6교시 · 모듈로 VPC](lesson-06.md) | [⬆️ 3일차 목차](README.md) | [8교시 · Terraform 품질 — fmt · validate · tflint · Trivy · 리뷰](lesson-08.md) ➡️ |

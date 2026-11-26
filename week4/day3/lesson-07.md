@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md) › 7/8교시</sub>
 
 # 7교시 · Actions → Argo CD 전체 파이프라인
 
@@ -276,7 +276,7 @@ git revert --no-edit HEAD && git push        # 실습에서는 PR 대신 직접 
 
 ## 그 다음 단계 — Argo CD 설정도 Git에
 
-오늘 `devmart-app.yaml`은 `kubectl apply`로 넣었습니다. 이 Application 파일조차 Git에 두고, "**Application들을 관리하는 Application**"(app of apps) 하나만 손으로 넣는 방식이 있습니다. 그러면 새 클러스터에서 Argo CD 설치 + Application 하나로 **모든 것이 Git대로** 섭니다. 여러 클러스터 · 여러 환경(dev · prod)으로 찍어 낼 때는 ApplicationSet을 씁니다.
+오늘 `devmart-app.yaml`은 `kubectl apply`로 넣었습니다. 이 Application 파일조차 Git에 두고, "**Application들을 관리하는 Application**"(app of apps) 하나만 손으로 넣는 방식이 있습니다. **8교시에 바로 해 봅니다.** 그러면 새 클러스터에서 Argo CD 설치 + Application 하나로 **모든 것이 Git대로** 섭니다. 여러 클러스터 · 여러 환경(dev · prod)으로 찍어 낼 때는 ApplicationSet을 씁니다.
 
 ## 오늘 정리
 
@@ -309,16 +309,6 @@ git revert --no-edit HEAD && git push        # 실습에서는 PR 대신 직접 
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - push 배포와 pull 배포를 한 문장씩, 3주차에 내가 한 배포를 예로
-> - 5교시에 본 어긋남 세 방향(A · B · C)을 각각 Sync · Health 두 단어로
-> - selfHeal이 되돌린 손 수정 중 가장 인상 깊었던 것, 그리고 selfHeal이 **방해가 될** 상황 하나
-> - 오늘 잰 숫자: PR 합치기 → 운영 반영까지 몇 분? revert → 반영까지 몇 분?
-> - CI가 가진 권한과 Argo CD가 가진 권한을 각각 적고, 어느 쪽이 털리면 더 위험한지
-> - 내일 전에 궁금한 것: 오늘까지 서비스 사이의 호출(order-api → catalog-api)은 **아무 검사 없이** 오갔다. 누가 누구를 부를 수 있는지, 그 통신이 암호화되는지는 어떻게 정할까?
-
 ## 참고 문헌
 
 - GitHub Docs. *Managing your personal access tokens — fine-grained personal access tokens*. docs.github.com
@@ -332,4 +322,4 @@ git revert --no-edit HEAD && git push        # 실습에서는 PR 대신 직접 
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · selfHeal과 prune](lesson-06.md) | [⬆️ 3일차 목차](README.md) | [4주차 4일차 목차](../day4/README.md) ➡️ |
+| ⬅️ [6교시 · selfHeal과 prune](lesson-06.md) | [⬆️ 3일차 목차](README.md) | [8교시 · 플랫폼도 Git으로 — App of Apps](lesson-08.md) ➡️ |

@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 2/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 2/8교시</sub>
 
 # 2교시 · 설치와 첫 리소스
 
@@ -209,7 +209,7 @@ sed -i 's/devmart-tf-1st-/devmart-tf-first-/' main.tf
 > [!WARNING]
 > **plan에서 -/+ 를 보면 멈춘다**
 >
-> S3 버킷 이름 · DB 엔진 · EKS 클러스터 이름처럼 **바꿀 수 없는 속성**을 고치면 Terraform은 지우고 새로 만듭니다. 버킷 안의 파일 · DB의 데이터는 함께 사라집니다. plan 리뷰에서 가장 먼저 찾을 것이 `-/+`와 `destroy` 개수입니다 — 2일차 7교시의 의존 순서와 함께, 사람이 plan을 읽는 이유입니다.
+> S3 버킷 이름 · DB 엔진 · EKS 클러스터 이름처럼 **바꿀 수 없는 속성**을 고치면 Terraform은 지우고 새로 만듭니다. 버킷 안의 파일 · DB의 데이터는 함께 사라집니다. plan 리뷰에서 가장 먼저 찾을 것이 `-/+`와 `destroy` 개수입니다 — 2일차 8교시의 의존 순서와 함께, 사람이 plan을 읽는 이유입니다.
 
 ```bash
 terraform apply -auto-approve      # 태그만 바뀐다

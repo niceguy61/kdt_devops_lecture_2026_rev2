@@ -31,7 +31,9 @@
 | 5교시 | 장단점과 선택지 | "우리 팀에 Kubernetes가 필요한가" 판단표 |
 | 6교시 | kubectl과 kind 설치 | `kubectl version` · `kind version` |
 | 7교시 | 첫 클러스터 — 둘러보고, 지우고, 끄기 | 노드 3대 클러스터 + 관찰 기록 |
-| 8교시 | 배움일기 | |
+| 8교시 | API 서버와 etcd 들여다보기 — 클러스터의 기억과 감시 | watch 흐름 관찰, etcd 속 Secret 확인 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -42,6 +44,7 @@
 5. [장단점과 선택지](lesson-05.md)
 6. [kubectl과 kind 설치](lesson-06.md)
 7. [첫 클러스터](lesson-07.md)
+8. [API 서버와 etcd 들여다보기](lesson-08.md)
 
 > [!IMPORTANT]
 > **오늘 실습 전에 확인할 것**
@@ -60,4 +63,4 @@
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [7교시 · CI 실패 읽기와 main 보호](../day2/lesson-07.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 왜 Kubernetes인가](lesson-01.md) ➡️ |
+| ⬅️ [8교시 · CI 검문소 늘리기 — 이미지 스캔 · 계약 테스트 · 액션 고정](../day2/lesson-08.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 왜 Kubernetes인가](lesson-01.md) ➡️ |

@@ -36,7 +36,9 @@ hours: 8
 | 5교시 | API와 DB 연결하기 | `"source":"database"` 응답 + 고장 진단 |
 | 6교시 | 환경 변수와 비밀값 | `.env` + `--env-file` |
 | 7교시 | 세 컨테이너 손으로 조립하기 | 브라우저에서 DevMart 화면 |
-| 8교시 | 배움일기 | |
+| 8교시 | 백업과 복구 — pg_dump와 복원 훈련 | 사고 후 복원, `devmart-backup.sh` |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -47,6 +49,7 @@ hours: 8
 5. [API와 DB 연결하기](lesson-05.md)
 6. [환경 변수와 비밀값](lesson-06.md)
 7. [세 컨테이너 손으로 조립하기](lesson-07.md)
+8. [백업과 복구](lesson-08.md)
 
 !!! key "오늘 실습 전에 확인할 것"
     - 어제 만든 이미지 `devmart/catalog-api:1.0.1`이 있어야 합니다. `docker images devmart/catalog-api`로 확인하세요. 없으면 어제 3교시·5교시대로 다시 빌드합니다.

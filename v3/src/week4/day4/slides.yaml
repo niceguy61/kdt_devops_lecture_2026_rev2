@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "waypoint와 트래픽 나누기"]
       - ["5교시", "5", "장애 주입 · 타임아웃 · 재시도"]
       - ["6교시", "6", "mTLS STRICT와 호출 허가"]
-      - ["7교시", "7", "메시 운영 판단 + 배움일기"]
+      - ["7교시", "7", "메시 운영 판단"]
+      - ["8교시", "8", "메시 문제 해결"]
     notes: "0.6~1GB 더. DevMart 변경은 모두 배포 저장소 커밋 — kubectl로 넣으면 selfHeal과 엇갈린다."
 
   - type: section
@@ -163,6 +164,64 @@ slides:
     right: ["메시가 맞다", ["서비스 많고 팀이 여럿", "규제: 서비스 사이 암호화 · 접근 기록", "언어가 섞여 앱마다 구현이 비싸다", "L4부터 켜고 L7은 필요한 곳에만"]]
     notes: "비용: 자원 · 지연 · 복잡도 · 업그레이드. 다른 메시: Linkerd(가볍다) · Cilium(eBPF). 업그레이드: revision으로 istiod 두 버전 → 네임스페이스 하나씩. 학술: ESB → 똑똑한 끝점 → 메시 → ambient, Morgan 2017. 트렌드: AI 트래픽, Inference Extension."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "메시 문제 해결 — istioctl로 진단하기"
+    goals: ["연습장 mesh-lab", "등록 누락 · 안 걸린 정책 · 신원 오타", "analyze · ztunnel-config · ztunnel 로그", "waypoint list · proxy-status"]
+    notes: "메시는 코드 밖에서 가로챈다 — 앱 로그엔 없다. 메시에게 물어본다. devmart는 Argo CD가 지키므로 건드리지 않는다."
+
+  - type: table
+    title: "실습 22 · 장애 세 가지"
+    head: ["장애", "증상", "찾는 도구"]
+    rows:
+      - ["A 등록 누락", "요청은 된다 — PROTOCOL TCP (평문)", "ztunnel-config workloads"]
+      - ["B 셀렉터 오타", "낯선 Pod도 200 — 에러 없음", "istioctl analyze → IST0127"]
+      - ["C 신원 오타", "client도 000 · analyze는 깨끗", "ztunnel 로그 policy rejection · src.identity"]
+    colw: [2.6, 5.0, 4.5]
+    callout: "analyze는 '없는 신원'까지는 모른다 — 3교시에 SPIFFE ID를 읽어 둔 이유"
+    callout_color: orange
+
+  - type: code
+    title: "장애 B — 정책이 아무 데도 안 걸렸다"
+    shell: "bash"
+    code: |
+      # selector: app: sever   ← 오타
+      kubectl exec -n mesh-lab stranger -- curl -s -o /dev/null -w '%{http_code}' server:9898/
+      istioctl analyze -n mesh-lab
+    out: |2
+      200
+      Warning [IST0127] (AuthorizationPolicy mesh-lab/server-allow-client)
+        No matching workloads for this resource with the following labels: app=sever
+    points:
+      - ["고친 뒤", "stranger 000(56) · client 200"]
+      - ["ztunnel", "L4에서 신원을 보고 끊는다"]
+
+  - type: table
+    title: "진단 순서 — 한 장"
+    head: ["증상", "먼저", "그다음"]
+    rows:
+      - ["메시가 안 하는 것 같다", "ztunnel-config workloads", "dataplane-mode 라벨"]
+      - ["정책이 아무 변화 없음", "istioctl analyze", "selector · targetRefs"]
+      - ["reset · 000 · 56", "ztunnel 로그 · src.identity", "principals"]
+      - ["L7 규칙이 안 먹음", "waypoint list · proxy-status", "use-waypoint 라벨"]
+      - ["메시 탓인지 모름", "연습장에서 라벨 빼고 재현", "운영은 Git 커밋으로"]
+    colw: [3.4, 4.4, 4.3]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["Beschastnikh 외 (CACM 2016)", ["동시성 · 부분 실패 · 관찰의 어려움", "도구 하나로는 부족하다", "스스로 상태를 말하게 — 겹쳐 쓴다"]]
+    right: ["진단도 노드 단위로", ["사이드카: Pod마다 proxy-config", "ambient: ztunnel-config", "라벨 하나로 넣고 빼며 가른다"]]
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "요청은 되는데 PROTOCOL이 TCP — 문제는?"
+      - "ALLOW를 썼는데 낯선 Pod가 들어온다 — 먼저 칠 명령은?"
+      - "analyze가 깨끗한데 client가 끊긴다 — 다음은?"
+      - "운영에서 라벨을 뺄 때 Git 커밋으로 하는 이유는?"
+    answers: "1) 메시 등록 누락(평문)  2) istioctl analyze  3) ztunnel 로그의 src.identity  4) selfHeal이 되돌리고, 기록이 남아야 하므로"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -172,5 +231,6 @@ slides:
       - ["4교시", "waypoint · Service가 부모인 HTTPRoute로 90/10"]
       - ["5교시", "3초 지연 · 50% 실패 · 타임아웃 · 재시도는 곱해진다"]
       - ["6~7교시", "STRICT의 사고와 해결 · 신원으로 허가 · 메시 비용과 판단"]
+      - ["8교시", "메시에게 물어본다 — ztunnel-config(누가 안인가) · analyze(말 안 되는 설정) · ztunnel 로그(누가 거절됐나) · proxy-status"]
     diary: "배움일기 — 남북 · 동서 · 내가 본 SPIFFE ID · products와 orders가 다르게 반응한 이유 · STRICT 전에 셌어야 할 것 · 메시 비용과 내 판단 · 같은 신원(sa/default)을 어떻게 나누나?"
     notes: "client · plain · outsider는 지운다. Istio · 정책은 남긴다. 5분 복구: Istio를 Argo CD Application보다 먼저. 내일: 보안 — RBAC · ServiceAccount · Kyverno."

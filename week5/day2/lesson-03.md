@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 3/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 3/8교시</sub>
 
 # 3교시 · Session Manager · 메타데이터 · S3
 

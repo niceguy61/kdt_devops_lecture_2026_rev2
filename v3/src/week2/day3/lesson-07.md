@@ -237,13 +237,6 @@ docker scout quickview devmart/catalog-api:1.0.1
         4. `docker image inspect --format '{{.Config.User}}' 이미지`
         5. 베이스 이미지의 패키지
 
-!!! diary "오늘의 배움일기"
-    - 내 앱을 처음 이미지로 만든 소감, 그리고 "내 노트북에 파이썬이 없는데 파이썬 앱이 돈다"를 동료에게 설명해 보기
-    - 빌드 캐시 규칙을 블록 탑 비유로 내 말로 다시 써 보기
-    - `COPY . .` 실습에서 비밀번호가 보였을 때 든 생각
-    - 내 Docker Hub 이미지 주소와 다이제스트 앞 12자리 적어 두기
-    - 내일(볼륨·네트워크·환경 변수) 전에 궁금한 것: API와 DB는 어떻게 서로를 찾을까?
-
 ## 참고 문헌
 
 - Docker Docs. *Multi-stage builds*. docs.docker.com/build/building/multi-stage

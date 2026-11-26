@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 6/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 6/8교시</sub>
 
 # 6교시 · 동기와 비동기 — 큐와 처리기
 

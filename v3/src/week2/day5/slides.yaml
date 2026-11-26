@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "Git 브랜치"]
       - ["5교시", "5", "Pull Request와 코드 리뷰 (짝)"]
       - ["6교시", "6", "충돌 해결"]
-      - ["7교시", "7", "2주차 회고와 정리 + 배움일기"]
+      - ["7교시", "7", "Compose 심화"]
+      - ["8교시", "8", "2주차 회고와 정리"]
     notes: "4교시 전에 짝을 정하고 GitHub 아이디를 교환하게 한다."
 
   # 1교시
@@ -338,6 +339,69 @@ slides:
   # 7교시
   - type: section
     num: "7교시"
+    title: "Compose 심화 — 덧씌우기와 환경별 설정"
+    goals: ["compose.override.yaml 자동 합치기", "docker compose config로 최종 모습", "profiles — 필요할 때만", "운영 파일 -f · 한 노트북에 두 벌"]
+    notes: "바탕 파일 하나 + 환경마다 다른 점만 적은 얇은 파일. 3주차 Kustomize 오버레이, 5주차 eks/ 오버레이와 같은 생각."
+
+  - type: code
+    title: "실습 14 · 개발용 덧씌우기"
+    shell: "yaml"
+    code: |
+      # compose.override.yaml — 같은 폴더에 있으면 자동으로 합쳐진다
+      services:
+        db:
+          ports: ["127.0.0.1:5432:5432"]   # 내 노트북에서만
+        catalog-api:
+          environment:
+            APP_ENV: dev                   # 있는 항목은 덮어쓴다
+    out: |2
+      $ docker compose config | grep APP_ENV
+            APP_ENV: dev
+    points:
+      - ["없는 항목", "더한다 (ports)"]
+      - ["있는 항목", "덮는다 (environment)"]
+      - ["config", "설정이 이상하면 가장 먼저"]
+
+  - type: compare
+    title: "실습 15~16 · 프로필과 운영 파일"
+    left: ["profiles: [\"tools\"]", ["adminer — DB를 브라우저로", "평소 up에는 안 켜진다", "docker compose --profile tools up -d"]]
+    right: ["compose.prod.yaml", ["restart · read_only · mem_limit · cpus", "-f compose.yaml -f compose.prod.yaml", "-f를 주면 override는 읽지 않는다"]]
+    notes: "개발 설정이 운영에 섞여 들어가지 않게 하는 규칙."
+
+  - type: code
+    title: "실습 17 · 한 노트북에 두 벌"
+    shell: "bash"
+    code: |
+      # compose.yaml:  ports: ["${WEB_PORT:-8080}:80"]
+      WEB_PORT=8081 docker compose -f compose.yaml -p devmart-review up -d
+      docker compose ls
+    out: |2
+      NAME             STATUS
+      devmart          running(3)
+      devmart-review   running(3)
+    points:
+      - ["-p", "컨테이너 · 네트워크 · 볼륨이 따로"]
+      - ["쓰임", "동료의 PR을 섞지 않고 띄워 보기"]
+    notes: "정리: docker compose -p devmart-review down -v, PR로 올려 리뷰."
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["Continuous Delivery (2010)", ["이미지는 한 번만 만들고", "환경마다 다른 것은 설정뿐", "그 설정도 버전 관리"]]
+    right: ["Compose가 개발 루프 전체로", ["docker compose watch — 저장하면 동기화", "include: — 팀별 파일 붙이기", "운영은 K8s, 설계는 그대로"]]
+    notes: "Humble & Farley (2010) Continuous Delivery."
+
+  - type: quiz
+    title: "7교시 확인 문제"
+    questions:
+      - "compose.yaml을 고치지 않고 개발 중에만 DB 포트를 열려면?"
+      - "설정이 생각대로 안 될 때 먼저 칠 명령은?"
+      - "-f 두 개를 주면 override 파일도 읽나?"
+      - "같은 파일로 두 벌 띄울 때 바꿀 두 가지는?"
+    answers: "1) compose.override.yaml에 ports  2) docker compose config  3) 아니다  4) 프로젝트 이름(-p), 바깥 포트"
+
+  # 8교시
+  - type: section
+    num: "8교시"
     title: "2주차 회고와 정리"
     goals: ["한 장 요약", "동료의 DevMart 실행", "KPT 회고", "디스크 정리 · 3주차 예고"]
     notes: "결론: clone + .env + compose up = 어디서든 같은 DevMart."
@@ -345,10 +409,10 @@ slides:
   - type: image
     title: "2주차 한 장 요약"
     img: week2/day5/w2d5-week2-map.png
-    notes: "실습 14: 짝 저장소 clone → cp .env.example .env → compose up. 내 DevMart를 먼저 down (8080 충돌)."
+    notes: "실습 18: 짝 저장소 clone → cp .env.example .env → compose up. 내 DevMart를 먼저 down (8080 충돌)."
 
   - type: table
-    title: "실습 15 · KPT 회고"
+    title: "실습 19 · KPT 회고"
     head: ["", "질문", "예"]
     rows:
       - ["Keep", "잘된 것, 계속할 것", "에러가 나면 로그부터 보는 습관"]
@@ -398,6 +462,8 @@ slides:
       - ["3교시", "설정은 up, 코드는 --build, --scale로 3개"]
       - ["4교시", "브랜치 = 이름표, 짧게 자주"]
       - ["5교시", "PR → 리뷰 → 승인 → 병합 (짝과)"]
-      - ["6~7교시", "충돌 풀기 · KPT 회고 · 동료의 DevMart를 내 노트북에서"]
+      - ["6교시", "충돌 풀기 — 양쪽 의도를 확인하고 합친다"]
+      - ["7교시", "바탕 + 얇은 덧씌우기 — override는 자동, 운영은 -f로, profiles로 도구 분리"]
+      - ["8교시", "KPT 회고 · 동료의 DevMart를 내 노트북에서"]
     diary: "배움일기 — compose 한 서비스를 어제의 run 옵션과 연결 · 선언형을 내 비유로 · 기억에 남는 리뷰 코멘트 · 충돌에서 양쪽 의도 확인법 · 2주차에 할 수 있게 된 것 세 가지"
     notes: "수고했습니다. 3주차는 Kubernetes와 CI."

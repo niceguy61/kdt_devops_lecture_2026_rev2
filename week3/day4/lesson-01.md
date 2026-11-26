@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md) › 1/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md) › 1/8교시</sub>
 
 # 1교시 · 3일차 요약 + kubectl 루프
 

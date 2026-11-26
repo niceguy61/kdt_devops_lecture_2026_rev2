@@ -1,4 +1,4 @@
-# DevMart MSA CI + 매니페스트 갱신 — 4주차 3일차 (3주차 2일차에 job 하나를 더했다)
+# DevMart MSA CI + 매니페스트 갱신 — 4주차 3일차 (3주차 2일차 8교시의 검문소 + job 하나를 더했다)
 # 저장소 최상위의 .github/workflows/ 에 두어야 GitHub가 읽는다.
 name: devmart-ci
 
@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read                      # 기본은 읽기만 (최소 권한)
 
+concurrency:                          # 같은 브랜치의 낡은 실행은 취소 (3주차 2일차 8교시)
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: test (${{ matrix.service }})
@@ -27,7 +31,7 @@ jobs:
       run:
         working-directory: devmart-msa/${{ matrix.service }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803   # v6.1.0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -41,16 +45,37 @@ jobs:
   compose-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803   # v6.1.0
       - name: compose.yaml 문법 검사
         working-directory: devmart-msa
         env:
           DB_PASSWORD: ci-dummy-not-secret
         run: docker compose config --quiet
 
+  contract:                           # 계약 테스트 (3주차 1 · 2일차 8교시)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: devmart-msa
+    env:
+      DB_PASSWORD: ci-dummy-not-secret
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803   # v6.1.0
+      - name: DevMart 띄우기
+        run: docker compose up -d --build --wait
+      - name: 계약 테스트 (order-api → catalog-api)
+        run: ./contract/catalog-for-order.sh
+      - name: 실패하면 로그 남기기
+        if: failure()
+        run: docker compose logs --tail 50
+      - name: 정리
+        if: always()
+        run: docker compose down -v
+
   build:
     name: build (${{ matrix.service }})
-    needs: [test, compose-check]      # 앞의 두 작업이 성공해야 시작
+    needs: [test, compose-check, contract]   # 앞의 작업들이 성공해야 시작
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -59,7 +84,7 @@ jobs:
       matrix:
         service: [catalog-api, order-api, order-worker]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803   # v6.1.0
       - uses: docker/setup-buildx-action@v4
       - name: GHCR 로그인 (main에 push될 때만)
         if: github.event_name == 'push'
@@ -76,15 +101,28 @@ jobs:
           tags: |
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
-      - name: 빌드 (main이면 push까지)
+      - name: 빌드 (러너에 싣기만)
         uses: docker/build-push-action@v7
         with:
           context: devmart-msa/${{ matrix.service }}
-          push: ${{ github.event_name == 'push' }}
+          load: true
+          push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: 취약점 검문 (CRITICAL이면 실패)
+        env:
+          IMAGE: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.76.2 image --exit-code 1 --severity CRITICAL \
+            --ignore-unfixed --no-progress "$IMAGE"
+      - name: GHCR에 올리기 (main에 push될 때만)
+        if: github.event_name == 'push'
+        env:
+          IMAGE: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+        run: docker push --all-tags "${IMAGE%:*}"
 
   update-manifest:
     name: 배포 저장소에 새 태그 적기
@@ -93,7 +131,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # 코드 저장소가 아니라 '배포 저장소'(devmart-deploy)를 받는다
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803   # v6.1.0
         with:
           repository: ${{ github.repository_owner }}/devmart-deploy
           token: ${{ secrets.DEPLOY_REPO_TOKEN }}   # 그 저장소 하나만 쓸 수 있는 토큰 (7교시)

@@ -39,7 +39,9 @@ hours: 8
 | 5교시 | 첫 저장소 — commit과 push | GitHub에 README 올리기 |
 | 6교시 | Docker Desktop 설치 | `docker version` 출력 |
 | 7교시 | 설치 점검과 문제 해결 | `hello-world` 성공 + 점검표 push |
-| 8교시 | 배움일기 | |
+| 8교시 | 셸 다지기 — 파이프 · 리다이렉트 · 변수 · 첫 스크립트 | `check-env.sh` 작업대 점검기 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -50,3 +52,4 @@ hours: 8
 5. [첫 저장소 — commit과 push](lesson-05.md)
 6. [Docker Desktop 설치](lesson-06.md)
 7. [설치 점검과 문제 해결](lesson-07.md)
+8. [셸 다지기](lesson-08.md)

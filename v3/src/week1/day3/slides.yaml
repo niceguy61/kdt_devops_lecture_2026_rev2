@@ -18,8 +18,9 @@ slides:
       - ["4교시", "4", "DNS"]
       - ["5교시", "5", "HTTP와 HTTPS"]
       - ["6교시", "6", "서비스로 가는 길 — 요청의 여정"]
-      - ["7교시", "7", "네트워크 장비의 역할 + 배움일기"]
-    notes: "8교시는 배움일기."
+      - ["7교시", "7", "네트워크 장비의 역할"]
+      - ["8교시", "8", "네트워크 진단 도구"]
+    notes: "배움일기는 수업 뒤 각자 쓴다(마지막 정리 슬라이드의 질문)."
 
   # 1교시
   - type: section
@@ -485,6 +486,82 @@ slides:
       - "'절대 믿지 말고 항상 확인하라' 보안 모델은?"
     answers: "1) 상태 있는 방화벽, 보안 그룹  2) 전 세계 공격 봇의 표적 — 내 IP(/32)로 제한  3) ALB  4) 제로 트러스트"
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "네트워크 진단 도구"
+    goals: ["아래 층부터 위로", "dig · ping · traceroute · nc · curl -v", "어디서 끊겼는지 읽기", "ping 실패 ≠ 서버 죽음"]
+    notes: "강사 시연. 6교시 요청의 여정을 거꾸로 따라간다. 2주차 컨테이너, 3주차 Pod 통신 문제에서 이 순서를 그대로 쓴다."
+
+  - type: table
+    title: "진단의 순서 — 아래 층부터"
+    head: ["질문", "층", "도구", "대표 실패"]
+    rows:
+      - ["이름이 IP로 바뀌나?", "DNS", "dig", "NXDOMAIN"]
+      - ["그 IP까지 길이 있나?", "IP", "ping · traceroute", "중간에서 끊김"]
+      - ["포트의 문이 열렸나?", "TCP", "nc -zv · ss -tlnp", "refused · timed out"]
+      - ["암호화 악수가 되나?", "TLS", "curl -v", "인증서 오류"]
+      - ["앱이 제대로 답하나?", "HTTP", "curl -i", "4xx · 5xx"]
+    colw: [3.6, 1.6, 3.4, 3.5]
+    mono_col: 2
+    callout: "'여기까지는 된다'는 증거를 쌓아 범위를 좁힌다"
+
+  - type: code
+    title: "시연 · curl -v 한 번으로 네 층"
+    shell: "bash"
+    code: |
+      curl -v https://shop.example.com/api/health
+    out: |2
+      * Trying 203.0.113.25:443...          ← DNS ✓
+      * Connected ... port 443              ← TCP ✓
+      * SSL certificate verify ok.          ← TLS ✓
+      < HTTP/2 503                          ← 앱 ✗
+      {"status":"db unavailable"}
+    points:
+      - ["네트워크", "끝까지 멀쩡"]
+      - ["503", "서버 쪽 — 앱 뒤 DB"]
+      - ["6교시 여정", "⑦번 칸"]
+    notes: "--resolve로 DNS를 건너뛰고 새 서버에 미리 붙어 볼 수 있다. -k는 진단용으로만."
+
+  - type: compare
+    title: "ping이 안 되면 서버가 죽었다?"
+    left: ["ping = ICMP", ["TCP도 UDP도 아닌 별도 프로토콜", "클라우드 보안 그룹은 기본으로 막는다", "traceroute의 * * *도 답을 안 할 뿐"]]
+    right: ["판단은 포트에서", ["nc -zv 서버 443", "succeeded → 문 열림", "refused → 듣는 프로그램 없음", "timed out → 방화벽"]]
+    notes: "ping 실패는 '모른다'이지 '죽었다'가 아니다."
+
+  - type: table
+    title: "에러 메시지에서 도구로"
+    head: ["에러", "의심하는 층", "먼저 쓸 도구"]
+    rows:
+      - ["Could not resolve host", "DNS", "dig"]
+      - ["Connection timed out", "방화벽 · 경로", "nc -zv, 보안 그룹"]
+      - ["Connection refused", "듣는 프로그램 없음", "서버 안 ss -tlnp"]
+      - ["SSL certificate problem", "TLS", "curl -v 인증서 줄"]
+      - ["HTTP 502 / 503 / 504", "앱 · 의존성", "앱 로그, 헬스 체크"]
+    colw: [4.2, 3.6, 4.3]
+    mono_col: 0
+
+  - type: compare
+    title: "학술 노트 — 프로토콜의 빈틈을 관찰하다"
+    left: ["traceroute (1988)", ["밴 제이컵슨, LBL", "TTL이 0이면 라우터가 ICMP로 알려 준다(RFC 792)", "그 규칙을 거꾸로 써서 길을 드러냄"]]
+    right: ["같은 생각", ["새 장비가 아니라 이미 있는 신호를 읽는다", "같은 해 TCP 혼잡 제어 논문", "→ 4주차 관찰 가능성"]]
+    notes: "Postel (1981) RFC 792. Jacobson (1988) SIGCOMM."
+
+  - type: statement
+    icon: Stethoscope
+    title: "트렌드 — 진단 도구도 클러스터 안으로"
+    text: "작은 이미지엔 curl도 없다\n→ 옆에 진단 컨테이너를 붙인다"
+    sub: "kubectl debug(3주차 4일차) · netshoot 이미지 — 도구는 같고 실행하는 자리만 바뀌었다"
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "Could not resolve host — 어느 층, 어떤 도구?"
+      - "웹은 열리는데 ping 실패 — 서버가 아픈가?"
+      - "nc가 refused — 서버 안에서 무엇을?"
+      - "verify ok + HTTP 504 — 네트워크와 앱 중?"
+    answers: "1) DNS, dig  2) 아니다, ICMP만 막혔을 수 있다  3) ss -tlnp로 듣는지·127.0.0.1에만 묶였는지  4) 앱 쪽"
+
   - type: summary
     title: "오늘 하루 정리"
     items:
@@ -494,5 +571,6 @@ slides:
       - ["4교시", "DNS = 계층·위임·캐시, 바꿨는데 안 바뀌면 TTL"]
       - ["5~6교시", "4xx는 요청 쪽, 5xx는 서버 쪽 — 장애는 요청의 여정 앞에서부터"]
       - ["7교시", "보안 그룹은 상태 있는 방화벽, 헬스 체크는 자동 복구의 시작"]
+      - ["8교시", "연결 문제는 아래 층부터 — dig·ping·nc·curl -v, ping 실패는 '모른다'"]
     diary: "배움일기 — 2주차 Docker에서 바로 쓸 것 하나 · 에러 표(refused, timed out…)를 내 말로 · 내일(현대 앱 구조) 전에 궁금한 것"
     notes: "내일은 현대 애플리케이션 구조. 오늘 그린 요청의 여정 ⑥~⑧(앱·캐시·DB)을 확대한다."

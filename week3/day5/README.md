@@ -30,8 +30,10 @@
 | 4교시 | requests와 limits | 노드 예약량 확인, OOMKilled 관찰 |
 | 5교시 | DevMart MSA를 Kubernetes에 | 브라우저 주문 → completed |
 | 6교시 | 장애 연습 | 장애 보고서 |
-| 7교시 | 3주차 회고 | KPT + Compose ↔ Kubernetes 대응표 |
-| 8교시 | 배움일기 | |
+| 7교시 | HPA — 부하에 따라 늘어나고 줄어들기 | 부하에 2 → 6 → 2 |
+| 8교시 | 3주차 회고 | KPT + Compose ↔ Kubernetes 대응표 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -41,7 +43,8 @@
 4. [requests와 limits](lesson-04.md)
 5. [DevMart MSA를 Kubernetes에](lesson-05.md)
 6. [장애 연습](lesson-06.md)
-7. [3주차 회고](lesson-07.md)
+7. [HPA — 자동으로 늘고 줄기](lesson-07.md)
+8. [3주차 회고](lesson-08.md)
 
 > [!IMPORTANT]
 > **오늘 실습 전에 확인할 것**
@@ -60,4 +63,4 @@
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [7교시 · 롤링 업데이트와 되돌리기](../day4/lesson-07.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 4일차 요약 + Namespace](lesson-01.md) ➡️ |
+| ⬅️ [8교시 · Pod 디버깅 종합 — 안 닿을 때 · `kubectl debug`](../day4/lesson-08.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 4일차 요약 + Namespace](lesson-01.md) ➡️ |

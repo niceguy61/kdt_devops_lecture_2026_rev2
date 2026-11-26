@@ -158,7 +158,7 @@ aws ec2 describe-security-groups --group-ids $SG --query 'SecurityGroups[0].Grou
     장부에서는 빠졌고(`forgotten`), AWS에는 그대로 있습니다. `import`(데려오기) · `removed`(놓아주기) · `moved`(코드 안에서 이름 바꾸기)가 state를 **안전하게** 다루는 세 블록입니다 — 모두 코드로 남아 PR로 리뷰할 수 있습니다.
 
 !!! myth "오해 — Terraform이 계정의 모든 것을 안다"
-    Terraform은 **장부에 있는 것만** 압니다. 콘솔로 만든 자원, 다른 프로젝트가 만든 자원은 plan에 나오지 않고, destroy도 건드리지 않습니다. 4주차 4일차의 "추적 표시가 없으면 Argo CD가 지우지 않는다"와 같습니다. 그래서 '남은 것 찾기'(2일차 7교시)는 Terraform만으로는 끝나지 않습니다.
+    Terraform은 **장부에 있는 것만** 압니다. 콘솔로 만든 자원, 다른 프로젝트가 만든 자원은 plan에 나오지 않고, destroy도 건드리지 않습니다. 4주차 4일차의 "추적 표시가 없으면 Argo CD가 지우지 않는다"와 같습니다. 그래서 '남은 것 찾기'(2일차 8교시)는 Terraform만으로는 끝나지 않습니다.
 
 !!! academic "학술 노트 — 구성 표류의 측정"
     IaC 도입 뒤에도 어긋남이 생기는 이유를 조사한 연구들은 ① 장애 대응 중의 수동 수정, ② 콘솔 · 다른 도구가 만든 자원, ③ 클라우드 서비스가 **스스로** 바꾸는 속성(기본값 변경 등)을 꼽습니다. Guerriero 외의 *Adoption, Support, and Challenges of Infrastructure-as-Code: Insights from Industry*(ICSME 2019)는 실무자 인터뷰에서 **drift**와 **state 관리**를 IaC의 가장 큰 어려움으로 보고했습니다. 오늘의 refresh-only · import · removed가 그 어려움을 다루는 도구들입니다.

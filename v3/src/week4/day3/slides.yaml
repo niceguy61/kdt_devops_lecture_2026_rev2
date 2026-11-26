@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "Application과 Sync"]
       - ["5교시", "5", "Sync와 어긋남"]
       - ["6교시", "6", "selfHeal과 prune"]
-      - ["7교시", "7", "Actions → Argo CD 전체 파이프라인 + 배움일기"]
+      - ["7교시", "7", "Actions → Argo CD 전체 파이프라인"]
+      - ["8교시", "8", "플랫폼도 Git으로 — App of Apps"]
     notes: "Argo CD가 0.5~1GB 더 쓴다. gh auth status, GHCR 패키지 공개 확인. 오늘 새 저장소 하나 · 토큰 하나."
 
   # 1교시
@@ -222,6 +223,63 @@ slides:
       - ["뒷정리", "코드 저장소도 revert PR — 안 하면 다음 합치기 때 2.1.0이 돌아온다"]
     notes: "사람 손이 닿은 곳은 sed 한 줄과 합치기 버튼. 비밀 값: Sealed Secrets · SOPS · External Secrets(5주차 AWS Secrets Manager). app of apps · ApplicationSet. 학술: DORA — 빈도와 안정성은 함께 간다. 트렌드: Image Updater · Renovate · Kargo."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "플랫폼도 Git으로 — App of Apps"
+    goals: ["아직 손으로 넣은 것들", "루트 Application 하나", "흩어진 플랫폼 설정을 배포 저장소로", "finalizer — 지울 때 리소스까지?"]
+    notes: "Application도 YAML이다 — 다른 Application이 Git대로 맞출 수 있다."
+
+  - type: table
+    title: "지금 클러스터에서 Git에 없는 것"
+    head: ["무엇", "언제 손으로"]
+    rows:
+      - ["devmart Application", "4 · 6교시 kubectl apply"]
+      - ["대시보드 · 알림 규칙 · PodMonitor", "2일차 kubectl apply"]
+      - ["Loki 데이터 소스", "2일차 8교시 heredoc"]
+      - ["사설 CA · DevMart 인증서", "1일차 8교시 kubectl apply"]
+    colw: [6.0, 6.1]
+    callout: "새 클러스터에서 이걸 기억해서 다시 넣어야 한다"
+    callout_color: orange
+
+  - type: code
+    title: "실습 20~21 · 루트 하나"
+    shell: "text"
+    code: |
+      root.yaml  (path: apps)          ← kubectl apply는 이것 하나
+       └─ apps/devmart.yaml        → devmart/
+       └─ apps/observability.yaml  → observability/  (대시보드 · 규칙 · 데이터 소스)
+       └─ apps/tls.yaml            → tls/            (CA · 인증서)
+    out: |2
+      argocd/devmart        Synced  Healthy
+      argocd/observability  Synced  Healthy
+      argocd/root           Synced  Healthy
+      argocd/tls            Synced  Healthy
+    points:
+      - ["기존 devmart", "같은 내용 → 아무 일 없이 루트 소유로"]
+      - ["kubectl delete app", "루트의 selfHeal이 되살린다"]
+      - ["꺼낸 YAML", "uid · resourceVersion · 생성 시각을 뺀다"]
+
+  - type: compare
+    title: "실습 22 · finalizer — 지울 때 리소스까지?"
+    left: ["finalizer 없음 (오늘)", ["Application만 사라진다", "리소스는 주인 없이 남는다", "플랫폼 설정 — 실수에 안전"]]
+    right: ["resources-finalizer", ["리소스를 먼저 지우고 사라진다", "실습 앱 — 깨끗이 치울 때", "루트에는 절대 붙이지 않는다"]]
+    notes: "apps/ 폴더의 변경은 PR과 리뷰로 — prune: true인 루트에서 파일 하나 지우는 커밋도 위험하다."
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["수렴 (Burgess, 1995 — CFEngine)", ["실행할 일이 아니라 있어야 할 상태", "어디서 시작하든 그 상태로", "고치지 말고 다시 세울 수 있게"]]
+    right: ["플랫폼 팀의 셀프서비스", ["플랫폼 저장소 하나 · 앱 팀은 자기 폴더", "ApplicationSet — 클러스터 × 폴더", "→ 5주차 4일차"]]
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "새 클러스터에 손으로 넣는 것은?"
+      - "기존 devmart를 루트가 가져갈 때 재배포되지 않은 이유는?"
+      - "지운 자식 Application이 다시 생겼다 — 누가?"
+      - "루트에 resources-finalizer를 붙이면?"
+    answers: "1) Argo CD 설치 + 루트 하나 (+Secret)  2) Git과 같아서  3) 루트의 selfHeal  4) 루트를 지우면 모든 것이 줄줄이 지워진다"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -231,5 +289,6 @@ slides:
       - ["4교시", "Application · 추적 표시 · Sync와 Health"]
       - ["5교시", "어긋남 세 방향 · git revert"]
       - ["6~7교시", "selfHeal · prune · CI 봇 커밋 → 자동 배포 · revert로 복구"]
+      - ["8교시", "루트 하나가 자식 Application들을 맞춘다 — 흩어진 플랫폼 설정도 배포 저장소로, finalizer는 루트에 붙이지 않는다"]
     diary: "배움일기 — push와 pull 한 문장씩 · 어긋남 A · B · C를 Sync · Health로 · selfHeal이 방해될 상황 · 합치기→반영, revert→반영 몇 분? · CI와 Argo CD의 권한 · 서비스 사이 호출은 누가 검사하나?"
     notes: "지우지 않는다. 내일부터 DevMart 변경은 배포 저장소 커밋으로. 내일: Istio — 서비스 메시."

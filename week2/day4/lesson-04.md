@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 4/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 4/8교시</sub>
 
 # 4교시 · Docker 네트워크와 이름 찾기
 

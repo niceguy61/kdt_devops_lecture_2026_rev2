@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "여섯 서비스 실행하기"]
       - ["5교시", "5", "요청 ID로 통신 추적하기"]
       - ["6교시", "6", "동기와 비동기 — 큐와 처리기"]
-      - ["7교시", "7", "장애 시나리오 1 + 배움일기"]
+      - ["7교시", "7", "장애 시나리오 1"]
+      - ["8교시", "8", "서비스 사이의 약속"]
     notes: "시작 전에 2주차 DevMart를 down (8080 충돌). redis:8-alpine을 미리 pull 해 두면 좋다."
 
   # 1교시
@@ -301,6 +302,82 @@ slides:
       - ["복구 후", "큐가 기다려 줘서 유실 없음"]
     notes: "교훈: Up + 에러 없음 ≠ 정상, 함께 맞춰야 하는 설정은 한 곳에서(ConfigMap), 큐 길이 감시, 시작할 때 설정을 로그에. 학술: 회색 장애 (Huang et al., HotOS 2017) — 관찰자의 차이. 트렌드: 설정도 PR 단계에서 자동 검사 (내일 CI, 4주차 Kyverno)."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "서비스 사이의 약속 — API 계약"
+    goals: ["응답의 모양 = 계약", "이름 하나 바꿨을 뿐인데", "늘렸다가 줄이기", "계약 테스트"]
+    notes: "MSA에서 가장 흔한 장애는 '배포' — 서로 다른 팀이 각자 배포한 순간. 따로 배포한다는 장점의 대가."
+
+  - type: code
+    title: "실습 5 · price → price_krw"
+    shell: "bash"
+    code: |
+      # catalog-api: jsonify(id=…, name=…, price_krw=r[2], …)
+      docker compose up -d --build catalog-api
+      curl -s -X POST localhost:8080/api/orders -d '{"product_id":1}' …
+      docker compose logs order-api | grep KeyError
+    out: |2
+      (HTTP 500)
+      order-api-1  | KeyError: 'price'
+    points:
+      - ["카탈로그", "멀쩡하다"]
+      - ["주문", "아무것도 안 바꿨는데 깨졌다"]
+      - ["계약", "두 서비스 사이의 빈 공간에 있다"]
+
+  - type: table
+    title: "깨는 변경과 안전한 변경"
+    head: ["변경", "예", "기존 소비자"]
+    rows:
+      - ["필드 추가", "currency: KRW", "✓ 모르는 필드는 무시"]
+      - ["이름 변경 · 삭제", "price → price_krw", "✗"]
+      - ["타입 변경", "59000 → \"59,000원\"", "✗"]
+      - ["의미 변경", "가격에 배송비 포함", "✗ 에러 없이 틀린 값"]
+      - ["필수 입력 추가", "user_id 필수", "✗ 옛 요청 거절"]
+    colw: [3.2, 4.6, 4.3]
+
+  - type: steps
+    title: "이름을 꼭 바꿔야 한다면 — 늘렸다가 줄이기"
+    steps:
+      - ["① 늘리기", "price와 price_krw를 둘 다 보낸다"]
+      - ["② 옮기기", "소비자가 price_krw를 읽도록 배포"]
+      - ["③ 줄이기", "모두 옮긴 걸 확인한 뒤 price 삭제"]
+      - ["크게 바꿀 때", "/api/v1 · /api/v2를 나란히, 메시지엔 \"v\": 1"]
+    notes: "Sato (2014) ParallelChange. ③이 어려운 이유: 옛 필드를 쓰는 소비자가 없다는 걸 확인해야 한다 → 4주차 관찰."
+
+  - type: code
+    title: "실습 6 · 계약 테스트 — 소비자가 약속을 적는다"
+    shell: "bash"
+    code: |
+      body=$(curl -sf "$BASE/api/products/1")
+      echo "$body" | jq -e '.price | type == "number"' || fail=1
+      [ "$(curl -s -o /dev/null -w '%{http_code}' $BASE/api/products/999999)" = 404 ]
+      exit $fail
+    out: |2
+      ✓ name은 문자열
+      ✗ price
+      ✓ 없는 상품은 404
+      종료 코드: 1
+    points:
+      - ["jq -e", "false · null이면 1"]
+      - ["공급자 CI에서", "배포 전에 잡는다 → 내일"]
+      - ["Pact", "소비자 주도 계약 테스트"]
+
+  - type: compare
+    title: "학술 노트 — 견고성 원칙과 그 반성"
+    left: ["Postel (RFC 761, 1980)", ["보낼 때는 엄격하게", "받을 때는 너그럽게", "→ 관대한 독자"]]
+    right: ["RFC 9413 (2023)", ["너무 너그러우면 틀린 형식이 굳는다", "모르는 추가 필드는 무시하되", "필요한 게 없으면 분명하게 실패"]]
+    notes: "트렌드: OpenAPI · AsyncAPI 명세를 먼저 쓰고, 깨는 변경을 PR에서 자동으로 막는다."
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "카탈로그가 currency 필드를 더했다 — 주문이 깨지나?"
+      - "price가 \"59,000원\"이 되면 무엇이 깨지나?"
+      - "이름 변경을 깨지 않고 하는 세 단계는?"
+      - "계약 테스트는 누가 쓰고 어디서 돌리나?"
+    answers: "1) 아니다  2) 곱셈(총액 계산)  3) 늘리기 → 옮기기 → 줄이기  4) 소비자가 쓰고, 공급자 CI에서"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -310,5 +387,6 @@ slides:
       - ["5교시", "요청 ID로 네 서비스 로그를 시간 순으로"]
       - ["6교시", "동기는 기다리고, 비동기는 맡긴다 · 처리기 3개"]
       - ["7교시", "주소 · DB 이름 · 큐 이름 — 조용한 장애"]
+      - ["8교시", "응답 모양은 계약 — 추가는 안전, 이름 변경은 늘렸다가 줄이기, 계약 테스트로 배포 전에"]
     diary: "배움일기 — MSA를 내 비유로 · 주문 하나가 지나가는 길 · 가장 오래 걸린 구간 · 동기/비동기를 내가 아는 앱에서 · 조용한 장애에서 처음 의심한 것 · catalog-api가 느려지면?"
     notes: "정리: docker compose down (볼륨은 남긴다). 내일: 장애 전파 · 타임아웃 · 재시도 · 큐 적체 · GitHub Actions CI."

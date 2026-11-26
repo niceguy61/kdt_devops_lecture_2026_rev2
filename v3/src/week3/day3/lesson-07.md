@@ -468,14 +468,6 @@ kubectl get nodes
         5. 하트비트가 일정 시간 끊겨야 장애로 판단한다 (잠깐의 네트워크 흔들림과 구분)
         6. `localhost:8080` — kubeconfig가 없다(어디로 갈지 모름). `127.0.0.1:41235` — 주소는 맞는데 apiserver가 응답하지 않는다(컨트롤 플레인이 멈춤)
 
-!!! diary "오늘의 배움일기"
-    - Kubernetes를 친구에게 **한 문장**으로 설명한다면
-    - 컨트롤 플레인 네 부품 중 하나가 멈춘다면, 내가 가장 먼저 눈치챌 증상은 무엇일까 (부품 하나를 골라)
-    - 명령형과 선언형 — 1~2주차에 내가 한 일 중 '사실은 선언형이었던 것' 하나
-    - 실험 1 · 2 · 3에서 **고친 주체**를 각각 한 단어로
-    - DevMart에 Kubernetes가 정말 필요한지, 5교시 판단표를 바탕으로 내 의견
-    - 내일 전에 궁금한 것: Pod의 IP가 매번 바뀐다면, `order-api`는 `catalog-api`를 **어떻게** 찾아갈까?
-
 ## 참고 문헌
 
 - kind. *Quick Start* · *Configuration* · *Known Issues*. kind.sigs.k8s.io/docs

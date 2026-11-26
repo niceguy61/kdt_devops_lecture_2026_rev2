@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 7/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 7/8교시</sub>
 
 # 7교시 · 보안 그룹 · NACL + 비용 점검
 
@@ -8,7 +8,6 @@
 > - **보안 그룹**과 **네트워크 ACL**의 차이를 이해합니다.
 > - 내일 쓸 보안 그룹 둘을 만들고, **보안 그룹이 다른 보안 그룹을 출발지로** 지목하는 방법을 익힙니다.
 > - 오늘 만든 것과 **돈이 나가는 것**을 확인합니다.
-> - 첫날 배움일기를 씁니다.
 
 ## 두 겹의 방화벽
 
@@ -143,16 +142,6 @@ aws ec2 describe-security-groups --filters Name=vpc-id,Values=$VPC Name=group-na
 >
 > </details>
 
-> [!NOTE]
-> **오늘의 배움일기**
->
-> - kind에서 AWS로 옮길 때 바뀌는 것 셋, 그대로인 것 셋
-> - 루트 · IAM 사용자 · IAM 역할을 한 문장씩, 4주차의 무엇과 닮았나
-> - 오늘 읽은 정책 JSON에서 Deny 문장이 하는 일
-> - 내 VPC 그림을 손으로 그리고, public과 private을 가르는 한 줄을 적기
-> - 이번 주 비용 계산표에서 가장 무서운 줄과, 그것을 막는 내 습관
-> - 내일 전에 궁금한 것: 오늘 VPC는 비어 있다. 여기에 **서버를 띄우고, 여러 대로 늘리고, 하나가 죽어도 손님이 모르게** 하려면 무엇이 필요할까?
-
 ## 참고 문헌
 
 - AWS Docs. *Control traffic to your AWS resources using security groups*, *Network ACLs*. docs.aws.amazon.com/vpc
@@ -163,4 +152,4 @@ aws ec2 describe-security-groups --filters Name=vpc-id,Values=$VPC Name=group-na
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [6교시 · 콘솔로 VPC 만들기](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [5주차 2일차 목차](../day2/README.md) ➡️ |
+| ⬅️ [6교시 · 콘솔로 VPC 만들기](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [8교시 · 누가 무엇을 했나 — CloudTrail과 태그 전략](lesson-08.md) ➡️ |

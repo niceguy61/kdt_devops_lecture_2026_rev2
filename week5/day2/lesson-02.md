@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 2/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 2/8교시</sub>
 
 # 2교시 · 역할을 붙인 첫 EC2
 

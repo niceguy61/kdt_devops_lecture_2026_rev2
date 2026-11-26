@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 4/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 4/8교시</sub>
 
 # 4교시 · state · 어긋남 · import
 
@@ -173,7 +173,7 @@ aws ec2 describe-security-groups --group-ids $SG --query 'SecurityGroups[0].Grou
 
 > **❓ 오해 — Terraform이 계정의 모든 것을 안다**
 >
-> Terraform은 **장부에 있는 것만** 압니다. 콘솔로 만든 자원, 다른 프로젝트가 만든 자원은 plan에 나오지 않고, destroy도 건드리지 않습니다. 4주차 4일차의 "추적 표시가 없으면 Argo CD가 지우지 않는다"와 같습니다. 그래서 '남은 것 찾기'(2일차 7교시)는 Terraform만으로는 끝나지 않습니다.
+> Terraform은 **장부에 있는 것만** 압니다. 콘솔로 만든 자원, 다른 프로젝트가 만든 자원은 plan에 나오지 않고, destroy도 건드리지 않습니다. 4주차 4일차의 "추적 표시가 없으면 Argo CD가 지우지 않는다"와 같습니다. 그래서 '남은 것 찾기'(2일차 8교시)는 Terraform만으로는 끝나지 않습니다.
 
 > **🎓 학술 노트 — 구성 표류의 측정**
 >

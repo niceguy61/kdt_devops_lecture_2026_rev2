@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 6/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 6/8교시</sub>
 
 # 6교시 · 문서로 일하기
 
@@ -146,4 +146,4 @@ curl localhost:8080/health    # {"status":"ok"} 가 나오면 성공
 
 | 이전 | 목차 | 다음 |
 |:--|:--:|--:|
-| ⬅️ [5교시 · 장애 커뮤니케이션과 포스트모템](lesson-05.md) | [⬆️ 5일차 목차](README.md) | [7교시 · 손으로 맞추는 실행 환경 (강사 시연) + 2주차 준비](lesson-07.md) ➡️ |
+| ⬅️ [5교시 · 장애 커뮤니케이션과 포스트모템](lesson-05.md) | [⬆️ 5일차 목차](README.md) | [7교시 · 처음부터 보안 — DevSecOps와 비밀값](lesson-07.md) ➡️ |

@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "서비스 신원으로 허가"]
       - ["5교시", "5", "Kyverno 정책"]
       - ["6교시", "6", "4주차 종합 장애 훈련"]
-      - ["7교시", "7", "4주차 회고 + 보안 점검표 + 배움일기"]
+      - ["7교시", "7", "공급망 보안 — 서명과 검증"]
+      - ["8교시", "8", "4주차 회고 + 보안 점검표"]
     notes: "Kyverno 0.3~0.5GB. DevMart는 배포 저장소 커밋, 플랫폼(RBAC · 정책)은 apply + platform-changes.md."
 
   - type: section
@@ -186,8 +187,94 @@ slides:
     colw: [0.6, 3.6, 3.0, 5.0]
     notes: "2와 3은 증상이 같다 — 로그의 코드 · 플래그가 가른다. 5는 Synced · Healthy인 틀린 설정. 학술: Allspaw 2015 Trade-offs Under Pressure, STELLA 2017. 트렌드: AI 장애 도우미 — 입력은 커밋 · 로그 · 알림."
 
+  # 7교시
   - type: section
     num: "7교시"
+    title: "공급망 보안 — cosign 서명과 Kyverno 검증"
+    goals: ["정책은 '어떻게', 서명은 '어디서 왔나'", "keyless 서명을 CI에", "cosign verify로 신원 읽기", "ImageValidatingPolicy — 서명 없으면 거절"]
+    notes: "GHCR 토큰을 훔쳐 같은 이름으로 올린 악성 이미지는 5교시 정책을 모두 통과한다."
+
+  - type: compare
+    title: "전통적 서명 vs keyless"
+    left: ["열쇠 파일", ["오래 보관 — 새면 끝", "열쇠의 주인을 믿는다", "배포 · 교체가 숙제"]]
+    right: ["keyless (Sigstore)", ["서명할 때만 임시 열쇠", "OIDC 신원을 믿는다 (저장소 · 워크플로 · 브랜치)", "Fulcio 인증서 + Rekor 공개 장부"]]
+
+  - type: code
+    title: "실습 14 · CI에 서명 넣기"
+    shell: "yaml"
+    code: |
+      permissions: { contents: read, packages: write, id-token: write }
+      …
+      - uses: sigstore/cosign-installer@881c63b…   # v4.1.4
+      - name: 서명 (keyless)
+        run: |
+          DIGEST_REF=$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE")
+          cosign sign --yes "$DIGEST_REF"
+    out: |2
+      Retrieving signed certificate...
+      tlog entry created with index: 712345678
+      Pushing signature to: ghcr.io/you/devmart-catalog-api
+    points:
+      - ["digest에 서명", "태그는 움직인다"]
+      - ["id-token: write", "OIDC 신원을 받을 권한"]
+
+  - type: code
+    title: "실습 15 · 서명 확인"
+    shell: "bash"
+    code: |
+      cosign verify "$NEW" \
+        --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+        --certificate-identity-regexp "^https://github.com/$ID/devops-lab/…@refs/heads/main$"
+    out: |2
+      https://github.com/you/devops-lab/.github/workflows/devmart-ci.yml@refs/heads/main
+      저장소 커밋: 9c2e7a1…   트리거: push
+      (옛 이미지) Error: no signatures found
+    points:
+      - ["누가 · 어느 워크플로", "어느 커밋 · main push"]
+      - ["노트북에서 올린 이미지", "이 신원을 가질 수 없다"]
+
+  - type: code
+    title: "실습 16 · ImageValidatingPolicy"
+    shell: "yaml"
+    code: |
+      matchImageReferences: [{ glob: "ghcr.io/YOUR_ID/devmart-*" }]
+      validationConfigurations: { mutateDigest: false, required: true }
+      attestors:
+        - name: ourci
+          cosign:
+            keyless:
+              identities:
+                - issuer: https://token.actions.githubusercontent.com
+                  subjectRegExp: "…/devmart-ci.yml@refs/heads/main$"
+      validations:
+        - expression: >-
+            images.containers.map(image,
+              verifyImageSignatures(image, [attestors.ourci])).all(e, e > 0)
+    out: |2
+      $ kubectl run unsigned --image="$OLD"   → denied: 우리 CI(main)가 서명한 것만
+      $ kubectl run signed   --image="$NEW"   → pod/signed created
+    points:
+      - ["Audit → Deny", "지금 도는 이미지가 모두 서명됐나 먼저"]
+      - ["mutateDigest: false", "Argo CD와 다투지 않게"]
+      - ["Rekor · TUF", "인터넷이 필요하다"]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["Sigstore (Newman 외, CCS 2022)", ["열쇠 대신 신원", "짧은 인증서 + 투명성 로그", "누구나 공짜로 증명을 남긴다"]]
+    right: ["서명에서 증명(attestation)으로", ["SLSA provenance — 어떻게 만들었나", "attest-build-provenance 한 스텝", "정책: SLSA 레벨 3 이상만"]]
+    notes: "Newman, Meyers & Torres-Arias (2022) ACM CCS."
+
+  - type: quiz
+    title: "7교시 확인 문제"
+    questions:
+      - "5교시 정책을 다 통과하는 악성 이미지가 가능한 이유는?"
+      - "keyless 서명에서 열쇠 대신 믿는 것은?"
+      - "태그가 아니라 digest에 서명하는 이유는?"
+      - "Deny를 켜기 전에 확인할 것은?"
+    answers: "1) 정책은 출처를 안 본다  2) OIDC 신원 + 공개 장부  3) 태그는 옮겨 붙는다  4) 도는 이미지가 모두 서명됐나 · Kyverno 장애 영향"
+
+  - type: section
+    num: "8교시"
     title: "4주차 회고"
     goals: ["4주차 한 장", "보안 점검표", "KPT", "5주차로"]
     notes: "client · outsider · plain 정리."
@@ -196,7 +283,7 @@ slides:
     title: "4주차 kind → 5주차 AWS"
     left: ["4주차 (kind)", ["내 노트북의 클러스터", "NodePort 30080", "클러스터를 손으로", "SA 토큰 · SPIFFE"]]
     right: ["5주차 (AWS)", ["EKS — 당일 만들고 당일 지운다", "ALB", "Terraform으로 네트워크 · 클러스터", "IAM 역할 · Pod Identity"]]
-    notes: "배포 저장소 + Argo CD는 그대로 — destination만 EKS로. 5분 복구 최종판: 플랫폼 단계가 가장 길다 — app of apps · Terraform. 학술: Schneier — 보안은 과정, NIST CSF 2.0 거버넌스. 트렌드: cosign · SLSA · ImageValidatingPolicy."
+    notes: "배포 저장소 + Argo CD는 그대로 — destination만 EKS로. 5분 복구 최종판: 플랫폼 단계가 가장 길다 — app of apps · Terraform. 학술: Schneier — 보안은 과정, NIST CSF 2.0 거버넌스. 7교시에 cosign · ImageValidatingPolicy를 했다 — 다음은 SLSA 증명."
 
   - type: summary
     title: "오늘 만든 것"
@@ -206,6 +293,8 @@ slides:
       - ["3교시", "서비스마다 ServiceAccount · 쓰지 않는 토큰 빼기"]
       - ["4교시", "catalog-api는 order-api만 (L7) · Pod IP 우회로 막기 (L4)"]
       - ["5교시", "Kyverno ValidatingPolicy — Audit 보고서 · Deny가 Argo CD도 막는다"]
-      - ["6~7교시", "거절의 지도 · 종합 훈련 · 보안 점검표 · KPT"]
+      - ["6교시", "거절의 지도 · 종합 장애 훈련"]
+      - ["7교시", "서명은 '어디서 왔나' — CI의 OIDC 신원으로 keyless 서명, Kyverno가 우리 CI 서명만 들인다"]
+      - ["8교시", "보안 점검표 · KPT"]
     diary: "배움일기 — 세 관문과 메시지 · 사라진 토큰의 위험 · L7과 L4가 막은 것 · 훈련의 시간과 거절 주체 · 운영을 바꾼 하루 · 클라우드의 클러스터는 누가 어떤 네트워크 위에 얼마로?"
     notes: "4주차 끝. 다음 주: AWS — 계정과 VPC부터."

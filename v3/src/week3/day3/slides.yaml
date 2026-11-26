@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "선언형과 reconcile"]
       - ["5교시", "5", "장단점과 선택지"]
       - ["6교시", "6", "kubectl과 kind 설치"]
-      - ["7교시", "7", "첫 클러스터 — 둘러보고, 지우고, 끄기 + 배움일기"]
+      - ["7교시", "7", "첫 클러스터 — 둘러보고, 지우고, 끄기"]
+      - ["8교시", "8", "API 서버와 etcd 들여다보기"]
     notes: "Docker Desktop 메모리 4GB 이상 확인. 2일차 DevMart는 down. kindest/node:v1.37.0 이미지는 점심시간에 미리 pull. 오늘 만든 클러스터는 지우지 않는다."
 
   # 1교시
@@ -288,6 +289,80 @@ slides:
       - ["되돌리기", "docker start → Ready · 망가지면 고치지 말고 delete → create"]
     notes: "순서 1 → 2 → 3. 같은 오류 문장이라도 주소가 진단의 열쇠: localhost:8080 = kubeconfig 없음, 127.0.0.1:41235 = apiserver 무응답. NoExecute 기본 5분 뒤 옮김 — 내일 앱 Pod로 다시."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "API 서버와 etcd 들여다보기"
+    goals: ["curl로 apiserver 부르기", "watch — 변화가 흘러온다", "etcd 안의 Secret은 원문", "resourceVersion 충돌"]
+    notes: "읽기만 한다. etcd에 쓰는 것은 apiserver뿐."
+
+  - type: code
+    title: "실습 14 · kubectl = REST API 클라이언트"
+    shell: "bash"
+    code: |
+      kubectl proxy --port 8001 &
+      curl -s localhost:8001/api/v1/namespaces/kube-system/pods \
+        | jq -r '.items[].metadata.name' | head -3
+    points:
+      - ["get pods -n X", "GET /api/v1/namespaces/X/pods"]
+      - ["get deployment", "GET /apis/apps/v1/…"]
+      - ["/api vs /apis", "코어 그룹 vs apps/v1 같은 그룹"]
+
+  - type: code
+    title: "실습 15 · watch — 변화가 흘러온다"
+    shell: "bash"
+    code: |
+      # 터미널 A
+      curl -sN "localhost:8001/api/v1/namespaces/default/pods?watch=true" | jq -r …
+      # 터미널 B
+      kubectl run watch-me --image=nginx:1.30-alpine
+      kubectl delete pod watch-me
+    out: |2
+      ADDED      watch-me   Pending
+      MODIFIED   watch-me   Running
+      DELETED    watch-me   Running
+    points:
+      - ["컨트롤러", "모두 감시를 걸고 기다린다"]
+      - ["list-watch", "멈췄다 돌아와도 따라잡는다"]
+      - ["apiserver", "모두가 보는 게시판"]
+
+  - type: code
+    title: "실습 16 · etcd 안의 Secret"
+    shell: "bash"
+    code: |
+      kubectl create secret generic etcd-demo --from-literal=password='devmart-demo-pw-1234'
+      kubectl get secret etcd-demo -o jsonpath='{.data.password}'
+      $ETCD get /registry/secrets/default/etcd-demo --print-value-only | grep -a -o 'devmart-demo-pw-[0-9]*'
+    out: |2
+      ZGV2bWFydC1kZW1vLXB3LTEyMzQ=
+      devmart-demo-pw-1234
+    points:
+      - ["etcd에는 원문", "파일 · 백업을 가진 사람은 다 읽는다"]
+      - ["저장 시 암호화", "운영 필수, EKS 기본"]
+      - ["열쇠", "/registry/<종류>/<ns>/<이름>"]
+    notes: "$ETCD = kubectl -n kube-system exec etcd-devmart-control-plane -- etcdctl + 인증서 세 개."
+
+  - type: compare
+    title: "resourceVersion — 동시에 고치면"
+    left: ["사람 A", ["옛 사본(rv=100)을 받아 둠", "blue → red로 고쳐 replace", "Conflict — 거절"]]
+    right: ["사람 B", ["그사이 patch로 green", "rv가 101로 올라감", "B의 변경이 지켜진다"]]
+    notes: "낙관적 동시성 제어. 최신을 다시 받아 다시 적용한다."
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["Omega (Schwarzkopf 외, EuroSys 2013)", ["클러스터 상태 = 공유 장부 하나", "여러 스케줄러가 각자 결정", "먼저 바꿨으면 거절 — 다시 시도"]]
+    right: ["etcd를 넘어서", ["EKS 2025 — 노드 10만 대, etcd 속을 교체", "k3s kine — SQLite · PostgreSQL", "API는 그대로, 장부만 바뀐다"]]
+    notes: "Schwarzkopf et al. (2013) EuroSys."
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "kubectl get deployments -n shop의 HTTP 요청은?"
+      - "스케줄러는 새 Pod를 어떻게 아나?"
+      - "etcd 백업을 Secret처럼 지켜야 하는 이유는?"
+      - "the object has been modified — 뜻과 대처는?"
+    answers: "1) GET /apis/apps/v1/namespaces/shop/deployments  2) watch  3) 암호화 안 하면 Secret 원문  4) 누가 먼저 고침 — 최신을 받아 다시"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -297,5 +372,6 @@ slides:
       - ["4교시", "선언형 = 멱등 · 관찰 → 비교 → 행동 · spec은 내가, status는 K8s가"]
       - ["5교시", "복잡함을 한곳으로 모으는 도구 — 필요할 때만 · kind를 고른 이유"]
       - ["6~7교시", "kubectl · kind 설치 → devmart 클러스터 3대 → 지우고 끄고 멈춰 봄"]
+      - ["8교시", "kubectl은 REST, 컨트롤러는 watch, etcd의 Secret은 원문 — resourceVersion이 덮어쓰기를 막는다"]
     diary: "배움일기 — K8s 한 문장 · 부품 하나가 멈추면 · 사실은 선언형이었던 것 · 실험 1~3의 고친 주체 · DevMart에 K8s가 필요한가 · Pod IP가 매번 바뀌면 order-api는 catalog-api를 어떻게 찾을까?"
     notes: "클러스터는 지우지 않는다. 재부팅하면 docker start로 노드 셋을 켠다. 내일: Pod · Deployment · Service."

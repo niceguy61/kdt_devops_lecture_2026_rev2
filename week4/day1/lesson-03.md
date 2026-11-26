@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 3/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 3/8교시</sub>
 
 # 3교시 · Ingress의 역사와 ingress-nginx 은퇴
 

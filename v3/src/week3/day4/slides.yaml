@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "Deployment"]
       - ["5교시", "5", "ReplicaSet과 자가 치유"]
       - ["6교시", "6", "Service와 DNS"]
-      - ["7교시", "7", "롤링 업데이트와 되돌리기 + 배움일기"]
+      - ["7교시", "7", "롤링 업데이트와 되돌리기"]
+      - ["8교시", "8", "Pod 디버깅 종합"]
     notes: "시작 전: kubectl get nodes 세 대 Ready, GHCR 패키지 Public, gh auth refresh -s read:packages."
 
   # 1교시
@@ -264,6 +265,77 @@ slides:
       - ["undo 뒤", "파일(Git)도 되돌린다"]
     notes: "progressDeadlineSeconds 600 → ProgressDeadlineExceeded 표시만. undo는 옛 ReplicaSet을 다시 키우기 — 그래서 몇 초. rollout restart로 노드에 다시 고르게. 학술: SRE 8장 릴리스 엔지니어링, 작은 배치. 트렌드: Argo Rollouts · Flagger — 지표 보고 자동 되돌리기."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "Pod 디버깅 종합 — 안 닿을 때"
+    goals: ["엔드포인트 → 포트 → 이름", "targetPort 오류", "다른 네임스페이스의 이름", "kubectl debug — 붙였다 떼기"]
+    notes: "3교시는 Pod가 안 뜰 때, 오늘은 모두 Running인데 요청이 실패할 때 — Pod 사이의 길을 본다."
+
+  - type: table
+    title: "실습 18 · 셀렉터 오타 vs targetPort 오류"
+    head: ["", "셀렉터 오타 (6교시)", "targetPort 오류 (오늘)"]
+    rows:
+      - ["DNS", "답함", "답함"]
+      - ["EndpointSlice", "비었다", "있다 — PORTS 8080"]
+      - ["Pod IP:8000 직접", "됨", "됨"]
+      - ["고칠 곳", "selector · Pod 라벨", "targetPort · containerPort"]
+    colw: [3.0, 4.5, 4.6]
+    callout: "curl 종료 코드 7 = 연결 실패, 6 = 이름 못 찾음"
+
+  - type: code
+    title: "실습 19 · 다른 네임스페이스에서는"
+    shell: "bash"
+    code: |
+      kubectl exec -n other-team probe -- curl -s http://catalog-api/health        # 6
+      kubectl exec -n other-team probe -- curl -s http://catalog-api.default/health
+      kubectl exec -n other-team probe -- cat /etc/resolv.conf
+    out: |2
+      {"status":"ok"}
+      search other-team.svc.cluster.local svc.cluster.local cluster.local
+    points:
+      - ["짧은 이름", "같은 네임스페이스에서만"]
+      - ["이름.네임스페이스", "다른 곳에서 부를 때"]
+      - ["search", "자기 네임스페이스부터 붙여 본다"]
+
+  - type: code
+    title: "실습 20 · kubectl debug — 셸 없는 Pod 옆에"
+    shell: "bash"
+    code: |
+      kubectl exec $POD -- ps                   # executable file not found
+      kubectl debug -it $POD --image=nicolaka/netshoot:v0.17 --target=catalog-api -- bash
+        ps aux; ss -tlnp; curl -s localhost:8000/health
+      kubectl debug node/$NODE -it --image=busybox:1.37 -- sh
+        ls /host/var/log/pods
+    points:
+      - ["--target", "프로세스 목록 공유"]
+      - ["같은 Pod", "네트워크 공유 — localhost가 앱"]
+      - ["node/", "/host = 노드 root — 권한을 좁게"]
+
+  - type: table
+    title: "오늘의 진단 순서 — 한 장"
+    head: ["증상", "1", "2", "3"]
+    rows:
+      - ["Running이 아님", "get pods 상태", "describe Events", "logs --previous"]
+      - ["Running인데 안 닿음", "endpointslices", "포트 — Pod IP로 직접", "이름 — 네임스페이스"]
+      - ["안에서 무슨 일?", "debug --target", "ss · ps · curl localhost", "노드 로그 파일"]
+      - ["언제 무엇이?", "events --for pod/X", "get events -A --sort-by", "—"]
+    colw: [3.0, 3.0, 3.2, 2.9]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["Agans (2002) 디버깅 아홉 규칙", ["보지 말고 보라 — 직접 확인", "나눠서 정복하라 — 길을 반씩", "한 번에 하나만 바꿔라"]]
+    right: ["붙였다 떼는 디버깅", ["ephemeral container 1.25 GA", "--profile=netadmin 등 필요한 권한만", "AI 도구(k8sgpt)도 확인 순서는 같다"]]
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "거절되는데 EndpointSlice에 IP 3개 — 다음 확인은?"
+      - "shop 네임스페이스에서 default의 catalog-api를 부르는 이름은?"
+      - "curl 종료 코드 6과 7의 차이는?"
+      - "--target을 주면 무엇이 달라지나?"
+    answers: "1) 포트 — Pod IP:앱 포트로 직접  2) catalog-api.default  3) 6 이름 못 찾음, 7 연결 실패  4) 앱의 프로세스가 보인다"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -273,5 +345,6 @@ slides:
       - ["4~5교시", "Deployment → ReplicaSet → Pod · 지우고 죽이고 떼고 꺼도 3개"]
       - ["6교시", "Service = 고정 이름 + 가상 IP · EndpointSlice · localhost:30080"]
       - ["7교시", "롤링 업데이트 · 멈춘 배포 · rollout undo · 파일도 되돌리기"]
+      - ["8교시", "Running인데 안 닿으면 엔드포인트 → 포트 → 이름, 셸 없는 Pod엔 kubectl debug"]
     diary: "배움일기 — 가장 많이 쓴 동사 · 장애 하나의 진단 순서 · 가장 의외였던 자가 치유 · 라벨로 잇는 네 리소스 · FAIL 몇 번 · DB 비밀번호와 데이터는 어떻게?"
     notes: "Deployment와 Service는 지우지 않는다 — 내일 아침 정리하고 DevMart 전체로. 내일: Namespace · ConfigMap/Secret · probe · requests/limits · MSA 배포 · 장애 연습."

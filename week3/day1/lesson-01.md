@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 1/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 1/8교시</sub>
 
 # 1교시 · 모놀리식과 MSA
 

@@ -33,7 +33,9 @@ hours: 8
 | 5교시 | Envoy Gateway 설치와 Gateway | NodePort 30080의 Gateway |
 | 6교시 | HTTPRoute — 경로 · Host · 가중치 | DevMart를 Gateway 뒤로, 카나리 80:20 |
 | 7교시 | 장애 분석 | 라우트 장애 4종 진단 기록 |
-| 8교시 | 배움일기 | |
+| 8교시 | HTTPS — cert-manager와 TLS Gateway | 사설 CA · 자동 갱신 인증서 · 443 리스너 |
+
+배움일기는 수업이 끝난 뒤 각자 씁니다(마지막 교시 끝의 질문).
 
 ## 교시별 자료
 
@@ -44,6 +46,7 @@ hours: 8
 5. [Envoy Gateway 설치와 Gateway](lesson-05.md)
 6. [HTTPRoute — 경로 · Host · 가중치](lesson-06.md)
 7. [장애 분석](lesson-07.md)
+8. [HTTPS — cert-manager](lesson-08.md)
 
 !!! key "오늘 실습 전에 확인할 것"
     - 3주차의 `devmart` 클러스터가 살아 있고, `devmart` 네임스페이스의 DevMart가 `localhost:30080`에서 열려야 합니다. 주말에 노트북을 껐다면 `docker start devmart-control-plane devmart-worker devmart-worker2` 후 40초 기다립니다.

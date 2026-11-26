@@ -18,7 +18,8 @@ slides:
       - ["4교시", "4", "Docker 네트워크와 이름 찾기"]
       - ["5교시", "5", "API와 DB 연결하기"]
       - ["6교시", "6", "환경 변수와 비밀값"]
-      - ["7교시", "7", "세 컨테이너 손으로 조립하기 + 배움일기"]
+      - ["7교시", "7", "세 컨테이너 손으로 조립하기"]
+      - ["8교시", "8", "백업과 복구"]
     notes: "postgres:18 이미지를 1교시 전에 미리 pull 하게 한다. 실습 폴더는 반드시 WSL 쪽 ~/devops-lab."
 
   # 1교시
@@ -311,6 +312,83 @@ slides:
     right: ["compose.yaml (내일)", ["이런 상태가 되어 있어야 한다", "도구가 순서 · 헬스 체크 · 차이를 맞춘다", "up · ps · logs · down 한 단어", "K8s · ArgoCD · Terraform으로 이어진다"]]
     notes: "학술: 토일(toil) — Google SRE 책 5장. 트렌드: Compose Specification, Testcontainers. 정리: devmart-down.sh, git add devmart/nginx day4 — .env가 없는지 확인. 볼륨은 남겨 둔다."
 
+  # 8교시
+  - type: section
+    num: "8교시"
+    title: "백업과 복구 — pg_dump와 복원 훈련"
+    goals: ["RPO와 RTO", "pg_dump — 일관된 사본", "사고 내고 되살리기 + 시간 재기", "복원해 보지 않은 백업은 백업이 아니다"]
+    notes: "백업의 목적은 복구. 만드는 것보다 되살리는 연습에 시간을 쓴다."
+
+  - type: compare
+    title: "두 숫자 — RPO와 RTO"
+    left: ["RPO — 얼마나 잃어도 되나", ["\"최대 1시간치 주문\"", "→ 백업 간격을 정한다", "오늘: 백업 뒤의 모자가 사라지나"]]
+    right: ["RTO — 얼마나 빨리", ["\"30분 안에 다시 연다\"", "→ 복원 절차의 속도", "오늘: time으로 잰다"]]
+    notes: "3-2-1 규칙: 3벌, 2가지 매체, 1벌은 다른 장소(5주차 S3)."
+
+  - type: code
+    title: "실습 13 · pg_dump로 백업"
+    shell: "bash"
+    code: |
+      STAMP=$(date +%Y%m%d-%H%M%S)
+      docker exec db pg_dump -U devmart -d devmart -Fc \
+        > ~/devops-lab/backup/devmart-$STAMP.dump
+      LATEST=$(ls -t ~/devops-lab/backup/*.dump | head -1)
+      docker exec -i db pg_restore --list < "$LATEST" | grep "TABLE DATA"
+    out: |2
+      3365; 0 16389 TABLE DATA public products devmart
+    points:
+      - ["-t 금지", "이진 백업의 줄바꿈이 깨진다"]
+      - ["-i 필요", "파일을 넣을 때"]
+      - ["켜진 DB에서도", "일관된 사본 (2교시 tar와 다름)"]
+
+  - type: code
+    title: "실습 14~15 · 사고 내고 되살리기"
+    shell: "bash"
+    code: |
+      psql … -c "INSERT … ('백업 뒤에 들어온 모자', 25000);"
+      psql … -c "DELETE FROM products;"            # WHERE 없음!
+      time docker exec -i db pg_restore -U devmart -d devmart \
+        --clean --if-exists < "$LATEST"
+    out: |2
+      DELETE 7
+      real    0m0.4s
+      → 상품 6개 복구, 모자는 없음
+    points:
+      - ["RTO", "time의 real"]
+      - ["RPO", "백업 뒤 데이터는 돌아오지 않는다"]
+      - ["운영 DB", "WAL 보관 + 시점 복구(PITR), 관리형 백업"]
+    notes: "psql … 은 docker exec db psql -U devmart -d devmart 의 줄임."
+
+  - type: code
+    title: "실습 16~17 · 복원 훈련과 백업 스크립트"
+    shell: "bash"
+    code: |
+      docker run -d --name restore-test -e POSTGRES_USER=check \
+        -e POSTGRES_DB=check -e POSTGRES_PASSWORD=check-only postgres:18
+      docker exec -i restore-test pg_restore -U check -d check --no-owner < "$LATEST"
+      docker exec restore-test psql -U check -d check -tAc "SELECT count(*) FROM products;"
+    out: |2
+      6
+    points:
+      - ["다른 곳에 되살려", "숫자를 비교 — 매주 자동으로"]
+      - ["devmart-backup.sh", "set -e · --list 확인 · 7일 보관"]
+      - ["*.dump", "고객 데이터 — Git에 올리지 않는다"]
+
+  - type: compare
+    title: "학술 노트 · 트렌드"
+    left: ["GitLab 2017 — 백업이 다섯 개였는데", ["pg_dump는 몇 달째 빈 파일", "실패 알림은 전달되지 않았다", "6시간 전 우연한 사본으로 복구 · 공개 포스트모템"]]
+    right: ["지울 수 없는 백업", ["랜섬웨어는 백업부터 지운다", "S3 Object Lock · Backup Vault Lock", "3-2-1-1-0 — 1벌은 불변, 검증 오류 0"]]
+    notes: "GitLab (2017.2.10) Postmortem of database outage of January 31."
+
+  - type: quiz
+    title: "8교시 확인 문제"
+    questions:
+      - "\"최대 15분치만 잃어도 된다\" — RPO? RTO?"
+      - "docker exec -it로 만든 dump가 복원 안 된다 — 원인?"
+      - "2시 백업, 2시 30분 주문, 3시 사고 → 2시로 복원. 그 주문은?"
+      - "GitLab 사고의 교훈 한 문장"
+    answers: "1) RPO — 백업 간격 15분 이하  2) -t가 이진 출력을 깨뜨림  3) 사라진다  4) 복원해 보지 않은 백업은 백업이 아니다"
+
   - type: summary
     title: "오늘 만든 것"
     items:
@@ -320,5 +398,6 @@ slides:
       - ["5교시", "source: database · 503은 로그로 층을 좁힌다"]
       - ["6교시", ".env + --env-file · -e > --env-file > ENV"]
       - ["7교시", "web → catalog-api → db, 바깥 문은 8080 하나"]
+      - ["8교시", "RPO·RTO, pg_dump로 일관된 사본, 사고 뒤 복원 — 복원해 보지 않은 백업은 백업이 아니다"]
     diary: "배움일기 — 호텔 방과 금고 · 볼륨 vs 바인드 한 줄씩 · 헷갈린 고장과 구분한 로그 문장 · history에서 비밀번호를 찾았을 때 · 명령 6개를 동료에게 어떻게 전할까?"
     notes: "내일은 Compose로 오늘을 파일 하나에 담고, GitHub 브랜치 · PR · 리뷰 · 충돌 해결을 한다."

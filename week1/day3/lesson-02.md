@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md) › 2/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md) › 2/8교시</sub>
 
 # 2교시 · IP 주소와 서브넷
 

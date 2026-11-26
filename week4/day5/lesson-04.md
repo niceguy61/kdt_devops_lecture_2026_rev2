@@ -1,4 +1,4 @@
-<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 4/7교시</sub>
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 4/8교시</sub>
 
 # 4교시 · 서비스 신원으로 허가
 

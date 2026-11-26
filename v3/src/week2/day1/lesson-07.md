@@ -235,12 +235,6 @@ docker rnu hello-world
         4. `echo $?`
         5. 마지막 줄부터
 
-!!! diary "오늘의 배움일기"
-    - 오늘 설치하면서 막혔던 곳 하나와, 어떻게 풀었는지 (또는 아직 못 푼 것)
-    - hello-world 출력의 네 단계를 내 말로 한 줄씩 다시 써 보기
-    - 내 GitHub 저장소 주소를 적고, 커밋이 몇 개인지 세어 보기
-    - 내일 Docker 기본 시간에 꼭 알고 싶은 것 하나
-
 ## 참고 문헌
 
 - Docker. *docker run reference*, *Get started*. docs.docker.com
