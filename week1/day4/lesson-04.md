@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [4일차](README.md) › 4/7교시</sub>
 
 # 4교시 · 데이터베이스와 저장소
 
@@ -133,4 +133,6 @@ WHERE  o.product_id = 123;
 
 ---
 
-⬅️ 이전: [3교시 · 확장성과 가용성](lesson-03.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 캐시와 메시지 큐](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · 확장성과 가용성](lesson-03.md) | [⬆️ 4일차 목차](README.md) | [5교시 · 캐시와 메시지 큐](lesson-05.md) ➡️ |

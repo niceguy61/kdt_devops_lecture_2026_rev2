@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 알림
 
@@ -229,4 +229,6 @@ alertmanager:
 
 ---
 
-⬅️ 이전: [5교시 · k6 부하 테스트](lesson-05.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 관찰 런북과 SLO](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · k6 부하 테스트](lesson-05.md) | [⬆️ 2일차 목차](README.md) | [7교시 · 관찰 런북과 SLO](lesson-07.md) ➡️ |

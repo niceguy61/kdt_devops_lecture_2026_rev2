@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md) › 6/7교시</sub>
 
 # 6교시 · Docker Desktop 설치
 
@@ -225,4 +225,6 @@ Docker는 노트북의 메모리를 나눠 씁니다. 이번 주 실습은 **메
 
 ---
 
-⬅️ 이전: [5교시 · 첫 저장소 — commit과 push](lesson-05.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 설치 점검과 문제 해결](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · 첫 저장소 — commit과 push](lesson-05.md) | [⬆️ 1일차 목차](README.md) | [7교시 · 설치 점검과 문제 해결](lesson-07.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 3/7교시</sub>
 
 # 3교시 · Git과 GitHub 맛보기 (강사 시연)
 
@@ -141,4 +141,6 @@ git push origin feature/login   # GitHub에 올리기
 
 ---
 
-⬅️ 이전: [2교시 · 소프트웨어가 만들어지는 흐름 — SDLC와 CI/CD](lesson-02.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 타 부서와 협업하기](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 소프트웨어가 만들어지는 흐름 — SDLC와 CI/CD](lesson-02.md) | [⬆️ 5일차 목차](README.md) | [4교시 · 타 부서와 협업하기](lesson-04.md) ➡️ |

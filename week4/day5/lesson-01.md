@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 4일차 요약 + 세 관문
 
@@ -120,4 +120,6 @@ kubectl config view --minify -o jsonpath='{.users[0].user.client-certificate-dat
 
 ---
 
-⬅️ 이전: [4주차 5일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · RBAC — 사람의 권한](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4주차 5일차 목차](README.md) | [⬆️ 5일차 목차](README.md) | [2교시 · RBAC — 사람의 권한](lesson-02.md) ➡️ |

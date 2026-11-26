@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 컴퓨터는 무엇으로 이루어져 있나
 
@@ -152,4 +152,6 @@ NIC(Network Interface Card)는 컴퓨터가 네트워크에 연결되는 출입�
 
 ---
 
-⬅️ 이전: [1주차 2일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 운영체제가 하는 일](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1주차 2일차 목차](README.md) | [⬆️ 2일차 목차](README.md) | [2교시 · 운영체제가 하는 일](lesson-02.md) ➡️ |

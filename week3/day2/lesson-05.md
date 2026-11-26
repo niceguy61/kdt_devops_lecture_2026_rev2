@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 5/7교시</sub>
 
 # 5교시 · PR마다 자동 테스트
 
@@ -297,4 +297,6 @@ gh pr checks --watch
 
 ---
 
-⬅️ 이전: [4교시 · GitHub Actions 개념과 첫 워크플로](lesson-04.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 이미지 자동 빌드와 GHCR](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · GitHub Actions 개념과 첫 워크플로](lesson-04.md) | [⬆️ 2일차 목차](README.md) | [6교시 · 이미지 자동 빌드와 GHCR](lesson-06.md) ➡️ |

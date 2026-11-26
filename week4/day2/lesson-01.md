@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 1일차 요약 + 관찰 가능성
 
@@ -144,4 +144,6 @@ for p in / /api/products /api/orders; do printf '%-15s ' $p; curl -s -o /dev/nul
 
 ---
 
-⬅️ 이전: [4주차 2일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · kube-prometheus-stack 설치](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4주차 2일차 목차](README.md) | [⬆️ 2일차 목차](README.md) | [2교시 · kube-prometheus-stack 설치](lesson-02.md) ➡️ |

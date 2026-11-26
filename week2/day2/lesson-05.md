@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md) › 5/7교시</sub>
 
 # 5교시 · 관찰하기 — logs · exec · inspect · stats
 
@@ -273,4 +273,6 @@ docker stats --no-stream web
 
 ---
 
-⬅️ 이전: [4교시 · 포트 연결](lesson-04.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 생명주기와 정리](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · 포트 연결](lesson-04.md) | [⬆️ 2일차 목차](README.md) | [6교시 · 생명주기와 정리](lesson-06.md) ➡️ |

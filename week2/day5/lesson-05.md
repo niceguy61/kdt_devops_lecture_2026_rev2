@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md) › 5/7교시</sub>
 
 # 5교시 · Pull Request와 코드 리뷰
 
@@ -305,4 +305,6 @@ git log --oneline -3
 
 ---
 
-⬅️ 이전: [4교시 · Git 브랜치](lesson-04.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 충돌 해결](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · Git 브랜치](lesson-04.md) | [⬆️ 5일차 목차](README.md) | [6교시 · 충돌 해결](lesson-06.md) ➡️ |

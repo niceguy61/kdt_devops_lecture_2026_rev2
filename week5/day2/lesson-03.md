@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 3/7교시</sub>
 
 # 3교시 · Session Manager · 메타데이터 · S3
 
@@ -186,4 +186,6 @@ Session Manager 창은 **종료**를 눌러 닫습니다.
 
 ---
 
-⬅️ 이전: [2교시 · 역할을 붙인 첫 EC2](lesson-02.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 시작 템플릿과 Auto Scaling 그룹](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 역할을 붙인 첫 EC2](lesson-02.md) | [⬆️ 2일차 목차](README.md) | [4교시 · 시작 템플릿과 Auto Scaling 그룹](lesson-04.md) ➡️ |

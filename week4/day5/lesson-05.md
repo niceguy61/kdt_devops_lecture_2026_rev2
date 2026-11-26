@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 5/7교시</sub>
 
 # 5교시 · Kyverno 정책
 
@@ -210,4 +210,6 @@ sleep 60; argocd app get devmart | grep -E "Sync Status|Health"
 
 ---
 
-⬅️ 이전: [4교시 · 서비스 신원으로 허가](lesson-04.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 4주차 종합 장애 훈련](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · 서비스 신원으로 허가](lesson-04.md) | [⬆️ 5일차 목차](README.md) | [6교시 · 4주차 종합 장애 훈련](lesson-06.md) ➡️ |

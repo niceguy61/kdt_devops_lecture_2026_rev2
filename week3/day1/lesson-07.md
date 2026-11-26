@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 장애 시나리오 1 — 연결이 끊겼다
 
@@ -315,4 +315,6 @@ git push
 
 ---
 
-⬅️ 이전: [6교시 · 동기와 비동기 — 큐와 처리기](lesson-06.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [3주차 2일차 목차](../day2/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · 동기와 비동기 — 큐와 처리기](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [3주차 2일차 목차](../day2/README.md) ➡️ |

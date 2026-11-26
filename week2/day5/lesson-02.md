@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md) › 2/7교시</sub>
 
 # 2교시 · up · ps · logs · down과 헬스 체크
 
@@ -223,4 +223,6 @@ docker compose exec db psql -U devmart -d devmart -c "SELECT count(*) FROM produ
 
 ---
 
-⬅️ 이전: [1교시 · compose.yaml 읽기](lesson-01.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Compose로 하는 일상 작업](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · compose.yaml 읽기](lesson-01.md) | [⬆️ 5일차 목차](README.md) | [3교시 · Compose로 하는 일상 작업](lesson-03.md) ➡️ |

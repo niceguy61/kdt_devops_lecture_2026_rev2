@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 장애 분석
 
@@ -237,4 +237,6 @@ for p in / /api/products /api/orders; do printf '%-15s ' $p; curl -s -o /dev/nul
 
 ---
 
-⬅️ 이전: [6교시 · HTTPRoute — 경로 · Host · 가중치](lesson-06.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4주차 2일차 목차](../day2/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · HTTPRoute — 경로 · Host · 가중치](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [4주차 2일차 목차](../day2/README.md) ➡️ |

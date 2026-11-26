@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md) › 5/7교시</sub>
 
 # 5교시 · Linux 명령어 맛보기 (강사 시연)
 
@@ -155,4 +155,6 @@ cat access.log | grep " 500 " | wc -l   # 접속 로그에서 500 에러가 몇 
 
 ---
 
-⬅️ 이전: [4교시 · 파일과 저장소](lesson-04.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 가상화와 하이퍼바이저](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · 파일과 저장소](lesson-04.md) | [⬆️ 2일차 목차](README.md) | [6교시 · 가상화와 하이퍼바이저](lesson-06.md) ➡️ |

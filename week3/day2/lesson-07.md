@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 7/7교시</sub>
 
 # 7교시 · CI 실패 읽기와 main 보호
 
@@ -246,4 +246,6 @@ git push origin main          # 이제 거절되어야 한다 (새 커밋이 없
 
 ---
 
-⬅️ 이전: [6교시 · 이미지 자동 빌드와 GHCR](lesson-06.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [3주차 3일차 목차](../day3/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · 이미지 자동 빌드와 GHCR](lesson-06.md) | [⬆️ 2일차 목차](README.md) | [3주차 3일차 목차](../day3/README.md) ➡️ |

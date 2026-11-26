@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week1.png" alt="1주차 노선도" width="100%">
 
 # 1주차 5일차 — DevOps 문화와 협업
 
@@ -47,4 +49,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 모놀리식과 MSA, 그리고 왜 Docker인가](../day4/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · DevOps는 왜 생겼나](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 모놀리식과 MSA, 그리고 왜 Docker인가](../day4/lesson-07.md) | [⬆️ 1주차 목차](../README.md) | [1교시 · DevOps는 왜 생겼나](lesson-01.md) ➡️ |

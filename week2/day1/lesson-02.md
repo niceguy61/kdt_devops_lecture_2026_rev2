@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 터미널과 VS Code
 
@@ -222,4 +222,6 @@ pwd
 
 ---
 
-⬅️ 이전: [1교시 · 1주차 요약과 작업 환경 준비](lesson-01.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Git 설치와 설정](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 1주차 요약과 작업 환경 준비](lesson-01.md) | [⬆️ 1일차 목차](README.md) | [3교시 · Git 설치와 설정](lesson-03.md) ➡️ |

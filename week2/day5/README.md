@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week2.png" alt="2주차 노선도" width="100%">
 
 # 2주차 5일차 — Docker Compose와 GitHub 협업
 
@@ -49,4 +51,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 세 컨테이너 손으로 조립하기](../day4/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · compose.yaml 읽기](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 세 컨테이너 손으로 조립하기](../day4/lesson-07.md) | [⬆️ 2주차 목차](../README.md) | [1교시 · compose.yaml 읽기](lesson-01.md) ➡️ |

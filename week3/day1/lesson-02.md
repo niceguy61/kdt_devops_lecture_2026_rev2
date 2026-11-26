@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 서비스 경계와 데이터 소유
 
@@ -170,4 +170,6 @@ DevMart가 하는 일을 적습니다. 예:
 
 ---
 
-⬅️ 이전: [1교시 · 모놀리식과 MSA](lesson-01.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · DevMart MSA 구조 읽기](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 모놀리식과 MSA](lesson-01.md) | [⬆️ 1일차 목차](README.md) | [3교시 · DevMart MSA 구조 읽기](lesson-03.md) ➡️ |

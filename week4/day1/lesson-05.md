@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 5/7교시</sub>
 
 # 5교시 · Envoy Gateway 설치와 Gateway
 
@@ -286,4 +286,6 @@ curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/api/products
 
 ---
 
-⬅️ 이전: [4교시 · Gateway API 구조](lesson-04.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · HTTPRoute — 경로 · Host · 가중치](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · Gateway API 구조](lesson-04.md) | [⬆️ 1일차 목차](README.md) | [6교시 · HTTPRoute — 경로 · Host · 가중치](lesson-06.md) ➡️ |

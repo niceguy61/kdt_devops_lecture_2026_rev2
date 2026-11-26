@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [4일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week1.png" alt="1주차 노선도" width="100%">
 
 # 1주차 4일차 — 현대 애플리케이션 구조
 
@@ -53,4 +55,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 네트워크 장비의 역할](../day3/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 현대 앱의 지도](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 네트워크 장비의 역할](../day3/lesson-07.md) | [⬆️ 1주차 목차](../README.md) | [1교시 · 현대 앱의 지도](lesson-01.md) ➡️ |

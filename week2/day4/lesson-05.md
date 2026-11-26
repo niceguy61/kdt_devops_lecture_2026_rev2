@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 5/7교시</sub>
 
 # 5교시 · API와 DB 연결하기
 
@@ -232,4 +232,6 @@ docker logs api-nonet 2>&1 | grep ERROR
 
 ---
 
-⬅️ 이전: [4교시 · Docker 네트워크와 이름 찾기](lesson-04.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 환경 변수와 비밀값](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · Docker 네트워크와 이름 찾기](lesson-04.md) | [⬆️ 4일차 목차](README.md) | [6교시 · 환경 변수와 비밀값](lesson-06.md) ➡️ |

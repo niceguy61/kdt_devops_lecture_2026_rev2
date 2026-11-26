@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 5/7교시</sub>
 
 # 5교시 · 장애 주입 · 타임아웃 · 재시도
 
@@ -223,4 +223,6 @@ cat devmart/catalog-timeout.yaml
 
 ---
 
-⬅️ 이전: [4교시 · waypoint와 트래픽 나누기](lesson-04.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · mTLS STRICT와 호출 허가](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · waypoint와 트래픽 나누기](lesson-04.md) | [⬆️ 4일차 목차](README.md) | [6교시 · mTLS STRICT와 호출 허가](lesson-06.md) ➡️ |

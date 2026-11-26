@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md) › 5/7교시</sub>
 
 # 5교시 · 전부 지우기 · 남은 것 찾기 · 비용 보고
 
@@ -166,4 +166,6 @@ aws budgets describe-budgets --account-id $(aws sts get-caller-identity --query 
 
 ---
 
-⬅️ 이전: [4교시 · 클라우드 장애 훈련 — 노드와 AZ](lesson-04.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 5주 회고 + 포트폴리오](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · 클라우드 장애 훈련 — 노드와 AZ](lesson-04.md) | [⬆️ 5일차 목차](README.md) | [6교시 · 5주 회고 + 포트폴리오](lesson-06.md) ➡️ |

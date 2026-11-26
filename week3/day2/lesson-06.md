@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 이미지 자동 빌드와 GHCR
 
@@ -225,4 +225,6 @@ git -C ~/devops-lab log -1 --format=%H
 
 ---
 
-⬅️ 이전: [5교시 · PR마다 자동 테스트](lesson-05.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · CI 실패 읽기와 main 보호](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · PR마다 자동 테스트](lesson-05.md) | [⬆️ 2일차 목차](README.md) | [7교시 · CI 실패 읽기와 main 보호](lesson-07.md) ➡️ |

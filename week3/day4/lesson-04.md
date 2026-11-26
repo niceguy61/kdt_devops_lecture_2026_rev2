@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md) › 4/7교시</sub>
 
 # 4교시 · Deployment
 
@@ -218,4 +218,6 @@ kubectl get deployment catalog-api
 
 ---
 
-⬅️ 이전: [3교시 · Pod 장애 읽기](lesson-03.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · ReplicaSet과 자가 치유](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · Pod 장애 읽기](lesson-03.md) | [⬆️ 4일차 목차](README.md) | [5교시 · ReplicaSet과 자가 치유](lesson-05.md) ➡️ |

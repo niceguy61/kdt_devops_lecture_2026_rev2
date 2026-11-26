@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md) › 3/7교시</sub>
 
 # 3교시 · 노드와 Pod — 실제로 돌리는 현장
 
@@ -149,4 +149,6 @@ Pod에는 중요한 성질이 있습니다. **Pod는 죽으면 고쳐 쓰지 않
 
 ---
 
-⬅️ 이전: [2교시 · 컨트롤 플레인 — 결정하고 기록하는 본부](lesson-02.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 선언형과 reconcile](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 컨트롤 플레인 — 결정하고 기록하는 본부](lesson-02.md) | [⬆️ 3일차 목차](README.md) | [4교시 · 선언형과 reconcile](lesson-04.md) ➡️ |

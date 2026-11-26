@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [4일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 프론트엔드와 백엔드
 
@@ -140,4 +140,6 @@ GET /api/products/123          ← 이렇게 물으면
 
 ---
 
-⬅️ 이전: [1교시 · 현대 앱의 지도](lesson-01.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 확장성과 가용성](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 현대 앱의 지도](lesson-01.md) | [⬆️ 4일차 목차](README.md) | [3교시 · 확장성과 가용성](lesson-03.md) ➡️ |

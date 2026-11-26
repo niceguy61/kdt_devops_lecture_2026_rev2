@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 3주차 요약 + Helm 개념
 
@@ -192,4 +192,6 @@ helm version
 
 ---
 
-⬅️ 이전: [4주차 1일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · Helm 설치 루프](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4주차 1일차 목차](README.md) | [⬆️ 1일차 목차](README.md) | [2교시 · Helm 설치 루프](lesson-02.md) ➡️ |

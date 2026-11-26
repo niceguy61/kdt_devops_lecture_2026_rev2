@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 3/7교시</sub>
 
 # 3교시 · DevMart MSA 구조 읽기
 
@@ -252,4 +252,6 @@ nginx는 주소의 앞부분이 **가장 길게 일치하는** `location`을 고
 
 ---
 
-⬅️ 이전: [2교시 · 서비스 경계와 데이터 소유](lesson-02.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 여섯 서비스 실행하기](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 서비스 경계와 데이터 소유](lesson-02.md) | [⬆️ 1일차 목차](README.md) | [4교시 · 여섯 서비스 실행하기](lesson-04.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 3/7교시</sub>
 
 # 3교시 · 바인드 마운트
 
@@ -245,4 +245,6 @@ docker exec web sh -c 'echo hacked > /usr/share/nginx/html/index.html'
 
 ---
 
-⬅️ 이전: [2교시 · 이름 있는 볼륨](lesson-02.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · Docker 네트워크와 이름 찾기](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 이름 있는 볼륨](lesson-02.md) | [⬆️ 4일차 목차](README.md) | [4교시 · Docker 네트워크와 이름 찾기](lesson-04.md) ➡️ |

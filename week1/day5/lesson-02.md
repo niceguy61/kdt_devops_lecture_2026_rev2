@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 소프트웨어가 만들어지는 흐름 — SDLC와 CI/CD
 
@@ -134,4 +134,6 @@
 
 ---
 
-⬅️ 이전: [1교시 · DevOps는 왜 생겼나](lesson-01.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Git과 GitHub 맛보기 (강사 시연)](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · DevOps는 왜 생겼나](lesson-01.md) | [⬆️ 5일차 목차](README.md) | [3교시 · Git과 GitHub 맛보기 (강사 시연)](lesson-03.md) ➡️ |

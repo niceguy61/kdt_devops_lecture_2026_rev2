@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 보안 그룹 · NACL + 비용 점검
 
@@ -161,4 +161,6 @@ aws ec2 describe-security-groups --filters Name=vpc-id,Values=$VPC Name=group-na
 
 ---
 
-⬅️ 이전: [6교시 · 콘솔로 VPC 만들기](lesson-06.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [5주차 2일차 목차](../day2/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · 콘솔로 VPC 만들기](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [5주차 2일차 목차](../day2/README.md) ➡️ |

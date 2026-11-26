@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week5.png" alt="5주차 노선도" width="100%">
 
 # 5주차 4일차 — Terraform으로 EKS
 
@@ -53,4 +55,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · GitHub Actions에서 plan (OIDC)](../day3/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 3일차 요약 + EKS의 구조](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · GitHub Actions에서 plan (OIDC)](../day3/lesson-07.md) | [⬆️ 5주차 목차](../README.md) | [1교시 · 3일차 요약 + EKS의 구조](lesson-01.md) ➡️ |

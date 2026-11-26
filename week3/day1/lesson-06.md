@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 동기와 비동기 — 큐와 처리기
 
@@ -212,4 +212,6 @@ docker compose up -d --scale order-worker=1
 
 ---
 
-⬅️ 이전: [5교시 · 요청 ID로 통신 추적하기](lesson-05.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 장애 시나리오 1 — 연결이 끊겼다](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · 요청 ID로 통신 추적하기](lesson-05.md) | [⬆️ 1일차 목차](README.md) | [7교시 · 장애 시나리오 1 — 연결이 끊겼다](lesson-07.md) ➡️ |

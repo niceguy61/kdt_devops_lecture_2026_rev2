@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 5/7교시</sub>
 
 # 5교시 · 원격 state와 잠금
 
@@ -194,4 +194,6 @@ terraform plan
 
 ---
 
-⬅️ 이전: [4교시 · state · 어긋남 · import](lesson-04.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 모듈로 VPC](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · state · 어긋남 · import](lesson-04.md) | [⬆️ 3일차 목차](README.md) | [6교시 · 모듈로 VPC](lesson-06.md) ➡️ |

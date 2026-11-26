@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md) › 5/7교시</sub>
 
 # 5교시 · 장단점과 선택지
 
@@ -145,4 +145,6 @@ kind를 고른 이유는 세 가지입니다.
 
 ---
 
-⬅️ 이전: [4교시 · 선언형과 reconcile](lesson-04.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · kubectl과 kind 설치](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · 선언형과 reconcile](lesson-04.md) | [⬆️ 3일차 목차](README.md) | [6교시 · kubectl과 kind 설치](lesson-06.md) ➡️ |

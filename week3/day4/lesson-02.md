@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 첫 Pod
 
@@ -262,4 +262,6 @@ kubectl get pods
 
 ---
 
-⬅️ 이전: [1교시 · 3일차 요약 + kubectl 루프](lesson-01.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Pod 장애 읽기](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 3일차 요약 + kubectl 루프](lesson-01.md) | [⬆️ 4일차 목차](README.md) | [3교시 · Pod 장애 읽기](lesson-03.md) ➡️ |

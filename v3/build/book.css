@@ -1,0 +1,141 @@
+/* PDF 이북 스타일 — 188 x 257mm (IT 도서 판형) */
+@page {
+  size: 188mm 257mm;
+  margin: 22mm 18mm 22mm 20mm;
+  @top-left { content: string(chapter); font: 600 8pt Pretendard; color: #94A3B8; }
+  @top-right { content: string(daytitle); font: 500 8pt Pretendard; color: #94A3B8; }
+  @bottom-center { content: counter(page); font: 600 8.5pt Pretendard; color: #64748B; }
+}
+@page cover { margin: 0; @top-left{content:none} @top-right{content:none} @bottom-center{content:none} }
+@page opener { @top-left{content:none} @top-right{content:none} }
+@page toc { @top-left{content:none} @top-right{content:none} @bottom-center{content:none} }
+
+:root { --navy:#0F2A44; --teal:#0089A0; --teal-d:#006A7C; --teal-l:#E0F3F6; --orange:#C8651B; --orange-l:#FBEBDD;
+        --slate:#475569; --slate-l:#F1F5F9; --line:#D5DEE6; --red:#B83227; --red-l:#FBE7E5; --green:#2E7D4F; --green-l:#E3F3E9;
+        --violet:#5B4BB7; --violet-l:#ECEAFB; --ink:#1E293B; }
+
+html { font-family: Pretendard, sans-serif; font-size: 10pt; color: var(--ink); line-height: 1.72; }
+body { margin: 0; }
+p { margin: 0 0 0.75em; orphans: 3; widows: 3; text-align: justify; word-break: keep-all; }
+strong, b { font-weight: 700; color: #0B1F33; }
+a { color: var(--teal-d); text-decoration: none; }
+code { font-family: "D2Coding", "Noto Sans Mono CJK KR", monospace; font-size: 8.6pt; background: #EEF2F6; color: #0B4F5C; padding: 0.5pt 3.5pt; border-radius: 3pt; }
+pre { background: #0F1E2E; color: #E2E8F0; padding: 9pt 11pt; border-radius: 6pt; font-size: 8.4pt; line-height: 1.55; white-space: pre-wrap; break-inside: avoid; }
+pre code { background: none; color: inherit; padding: 0; }
+ul, ol { margin: 0 0 0.8em; padding-left: 1.3em; }
+li { margin: 0.18em 0; word-break: keep-all; }
+li::marker { color: var(--teal); font-weight: 700; }
+
+/* 표지 */
+.cover { page: cover; height: 257mm; background: var(--navy); color: #fff; position: relative; padding: 34mm 22mm 0; box-sizing: border-box; }
+.cover .series { font-size: 10pt; letter-spacing: 3pt; color: #7FD3E0; font-weight: 700; }
+.cover h1 { max-width: 100mm; font-size: 30pt; line-height: 1.25; margin: 10mm 0 6mm; font-weight: 800; color: #fff; string-set: none; }
+.cover .lead { font-size: 13pt; color: #C9DCE8; line-height: 1.6; }
+.cover .band { position: absolute; left: 22mm; right: 22mm; bottom: 34mm; border-top: 1.2pt solid #2D4C6D; padding-top: 6mm; display: flex; justify-content: space-between; font-size: 9.5pt; color: #9FB7CB; }
+.cover .dots { position: absolute; right: 20mm; top: 100mm; width: 46mm; height: 46mm; }
+.cover .dots span { display:inline-block; width: 7mm; height: 7mm; border-radius: 50%; margin: 0 1.6mm 1.6mm 0; background:#1E3A5F; }
+.cover .dots span.on { background: var(--teal); }
+.cover .dots span.or { background: var(--orange); }
+
+/* 목차 */
+.toc { page: toc; break-before: page; }
+.toc h2 { font-size: 20pt; color: var(--navy); margin: 0 0 8mm; }
+.toc .day { font-size: 12pt; font-weight: 800; color: var(--teal-d); margin: 6mm 0 2mm; }
+.toc a { display: block; color: var(--ink); padding: 1.6mm 0; border-bottom: 0.6pt dotted var(--line); font-size: 10.5pt; }
+.toc a::after { content: target-counter(attr(href), page); float: right; color: var(--slate); font-weight: 600; }
+
+/* 일차 오프너 */
+.opener { page: opener; break-before: page; }
+.opener .daytag { display:inline-block; background: var(--teal); color:#fff; font-weight:800; font-size:9pt; padding: 1.6mm 4mm; border-radius: 20pt; letter-spacing: 1pt; }
+.opener h1 { string-set: daytitle content(); font-size: 22pt; line-height: 1.3; color: var(--navy); margin: 5mm 0 2mm; }
+.opener .subtitle { font-size: 11pt; color: var(--slate); margin-bottom: 7mm; }
+.opener h2 { font-size: 12.5pt; color: var(--navy); margin: 7mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 1.2pt solid var(--line); }
+.opener code { background: var(--teal-l); color: var(--teal-d); font-family: Pretendard; font-weight: 700; font-size: 8.6pt; padding: 1pt 5pt; border-radius: 8pt; display: inline-block; margin: 0 2pt 4pt 0; }
+
+/* 교시(장) */
+.lesson { margin-top: 12mm; }
+.opener + .lesson { margin-top: 10mm; }
+.lesson > h1 { break-after: avoid; }
+.lesson > .goal { break-before: avoid; }
+.lesson > .runhead + h1 { break-before: avoid; }
+.runhead { string-set: chapter content(); font-size: 0; line-height: 0; height: 0; color: transparent; }
+.lesson > h1 { font-size: 19pt; line-height: 1.35; color: var(--navy); margin: 0 0 5mm; padding: 0 0 4mm; border-bottom: 2pt solid var(--navy); }
+.lesson > h1 .num { display: block; font-size: 10pt; color: var(--teal); letter-spacing: 1.5pt; font-weight: 800; margin-bottom: 1.5mm; }
+h2 { font-size: 13.5pt; color: var(--navy); margin: 8mm 0 3mm; break-after: avoid; line-height: 1.4; }
+h2::before { content: ""; display: inline-block; width: 3.2mm; height: 3.2mm; background: var(--teal); border-radius: 1mm; margin-right: 2.4mm; vertical-align: 0.5mm; }
+h3 { font-size: 11pt; color: var(--teal-d); margin: 6mm 0 2mm; break-after: avoid; }
+
+/* 표 */
+table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 8.8pt; line-height: 1.5; break-inside: auto; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+th { background: var(--navy); color: #fff; font-weight: 700; text-align: left; padding: 2.2mm 2.6mm; }
+td { padding: 2mm 2.6mm; border-bottom: 0.6pt solid var(--line); vertical-align: top; word-break: keep-all; }
+tbody tr:nth-child(even) td { background: #F7FAFC; }
+
+/* 그림 */
+figure { margin: 4mm 0 6mm; break-inside: avoid; text-align: center; }
+figure img { max-width: 100%; max-height: 74mm; border-radius: 3pt; }
+figcaption { font-size: 8.4pt; color: var(--slate); margin-top: 2mm; }
+figcaption b { color: var(--teal-d); }
+
+/* 박스(admonition) */
+.admonition { border-radius: 6pt; padding: 3.2mm 4.2mm 1.4mm; margin: 4mm 0 5mm; break-inside: avoid; background: var(--slate-l); border: 0.8pt solid var(--line); }
+.admonition > .admonition-title { font-weight: 800; font-size: 9.6pt; margin: 0 0 1.6mm; color: var(--navy); }
+.admonition > .admonition-title::before { display: inline-block; font-size: 7.6pt; font-weight: 800; letter-spacing: 0.6pt; color: #fff; padding: 0.6pt 5pt; border-radius: 8pt; margin-right: 2mm; vertical-align: 0.6pt; }
+.admonition p, .admonition li { font-size: 9.4pt; }
+.admonition table { font-size: 8.4pt; margin: 2mm 0 3mm; }
+.goal { background: var(--teal-l); border-color: #A9DAE2; }
+.goal > .admonition-title::before { content: "GOAL"; background: var(--teal); }
+.key { background: #FFF6E9; border-color: #F0CC9C; }
+.key > .admonition-title::before { content: "KEY"; background: var(--orange); }
+.tip { background: #F3F8EE; border-color: #C8DEB5; }
+.tip > .admonition-title::before { content: "TIP"; background: var(--green); }
+.example { background: #F4F7FB; border-color: #CFDAE6; }
+.example > .admonition-title::before { content: "예시"; background: #3B5B7E; }
+.analogy { background: var(--violet-l); border-color: #CFC9F2; }
+.analogy > .admonition-title::before { content: "비유"; background: var(--violet); }
+.warn { background: var(--red-l); border-color: #EDB9B3; }
+.warn > .admonition-title::before { content: "주의"; background: var(--red); }
+.myth { background: #FFF9F0; border-color: #EAD7B8; }
+.myth > .admonition-title::before { content: "오해"; background: #8A5A1B; }
+.term { background: #F6F7F9; border-color: var(--line); }
+.term > .admonition-title::before { content: "용어"; background: var(--slate); }
+.quiz { background: #fff; border: 1.2pt solid var(--teal); }
+.quiz > .admonition-title::before { content: "QUIZ"; background: var(--navy); }
+.diary { background: var(--orange-l); border-color: #EFC6A3; }
+.diary > .admonition-title::before { content: "배움일기"; background: var(--orange); }
+details.answer { margin: 2mm 0 2mm; padding: 2mm 3mm; background: var(--slate-l); border-radius: 4pt; }
+details.answer summary { font-weight: 800; font-size: 8.8pt; color: var(--teal-d); list-style: none; }
+details.answer li, details.answer p { font-size: 8.8pt; color: var(--slate); }
+
+.example, .myth, .quiz, .diary { break-inside: auto; }
+.admonition > .admonition-title { break-after: avoid; }
+.academic { background: #F3F1FB; border-color: #CFC9F2; }
+.academic > .admonition-title::before { content: "학술"; background: #3E3391; }
+.academic p, .academic li { font-size: 9.1pt; }
+.trend { background: #EAF6F8; border-color: #9FD3DC; }
+.trend > .admonition-title::before { content: "TREND"; background: #006A7C; }
+.academic, .trend { break-inside: auto; }
+
+/* 핸즈온 (2주차~) */
+.lab { background: #EEF7F1; border: 1.2pt solid #7DBE97; }
+.lab > .admonition-title::before { content: "실습"; background: var(--green); }
+.check { background: #fff; border: 1pt dashed #7DBE97; }
+.check > .admonition-title::before { content: "확인"; background: #2E7D4F; }
+.trouble { background: #FFF5F3; border-color: #EDB9B3; }
+.trouble > .admonition-title::before { content: "막혔다면"; background: var(--red); }
+.cleanup { background: #F6F7F9; border-color: var(--line); }
+.cleanup > .admonition-title::before { content: "정리"; background: var(--slate); }
+.lab, .trouble { break-inside: auto; }
+.check pre, .lab pre, .trouble pre, .cleanup pre { margin: 1.5mm 0 2.5mm; }
+.check pre { background: #F3F8F5; color: #1E3A2C; border: 0.6pt solid #CFE5D7; }
+h3.step, .lesson h3 { }
+pre.long { break-inside: auto; }
+/* 셸 표시 — 어느 창에 칠지 */
+pre { position: relative; }
+pre > code.language-bash::before, pre > code.language-sh::before, pre > code.language-powershell::before {
+  display: block; text-align: right; margin: -3pt -4pt 2pt 0; font-family: Pretendard, sans-serif; font-size: 6.4pt; font-weight: 700; letter-spacing: 0.2pt; }
+pre > code.language-bash::before, pre > code.language-sh::before { content: "bash · WSL Ubuntu · macOS"; color: #7F95AD; }
+pre > code.language-powershell::before { content: "PowerShell · Windows"; color: #8FB4F0; }
+.check pre > code::before { display: none; }

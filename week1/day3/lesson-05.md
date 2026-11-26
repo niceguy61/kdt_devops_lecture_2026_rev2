@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md) › 5/7교시</sub>
 
 # 5교시 · HTTP와 HTTPS
 
@@ -152,4 +152,6 @@ HTTP는 내용이 **그대로 보이는 엽서**와 같습니다. 같은 와이�
 
 ---
 
-⬅️ 이전: [4교시 · DNS](lesson-04.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 서비스로 가는 길 — 요청의 여정](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · DNS](lesson-04.md) | [⬆️ 3일차 목차](README.md) | [6교시 · 서비스로 가는 길 — 요청의 여정](lesson-06.md) ➡️ |

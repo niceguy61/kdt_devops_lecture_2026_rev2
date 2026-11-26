@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md) › 3/7교시</sub>
 
 # 3교시 · Compose로 하는 일상 작업
 
@@ -231,4 +231,6 @@ git push
 
 ---
 
-⬅️ 이전: [2교시 · up · ps · logs · down과 헬스 체크](lesson-02.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · Git 브랜치](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · up · ps · logs · down과 헬스 체크](lesson-02.md) | [⬆️ 5일차 목차](README.md) | [4교시 · Git 브랜치](lesson-04.md) ➡️ |

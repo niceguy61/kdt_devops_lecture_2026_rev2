@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 5/7교시</sub>
 
 # 5교시 · VPC의 구성 요소
 
@@ -124,4 +124,6 @@ PY
 
 ---
 
-⬅️ 이전: [4교시 · AWS CLI와 aws login](lesson-04.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 콘솔로 VPC 만들기](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · AWS CLI와 aws login](lesson-04.md) | [⬆️ 1일차 목차](README.md) | [6교시 · 콘솔로 VPC 만들기](lesson-06.md) ➡️ |

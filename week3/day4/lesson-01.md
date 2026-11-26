@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 3일차 요약 + kubectl 루프
 
@@ -230,4 +230,6 @@ kubectl explain pod.spec.containers.image
 
 ---
 
-⬅️ 이전: [3주차 4일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 첫 Pod](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3주차 4일차 목차](README.md) | [⬆️ 4일차 목차](README.md) | [2교시 · 첫 Pod](lesson-02.md) ➡️ |

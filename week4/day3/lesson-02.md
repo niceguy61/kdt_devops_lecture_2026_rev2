@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md) › 2/7교시</sub>
 
 # 2교시 · CI와 CD 나누기 · 배포 저장소
 
@@ -225,4 +225,6 @@ gh repo view --web
 
 ---
 
-⬅️ 이전: [1교시 · 2일차 요약 + GitOps](lesson-01.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Argo CD 설치](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 2일차 요약 + GitOps](lesson-01.md) | [⬆️ 3일차 목차](README.md) | [3교시 · Argo CD 설치](lesson-03.md) ➡️ |

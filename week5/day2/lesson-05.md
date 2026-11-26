@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 5/7교시</sub>
 
 # 5교시 · 대상 그룹과 ALB
 
@@ -133,4 +133,6 @@ for i in $(seq 6); do curl -s http://$DNS/ | grep -o '"hostname": "[^"]*"'; done
 
 ---
 
-⬅️ 이전: [4교시 · 시작 템플릿과 Auto Scaling 그룹](lesson-04.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 장애와 교체 · 늘리기](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · 시작 템플릿과 Auto Scaling 그룹](lesson-04.md) | [⬆️ 2일차 목차](README.md) | [6교시 · 장애와 교체 · 늘리기](lesson-06.md) ➡️ |

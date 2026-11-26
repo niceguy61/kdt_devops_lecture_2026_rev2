@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md) › 6/7교시</sub>
 
 # 6교시 · selfHeal과 prune
 
@@ -244,4 +244,6 @@ kubectl apply -f ~/devops-lab/k8s/w4d3/argocd/devmart-app-auto.yaml   # 다시 �
 
 ---
 
-⬅️ 이전: [5교시 · Sync와 어긋남](lesson-05.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · Actions → Argo CD 전체 파이프라인](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · Sync와 어긋남](lesson-05.md) | [⬆️ 3일차 목차](README.md) | [7교시 · Actions → Argo CD 전체 파이프라인](lesson-07.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 4/7교시</sub>
 
 # 4교시 · 플랫폼 올리기
 
@@ -174,4 +174,6 @@ sleep 120; curl -s -o /dev/null -w '%{http_code}\n' http://$NLB/
 
 ---
 
-⬅️ 이전: [3교시 · 기다리는 동안 — 신원 두 방향 · kubeconfig](lesson-03.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 같은 배포 저장소를 EKS에](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · 기다리는 동안 — 신원 두 방향 · kubeconfig](lesson-03.md) | [⬆️ 4일차 목차](README.md) | [5교시 · 같은 배포 저장소를 EKS에](lesson-05.md) ➡️ |

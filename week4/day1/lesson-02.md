@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 2/7교시</sub>
 
 # 2교시 · Helm 설치 루프
 
@@ -376,4 +376,6 @@ kubectl get secret -l owner=helm,name=tmp
 
 ---
 
-⬅️ 이전: [1교시 · 3주차 요약 + Helm 개념](lesson-01.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Ingress의 역사와 ingress-nginx 은퇴](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 3주차 요약 + Helm 개념](lesson-01.md) | [⬆️ 1일차 목차](README.md) | [3교시 · Ingress의 역사와 ingress-nginx 은퇴](lesson-03.md) ➡️ |

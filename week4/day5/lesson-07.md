@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 4주차 회고 + 보안 점검표
 
@@ -151,4 +151,6 @@ cat retro-week4.md
 
 ---
 
-⬅️ 이전: [6교시 · 4주차 종합 장애 훈련](lesson-06.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [5주차 1일차 목차](../../week5/day1/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · 4주차 종합 장애 훈련](lesson-06.md) | [⬆️ 5일차 목차](README.md) | [5주차 1일차 목차](../../week5/day1/README.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 3/7교시</sub>
 
 # 3교시 · mTLS 확인과 Kiali
 
@@ -154,4 +154,6 @@ done &
 
 ---
 
-⬅️ 이전: [2교시 · Istio 설치와 메시 등록](lesson-02.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · waypoint와 트래픽 나누기](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · Istio 설치와 메시 등록](lesson-02.md) | [⬆️ 4일차 목차](README.md) | [4교시 · waypoint와 트래픽 나누기](lesson-04.md) ➡️ |

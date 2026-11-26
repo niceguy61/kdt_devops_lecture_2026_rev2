@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 4/7교시</sub>
 
 # 4교시 · Docker 네트워크와 이름 찾기
 
@@ -231,4 +231,6 @@ docker network inspect devmart-net \
 
 ---
 
-⬅️ 이전: [3교시 · 바인드 마운트](lesson-03.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · API와 DB 연결하기](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · 바인드 마운트](lesson-03.md) | [⬆️ 4일차 목차](README.md) | [5교시 · API와 DB 연결하기](lesson-05.md) ➡️ |

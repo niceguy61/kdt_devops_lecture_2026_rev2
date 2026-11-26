@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 4/7교시</sub>
 
 # 4교시 · requests와 limits
 
@@ -218,4 +218,6 @@ kubectl delete -f steps/oom.yaml
 
 ---
 
-⬅️ 이전: [3교시 · probe — 준비됐나, 살아 있나](lesson-03.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · DevMart MSA를 Kubernetes에](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · probe — 준비됐나, 살아 있나](lesson-03.md) | [⬆️ 5일차 목차](README.md) | [5교시 · DevMart MSA를 Kubernetes에](lesson-05.md) ➡️ |

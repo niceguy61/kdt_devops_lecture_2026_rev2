@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 메시 운영 판단
 
@@ -144,4 +144,6 @@ kubectl delete pod client -n devmart
 
 ---
 
-⬅️ 이전: [6교시 · mTLS STRICT와 호출 허가](lesson-06.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [4주차 5일차 목차](../day5/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · mTLS STRICT와 호출 허가](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [4주차 5일차 목차](../day5/README.md) ➡️ |

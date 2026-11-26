@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 클라우드에서 달라진 것
 
@@ -173,4 +173,6 @@ kubectl top pods -n devmart
 
 ---
 
-⬅️ 이전: [5교시 · 같은 배포 저장소를 EKS에](lesson-05.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 지우는 순서](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · 같은 배포 저장소를 EKS에](lesson-05.md) | [⬆️ 4일차 목차](README.md) | [7교시 · 지우는 순서](lesson-07.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 코드 읽기와 apply
 
@@ -210,4 +210,6 @@ real    16m○s
 
 ---
 
-⬅️ 이전: [1교시 · 3일차 요약 + EKS의 구조](lesson-01.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 기다리는 동안 — 신원 두 방향 · kubeconfig](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 3일차 요약 + EKS의 구조](lesson-01.md) | [⬆️ 4일차 목차](README.md) | [3교시 · 기다리는 동안 — 신원 두 방향 · kubeconfig](lesson-03.md) ➡️ |

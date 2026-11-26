@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 태그와 Docker Hub
 
@@ -217,4 +217,6 @@ docker rm -f friend
 
 ---
 
-⬅️ 이전: [5교시 · 빌드 캐시와 명령 순서](lesson-05.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 멀티 스테이지와 이미지 크기·보안](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · 빌드 캐시와 명령 순서](lesson-05.md) | [⬆️ 3일차 목차](README.md) | [7교시 · 멀티 스테이지와 이미지 크기·보안](lesson-07.md) ➡️ |

@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week3.png" alt="3주차 노선도" width="100%">
 
 # 3주차 5일차 — 운영 가능한 워크로드
 
@@ -56,4 +58,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 롤링 업데이트와 되돌리기](../day4/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 4일차 요약 + Namespace](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 롤링 업데이트와 되돌리기](../day4/lesson-07.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 4일차 요약 + Namespace](lesson-01.md) ➡️ |

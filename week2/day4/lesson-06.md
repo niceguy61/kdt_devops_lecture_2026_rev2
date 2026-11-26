@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 환경 변수와 비밀값
 
@@ -278,4 +278,6 @@ docker run --rm --env-file /tmp/test.env -e APP_ENV=from-cli devmart/catalog-api
 
 ---
 
-⬅️ 이전: [5교시 · API와 DB 연결하기](lesson-05.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 세 컨테이너 손으로 조립하기](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · API와 DB 연결하기](lesson-05.md) | [⬆️ 4일차 목차](README.md) | [7교시 · 세 컨테이너 손으로 조립하기](lesson-07.md) ➡️ |

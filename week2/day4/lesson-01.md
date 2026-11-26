@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 컨테이너의 데이터는 어디에
 
@@ -231,4 +231,6 @@ docker system df -v | grep -A5 "VOLUME NAME"
 
 ---
 
-⬅️ 이전: [2주차 4일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 이름 있는 볼륨](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2주차 4일차 목차](README.md) | [⬆️ 4일차 목차](README.md) | [2교시 · 이름 있는 볼륨](lesson-02.md) ➡️ |

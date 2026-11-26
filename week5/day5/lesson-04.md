@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md) › 4/7교시</sub>
 
 # 4교시 · 클라우드 장애 훈련 — 노드와 AZ
 
@@ -180,4 +180,6 @@ kubectl get pods -n devmart -l app=db -w
 
 ---
 
-⬅️ 이전: [3교시 · 커밋 하나, 클러스터 둘](lesson-03.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 전부 지우기 · 남은 것 찾기 · 비용 보고](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · 커밋 하나, 클러스터 둘](lesson-03.md) | [⬆️ 5일차 목차](README.md) | [5교시 · 전부 지우기 · 남은 것 찾기 · 비용 보고](lesson-05.md) ➡️ |

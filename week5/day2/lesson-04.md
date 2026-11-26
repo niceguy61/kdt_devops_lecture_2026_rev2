@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 4/7교시</sub>
 
 # 4교시 · 시작 템플릿과 Auto Scaling 그룹
 
@@ -151,4 +151,6 @@ aws ec2 terminate-instances --instance-ids $ID1 --query 'TerminatingInstances[0]
 
 ---
 
-⬅️ 이전: [3교시 · Session Manager · 메타데이터 · S3](lesson-03.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 대상 그룹과 ALB](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · Session Manager · 메타데이터 · S3](lesson-03.md) | [⬆️ 2일차 목차](README.md) | [5교시 · 대상 그룹과 ALB](lesson-05.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md) › 4/7교시</sub>
 
 # 4교시 · 빌드 컨텍스트와 .dockerignore
 
@@ -230,4 +230,6 @@ git push
 
 ---
 
-⬅️ 이전: [3교시 · 첫 빌드와 실행](lesson-03.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 빌드 캐시와 명령 순서](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · 첫 빌드와 실행](lesson-03.md) | [⬆️ 3일차 목차](README.md) | [5교시 · 빌드 캐시와 명령 순서](lesson-05.md) ➡️ |

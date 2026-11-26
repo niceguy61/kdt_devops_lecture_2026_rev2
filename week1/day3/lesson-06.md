@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 서비스로 가는 길 — 요청의 여정
 
@@ -123,4 +123,6 @@
 
 ---
 
-⬅️ 이전: [5교시 · HTTP와 HTTPS](lesson-05.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 네트워크 장비의 역할](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · HTTP와 HTTPS](lesson-05.md) | [⬆️ 3일차 목차](README.md) | [7교시 · 네트워크 장비의 역할](lesson-07.md) ➡️ |

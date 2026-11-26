@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 1일차 요약 + 컴퓨트 고르기
 
@@ -93,4 +93,6 @@ aws ec2 describe-security-groups --filters Name=vpc-id,Values=$VPC --query 'Secu
 
 ---
 
-⬅️ 이전: [5주차 2일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 역할을 붙인 첫 EC2](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5주차 2일차 목차](README.md) | [⬆️ 2일차 목차](README.md) | [2교시 · 역할을 붙인 첫 EC2](lesson-02.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md) › 1/5교시</sub>
 
 # 1교시 · 과정 OT — 수업 방식과 약속
 
@@ -210,4 +210,6 @@ AWS 계정은 5주차 직전에 만드는 방법을 따로 안내합니다. 미�
 
 ---
 
-⬅️ 이전: [1주차 1일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 5주 로드맵과 DevOps 직무](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1주차 1일차 목차](README.md) | [⬆️ 1일차 목차](README.md) | [2교시 · 5주 로드맵과 DevOps 직무](lesson-02.md) ➡️ |

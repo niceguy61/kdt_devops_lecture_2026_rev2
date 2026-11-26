@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 4주차 종합 장애 훈련
 
@@ -163,4 +163,6 @@ done
 
 ---
 
-⬅️ 이전: [5교시 · Kyverno 정책](lesson-05.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 4주차 회고 + 보안 점검표](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · Kyverno 정책](lesson-05.md) | [⬆️ 5일차 목차](README.md) | [7교시 · 4주차 회고 + 보안 점검표](lesson-07.md) ➡️ |

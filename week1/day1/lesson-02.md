@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md) › 2/5교시</sub>
 
 # 2교시 · 5주 로드맵과 DevOps 직무
 
@@ -208,4 +208,6 @@ DevOps와 가까운 직무는 이름이 여러 가지입니다. 회사마다 부
 
 ---
 
-⬅️ 이전: [1교시 · 과정 OT — 수업 방식과 약속](lesson-01.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · AI 시대의 DevOps 마인드셋](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 과정 OT — 수업 방식과 약속](lesson-01.md) | [⬆️ 1일차 목차](README.md) | [3교시 · AI 시대의 DevOps 마인드셋](lesson-03.md) ➡️ |

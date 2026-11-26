@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 3/7교시</sub>
 
 # 3교시 · ServiceAccount — 프로그램의 신원
 
@@ -200,4 +200,6 @@ kubectl delete -f test/pod-reader.yaml
 
 ---
 
-⬅️ 이전: [2교시 · RBAC — 사람의 권한](lesson-02.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 서비스 신원으로 허가](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · RBAC — 사람의 권한](lesson-02.md) | [⬆️ 5일차 목차](README.md) | [4교시 · 서비스 신원으로 허가](lesson-04.md) ➡️ |

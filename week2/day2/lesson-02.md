@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 컨테이너 안에 들어가 보기
 
@@ -195,4 +195,6 @@ exit
 
 ---
 
-⬅️ 이전: [1교시 · 이미지와 컨테이너](lesson-01.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · nginx를 백그라운드로 실행](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 이미지와 컨테이너](lesson-01.md) | [⬆️ 2일차 목차](README.md) | [3교시 · nginx를 백그라운드로 실행](lesson-03.md) ➡️ |

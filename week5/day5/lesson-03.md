@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md) › 3/7교시</sub>
 
 # 3교시 · 커밋 하나, 클러스터 둘
 
@@ -171,4 +171,6 @@ gh pr create --fill --title "승격: EKS를 $NEW 로" && gh pr merge --squash --
 
 ---
 
-⬅️ 이전: [2교시 · 아침의 재현](lesson-02.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 클라우드 장애 훈련 — 노드와 AZ](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 아침의 재현](lesson-02.md) | [⬆️ 5일차 목차](README.md) | [4교시 · 클라우드 장애 훈련 — 노드와 AZ](lesson-04.md) ➡️ |

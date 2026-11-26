@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md) › 4/7교시</sub>
 
 # 4교시 · 포트 연결
 
@@ -250,4 +250,6 @@ docker port web-local
 
 ---
 
-⬅️ 이전: [3교시 · nginx를 백그라운드로 실행](lesson-03.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 관찰하기 — logs · exec · inspect · stats](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · nginx를 백그라운드로 실행](lesson-03.md) | [⬆️ 2일차 목차](README.md) | [5교시 · 관찰하기 — logs · exec · inspect · stats](lesson-05.md) ➡️ |

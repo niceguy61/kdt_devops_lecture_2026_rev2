@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 첫 클러스터 — 둘러보고, 지우고, 끄기
 
@@ -533,4 +533,6 @@ kubectl get nodes
 
 ---
 
-⬅️ 이전: [6교시 · kubectl과 kind 설치](lesson-06.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [3주차 4일차 목차](../day4/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · kubectl과 kind 설치](lesson-06.md) | [⬆️ 3일차 목차](README.md) | [3주차 4일차 목차](../day4/README.md) ➡️ |

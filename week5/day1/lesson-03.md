@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 3/7교시</sub>
 
 # 3교시 · IAM — 사용자 · 그룹 · 역할 · 정책
 
@@ -153,4 +153,6 @@ cat ~/devops-lab/aws/w5d1/s3-read-only-policy.json
 
 ---
 
-⬅️ 이전: [2교시 · 계정 만들기와 루트 지키기](lesson-02.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · AWS CLI와 aws login](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 계정 만들기와 루트 지키기](lesson-02.md) | [⬆️ 1일차 목차](README.md) | [4교시 · AWS CLI와 aws login](lesson-04.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 지우는 순서
 
@@ -146,4 +146,6 @@ kubectl config delete-context $(kubectl config get-contexts -o name | grep eks) 
 
 ---
 
-⬅️ 이전: [6교시 · 클라우드에서 달라진 것](lesson-06.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5주차 5일차 목차](../day5/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · 클라우드에서 달라진 것](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [5주차 5일차 목차](../day5/README.md) ➡️ |

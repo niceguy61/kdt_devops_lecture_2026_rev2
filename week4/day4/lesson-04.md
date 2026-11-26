@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 4/7교시</sub>
 
 # 4교시 · waypoint와 트래픽 나누기
 
@@ -203,4 +203,6 @@ Kiali 지도(Traffic Graph, Display → **Traffic Distribution** 켜기)에서 c
 
 ---
 
-⬅️ 이전: [3교시 · mTLS 확인과 Kiali](lesson-03.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 장애 주입 · 타임아웃 · 재시도](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · mTLS 확인과 Kiali](lesson-03.md) | [⬆️ 4일차 목차](README.md) | [5교시 · 장애 주입 · 타임아웃 · 재시도](lesson-05.md) ➡️ |

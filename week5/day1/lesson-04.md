@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md) › 4/7교시</sub>
 
 # 4교시 · AWS CLI와 aws login
 
@@ -188,4 +188,6 @@ aws ec2 describe-vpcs --query 'Vpcs[].[VpcId,CidrBlock,IsDefault]' --output tabl
 
 ---
 
-⬅️ 이전: [3교시 · IAM — 사용자 · 그룹 · 역할 · 정책](lesson-03.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · VPC의 구성 요소](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · IAM — 사용자 · 그룹 · 역할 · 정책](lesson-03.md) | [⬆️ 1일차 목차](README.md) | [5교시 · VPC의 구성 요소](lesson-05.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 2/7교시</sub>
 
 # 2교시 · Istio 설치와 메시 등록
 
@@ -205,4 +205,6 @@ curl -s -X POST localhost:30080/api/orders -H 'content-type: application/json' -
 
 ---
 
-⬅️ 이전: [1교시 · 3일차 요약 + 서비스 메시](lesson-01.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · mTLS 확인과 Kiali](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 3일차 요약 + 서비스 메시](lesson-01.md) | [⬆️ 4일차 목차](README.md) | [3교시 · mTLS 확인과 Kiali](lesson-03.md) ➡️ |

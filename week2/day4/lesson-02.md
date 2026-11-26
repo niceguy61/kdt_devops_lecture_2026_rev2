@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 이름 있는 볼륨
 
@@ -309,4 +309,6 @@ docker volume create devmart-db
 
 ---
 
-⬅️ 이전: [1교시 · 컨테이너의 데이터는 어디에](lesson-01.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 바인드 마운트](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 컨테이너의 데이터는 어디에](lesson-01.md) | [⬆️ 4일차 목차](README.md) | [3교시 · 바인드 마운트](lesson-03.md) ➡️ |

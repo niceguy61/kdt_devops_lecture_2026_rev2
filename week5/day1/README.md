@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week5.png" alt="5주차 노선도" width="100%">
 
 # 5주차 1일차 — AWS 계정과 VPC
 
@@ -48,4 +50,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 4주차 회고 + 보안 점검표](../../week4/day5/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 4주차 요약 + 노트북에서 클라우드로](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 4주차 회고 + 보안 점검표](../../week4/day5/lesson-07.md) | [⬆️ 5주차 목차](../README.md) | [1교시 · 4주차 요약 + 노트북에서 클라우드로](lesson-01.md) ➡️ |

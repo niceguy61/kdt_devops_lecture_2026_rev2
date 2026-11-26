@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md) › 4/7교시</sub>
 
 # 4교시 · Git 브랜치
 
@@ -216,4 +216,6 @@ git log --oneline --graph --all -3
 
 ---
 
-⬅️ 이전: [3교시 · Compose로 하는 일상 작업](lesson-03.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · Pull Request와 코드 리뷰](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · Compose로 하는 일상 작업](lesson-03.md) | [⬆️ 5일차 목차](README.md) | [5교시 · Pull Request와 코드 리뷰](lesson-05.md) ➡️ |

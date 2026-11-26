@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 아침의 재현
 
@@ -113,4 +113,6 @@ kubectl --context kind-devmart get pods -n devmart | head -4
 
 ---
 
-⬅️ 이전: [1교시 · 4일차 요약 + 5주 지도](lesson-01.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 커밋 하나, 클러스터 둘](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 4일차 요약 + 5주 지도](lesson-01.md) | [⬆️ 5일차 목차](README.md) | [3교시 · 커밋 하나, 클러스터 둘](lesson-03.md) ➡️ |

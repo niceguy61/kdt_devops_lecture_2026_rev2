@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 4일차 요약 + 5주 지도
 
@@ -97,4 +97,6 @@ mkdir -p ~/devops-lab/aws/w5d5 && cp -r ~/course/labs/week5/day5/* ~/devops-lab/
 
 ---
 
-⬅️ 이전: [5주차 5일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 아침의 재현](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5주차 5일차 목차](README.md) | [⬆️ 5일차 목차](README.md) | [2교시 · 아침의 재현](lesson-02.md) ➡️ |

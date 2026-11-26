@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 세 컨테이너 손으로 조립하기
 
@@ -369,4 +369,6 @@ bash ../day4/devmart-up.sh
 
 ---
 
-⬅️ 이전: [6교시 · 환경 변수와 비밀값](lesson-06.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [2주차 5일차 목차](../day5/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · 환경 변수와 비밀값](lesson-06.md) | [⬆️ 4일차 목차](README.md) | [2주차 5일차 목차](../day5/README.md) ➡️ |

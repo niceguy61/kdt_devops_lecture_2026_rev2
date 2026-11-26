@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md) › 5/7교시</sub>
 
 # 5교시 · k6 부하 테스트
 
@@ -209,4 +209,6 @@ date +%T; kubectl scale deployment catalog-api -n devmart --replicas=2
 
 ---
 
-⬅️ 이전: [4교시 · Grafana 대시보드](lesson-04.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 알림](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · Grafana 대시보드](lesson-04.md) | [⬆️ 2일차 목차](README.md) | [6교시 · 알림](lesson-06.md) ➡️ |

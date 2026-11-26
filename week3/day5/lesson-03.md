@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 3/7교시</sub>
 
 # 3교시 · probe — 준비됐나, 살아 있나
 
@@ -261,4 +261,6 @@ kubectl delete pod loop -n devmart
 
 ---
 
-⬅️ 이전: [2교시 · ConfigMap과 Secret](lesson-02.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · requests와 limits](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · ConfigMap과 Secret](lesson-02.md) | [⬆️ 5일차 목차](README.md) | [4교시 · requests와 limits](lesson-04.md) ➡️ |

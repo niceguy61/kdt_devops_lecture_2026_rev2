@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week3.png" alt="3주차 노선도" width="100%">
 
 # 3주차 4일차 — Pod · Deployment · Service
 
@@ -56,4 +58,6 @@ Kubernetes에서 앱을 돌리는 데 꼭 필요한 리소스는 세 가지입�
 
 ---
 
-⬅️ 이전: [7교시 · 첫 클러스터 — 둘러보고, 지우고, 끄기](../day3/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 3일차 요약 + kubectl 루프](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 첫 클러스터 — 둘러보고, 지우고, 끄기](../day3/lesson-07.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 3일차 요약 + kubectl 루프](lesson-01.md) ➡️ |

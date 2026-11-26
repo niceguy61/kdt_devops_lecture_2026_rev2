@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week4.png" alt="4주차 노선도" width="100%">
 
 # 4주차 2일차 — Observability
 
@@ -49,4 +51,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 장애 분석](../day1/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 1일차 요약 + 관찰 가능성](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 장애 분석](../day1/lesson-07.md) | [⬆️ 4주차 목차](../README.md) | [1교시 · 1일차 요약 + 관찰 가능성](lesson-01.md) ➡️ |

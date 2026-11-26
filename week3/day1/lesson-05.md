@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 5/7교시</sub>
 
 # 5교시 · 요청 ID로 통신 추적하기
 
@@ -199,4 +199,6 @@ docker compose logs web --no-log-prefix | tail -3
 
 ---
 
-⬅️ 이전: [4교시 · 여섯 서비스 실행하기](lesson-04.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 동기와 비동기 — 큐와 처리기](lesson-06.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4교시 · 여섯 서비스 실행하기](lesson-04.md) | [⬆️ 1일차 목차](README.md) | [6교시 · 동기와 비동기 — 큐와 처리기](lesson-06.md) ➡️ |

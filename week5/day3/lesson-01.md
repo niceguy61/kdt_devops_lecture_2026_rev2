@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 2일차 요약 + 코드로 인프라
 
@@ -97,4 +97,6 @@ Terraform은 HashiCorp가 만들었고, 2023년에 라이선스를 오픈소스(
 
 ---
 
-⬅️ 이전: [5주차 3일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 설치와 첫 리소스](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5주차 3일차 목차](README.md) | [⬆️ 3일차 목차](README.md) | [2교시 · 설치와 첫 리소스](lesson-02.md) ➡️ |

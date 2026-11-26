@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week1.png" alt="1주차 노선도" width="100%">
 
 # 1주차 3일차 — 네트워크 기초
 
@@ -45,4 +47,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · VM에서 컨테이너로 (2주차 예고)](../day2/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 네트워크 큰 그림](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · VM에서 컨테이너로 (2주차 예고)](../day2/lesson-07.md) | [⬆️ 1주차 목차](../README.md) | [1교시 · 네트워크 큰 그림](lesson-01.md) ➡️ |

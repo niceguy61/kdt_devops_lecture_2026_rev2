@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week4.png" alt="4주차 노선도" width="100%">
 
 # 4주차 5일차 — Kubernetes 보안
 
@@ -49,4 +51,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 메시 운영 판단](../day4/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 4일차 요약 + 세 관문](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 메시 운영 판단](../day4/lesson-07.md) | [⬆️ 4주차 목차](../README.md) | [1교시 · 4일차 요약 + 세 관문](lesson-01.md) ➡️ |

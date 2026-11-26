@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 이미지와 컨테이너
 
@@ -175,4 +175,6 @@ docker ps -a
 
 ---
 
-⬅️ 이전: [2주차 2일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 컨테이너 안에 들어가 보기](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2주차 2일차 목차](README.md) | [⬆️ 2일차 목차](README.md) | [2교시 · 컨테이너 안에 들어가 보기](lesson-02.md) ➡️ |

@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md) › 3/7교시</sub>
 
 # 3교시 · nginx를 백그라운드로 실행
 
@@ -187,4 +187,6 @@ curl http://localhost:80
 
 ---
 
-⬅️ 이전: [2교시 · 컨테이너 안에 들어가 보기](lesson-02.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 포트 연결](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 컨테이너 안에 들어가 보기](lesson-02.md) | [⬆️ 2일차 목차](README.md) | [4교시 · 포트 연결](lesson-04.md) ➡️ |

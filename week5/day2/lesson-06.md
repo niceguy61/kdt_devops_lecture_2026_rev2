@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 장애와 교체 · 늘리기
 
@@ -171,4 +171,6 @@ aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names devmart-
 
 ---
 
-⬅️ 이전: [5교시 · 대상 그룹과 ALB](lesson-05.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 지우는 순서 + 비용 점검](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · 대상 그룹과 ALB](lesson-05.md) | [⬆️ 2일차 목차](README.md) | [7교시 · 지우는 순서 + 비용 점검](lesson-07.md) ➡️ |

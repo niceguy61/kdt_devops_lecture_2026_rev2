@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md) › 6/7교시</sub>
 
 # 6교시 · kubectl과 kind 설치
 
@@ -318,4 +318,6 @@ k version --client
 
 ---
 
-⬅️ 이전: [5교시 · 장단점과 선택지](lesson-05.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 첫 클러스터 — 둘러보고, 지우고, 끄기](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · 장단점과 선택지](lesson-05.md) | [⬆️ 3일차 목차](README.md) | [7교시 · 첫 클러스터 — 둘러보고, 지우고, 끄기](lesson-07.md) ➡️ |

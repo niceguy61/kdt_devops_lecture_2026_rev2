@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md) › 3/7교시</sub>
 
 # 3교시 · 포트와 프로토콜
 
@@ -153,4 +153,6 @@ TCP는 데이터를 보내기 전에 세 번 신호를 주고받아 연결을 �
 
 ---
 
-⬅️ 이전: [2교시 · IP 주소와 서브넷](lesson-02.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · DNS](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · IP 주소와 서브넷](lesson-02.md) | [⬆️ 3일차 목차](README.md) | [4교시 · DNS](lesson-04.md) ➡️ |

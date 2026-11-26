@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md) › 4/7교시</sub>
 
 # 4교시 · Gateway API 구조
 
@@ -194,4 +194,6 @@ Gateway API의 기능은 성숙도에 따라 두 **채널**로 나뉩니다.
 
 ---
 
-⬅️ 이전: [3교시 · Ingress의 역사와 ingress-nginx 은퇴](lesson-03.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · Envoy Gateway 설치와 Gateway](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · Ingress의 역사와 ingress-nginx 은퇴](lesson-03.md) | [⬆️ 1일차 목차](README.md) | [5교시 · Envoy Gateway 설치와 Gateway](lesson-05.md) ➡️ |

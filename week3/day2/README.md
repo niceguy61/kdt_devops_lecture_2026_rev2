@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week3.png" alt="3주차 노선도" width="100%">
 
 # 3주차 2일차 — MSA 장애와 CI
 
@@ -49,4 +51,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 장애 시나리오 1 — 연결이 끊겼다](../day1/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 장애 전파](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 장애 시나리오 1 — 연결이 끊겼다](../day1/lesson-07.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 장애 전파](lesson-01.md) ➡️ |

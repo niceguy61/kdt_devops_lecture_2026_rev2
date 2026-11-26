@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md) › 4/5교시</sub>
 
 # 4교시 · 데이터센터에서 클라우드까지
 
@@ -226,4 +226,6 @@
 
 ---
 
-⬅️ 이전: [3교시 · AI 시대의 DevOps 마인드셋](lesson-03.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 서비스 모델·공유 책임·비용](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · AI 시대의 DevOps 마인드셋](lesson-03.md) | [⬆️ 1일차 목차](README.md) | [5교시 · 서비스 모델·공유 책임·비용](lesson-05.md) ➡️ |

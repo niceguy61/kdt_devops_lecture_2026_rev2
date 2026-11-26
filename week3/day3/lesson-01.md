@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 왜 Kubernetes인가
 
@@ -124,4 +124,6 @@ DevMart MSA가 잘 팔려서 손님이 열 배로 늘었다고 해 봅시다. �
 
 ---
 
-⬅️ 이전: [3주차 3일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 컨트롤 플레인 — 결정하고 기록하는 본부](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3주차 3일차 목차](README.md) | [⬆️ 3일차 목차](README.md) | [2교시 · 컨트롤 플레인 — 결정하고 기록하는 본부](lesson-02.md) ➡️ |

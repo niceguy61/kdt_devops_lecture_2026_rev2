@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week2.png" alt="2주차 노선도" width="100%">
 
 # 2주차 3일차 — 이미지와 Dockerfile
 
@@ -41,4 +43,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 실패 사례 다섯 가지](../day2/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 이미지 레이어](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 실패 사례 다섯 가지](../day2/lesson-07.md) | [⬆️ 2주차 목차](../README.md) | [1교시 · 이미지 레이어](lesson-01.md) ➡️ |

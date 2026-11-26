@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week5.png" alt="5주차 노선도" width="100%">
 
 # 5주차 3일차 — Terraform 기초
 
@@ -48,4 +50,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 지우는 순서 + 비용 점검](../day2/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 2일차 요약 + 코드로 인프라](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 지우는 순서 + 비용 점검](../day2/lesson-07.md) | [⬆️ 5주차 목차](../README.md) | [1교시 · 2일차 요약 + 코드로 인프라](lesson-01.md) ➡️ |

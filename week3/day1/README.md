@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week3.png" alt="3주차 노선도" width="100%">
 
 # 3주차 1일차 — MSA 개념과 실행
 
@@ -50,4 +52,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 2주차 회고와 정리](../../week2/day5/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 모놀리식과 MSA](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 2주차 회고와 정리](../../week2/day5/lesson-07.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 모놀리식과 MSA](lesson-01.md) ➡️ |

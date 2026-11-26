@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md) › 3/5교시</sub>
 
 # 3교시 · AI 시대의 DevOps 마인드셋
 
@@ -194,4 +194,6 @@ AI 사용을 막지 않습니다. 오히려 잘 쓰는 법을 배웁니다. 다�
 
 ---
 
-⬅️ 이전: [2교시 · 5주 로드맵과 DevOps 직무](lesson-02.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 데이터센터에서 클라우드까지](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 5주 로드맵과 DevOps 직무](lesson-02.md) | [⬆️ 1일차 목차](README.md) | [4교시 · 데이터센터에서 클라우드까지](lesson-04.md) ➡️ |

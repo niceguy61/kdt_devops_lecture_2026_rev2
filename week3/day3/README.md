@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [3일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week3.png" alt="3주차 노선도" width="100%">
 
 # 3주차 3일차 — Kubernetes 아키텍처
 
@@ -56,4 +58,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · CI 실패 읽기와 main 보호](../day2/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 왜 Kubernetes인가](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · CI 실패 읽기와 main 보호](../day2/lesson-07.md) | [⬆️ 3주차 목차](../README.md) | [1교시 · 왜 Kubernetes인가](lesson-01.md) ➡️ |

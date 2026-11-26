@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md) › 2/7교시</sub>
 
 # 2교시 · DevMart API와 Dockerfile 문법
 
@@ -312,4 +312,6 @@ ls
 
 ---
 
-⬅️ 이전: [1교시 · 이미지 레이어](lesson-01.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 첫 빌드와 실행](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 이미지 레이어](lesson-01.md) | [⬆️ 3일차 목차](README.md) | [3교시 · 첫 빌드와 실행](lesson-03.md) ➡️ |

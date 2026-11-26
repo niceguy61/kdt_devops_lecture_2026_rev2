@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md) › 4/7교시</sub>
 
 # 4교시 · 서비스 신원으로 허가
 
@@ -171,4 +171,6 @@ kubectl logs -n istio-system -l app=ztunnel --tail=200 | grep -m1 "policy reject
 
 ---
 
-⬅️ 이전: [3교시 · ServiceAccount — 프로그램의 신원](lesson-03.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · Kyverno 정책](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · ServiceAccount — 프로그램의 신원](lesson-03.md) | [⬆️ 5일차 목차](README.md) | [5교시 · Kyverno 정책](lesson-05.md) ➡️ |

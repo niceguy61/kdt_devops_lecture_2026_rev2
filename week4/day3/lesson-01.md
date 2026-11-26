@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 2일차 요약 + GitOps
 
@@ -146,4 +146,6 @@ CNCF의 OpenGitOps 작업 그룹이 정리한 원칙(v1.0.0, 2021)입니다.
 
 ---
 
-⬅️ 이전: [4주차 3일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · CI와 CD 나누기 · 배포 저장소](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4주차 3일차 목차](README.md) | [⬆️ 3일차 목차](README.md) | [2교시 · CI와 CD 나누기 · 배포 저장소](lesson-02.md) ➡️ |

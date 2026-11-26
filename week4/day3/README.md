@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week4.png" alt="4주차 노선도" width="100%">
 
 # 4주차 3일차 — GitOps
 
@@ -50,4 +52,6 @@
 
 ---
 
-⬅️ 이전: [7교시 · 관찰 런북과 SLO](../day2/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 2일차 요약 + GitOps](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [7교시 · 관찰 런북과 SLO](../day2/lesson-07.md) | [⬆️ 4주차 목차](../README.md) | [1교시 · 2일차 요약 + GitOps](lesson-01.md) ➡️ |

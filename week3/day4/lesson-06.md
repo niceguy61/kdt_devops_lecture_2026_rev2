@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md) › 6/7교시</sub>
 
 # 6교시 · Service와 DNS
 
@@ -280,4 +280,6 @@ kubectl get endpointslices -l kubernetes.io/service-name=catalog-api
 
 ---
 
-⬅️ 이전: [5교시 · ReplicaSet과 자가 치유](lesson-05.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 롤링 업데이트와 되돌리기](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · ReplicaSet과 자가 치유](lesson-05.md) | [⬆️ 4일차 목차](README.md) | [7교시 · 롤링 업데이트와 되돌리기](lesson-07.md) ➡️ |

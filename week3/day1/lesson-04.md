@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md) › 4/7교시</sub>
 
 # 4교시 · 여섯 서비스 실행하기
 
@@ -252,4 +252,6 @@ git push
 
 ---
 
-⬅️ 이전: [3교시 · DevMart MSA 구조 읽기](lesson-03.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 요청 ID로 통신 추적하기](lesson-05.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [3교시 · DevMart MSA 구조 읽기](lesson-03.md) | [⬆️ 1일차 목차](README.md) | [5교시 · 요청 ID로 통신 추적하기](lesson-05.md) ➡️ |

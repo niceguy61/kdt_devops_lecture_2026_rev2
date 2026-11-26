@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md) › 1/7교시</sub>
 
 # 1교시 · 3일차 요약 + 서비스 메시
 
@@ -129,4 +129,6 @@ CATALOG_RETRIES = int(os.getenv("CATALOG_RETRIES", "0"))   # 실패하면 몇 �
 
 ---
 
-⬅️ 이전: [4주차 4일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · Istio 설치와 메시 등록](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [4주차 4일차 목차](README.md) | [⬆️ 4일차 목차](README.md) | [2교시 · Istio 설치와 메시 등록](lesson-02.md) ➡️ |

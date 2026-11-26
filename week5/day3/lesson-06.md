@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md) › 6/7교시</sub>
 
 # 6교시 · 모듈로 VPC
 
@@ -183,4 +183,6 @@ aws ec2 describe-vpcs --query 'Vpcs[].[Tags[?Key==`Name`]|[0].Value,IsDefault]' 
 
 ---
 
-⬅️ 이전: [5교시 · 원격 state와 잠금](lesson-05.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · GitHub Actions에서 plan (OIDC)](lesson-07.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [5교시 · 원격 state와 잠금](lesson-05.md) | [⬆️ 3일차 목차](README.md) | [7교시 · GitHub Actions에서 plan (OIDC)](lesson-07.md) ➡️ |

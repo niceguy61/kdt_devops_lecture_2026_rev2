@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md) › 1/7교시</sub>
 
 # 1교시 · DevOps는 왜 생겼나
 
@@ -133,4 +133,6 @@ DevOps에는 공식 정의가 없습니다. 대신 널리 쓰이는 정리가 **
 
 ---
 
-⬅️ 이전: [1주차 5일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 소프트웨어가 만들어지는 흐름 — SDLC와 CI/CD](lesson-02.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1주차 5일차 목차](README.md) | [⬆️ 5일차 목차](README.md) | [2교시 · 소프트웨어가 만들어지는 흐름 — SDLC와 CI/CD](lesson-02.md) ➡️ |

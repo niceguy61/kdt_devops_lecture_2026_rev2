@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md) › 3/7교시</sub>
 
 # 3교시 · Git 설치와 설정
 
@@ -189,4 +189,6 @@ cat ~/.gitconfig
 
 ---
 
-⬅️ 이전: [2교시 · 터미널과 VS Code](lesson-02.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · GitHub 계정과 인증](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 터미널과 VS Code](lesson-02.md) | [⬆️ 1일차 목차](README.md) | [4교시 · GitHub 계정과 인증](lesson-04.md) ➡️ |

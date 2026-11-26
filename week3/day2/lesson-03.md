@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md) › 3/7교시</sub>
 
 # 3교시 · 큐 적체와 메시지 유실
 
@@ -261,4 +261,6 @@ git push
 
 ---
 
-⬅️ 이전: [2교시 · 타임아웃 · 재시도 · 헬스 체크](lesson-02.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · GitHub Actions 개념과 첫 워크플로](lesson-04.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [2교시 · 타임아웃 · 재시도 · 헬스 체크](lesson-02.md) | [⬆️ 2일차 목차](README.md) | [4교시 · GitHub Actions 개념과 첫 워크플로](lesson-04.md) ➡️ |

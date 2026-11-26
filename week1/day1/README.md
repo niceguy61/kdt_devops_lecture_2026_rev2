@@ -1,4 +1,6 @@
-[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md)</sub>
+
+<img src="../../v3/assets/readme/week1.png" alt="1주차 노선도" width="100%">
 
 # 1주차 1일차 — OT와 클라우드의 큰 그림
 
@@ -39,4 +41,6 @@
 
 ---
 
-다음: [1교시 · 과정 OT — 수업 방식과 약속](lesson-01.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+|  | [⬆️ 1주차 목차](../README.md) | [1교시 · 과정 OT — 수업 방식과 약속](lesson-01.md) ➡️ |

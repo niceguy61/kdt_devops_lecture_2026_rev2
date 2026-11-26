@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md) › 2/7교시</sub>
 
 # 2교시 · 역할을 붙인 첫 EC2
 
@@ -149,4 +149,6 @@ curl -s -m 5 http://$PUB:9898/ || echo "막혔다 (정상)"
 
 ---
 
-⬅️ 이전: [1교시 · 1일차 요약 + 컴퓨트 고르기](lesson-01.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Session Manager · 메타데이터 · S3](lesson-03.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [1교시 · 1일차 요약 + 컴퓨트 고르기](lesson-01.md) | [⬆️ 2일차 목차](README.md) | [3교시 · Session Manager · 메타데이터 · S3](lesson-03.md) ➡️ |

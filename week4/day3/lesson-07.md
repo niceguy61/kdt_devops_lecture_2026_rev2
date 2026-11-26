@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md) › 7/7교시</sub>
 
 # 7교시 · Actions → Argo CD 전체 파이프라인
 
@@ -330,4 +330,6 @@ git revert --no-edit HEAD && git push        # 실습에서는 PR 대신 직접 
 
 ---
 
-⬅️ 이전: [6교시 · selfHeal과 prune](lesson-06.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [4주차 4일차 목차](../day4/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · selfHeal과 prune](lesson-06.md) | [⬆️ 3일차 목차](README.md) | [4주차 4일차 목차](../day4/README.md) ➡️ |

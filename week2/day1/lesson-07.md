@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 설치 점검과 문제 해결
 
@@ -271,4 +271,6 @@ docker rnu hello-world
 
 ---
 
-⬅️ 이전: [6교시 · Docker Desktop 설치](lesson-06.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [2주차 2일차 목차](../day2/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · Docker Desktop 설치](lesson-06.md) | [⬆️ 1일차 목차](README.md) | [2주차 2일차 목차](../day2/README.md) ➡️ |

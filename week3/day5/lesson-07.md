@@ -1,4 +1,4 @@
-[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md)
+<sub>[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md) › 7/7교시</sub>
 
 # 7교시 · 3주차 회고
 
@@ -147,4 +147,6 @@ docker image prune
 
 ---
 
-⬅️ 이전: [6교시 · 장애 연습](lesson-06.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [4주차 1일차 목차](../../week4/day1/README.md) ➡️
+| 이전 | 목차 | 다음 |
+|:--|:--:|--:|
+| ⬅️ [6교시 · 장애 연습](lesson-06.md) | [⬆️ 5일차 목차](README.md) | [4주차 1일차 목차](../../week4/day1/README.md) ➡️ |
