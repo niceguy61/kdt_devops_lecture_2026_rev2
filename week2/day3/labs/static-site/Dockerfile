@@ -1,6 +1,0 @@
-FROM nginx:1.31-alpine
-WORKDIR /usr/share/nginx/html
-COPY index.html ./index.html
-COPY styles.css ./styles.css
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]

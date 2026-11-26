@@ -1,108 +1,149 @@
-# 7교시: Cost Explorer/tag/잔여 비용 점검
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
 
-![Cost tags cleanup dashboard](./assets/lesson-07-cost-tags-cleanup.png)
+# 7교시 · 지우는 순서
 
-이 visual은 tag가 resource와 비용 분석을 연결하는 기준이라는 점을 보여준다. Budget 알림은 안전벨트지만, cleanup은 직접 확인해야 한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **Kubernetes가 만든 AWS 자원**(NLB · EBS)과 **Terraform이 만든 자원**을 구분합니다.
+> - 의존 순서대로 — 앱 → 입구 → 클러스터 — 지웁니다.
+> - 남은 것이 없는지 **AWS 쪽에서** 확인합니다.
+> - 오늘을 배움일기로 정리합니다.
 
-## 수업 목표
-- Cost Explorer와 Budget이 각각 어떤 질문에 답하는지 구분한다.
-- tag 기반 비용 추적이 왜 필요한지 설명한다.
-- EC2/ALB/ECR/RDS/S3/CloudWatch에서 남을 수 있는 비용 후보를 점검한다.
+## 누가 무엇을 만들었나
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
+| 자원 | 만든 것 | Terraform 장부에 | 지우는 방법 |
 |---|---|---|---|
-| Cost Explorer | 서비스/기간/tag 기준 비용 분석 도구다 | 어떤 resource가 비용을 만들었는지 추적하지 못한다 | Cost Explorer filters |
-| Budget | 비용 임계값 알림 기준이다 | 비용을 자동으로 막아준다고 오해한다 | Budget alerts |
-| Cost allocation tag | 비용을 소유자/목적별로 묶는 기준이다 | 팀별/실습별 비용 분리가 안 된다 | Tag activation |
-| Leftover resource | 눈에 안 보이는 잔여 resource가 비용을 만든다 | 삭제 후에도 비용이 남는다 | resource search |
+| NLB · 대상 그룹 · NLB 보안 그룹 | **LBC** (Service LoadBalancer를 보고) | ✗ | Service를 지운다 → LBC가 지운다 |
+| EBS 볼륨 (db PVC) | **EBS CSI** (PVC를 보고) | ✗ | PVC를 지운다 → `reclaimPolicy: Delete` |
+| VPC · NAT · EKS · 노드 그룹 · IAM 역할 | Terraform | ✓ | `terraform destroy` |
 
-## 핵심 개념
-AWS 비용 관리는 마지막에 한 번 보는 영수증이 아니다. resource를 만들 때 tag를 붙이고, 삭제할 때 service별 잔여 비용 후보를 확인해야 한다. Cost Explorer는 과거 비용을 분석하는 도구이고 Budget은 임계값 알림이다. 둘 다 resource 삭제를 대신하지 않는다. 특히 ALB, NAT Gateway, RDS, snapshot, EBS volume, Elastic IP, CloudWatch log retention, S3 object/version은 실습 뒤 남기 쉽다.
+거꾸로 하면 — Terraform부터 지우면 — 클러스터가 먼저 사라져 LBC · EBS CSI가 **뒷정리를 못 합니다.** NLB와 EBS가 고아로 남아 과금되고, NLB가 public 서브넷을 붙잡아 VPC 삭제도 실패합니다(4교시 경고).
 
-## 구조로 보기
-```mermaid
-flowchart LR
-  Tags["Course/Week/Owner tags"] --> Resources["EC2 ALB RDS S3 Logs"]
-  Resources --> Cost["Cost Explorer"]
-  Cost --> Budget["Budget alert"]
-  Resources --> Audit["Leftover audit"]
-  Audit --> Cleanup["Delete or keep with reason"]
+## 실습 13 · 지우기
+
+```bash
+cd ~/devops-lab/aws/w5d4
+cat cleanup.sh
+./cleanup.sh
 ```
 
-Mermaid 흐름은 Console 화면을 외우기 위한 그림이 아니다. 어떤 resource가 어느 경계에서 접근, 비용, 복구, 감사 책임을 갖는지 확인하기 위한 지도다. 그림의 각 node는 evidence note에 남길 수 있는 실제 Console 화면이나 설정값으로 연결되어야 한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> == 1. 앱을 지운다 — PVC가 지워지면 EBS 볼륨도 지워진다 (reclaimPolicy: Delete)
+> application.argoproj.io "devmart" deleted
+> namespace "devmart" deleted
+> == 2. Envoy Gateway를 지운다 — LoadBalancer Service가 사라지면 NLB도 지워진다
+> release "eg" uninstalled
+> namespace "envoy-gateway-system" deleted
+> == 3. NLB가 정말 사라졌나 (빈 줄이 나올 때까지 기다린다)
+> 남음: k8s-envoygat-envoydev-0a1b2c3d4e
+> 없음
+> == 4. 남은 EBS 볼륨 (kubernetes.io 태그)
+> (빈 줄)
+> == 이제: cd terraform/eks && terraform destroy
+> ```
 
-## 공식 문서 확인 지점
-| 확인할 문서 키워드 | 읽을 때 볼 질문 |
-|---|---|
-| AWS User Guide | 이 기능이 해결하려는 운영 문제는 무엇인가 |
-| Permissions 또는 Security | 누가 접근할 수 있고 어떤 기본 차단이 있는가 |
-| Pricing 또는 Cost 관련 항목 | 켜져 있는 동안, 저장된 동안, 요청이 발생할 때 비용이 생기는가 |
-| Delete, restore, retention | 삭제 후 무엇이 남고 무엇을 복구할 수 있는가 |
+> [!WARNING]
+> **Application을 지우면 Namespace까지**
+>
+> 4주차 3일차 4교시에서 `argocd app delete`는 Namespace까지 지운다고 경고했습니다. 오늘은 그것을 **일부러** 씁니다 — Namespace가 지워지면 그 안의 PVC → EBS, Secret까지 깨끗이 사라집니다.
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| tag는 언제 붙일 것인가 | 생성 시점에 Course/Week/Owner/Purpose를 붙인다 |
-| 비용은 언제 확인할 것인가 | 수업 종료 전과 다음 날 Cost Explorer에서 모두 확인한다 |
-| 남길 resource는 어떻게 기록할 것인가 | 유지 사유, 예상 비용, 삭제 예정 시각을 함께 적는다 |
-
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| Budget을 만들었으니 비용이 자동 차단된다고 생각한다 | Budget은 알림이고 resource 삭제/중지는 별도 작업임을 확인한다 |
-
-## 화면 캡처 가이드
-- Region, resource name, 상태값, tag, policy 상태처럼 재현 가능한 값이 보이게 캡처한다.
-- account email, secret value, access key, token, password는 캡처하지 않는다.
-- 실패 화면은 error message만 자르지 말고 어떤 service와 설정 화면에서 나온 결과인지 알 수 있게 남긴다.
-- 삭제 또는 정리 evidence는 삭제 버튼 화면보다 삭제 후 검색 결과가 더 중요하다.
-
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- Cost Explorer service filter, tag 또는 resource name, cleanup 후 검색 결과 중 최소 두 가지는 배움일기에 남긴다.
-
-## 실습/시뮬레이션 절차
-1. Billing and Cost Management에서 Cost Explorer를 열고 기간을 오늘/이번 주 기준으로 바꾼다.
-2. service filter로 EC2, Elastic Load Balancing, RDS, S3, CloudWatch를 각각 확인한다.
-3. tag가 비용 필터에 쓰이려면 cost allocation tag 활성화가 필요하다는 점을 확인한다.
-4. Budget 화면에서 threshold와 notification 대상이 무엇인지 확인한다.
-5. Resource Groups Tag Editor 또는 각 service 화면에서 tag 누락 resource를 찾는다.
-
-## 복구와 정리 기준
-| 비용 후보 | 확인 화면 | 정리 기준 |
-|---|---|---|
-| ALB/Target Group | EC2 Load Balancers | Day2 실습 후 삭제 또는 유지 사유 |
-| RDS/Snapshot | RDS Databases/Snapshots | backup 필요성과 비용 비교 |
-| S3 object/version | S3 bucket versions | lifecycle 또는 삭제 |
-| CloudWatch Logs | Log groups retention | retention 설정 확인 |
-
-## 공식 문서로 검증할 질문
-- Cost Explorer 데이터는 실시간인가, 지연될 수 있는가?
-- cost allocation tag는 붙이기만 하면 바로 비용 필터에 나타나는가?
-- Budget은 비용 발생을 막는가, 아니면 알림을 보내는가?
-
-## Evidence Note
-```markdown
-# W5D4S7 cost audit
-- Region:
-- Resource name:
-- 확인한 설정:
-- 실패 또는 주의할 증상:
-- 비용/보안 영향:
-- cleanup 또는 유지 사유:
+```bash
+cd ~/devmart-infra/terraform/eks
+time terraform destroy
 ```
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: Cost Explorer에서 기간과 service filter를 바꾸고, 오늘 만든 resource tag 기준으로 비용 추적 가능성을 점검한다.
-- 공식 문서 키워드: `Cost Explorer`, `AWS Budgets`, `cost allocation tags`, `resource tagging`, `log retention`
-- 스스로 확인할 화면: Cost Explorer, Billing Budgets, Resource Groups Tag Editor, 각 service list
-- 흔한 실패 3개: tag를 나중에 붙이려고 미룸, Budget을 차단 장치로 오해함, snapshot/log/object를 남김
-- 다음 준비 상태: 서비스별 잔여 비용 후보를 checklist로 설명할 수 있어야 한다.
+> **🟢 확인: 확인 (10~15분)**
+>
+> ```text
+> Plan: 0 to add, 0 to change, 5○ to destroy.
+> …
+> module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Destroying...
+> …
+> module.eks.aws_eks_cluster.this[0]: Destruction complete after 4m…
+> module.vpc.aws_nat_gateway.this[0]: Destruction complete after 1m…
+> module.vpc.aws_vpc.this[0]: Destruction complete after 1s
+> Destroy complete! Resources: 5○ destroyed.
+> real    1○m○s
+> ```
 
-## 한 줄 요약
-```text
-AWS 비용 관리는 tag로 추적하고 Cost Explorer로 확인하며 cleanup으로 끝내는 운영 루프다.
+## 실습 14 · AWS 쪽에서 확인
+
+장부가 비었다고 끝이 아닙니다. **AWS가 실제로** 비었는지 봅니다.
+
+```bash
+~/devops-lab/aws/w5d1/check-account.sh | tail -5
+aws eks list-clusters --query clusters --output text
+aws ec2 describe-volumes --filters Name=status,Values=available,in-use --query 'Volumes[].[VolumeId,Size,AvailabilityZone]' --output text
+aws ec2 describe-network-interfaces --query 'NetworkInterfaces[].[NetworkInterfaceId,Description]' --output text | head
+kubectl config delete-context $(kubectl config get-contexts -o name | grep eks) 2>/dev/null; true
 ```
+
+> **🟢 확인: 확인**
+>
+> 모든 줄이 **비어 있어야** 합니다(기본 VPC의 것은 없다). 남은 것이 있으면:
+>
+> | 남은 것 | 원인 | 지우기 |
+> |---|---|---|
+> | EBS 볼륨 `available` | PVC를 지우기 전에 클러스터가 사라졌다 | EC2 → 볼륨 → 삭제 |
+> | NLB `k8s-…` | Service를 지우기 전에 LBC가 사라졌다 | EC2 → 로드 밸런서 → 삭제, 대상 그룹 · 보안 그룹도 |
+> | 탄력적 IP | NAT용 EIP가 남았다 | VPC → 탄력적 IP → 릴리스 |
+> | ENI `available` | 위의 것이 남아 있다 | 위를 지우면 함께 사라진다 |
+
+**결제 및 비용 관리 → 청구서**에서 오늘 날짜의 EKS · EC2 · VPC(NAT · 공인 IP) · ELB 항목을 봅니다(몇 시간 늦게 반영). 대략 **$1.5~2**가 크레딧에서 나갔을 것입니다.
+
+> [!TIP]
+> **내일은 다시 만든다**
+>
+> 내일 아침 같은 코드로 다시 apply합니다. 오늘 16분 + 플랫폼 8분 + 앱 3분 — 약 **30분**이면 같은 상태로 돌아옵니다. 매일 지우고 다시 만드는 것이 비용을 아끼는 동시에 **코드가 진짜로 재현되는지**를 매일 시험하는 일입니다(2일차 학술 노트의 '버릴 수 있는 인프라').
+
+> **❓ 오해 — terraform destroy가 끝나면 다 지워졌다**
+>
+> Terraform은 **자기 장부의 것**만 지웁니다(3일차 4교시). 클러스터 안의 컨트롤러(LBC · EBS CSI · 그리고 앞으로 쓸 Karpenter · ExternalDNS …)가 만든 AWS 자원은 장부에 없습니다. 그래서 순서는 언제나 **Kubernetes 쪽 먼저, 클러스터는 마지막**이고, 끝에는 **AWS 쪽에서** 확인합니다.
+
+> **🎓 학술 노트 — 소유권의 경계**
+>
+> 누가 어떤 자원을 '소유'하고 수명을 책임지는가는 4주차의 Kubernetes(ownerReferences · Argo CD 추적 표시), 3일차의 Terraform(state)에서 계속 나온 주제입니다. 두 시스템이 같은 클라우드를 **각자의 장부로** 다루면, 장부 사이의 틈에서 고아 자원이 생깁니다. 이것은 분산 시스템의 **가비지 컬렉션** 문제와 같은 구조이며(Plainfossé & Shapiro, *A Survey of Distributed Garbage Collection Techniques*, IWMM 1995), 실무의 해법은 ① 만든 쪽이 지우게 순서를 지키기, ② 태그로 소유자를 적어 두고 주기적으로 훑기입니다.
+
+> **📈 트렌드 2026 — 하루살이 환경**
+>
+> PR마다 클러스터 · 환경을 **만들었다가 합치면 지우는**(ephemeral environments) 방식이 흔해졌습니다. 그 전제가 오늘의 두 가지 — ① 코드로 30분 안에 재현, ② 지울 때 아무것도 남지 않음 — 입니다. 비용 도구들은 '태그 없는 자원', '주인 없는 볼륨'을 매일 찾아 알려 줍니다.
+
+> **✅ 확인 문제**
+>
+> 1. NLB와 EBS 볼륨이 Terraform 장부에 없는 이유는?
+> 2. terraform destroy를 먼저 하면 생기는 일 둘은?
+> 3. Argo CD Application 삭제를 일부러 쓴 이유는?
+> 4. destroy가 끝난 뒤에도 AWS 쪽에서 확인하는 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 클러스터 안의 컨트롤러(LBC · EBS CSI)가 Kubernetes 리소스를 보고 만들었기 때문
+> 2. NLB · EBS가 고아로 남아 계속 과금된다, NLB가 서브넷을 붙잡아 VPC 삭제가 실패한다
+> 3. Namespace까지 지워져 PVC → EBS, Secret까지 깨끗이 사라지게 하려고
+> 4. Terraform은 자기 장부의 것만 지우므로, 컨트롤러가 만든 자원이 남았을 수 있기 때문
+>
+> </details>
+
+> [!NOTE]
+> **오늘의 배움일기**
+>
+> - EKS에서 AWS가 운영하는 것과 내가 만든 것, kind와 짝지어 셋씩
+> - 50개 plan에서 내가 실제로 확인한 것 넷 (돈 · 권한 · 공개 · 삭제)
+> - 사람 → 클러스터, Pod → AWS — 두 방향의 신원을 각각 한 문장으로
+> - DevMart를 EKS에 올리면서 바뀐 파일과 바뀌지 않은 파일
+> - Pod IP · NLB 대상 · EBS의 AZ — 오늘 가장 '클라우드답다'고 느낀 것
+> - 오늘 만들고 지운 시간: apply __분 · 플랫폼 __분 · destroy __분, 오늘의 비용 $__
+> - 내일 전에 궁금한 것: 내일 다시 만들면 **정말로 30분 안에** 같아질까? 그리고 **노드 하나가 죽으면** db는 어떻게 될까?
+
+## 참고 문헌
+
+- AWS Docs. *Delete a cluster — delete Services and PVCs first*. docs.aws.amazon.com/eks
+- AWS Load Balancer Controller Docs. *Deleting load balancers*. kubernetes-sigs.github.io/aws-load-balancer-controller
+- Plainfossé, D. & Shapiro, M. (1995). *A Survey of Distributed Garbage Collection Techniques*. IWMM '95.
+
+---
+
+⬅️ 이전: [6교시 · 클라우드에서 달라진 것](lesson-06.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5주차 5일차 목차](../day5/README.md) ➡️

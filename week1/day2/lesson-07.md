@@ -1,133 +1,169 @@
-# 7교시: Memory와 storage - RAM, filesystem, 경로, persistence, permission
+[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md)
 
-## 수업 목표
-- memory와 storage의 차이를 설명한다.
-- file 경로, directory, permission이 서비스 실행에 미치는 영향을 설명한다.
-- Docker volume, Kubernetes Volume, AWS S3/EBS/RDS의 기초가 storage 개념임을 연결한다.
+# 7교시 · VM에서 컨테이너로 (2주차 예고)
 
-## 50분 흐름
-| 시간 | 활동 |
-|---|---|
-| 0-5분 | process/exit code 확인 기록 점검 |
-| 5-15분 | memory와 storage 차이 설명 |
-| 15-30분 | file 생성, 읽기, 경로 확인 |
-| 30-40분 | permission과 persistence 실패 사례 정리 |
-| 40-50분 | volume/object/database storage preview |
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 컨테이너가 "격리된 프로세스"라는 것을 이해합니다.
+> - VM과 컨테이너의 구조적 차이를 그림으로 설명합니다.
+> - 컨테이너를 가능하게 한 Linux 기능(네임스페이스, cgroups)을 압니다.
+> - 1979년 chroot부터 2015년 OCI까지 컨테이너의 역사를 훑습니다.
 
-## 0-5분 process/exit code 확인 기록 점검
+## 컨테이너는 "격리된 프로세스"다
 
+6교시 마지막 질문, "OS는 하나만 두고 앱만 격리할 수는 없을까?"에 대한 답이 **컨테이너**입니다. 컨테이너는 새로운 종류의 가상 컴퓨터가 아닙니다. **3교시에서 배운 평범한 프로세스**인데, 운영체제가 다음 두 가지를 해 줘서 마치 혼자 컴퓨터를 쓰는 것처럼 느끼게 만든 것입니다.
 
-### 상세 설명
-Memory는 process가 실행 중에 빠르게 사용하는 임시 공간이고, storage는 파일이나 데이터를 더 오래 보관하는 공간이다. 컴퓨터를 껐다 켜도 남아야 하는 것은 storage에 있어야 한다. 서비스 운영에서 이 차이는 중요하다. process가 재시작될 때 memory의 값은 사라질 수 있지만, log file, uploaded file, database data는 보존되어야 할 수 있다.
+1. **보이는 것을 제한한다** — 다른 프로세스, 다른 파일, 다른 네트워크가 안 보이게 한다. (네임스페이스)
+2. **쓸 수 있는 양을 제한한다** — CPU와 메모리를 정해진 만큼만 쓰게 한다. (cgroups)
 
-경로는 storage의 위치를 가리키는 주소다. 같은 파일 이름도 어느 directory에서 실행하느냐에 따라 찾을 수도 있고 못 찾을 수도 있다. Permission은 누가 읽고 쓸 수 있는지를 정한다. 권한 실패는 application logic 버그처럼 보일 수 있지만, 확인 기록은 보통 "Permission denied"와 같은 메시지로 드러난다.
+> **🧩 비유 — 아파트와 단독주택**
+>
+> **VM**은 땅(하드웨어) 위에 **단독주택**을 여러 채 짓는 것입니다. 집마다 기초 공사, 보일러, 수도관(운영체제)을 따로 갖춥니다. 튼튼하게 분리되지만 짓는 데 오래 걸리고 자재가 많이 듭니다.
+>
+> **컨테이너**는 **아파트**입니다. 기초와 보일러실, 수도 본관(커널)은 건물 전체가 함께 쓰고, 각 세대(컨테이너)는 벽과 현관문으로 나뉩니다. 빨리 입주할 수 있고 공간 효율이 좋지만, 건물 기초(커널)에 문제가 생기면 모든 세대가 영향을 받습니다.
 
+## VM과 컨테이너 비교
 
-### 시각 자료 1: memory와 storage 구분
-![Memory와 Storage 구분](./assets/lesson-07-memory-storage.png)
+![VM과 컨테이너의 구조 — VM은 각자 OS를, 컨테이너는 호스트 커널을 공유](../../v3/assets/week1/day2/w1d2-vm-vs-container.png)
 
-이 이미지는 실행 중 상태와 파일로 보존되는 상태를 분리해서 보게 한다. 이후 Docker volume, Kubernetes volume, AWS storage를 설명할 때 같은 기준으로 다시 매핑할 수 있다.
-
-```mermaid
-flowchart LR
-    A[Process 실행 중] --> B[Memory<br/>임시 값]
-    A --> C[Filesystem storage<br/>파일로 보존]
-    C --> D[`data/상태.json`]
-    D --> E[`cat data/상태.json` 확인 기록]
-```
-
-## 5-15분 memory와 storage 차이 설명
-
-
-### 시각 자료 2: 데이터 위치와 보존성
-| 데이터 위치 | 재시작 후 기대 | 오늘의 확인 기록 |
+| 비교 | VM | 컨테이너 |
 |---|---|---|
-| process memory | 사라질 수 있다. | 개념 기록 |
-| `data/상태.json` 파일 | 파일을 지우지 않으면 남는다. | `ls -la data`, `cat` |
-| Git에 추가된 파일 | 다른 컴퓨터로 공유 가능하다. | `git status`에서 추적 여부 확인 |
+| 격리 단위 | 운영체제 전체 | 프로세스 |
+| 커널 | VM마다 따로 | **호스트 커널을 공유** |
+| 크기 | 수 GB | 수 MB ~ 수백 MB |
+| 시작 시간 | 수십 초 ~ 수 분 | 보통 1초 안팎 |
+| 격리 강도 | 강함 (하드웨어 수준) | 상대적으로 약함 (커널 공유) |
+| 한 서버에 띄우는 수 | 수~수십 개 | 수십~수백 개 |
+| 다른 OS 실행 | 가능 (Linux 위에 Windows VM) | 불가 (Linux 컨테이너는 Linux 커널 필요) |
 
-## 15-30분 file 생성, 읽기, 경로 확인
+> [!IMPORTANT]
+> **그래서 둘 중 무엇이 이겼나?**
+>
+> 둘 다 씁니다. 실제 클라우드에서는 **VM 위에 컨테이너를 올리는** 구조가 가장 흔합니다. 5주차 마지막 날 여러분이 만들 EKS 클러스터도 이렇습니다.
+>
+> ```text
+> AWS 물리 서버 → Nitro 하이퍼바이저 → EC2 인스턴스(VM) → Linux 커널 → 컨테이너들(파드)
+> ```
+>
+> VM은 **고객 사이의 강한 격리**를, 컨테이너는 **앱 단위의 빠르고 가벼운 배포**를 담당합니다. 서로 다른 층에서 다른 문제를 풉니다.
 
+## 컨테이너를 만드는 Linux 기능
 
-### 시각 자료 3: storage 캡처 가이드
-| 캡처할 장면 | 확인할 부분 |
-|---|---|
-| `ls -la data` | 권한, 소유자, 크기, 수정 시간 |
-| `cat data/상태.json` | 저장된 JSON 내용 |
-| 현재 `pwd` | 상대 경로가 어느 위치 기준인지 |
+![컨테이너를 만드는 두 기둥 — 네임스페이스(보이는 것 제한)와 cgroups(쓰는 양 제한)](../../v3/assets/week1/day2/w1d2-namespaces-cgroups.png)
 
+### 네임스페이스 — 보이는 것을 제한
 
-### 명령 절차
-```bash
-pwd
-mkdir -p week1-lab/data
-cd week1-lab
-printf '{"상태":"ok"}\n' > data/상태.json
-ls -la
-ls -la data
-cat data/상태.json
-```
-
-
-### 확인 질문
-- `data/상태.json`은 memory인가 storage인가?
-- 경로가 틀리면 서비스는 어떤 증상을 보일 수 있는가?
-- 파일 권한 문제는 application bug와 어떻게 다르게 관찰되는가?
-
-## 30-40분 permission과 persistence 실패 사례 정리
-
-
-### 다음 주차 매핑
-Docker volume은 container lifecycle과 data lifecycle을 분리한다. Kubernetes Volume과 PersistentVolume은 Pod 재시작과 storage 보존을 분리한다. AWS S3, EBS, RDS는 storage 성격이 서로 다르며 Terraform은 그 선택을 코드로 고정한다.
-
-
-### 예상 결과
-- `data/상태.json` 파일이 생성된다.
-- `cat data/상태.json`은 `{"상태":"ok"}`를 출력한다.
-- `ls -la data`는 파일 권한, 소유자, 크기, 수정 시간을 보여준다.
-
-
-### 의사결정 표
-| 증상 | 먼저 확인할 것 | 관련 명령 |
+| 네임스페이스 | 격리하는 것 | 컨테이너 안에서 보이는 모습 |
 |---|---|---|
-| 파일을 못 찾음 | 현재 경로와 file 경로 | `pwd`, `ls` |
-| 읽기 실패 | permission | `ls -la` |
-| 재시작 후 데이터 사라짐 | memory에만 저장했는지 | README/data 기록 |
-| 다른 컴퓨터에서 실행 실패 | 필요한 data file 누락 | `git status`, `ls` |
+| PID | 프로세스 번호 | 내 앱이 PID 1번 (3교시) |
+| Mount | 파일시스템 | 나만의 `/` 디렉터리 |
+| Network | 네트워크 | 나만의 IP 주소와 포트 |
+| UTS | 호스트 이름 | 나만의 컴퓨터 이름 |
+| IPC | 프로세스 간 통신 | 다른 컨테이너와 공유 메모리 분리 |
+| User | 사용자 ID | 안에서는 root, 밖에서는 일반 사용자 |
 
-## 40-50분 volume/object/database storage preview
+### cgroups — 쓰는 양을 제한
 
+**cgroups(control groups)**는 프로세스 묶음이 쓸 수 있는 **CPU, 메모리, 디스크 입출력**의 상한을 정합니다. 2007년 구글 엔지니어들이 개발해 2008년 Linux 커널(2.6.24)에 들어갔습니다. 4주차 Kubernetes에서 쓰는 `requests`와 `limits` 설정이 결국 cgroups 설정으로 바뀌어 커널에 전달됩니다. 3교시에서 본 **종료 코드 137(OOM Kill)**은 컨테이너가 cgroups 메모리 상한을 넘었을 때 흔히 보게 됩니다.
 
-### 흔한 오해
-| 오해 | 교정 |
+### 이미지 — 컨테이너의 설계도
+
+컨테이너를 실행하려면 앱과 필요한 파일(라이브러리, 설정)을 담은 **이미지(image)**가 있어야 합니다. 1교시의 비유로 말하면 이미지는 **밀키트**, 컨테이너는 그 밀키트로 **지금 요리 중인 상태**입니다. 프로그램과 프로세스의 관계와 똑같습니다.
+
+| 프로세스 세계 | 컨테이너 세계 |
 |---|---|
-| JSON 파일을 만들었으니 memory에 저장한 것이다. | 파일은 storage에 저장된다. process 내부 변수는 memory다. |
-| 경로 문제는 초보 실수라 운영과 관계없다. | production 장애에서도 잘못된 mount 경로와 working directory는 흔한 원인이다. |
-| permission은 보안 수업에서만 중요하다. | 실행 가능 여부, log 작성, 업로드 저장에 직접 영향을 준다. |
+| 프로그램 (디스크의 실행 파일) | 이미지 (레지스트리에 저장된 패키지) |
+| 프로세스 (실행 중) | 컨테이너 (실행 중) |
+| 같은 프로그램으로 프로세스 여러 개 | 같은 이미지로 컨테이너 여러 개 |
 
+## 컨테이너의 역사 — 40년 넘게 쌓인 기술
 
-### 실습 확인 기록
-| 확인 항목 | 값 |
+![컨테이너의 역사 — 1979 chroot부터 2015 OCI까지](../../v3/assets/week1/day2/w1d2-container-history.png)
+
+| 연도 | 기술 | 의미 |
+|---|---|---|
+| 1979 | Unix **chroot** | 프로세스가 보는 루트 디렉터리를 바꾸는 최초의 격리 |
+| 2000 | FreeBSD **Jails** | 파일·프로세스·네트워크까지 격리 |
+| 2002~ | Linux **네임스페이스** 도입 시작 | 격리 기능이 Linux 커널에 하나씩 추가 |
+| 2004 | Solaris **Zones** | 상용 OS의 컨테이너 |
+| 2008 | **cgroups** 커널 포함, **LXC** 등장 | Linux만으로 컨테이너를 만들 수 있게 됨 |
+| 2013 | **Docker** 공개 | 이미지·레지스트리·쉬운 명령으로 대중화 |
+| 2014 | **Kubernetes** 발표 | 수많은 컨테이너를 자동으로 운영 |
+| 2015 | **OCI** 설립 | 컨테이너 이미지와 런타임의 **표준** 제정 |
+
+> [!IMPORTANT]
+> **Docker가 새로 발명한 것은 무엇일까?**
+>
+> 표를 보면 격리 기술 자체는 Docker 이전에 이미 다 있었습니다. Docker가 한 일은 **"쓰기 쉽게 포장한 것"**입니다. 앱을 이미지로 만드는 표준 방법(Dockerfile), 이미지를 공유하는 저장소(Docker Hub), 한 줄로 실행하는 명령(`docker run`)을 묶어서, 개발자 누구나 컨테이너를 쓸 수 있게 만들었습니다. 기술의 성공은 발명만큼 **경험(UX)**에 달려 있다는 좋은 예입니다.
+
+> **🎓 학술 노트 — 구글 Borg (EuroSys 2015)**
+>
+> 구글은 Docker가 등장하기 10년 전부터 사내에서 컨테이너로 모든 서비스를 운영했습니다. 그 시스템의 이름이 **Borg**입니다. 2015년 학회 EuroSys에 발표된 「Large-scale cluster management at Google with Borg」 논문은 수십만 대의 서버에서 매일 수많은 작업을 컨테이너로 스케줄링하는 경험을 공개했습니다.
+>
+> Kubernetes는 Borg와 그 후속 시스템(Omega)을 만든 엔지니어들이 그 교훈을 바탕으로 **오픈소스로 다시 설계한 시스템**입니다. 그래서 3~4주차 Kubernetes를 배울 때 "왜 이렇게 설계했지?"라는 질문의 답은 이 논문에 있는 경우가 많습니다.
+>
+> 같은 해 IBM 연구진(Felter 등)은 「VM과 Linux 컨테이너의 성능 비교」 논문에서 컨테이너가 대부분의 작업에서 VM과 같거나 더 나은 성능을 보인다고 보고해, 컨테이너 도입에 학술적 근거를 더했습니다.
+>
+> - Verma, A. et al. (2015). Large-scale cluster management at Google with Borg. *EuroSys '15*.
+> - Felter, W. et al. (2015). An updated performance comparison of virtual machines and Linux containers. *IEEE ISPASS*.
+
+> **📈 트렌드 — 컨테이너는 이제 기본값**
+>
+> CNCF의 2025년 연례 조사(2026년 1월 발표)에서 **운영 환경에서 애플리케이션 컨테이너를 쓰는 조직은 56%**로 2023년 41%에서 크게 늘었고, 시범 운영에만 머무는 곳은 6%로 줄었습니다. GitHub의 Octoverse 2025 보고서는 **Dockerfile을 가진 저장소가 190만 개**로 1년 새 120% 늘었다며, Dockerfile을 "실험(노트북)에서 재현 가능한 운영으로 넘어가는 다리"라고 표현했습니다. 2026년 Octoverse에서는 GitHub Actions 작업 실행이 1년에 **454억 번**으로 3배 넘게 늘었는데, 그 작업의 상당수가 바로 컨테이너 이미지를 빌드하고 테스트하는 일입니다. 다음 주 여러분이 만들 첫 Dockerfile이 바로 그 다리입니다.
+
+## 2주차를 기다리게 만드는 질문
+
+오늘 배운 것만으로도 다음 질문에 미리 답해 볼 수 있습니다. 2주차에 직접 확인합니다.
+
+| 질문 | 오늘 배운 것으로 예측해 보기 |
 |---|---|
-| project 경로 | |
-| data file 경로 | |
-| `ls -la data` summary | |
-| file content | |
+| 컨테이너 안에서 `ps`를 치면 무엇이 보일까? | PID 네임스페이스 → 내 앱만, PID 1번으로 |
+| 컨테이너를 지우면 그 안의 데이터는? | 4교시 표 → 사라진다. 볼륨이 필요하다 |
+| Mac(ARM)에서 만든 이미지가 서버(x86)에서 안 돈다면? | 1교시 → CPU 아키텍처 차이 |
+| 컨테이너가 Exit 137로 계속 죽는다면? | 3교시 + cgroups → 메모리 상한 초과 |
 
+## 정리
 
-### 학술 근거와 DevOps 관점
-시스템 교육에서 volatile memory와 persistent storage 구분은 기본이다. DevOps 현업에서는 container 재시작, node 교체, 배포 rollback 때 데이터가 어디에 저장되는지 모르면 장애를 키운다. "데이터가 process 안에 있는가, filesystem에 있는가, 외부 저장소에 있는가"를 계속 질문해야 한다.
+- 컨테이너는 **네임스페이스(보이는 것)와 cgroups(쓰는 양)로 격리된 프로세스**입니다.
+- VM은 OS째 격리해 강하지만 무겁고, 컨테이너는 커널을 공유해 가볍고 빠릅니다. 클라우드에서는 **VM 위에 컨테이너**를 올립니다.
+- 격리 기술은 1979년부터 쌓였고, Docker(2013)는 그것을 **쉽게 쓰게 포장**해 대중화했습니다.
+- Kubernetes는 구글 Borg의 경험을 오픈소스로 다시 만든 것입니다.
 
+> **✅ 확인 문제**
+>
+> 1. 컨테이너가 다른 프로세스를 볼 수 없게 해 주는 Linux 기능은?
+> 2. 컨테이너의 CPU와 메모리 사용량에 상한을 거는 Linux 기능은?
+> 3. VM과 컨테이너 중 Linux 서버 위에서 Windows를 실행할 수 있는 것은? 이유는?
+> 4. 이미지와 컨테이너의 관계는 프로그램과 무엇의 관계와 같나요?
+> 5. Kubernetes의 설계에 큰 영향을 준 구글 내부 시스템의 이름은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 네임스페이스(namespace) — 특히 PID 네임스페이스
+> 2. cgroups (control groups)
+> 3. VM. 컨테이너는 호스트 커널을 공유하므로 Linux 커널 위에서는 Linux 컨테이너만 실행됩니다. VM은 자기만의 OS를 가집니다.
+> 4. 프로세스 (이미지 = 프로그램, 컨테이너 = 프로세스)
+> 5. Borg
+>
+> </details>
 
-### 평가 기준
-| 기준 | 2점 확인 기록 |
-|---|---|
-| 50분 참여 | 시간 흐름에 맞춰 설명, 활동, 산출물 작성에 참여했다. |
-| 증거 산출 | 수업에서 요구한 기록, 명령, 표, 막힘 기록 중 해당 산출물을 구체적으로 남겼다. |
-| 전이 연결 | 오늘 개념이 Week2~5 기술 또는 자기 산출물과 어떻게 연결되는지 한 문장 이상 설명했다. |
+> [!NOTE]
+> **오늘의 배움일기**
+>
+> - 오늘 가장 "아하!" 했던 순간 하나 (예: 컨테이너가 그냥 프로세스였다니)
+> - 아직 헷갈리는 개념 하나와 그 이유 (예: 커널과 셸의 차이)
+> - 내일(네트워크 기초) 수업 전에 궁금한 것 하나
 
+## 참고 문헌
 
-### 공식/학술 근거 링크
-- Google SRE Book: Introduction, https://sre.google/sre-book/introduction/ - monitoring, emergency response, change management가 운영 책임에 포함되는 근거다.
-- Google SRE Book: Postmortem Culture, https://sre.google/sre-book/postmortem-culture/ - 로그와 timeline을 blame이 아니라 학습 확인 기록으로 다루는 기준이다.
-- MIT Missing Semester, https://missing.csail.mit.edu/ - debugging과 shell 기록을 실무형 학습 증거로 연결한다.
+- Verma, A. et al. (2015). Large-scale cluster management at Google with Borg. *EuroSys '15*.
+- Burns, B., Grant, B., Oppenheimer, D., Brewer, E., & Wilkes, J. (2016). Borg, Omega, and Kubernetes. *ACM Queue*, 14(1).
+- Felter, W., Ferreira, A., Rajamony, R., & Rubio, J. (2015). An updated performance comparison of virtual machines and Linux containers. *IEEE ISPASS*.
+- Open Container Initiative. *OCI Image and Runtime Specifications*. opencontainers.org
+- CNCF (2026). *The CNCF Annual Cloud Native Survey*.
+- GitHub (2025, 2026). *Octoverse 2025*, *Octoverse 2026*. github.blog/news-insights/octoverse
+
+---
+
+⬅️ 이전: [6교시 · 가상화와 하이퍼바이저](lesson-06.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [1주차 3일차 목차](../day3/README.md) ➡️

@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+
 # 4교시 · Git 브랜치
 
 > [!NOTE]
@@ -20,7 +22,7 @@
 
 ## 브랜치 = 갈라져 나온 작업 줄기
 
-![브랜치 — main에서 갈라져 작업하고, 검토 후 다시 합친다](../../assets/week2/day5/w2d5-branch.png)
+![브랜치 — main에서 갈라져 작업하고, 검토 후 다시 합친다](../../v3/assets/week2/day5/w2d5-branch.png)
 
 > **🧩 비유 — 원고와 연습장**
 >
@@ -211,3 +213,7 @@ git log --oneline --graph --all -3
 - GitHub Docs. *GitHub flow*. docs.github.com/get-started/using-github/github-flow
 - Forsgren, N., Humble, J., & Kim, G. (2018). *Accelerate*. IT Revolution.
 - GitHub Docs. *Managing a merge queue*. docs.github.com
+
+---
+
+⬅️ 이전: [3교시 · Compose로 하는 일상 작업](lesson-03.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · Pull Request와 코드 리뷰](lesson-05.md) ➡️

@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+
 # 5교시 · 관찰하기 — logs · exec · inspect · stats
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 컨테이너가 Up이라고 해서 정상인 것은 아닙니다(1주차 3일차 6교시의 "단계별로 좁혀 가기"). 운영자는 컨테이너를 **관찰하는 도구**를 손에 익혀야 합니다.
 
-![관찰 도구 네 가지 — 무엇을 남겼나(logs), 안에서 확인(exec), 설정과 상태(inspect), 자원 사용량(stats)](../../assets/week2/day2/w2d2-observe.png)
+![관찰 도구 네 가지 — 무엇을 남겼나(logs), 안에서 확인(exec), 설정과 상태(inspect), 자원 사용량(stats)](../../v3/assets/week2/day2/w2d2-observe.png)
 
 | 질문 | 명령 | 비유 |
 |---|---|---|
@@ -268,3 +270,7 @@ docker stats --no-stream web
 - Docker Hub. *nginx — logging to stdout/stderr*. hub.docker.com/_/nginx
 - Wiggins, A. (2011). *The Twelve-Factor App — XI. Logs*. 12factor.net/logs
 - Gerhards, R. (2009). *RFC 5424: The Syslog Protocol*. IETF.
+
+---
+
+⬅️ 이전: [4교시 · 포트 연결](lesson-04.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 생명주기와 정리](lesson-06.md) ➡️

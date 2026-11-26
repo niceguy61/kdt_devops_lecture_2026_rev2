@@ -1,146 +1,213 @@
-# 5교시: Istio 개념 Preview
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
 
-![Week 4 Day 5 Lesson 5](./assets/lesson-05-istio-mesh-concepts.png)
+# 5교시 · Kyverno 정책
 
-## 수업 목표
-- Kubernetes Service 통신만으로 부족한 지점을 설명한다.
-- Istio의 data plane과 control plane을 구분한다.
-- sidecar proxy가 traffic 관찰과 제어를 어디서 수행하는지 이해한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **입장 제어**(admission control)가 RBAC와 무엇이 다른지 이해합니다.
+> - Kyverno를 Helm으로 설치합니다.
+> - **Audit**로 정책을 넣어 지금 DevMart가 **얼마나 어기고 있는지** 보고서로 봅니다.
+> - **Deny** 정책이 kubectl과 **Argo CD Sync**를 어떻게 막는지 봅니다.
 
-## Kubernetes Service만 있을 때
-Kubernetes Service는 Pod 집합에 안정적인 이름과 가상 IP를 제공한다.
+## 입장 제어 — 내용을 보는 관문
 
-```text
-frontend Pod
-  -> http://backend.default.svc.cluster.local
-  -> backend Pod
-```
+RBAC는 "devmart에 deployments를 만들 수 있나"까지만 묻습니다. 입장 제어는 **그 Deployment의 내용**을 봅니다.
 
-하지만 실제 운영에서는 "연결된다"만으로 부족하다.
-
-| 운영 질문 | Service만으로 보기 어려운 것 |
-|---|---|
-| 어떤 서비스가 느린가 | 요청 latency 분포 |
-| 어느 경로에서 실패하는가 | service-to-service error rate |
-| 일부 요청만 새 버전으로 보낼 수 있는가 | traffic split |
-| 장애를 일부러 재현할 수 있는가 | delay/fault injection |
-| 서비스 간 암호화가 되는가 | mTLS 상태 |
-
-Istio는 이런 문제를 application code 바깥의 proxy 계층에서 다루는 서비스 메시다.
-
-## 서비스 메시란
-서비스 메시(service mesh)는 서비스 간 통신을 관찰하고 제어하는 인프라 계층이다.
-
-```text
-app container
-  -> local proxy
-  -> network
-  -> local proxy
-  -> app container
-```
-
-앱은 HTTP 요청을 보낸다고 생각하지만, 실제 통신 경로에는 proxy가 들어간다. 이 proxy가 metric, log, routing, retry, timeout, mTLS 같은 기능을 처리한다.
-
-## Istio의 두 평면
-| 구분 | 구성요소 | 역할 |
+| 규칙 | 왜 | 오늘 |
 |---|---|---|
-| Data plane | Envoy sidecar | 실제 요청을 받고 보내는 proxy |
-| Control plane | istiod | Envoy 설정 배포, service discovery, certificate 관리 |
+| 이미지 태그에 `:latest` 금지 | 어떤 버전이 도는지 알 수 없고, 되돌릴 기준이 없다 (3일차 revert) | **Deny** |
+| 메모리 limits 필수 | 한 Pod가 노드 메모리를 다 먹는 것을 막는다 (3주차 5일차 OOM) | Audit → Deny |
+| root로 실행 금지 | 컨테이너가 뚫리면 노드까지 위험해진다 | **Audit** (지금은 많이 어긴다) |
 
-수업에서는 이 두 가지를 꼭 분리해서 말한다.
+Kubernetes에도 기본 입장 제어 — **Pod Security Admission**(privileged · baseline · restricted 세 단계)과 **ValidatingAdmissionPolicy**(CEL) — 가 있습니다. Kyverno는 그 위에 **보고서**(이미 있는 리소스가 어기는지), **예외 관리**, **CLI로 PR에서 미리 검사** 같은 운영 기능을 더합니다.
 
-```text
-istiod는 요청을 직접 처리하지 않는다.
-요청은 각 Pod 옆의 Envoy proxy를 지난다.
-```
-
-## Sidecar injection
-Istio를 namespace에 활성화하면 Pod 생성 시 Envoy container가 함께 붙는다.
+## 실습 10 · Kyverno 설치
 
 ```bash
-kubectl label namespace mesh-demo istio-injection=enabled
-kubectl -n mesh-demo get pod
+cd ~/devops-lab/k8s/w4d5
+helm repo add kyverno https://kyverno.github.io/kyverno/
+helm repo update
+helm search repo kyverno/kyverno
+KYV=$(helm search repo kyverno/kyverno -o json | python3 -c "import sys,json; print([c for c in json.load(sys.stdin) if c['name']=='kyverno/kyverno'][0]['version'])")
+echo "kyverno 차트 $KYV" | tee -a VERSIONS.txt
+helm install kyverno kyverno/kyverno -n kyverno --create-namespace --version $KYV -f kyverno/kyverno-values.yaml --wait
+kubectl get pods -n kyverno
 ```
 
-정상 예:
+> **🟢 확인: 확인**
+>
+> ```text
+> NAME           CHART VERSION   APP VERSION   DESCRIPTION
+> kyverno/kyverno   3.○.○          v1.○○.○      Kubernetes Native Policy Management
+> …
+> NAME                                             READY   STATUS    RESTARTS   AGE
+> kyverno-admission-controller-6c9b8d7f5-q2m4x     1/1     Running   0          1m
+> kyverno-background-controller-7d8c9b6f4-k8w2e    1/1     Running   0          1m
+> kyverno-reports-controller-5f7b9c8d6-p3x7t       1/1     Running   0          1m
+> ```
+> APP VERSION이 **1.17 이상**이어야 오늘 쓰는 `ValidatingPolicy`(policies.kyverno.io/v1)가 있습니다. 옛 문서의 `ClusterPolicy`는 1.17에서 폐기 예정이 되었습니다.
 
-```text
-NAME                             READY
-mesh-api-xxxxx                   2/2
-mesh-frontend-xxxxx              2/2
+## 정책 읽기
+
+```bash
+cat kyverno/disallow-latest.yaml
 ```
 
-`1/1`이면 앱 container만 있는 것이고, `2/2`이면 앱 container와 Envoy sidecar가 함께 있는 상태다.
+```yaml
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: disallow-latest-tag
+spec:
+  validationActions: [Deny]                 # 어기면 거절 (Audit = 보고만)
+  matchConstraints:                         # 어디에 — devmart의 Deployment 만들기 · 고치기
+    namespaceSelector:
+      matchExpressions:
+        - { key: kubernetes.io/metadata.name, operator: In, values: [devmart] }
+    resourceRules:
+      - apiGroups: [apps]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [deployments]
+  matchConditions:                          # 예외 — Istio가 만드는 waypoint
+    - name: not-istio-managed
+      expression: "!has(object.metadata.labels) || !('gateway.istio.io/managed' in object.metadata.labels)"
+  validations:                              # 무엇을 — CEL 식이 참이어야 통과
+    - expression: >-
+        object.spec.template.spec.containers.all(c,
+          c.image.contains(':') && !c.image.endsWith(':latest'))
+      message: "이미지에 태그를 적어야 하고 ':latest'는 쓸 수 없습니다 — …"
+```
 
-## Mesh가 주는 것
-| 기능 | 수업에서 보는 방식 |
+| 칸 | 읽는 법 |
 |---|---|
-| Traffic graph | Kiali graph |
-| Request metric | Prometheus metric |
-| Access log | `istio-proxy` container logs |
-| Fault injection | VirtualService delay |
-| Policy preview | mTLS/RBAC 개념 소개 |
+| `object` | 지금 들어오려는 리소스 (Deployment YAML 그대로) |
+| `.all(c, …)` | 모든 컨테이너 `c`에 대해 … 가 참 — CEL의 목록 함수 |
+| `matchConditions` | 이 정책을 **적용할지** 먼저 거르는 식. waypoint Deployment는 Istio가 관리하므로 제외 |
 
-오늘은 깊게 운영하지 않고 "왜 메시가 필요한지"와 "눈으로 트래픽이 보이는 경험"에 집중한다.
+> [!WARNING]
+> **시스템이 만드는 것을 먼저 생각한다**
+>
+> 정책을 devmart 네임스페이스 전체에 걸면, **사람이 아니라 컨트롤러**가 만드는 것(Istio의 waypoint)도 검사됩니다. 그것이 거절되면 istiod가 waypoint를 고치지 못해 메시가 망가집니다. 입장 제어 사고의 대부분이 이 경우입니다. 그래서 ① 네임스페이스를 좁히고, ② 컨트롤러가 만든 것은 예외로 두고, ③ **Audit부터** 넣습니다.
 
-## Mesh가 항상 좋은 것은 아니다
-| 비용 | 설명 |
-|---|---|
-| Resource overhead | Pod마다 proxy가 추가되어 CPU/Memory 사용 증가 |
-| Debug 복잡도 | 앱 문제인지 proxy/routing 문제인지 분리 필요 |
-| Learning curve | Gateway, VirtualService, DestinationRule 등 학습 필요 |
-| Upgrade 부담 | Istio control plane과 sidecar 버전 관리 필요 |
+## 실습 11 · Audit — 지금 얼마나 어기나
 
-서비스가 단순하고 팀이 작다면 mesh가 과할 수 있다. 반대로 서비스 수가 늘고 장애 분석과 traffic 제어가 중요해지면 mesh의 가치가 커진다.
-
-## Compose와 비교
-W2D5의 Docker Compose에서는 service name으로 통신했다.
-
-```text
-frontend -> backend -> db
+```bash
+kubectl apply -f kyverno/require-limits.yaml -f kyverno/require-non-root.yaml
+echo "- $(date +%F) Kyverno 설치 · ValidatingPolicy require-memory-limits · require-run-as-non-root (Audit)" >> ~/devops-lab/k8s/w4d4/platform-changes.md
+kubectl get validatingpolicy
+sleep 60
+kubectl get policyreport -n devmart -o wide
 ```
 
-Kubernetes에서도 Service 이름으로 통신한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> NAME                      ACTIONS     READY   AGE
+> require-memory-limits     ["Audit"]   true    1m
+> require-run-as-non-root   ["Audit"]   true    1m
+> NAME                                   KIND         NAME           PASS   FAIL   WARN   ERROR   SKIP   AGE
+> 0b1c…                                  Deployment   catalog-api    1      1      0      0       0      50s
+> 3f9a…                                  Deployment   db             1      1      0      0       0      50s
+> 7d2e…                                  Deployment   order-api      1      1      0      0       0      50s
+> …
+> ```
+> 모든 Deployment가 **limits는 통과(PASS 1), root 규칙은 실패(FAIL 1)**입니다. 3주차 5일차에 limits는 정성껏 넣었지만, `runAsNonRoot`는 아무도 넣지 않았습니다. **Audit는 아무것도 막지 않고** 이 사실만 알려 줍니다.
 
-```text
-frontend -> backend.default.svc.cluster.local
+```bash
+kubectl get policyreport -n devmart -o jsonpath='{range .items[*]}{.scope.name}{"\t"}{range .results[?(@.result=="fail")]}{.policy}{" "}{end}{"\n"}{end}'
 ```
 
-Istio를 붙이면 통신 경로를 proxy가 관찰한다.
+> [!IMPORTANT]
+> **Audit → 고치기 → Deny**
+>
+> 정책을 처음부터 Deny로 넣으면, 다음 배포 때 **6개 서비스가 모두 막힙니다.** 그래서 순서는 ① Audit로 넣어 보고서를 본다 → ② 어기는 것을 **Git에서** 고친다(앱 팀의 PR) → ③ FAIL이 0이 되면 Deny로 바꾼다. root 규칙은 postgres · redis · nginx 이미지의 실행 사용자를 바꿔야 해서 오늘은 ①에서 멈춥니다 — 회고의 Try 후보입니다.
 
-```text
-frontend app -> frontend envoy -> backend envoy -> backend app
+## 실습 12 · Deny — kubectl이 막힌다
+
+```bash
+kubectl apply -f kyverno/disallow-latest.yaml
+kubectl create deployment try-latest -n devmart --image=nginx:latest
+kubectl create deployment try-notag -n devmart --image=nginx
 ```
 
-Compose의 네트워크 이해가 Kubernetes Service 이해로 이어지고, Kubernetes Service 이해가 service mesh 이해로 이어진다.
+> **🟢 확인: 확인**
+>
+> ```text
+> validatingpolicy.policies.kyverno.io/disallow-latest-tag created
+> error: failed to create deployment: admission webhook "….kyverno.svc-fail" denied the request: Policy disallow-latest-tag failed: 이미지에 태그를 적어야 하고 ':latest'는 쓸 수 없습니다 — 어떤 버전이 도는지 알 수 없게 됩니다.
+> error: failed to create deployment: admission webhook "….kyverno.svc-fail" denied the request: …
+> ```
+> 나는 **cluster-admin**인데도 막혔습니다. 입장 제어는 **누구인지와 상관없이** 내용을 봅니다 — RBAC와의 결정적인 차이입니다.
 
-## Evidence Note
-```markdown
-# W4D5S5 Istio concept
-- Service만으로 부족한 운영 질문:
-- Data plane:
-- Control plane:
-- sidecar injection 확인 기준:
-- mesh 도입 비용:
+## 실습 13 · Deny — Argo CD도 막힌다
+
+배포 저장소에서 catalog-api의 태그를 `latest`로 바꿔 봅니다(GHCR에는 `latest` 태그가 실제로 있습니다 — 3주차 2일차의 CI가 만든다).
+
+```bash
+cd ~/devmart-deploy
+sed -i '/devmart-catalog-api/{n;s/newTag: .*/newTag: latest/;}' devmart/kustomization.yaml     # Mac: sed -i '' …
+git commit -am "catalog-api latest로 (정책 시험)" && git push
+sleep 60
+argocd app get devmart | grep -E "Sync Status|Health|Message" | head -4
+argocd app get devmart -o json | python3 -c "import sys,json; print(json.load(sys.stdin)['status']['operationState']['message'][:240])"
 ```
 
-## 한 줄 요약
-```text
-Istio는 서비스 간 요청 경로에 proxy를 넣어 traffic을 관찰하고 제어하는 서비스 메시다.
+> **🟢 확인: 확인**
+>
+> ```text
+> Sync Status:        OutOfSync from main (a4c2e9b)
+> Health Status:      Healthy
+> one or more objects failed to apply, reason: admission webhook "….kyverno.svc-fail" denied the request: Policy disallow-latest-tag failed: 이미지에 태그를 적어야 하고 …
+> ```
+> - Argo CD는 Git대로 하려 했지만 **apiserver의 관문에서** 막혔습니다. Sync 실패, OutOfSync가 남습니다.
+> - 서비스는 **옛 버전 그대로** 돕니다(Healthy) — 잘못된 변경이 클러스터에 닿지 않았습니다.
+> - 웹 UI의 devmart 화면 위쪽에 빨간 **SYNC FAILED** 표시와 같은 메시지가 보입니다.
+
+되돌립니다.
+
+```bash
+git revert --no-edit HEAD && git push
+sleep 60; argocd app get devmart | grep -E "Sync Status|Health"
 ```
 
+> [!TIP]
+> **PR 단계에서 먼저 막기**
+>
+> 오늘은 클러스터 관문에서 막았지만, 더 좋은 곳은 **PR 단계**입니다. `kyverno` CLI는 같은 정책을 매니페스트 파일에 돌려 볼 수 있습니다 — 배포 저장소에 CI를 두고 `kustomize build devmart | kyverno apply kyverno/ --resource -` 같은 단계를 넣으면, 합치기 전에 빨간 X가 뜹니다. 3일차 6교시 트렌드의 "PR 검사 + 입장 제어" 이중 구조입니다.
 
-## 학습 제어
-### 시작 3분 회상
-- GitOps drift와 복구를 완료했다는 증거는 무엇인가?
-- Kubernetes Service와 Istio sidecar/data plane/control plane은 어떤 책임 차이가 있는가?
-### 오늘 반드시 가져갈 것
-- Service는 기본 discovery, sidecar는 proxy traffic 책임, istiod는 control-plane 설정 배포 책임이다.
-- Pod `1/1`과 `2/2`는 injection 여부의 evidence이지 앱 health 전체의 판정이 아니다.
-### 최소 복구 경로
-- 먼저 GitOps sync/health/drift 복구를 확인한다 → 그 뒤 선택 preview로 sidecar와 proxy 경로를 확인한다.
-- 성공 판정은 필수 GitOps 경로와 mesh preview를 분리해 기록하는 것이다. 첫 실패는 GitOps conditions, 이후 mesh는 Pod/container 상태에서 찾는다.
-- 다음 lesson 진입 조건은 GitOps 필수 경로 완료 후 mesh 설치를 선택할 수 있는 상태다.
+> **🎓 학술 노트 — 기준 감시기**
+>
+> Anderson의 *Computer Security Technology Planning Study*(1972)는 모든 접근을 검사하는 **기준 감시기**(reference monitor)의 조건으로 세 가지를 들었습니다 — **항상 불린다**(우회 불가), **변조할 수 없다**, **검증할 수 있을 만큼 작다**. apiserver의 입장 제어 단계는 클러스터 변경에 대한 기준 감시기 역할을 합니다. 모든 쓰기(kubectl이든 Argo CD든)가 지나가고(실습 12 · 13), 정책은 읽을 수 있는 짧은 CEL 식입니다. 단, 웹훅이 죽었을 때 '통과'시킬지 '거절'할지(failurePolicy)가 첫 번째 조건을 좌우합니다.
 
-### W4D5 범위 경계
-이 lesson부터 day5 lesson 5~7은 **GitOps 필수 경로 완료 후 선택 심화**다. Istio/Kiali/sidecar/mTLS/fault injection은 필수 완료 조건이 아니다.
+> **📈 트렌드 2026 — 정책 엔진의 정리**
+>
+> Kyverno는 2026년 3월 CNCF **졸업**(graduated) 프로젝트가 되었고, 1.17에서 CEL 기반 정책을 v1으로, 옛 ClusterPolicy를 폐기 예정으로 돌렸습니다. Kubernetes 자체의 ValidatingAdmissionPolicy와 같은 CEL을 쓰므로, 간단한 규칙은 웹훅 없이 apiserver 안에서, 보고서 · 예외 · 이미지 서명 검증 같은 운영 기능은 Kyverno가 맡는 분업이 자리 잡고 있습니다. OPA Gatekeeper(Rego 언어)도 여전히 널리 쓰이는 대안입니다.
+
+> **✅ 확인 문제**
+>
+> 1. 입장 제어가 RBAC와 다른 점은?
+> 2. 정책을 Audit로 먼저 넣는 이유는?
+> 3. matchConditions로 waypoint를 뺀 이유는?
+> 4. Argo CD의 Sync가 막혔을 때 서비스가 Healthy였던 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 누구인지가 아니라 요청의 내용(이미지 태그, limits 등)을 보고, cluster-admin도 막는다
+> 2. 지금 얼마나 어기는지 먼저 보고 Git에서 고친 뒤 Deny로 바꿔야 배포가 한꺼번에 막히지 않기 때문
+> 3. waypoint는 Istio(istiod)가 만들고 고치는 것이라, 막히면 메시가 망가지기 때문
+> 4. 잘못된 변경이 apiserver에서 거절되어 클러스터에 닿지 않았고, 옛 버전이 그대로 돌았기 때문
+>
+> </details>
+
+## 참고 문헌
+
+- Kubernetes Docs. *Admission Control*, *Validating Admission Policy*, *Pod Security Admission*. kubernetes.io/docs
+- Kyverno Docs. *ValidatingPolicy*, *Policy Reports*, *Kyverno CLI — apply*. kyverno.io/docs
+- Anderson, J. P. (1972). *Computer Security Technology Planning Study* (ESD-TR-73-51). U.S. Air Force.
+- CNCF (2026-03-24). *Cloud Native Computing Foundation Announces Kyverno's Graduation*. cncf.io
+
+---
+
+⬅️ 이전: [4교시 · 서비스 신원으로 허가](lesson-04.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 4주차 종합 장애 훈련](lesson-06.md) ➡️

@@ -1,30 +1,15 @@
-# Week 4: Kubernetes 운영 확장
+[🏠 과정 목차](../README.md)
 
-Week 4는 W3D4~W3D5에서 시작한 Kubernetes 기본 흐름을 운영 가능한 MSA 배포 기준으로 확장한다. 모든 add-on 설치는 Helm을 기본 표준으로 사용하고, 설치 명령마다 release name, namespace, values file, 검증 명령, 제거 명령을 함께 남긴다.
+# 4주차 · Kubernetes 운영
 
-## Cluster Safety Rule
-매일 1교시는 오늘 사용할 kind cluster를 만들고 context를 고정하는 것으로 시작한다. 매일 8교시는 cluster를 유지할지 삭제할지 명시하고 evidence를 남기는 것으로 끝낸다.
+📕 4주차 이북 PDF: [보기](../downloads/pdf/week4.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week4.pdf)
 
-```bash
-bash week4/scripts/create-kind-cluster.sh paperclip-w4d2
-bash week4/scripts/ensure-kind-context.sh paperclip-w4d2
-```
+| 일차 | 주제 | 교시 | 슬라이드 |
+|---|---|---|---|
+| [1일차](day1/README.md) | Helm + Gateway API | [1교시](day1/lesson-01.md) [2교시](day1/lesson-02.md) [3교시](day1/lesson-03.md) [4교시](day1/lesson-04.md) [5교시](day1/lesson-05.md) [6교시](day1/lesson-06.md) [7교시](day1/lesson-07.md) | [PPTX](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week4-day1.pptx) |
+| [2일차](day2/README.md) | Observability | [1교시](day2/lesson-01.md) [2교시](day2/lesson-02.md) [3교시](day2/lesson-03.md) [4교시](day2/lesson-04.md) [5교시](day2/lesson-05.md) [6교시](day2/lesson-06.md) [7교시](day2/lesson-07.md) | [PPTX](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week4-day2.pptx) |
+| [3일차](day3/README.md) | GitOps | [1교시](day3/lesson-01.md) [2교시](day3/lesson-02.md) [3교시](day3/lesson-03.md) [4교시](day3/lesson-04.md) [5교시](day3/lesson-05.md) [6교시](day3/lesson-06.md) [7교시](day3/lesson-07.md) | [PPTX](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week4-day3.pptx) |
+| [4일차](day4/README.md) | Service Mesh | [1교시](day4/lesson-01.md) [2교시](day4/lesson-02.md) [3교시](day4/lesson-03.md) [4교시](day4/lesson-04.md) [5교시](day4/lesson-05.md) [6교시](day4/lesson-06.md) [7교시](day4/lesson-07.md) | [PPTX](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week4-day4.pptx) |
+| [5일차](day5/README.md) | Kubernetes 보안 | [1교시](day5/lesson-01.md) [2교시](day5/lesson-02.md) [3교시](day5/lesson-03.md) [4교시](day5/lesson-04.md) [5교시](day5/lesson-05.md) [6교시](day5/lesson-06.md) [7교시](day5/lesson-07.md) | [PPTX](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week4-day5.pptx) |
 
-수업 중 새 manifest를 적용하기 전에는 `ensure-kind-context.sh`를 반복한다. context 확인을 생략하면 다른 local Kubernetes cluster에 Helm chart나 manifest를 적용할 수 있다.
-
-종료 시 삭제하는 경우:
-```bash
-bash week4/scripts/delete-kind-cluster.sh paperclip-w4d2
-```
-
-## Day Index
-| 일차 | 주제 | 핵심 산출물 |
-|---|---|---|
-| Day1 | 운영 가능한 workload와 resource 관찰 | Helm 설치 루프, ConfigMap/Secret, probe, resource, metrics-server |
-| Day2 | Service, DNS, Gateway API, 외부 traffic | Envoy Gateway Helm 설치, Gateway/HTTPRoute routing |
-| Day3 | 장애와 성능 관찰 | kube-prometheus-stack, Prometheus target, Grafana dashboard |
-| Day4 | 권한과 정책 | RBAC, Kyverno admission policy |
-| Day5 | GitOps와 mesh preview | Argo CD, Istio, Kiali preview |
-
-## Glossary
-Week 4 핵심 용어는 [glossary.md](./glossary.md)를 기준으로 회상한다. 정의를 읽기 전에 Running/Ready, traffic 경로, 관찰 증거, 권한 실패, GitOps drift 중 하나를 자신의 말로 설명해 본다.
+처음이라면 **1일차 목차**부터 열고, 각 교시 맨 아래의 **다음 ➡️** 링크를 따라가면 순서대로 읽힙니다.

@@ -43,7 +43,7 @@ cd ~/devops-lab
 cat ~/devops-lab/aws/w5d5/portfolio-readme.md > /tmp/portfolio.md
 [ -f README.md ] && cat README.md >> /tmp/portfolio.md
 mv /tmp/portfolio.md README.md
-mkdir -p docs && cp ~/course/assets/week5/day4/w5d4-path.png docs/architecture.png 2>/dev/null || true
+mkdir -p docs && cp ~/course/v3/assets/week5/day4/w5d4-path.png docs/architecture.png 2>/dev/null || true
 cp ~/devops-lab/aws/w5d5/up.sh ~/devops-lab/aws/w5d5/down.sh ~/devops-lab/aws/w5d5/leftovers.sh .
 ```
 

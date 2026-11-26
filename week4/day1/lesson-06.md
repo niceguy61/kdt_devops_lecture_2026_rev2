@@ -1,292 +1,300 @@
-# 6교시: Resource Requests/Limits
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
 
-![Week 4 Day 1 Lesson 6](./assets/lesson-06-resource-requests-limits.png)
+# 6교시 · HTTPRoute — 경로 · Host · 가중치
 
-## 수업 목표
-- requests와 limits의 차이를 설명한다.
-- resource 선언이 scheduler, OOMKilled, CPU throttling, 비용과 연결되는 이유를 이해한다.
-- manifest에서 resource 값을 어디에 쓰는지 확인한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - DevMart의 경로 셋을 **HTTPRoute**로 만들어, nginx가 하던 API 게이트웨이 일을 Gateway에 넘깁니다.
+> - 라우트의 `status`에서 **Accepted · ResolvedRefs**를 읽습니다.
+> - 요청 ID를 이제 **Envoy**가 붙인다는 것을 로그로 확인합니다.
+> - 다른 네임스페이스의 앱(podinfo)을 **Host**로 나누어 같은 문에 붙입니다.
+> - 두 버전에 **80:20**으로 나누는 카나리를 만듭니다.
 
-## requests와 limits
-| 설정 | 역할 | 운영 의미 |
+## 실습 10 · DevMart를 Gateway 뒤로
+
+### 단계 1 — 라우트 셋 적용
+
+```bash
+cd ~/devops-lab/k8s/w4d1
+kubectl apply -f gateway/devmart-routes.yaml
+kubectl get httproute -n devmart
+```
+
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> httproute.gateway.networking.k8s.io/orders created
+> httproute.gateway.networking.k8s.io/catalog created
+> httproute.gateway.networking.k8s.io/web created
+> NAME      HOSTNAMES   AGE
+> catalog               3s
+> orders                3s
+> web                   3s
+> ```
+> 서비스마다 **자기 라우트**를 따로 만들었습니다. 주문 팀은 `orders`만, 상품 팀은 `catalog`만 고치면 됩니다 — 4교시의 역할 분리를 앱 팀 사이에도 적용한 것입니다. 3주차 nginx 설정 파일 하나를 여러 팀이 함께 고치던 것과 다릅니다.
+
+### 단계 2 — 라우트의 상태
+
+```bash
+kubectl describe httproute orders -n devmart | sed -n '/^Status:/,$p'
+```
+
+> **🟢 확인: 보이는 것 (줄여서)**
+>
+> ```text
+> Status:
+>   Parents:
+>     Conditions:
+>       Message:  Route is accepted
+>       Reason:   Accepted
+>       Status:   True
+>       Type:     Accepted
+>       Message:  Resolved all the Object references for the Route
+>       Reason:   ResolvedRefs
+>       Status:   True
+>       Type:     ResolvedRefs
+>     Controller Name:  gateway.envoyproxy.io/gatewayclass-controller
+>     Parent Ref:
+>       Name:  devmart
+> ```
+
+| 조건 | True의 뜻 | False라면 (7교시) |
 |---|---|---|
-| `requests.cpu` | 필요한 CPU 양 | scheduler가 node 배치 판단에 사용 |
-| `requests.memory` | 필요한 memory 양 | node capacity 계획의 기준 |
-| `limits.cpu` | CPU 사용 상한 | 초과 시 throttling 가능 |
-| `limits.memory` | memory 사용 상한 | 초과 시 OOMKilled 가능 |
+| **Accepted** | 이 라우트가 Gateway에 **붙었다** | 붙을 수 없다 — 허락 없음, 리스너 없음… |
+| **ResolvedRefs** | `backendRefs`의 Service를 **모두 찾았다** | Service가 없다, 다른 네임스페이스인데 허락이 없다… |
 
-Deployment 예시:
-```yaml
-resources:
-  requests:
-    cpu: 25m
-    memory: 32Mi
-  limits:
-    cpu: 100m
-    memory: 64Mi
-```
+`Controller Name`이 이 상태를 **누가** 썼는지 알려 줍니다. 3주차 4일차의 Events `From` 칸과 같은 역할입니다.
 
-## CPU 단위와 Memory 단위
-Kubernetes resource 단위도 꼭 짚는다.
-
-| 표현 | 의미 |
-|---|---|
-| `100m` CPU | CPU 0.1 core |
-| `500m` CPU | CPU 0.5 core |
-| `1` CPU | CPU 1 core |
-| `64Mi` memory | 64 mebibytes |
-| `512Mi` memory | 512 mebibytes |
-
-`m`은 milli CPU다. `100m`은 “100 메가 CPU”가 아니다. 이걸 헷갈리면 resource 값을 전혀 다르게 잡게 된다.
-
-## 왜 비용과 연결되는가
-requests가 커지면 scheduler는 더 많은 node capacity가 필요하다고 판단한다. cloud 환경에서는 이것이 node 수, instance size, autoscaling, 비용으로 연결된다.
-
-limits를 너무 낮게 잡으면 앱은 자주 죽거나 느려진다. limits를 너무 높게 잡으면 noisy neighbor 문제를 만들 수 있다.
-
-## scheduler가 보는 것은 request다
-scheduler는 Pod를 배치할 때 실제 사용량이 아니라 request를 기준으로 판단한다.
-
-```text
-node capacity: 2 CPU, 4Gi
-Pod A request: 500m, 512Mi
-Pod B request: 1 CPU, 1Gi
-Pod C request: 1 CPU, 3Gi
-```
-
-이 상황에서 node의 남은 request capacity가 부족하면 Pod는 Pending이 된다. 실제로 지금 CPU를 거의 쓰지 않더라도 request 기준으로는 배치가 안 될 수 있다.
-
-| 상태 | 해석 |
-|---|---|
-| 실제 사용량 낮음 | 이미 떠 있는 Pod의 현재 사용량 |
-| request 합계 높음 | scheduler가 예약한 capacity |
-| Pending | request를 만족하는 node가 없음 |
-
-## 확인 명령
-```bash
-export NS=week4
-kubectl -n "$NS" describe deploy runtime-api
-kubectl -n "$NS" describe pod -l app=runtime-api
-```
-
-확인할 출력:
-```text
-Limits:
-  cpu:     100m
-  memory:  64Mi
-Requests:
-  cpu:        25m
-  memory:     32Mi
-```
-
-`kubectl get pod`에는 requests/limits가 바로 보이지 않는다. 상세를 보거나 custom columns를 쓴다.
+### 단계 3 — 확인
 
 ```bash
-kubectl -n "$NS" get pod -l app=runtime-api \
-  -o custom-columns=NAME:.metadata.name,CPU_REQ:.spec.containers[0].resources.requests.cpu,MEM_REQ:.spec.containers[0].resources.requests.memory,CPU_LIMIT:.spec.containers[0].resources.limits.cpu,MEM_LIMIT:.spec.containers[0].resources.limits.memory
+for p in / /api/products /api/orders; do
+  printf '%-15s ' $p; curl -s -o /dev/null -w '%{http_code}\n' localhost:30080$p
+done
 ```
 
-예상 출력:
-```text
-NAME                           CPU_REQ   MEM_REQ   CPU_LIMIT   MEM_LIMIT
-runtime-api-7c7d8f7f9f-bxk6m   25m       32Mi      100m        64Mi
-runtime-api-7c7d8f7f9f-vs8nd   25m       32Mi      100m        64Mi
-```
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> /               200
+> /api/products   200
+> /api/orders     200
+> ```
+> 브라우저에서 **http://localhost:30080** 을 열고 주문을 하나 넣어 봅니다. 3주차 5일차와 같은 화면이지만, 이제 손님을 처음 받는 것은 nginx가 아니라 **Envoy**입니다.
 
-이 출력은 “현재 얼마나 쓰는가”가 아니라 “Pod가 어떤 resource 기준으로 선언되었는가”를 보여준다. 실제 사용량은 7교시의 `kubectl top`에서 확인한다.
-
-## OOMKilled 실험
-```bash
-kubectl apply -f week4/day1/labs/workload-basics/pod-oom-demo.yaml
-kubectl -n week4 get pod oom-demo -w
-```
-
-Pod가 종료되면 상세를 본다.
+### 단계 4 — 요청 ID는 누가 붙이나
 
 ```bash
-kubectl -n week4 describe pod oom-demo
+curl -s -X POST localhost:30080/api/orders -H 'Content-Type: application/json' -d '{"product_id": 1}'; echo
 ```
 
-확인할 출력:
-```text
-Reason: OOMKilled
-Exit Code: 137
-```
-
-`kubectl get pod`에서는 다음처럼 보일 수 있다.
-
-```text
-NAME       READY   STATUS   RESTARTS   AGE
-oom-demo   0/1     Error    0          40s
-```
-
-`STATUS=Error`만 보고 원인을 알 수는 없다. `describe` 또는 jsonpath로 마지막 종료 이유를 확인해야 한다.
-
-OOMKilled는 app이 정상적으로 종료한 것이 아니다. container가 memory limit을 넘어서 kernel에 의해 종료된 것이다.
-
-확인할 위치:
-```bash
-kubectl -n week4 describe pod oom-demo
-kubectl -n week4 get pod oom-demo -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason}'
-```
-
-정리:
-```bash
-kubectl -n week4 delete pod oom-demo --ignore-not-found
-```
-
-## request가 너무 큰 경우
-node capacity보다 큰 request를 선언하면 Pod가 Pending에 머물 수 있다. 이때 먼저 볼 곳은 log가 아니라 event다.
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> {"order_id":61,"request_id":"5b2e8f3c-9d41-4a7b-b6e0-2c8f1d9a7e54","status":"pending","total_price":59000}
+> ```
+> `request_id`의 **모양이 바뀌었습니다.** 3주차에는 nginx의 `$request_id`(32자리 16진수)였는데, 이제는 하이픈이 든 **UUID**입니다. Envoy는 들어오는 요청에 `x-request-id`가 없으면 **스스로 만들어 붙이고** 뒤로 넘깁니다. 우리 앱은 헤더 이름만 보고 읽으니 코드를 고칠 필요가 없었습니다.
 
 ```bash
-kubectl -n week4 describe pod <pending-pod>
+RID=5b2e8f3c-9d41-4a7b-b6e0-2c8f1d9a7e54        # 내 값으로
+kubectl logs -n devmart -l 'app in (order-api,catalog-api,order-worker)' --prefix --tail=-1 | grep $RID | cut -c1-110
 ```
 
-대표 메시지:
-```text
-0/1 nodes are available: insufficient cpu
-0/1 nodes are available: insufficient memory
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> [pod/order-api-…/order-api] {"service": "order-api", "event": "order_received", "request_id": "5b2e8f3c-…", …
+> [pod/catalog-api-…/catalog-api] {"service": "catalog-api", "event": "get_product", "request_id": "5b2e8f3c-…", …
+> [pod/order-api-…/order-api] {"service": "order-api", "event": "order_queued", …
+> [pod/order-worker-…/order-worker] {"service": "order-worker", …, "event": "order_completed", …
+> ```
+> 3주차 5일차 5교시와 같은 여행 기록이 이어집니다. 출발점만 nginx에서 Envoy로 바뀌었습니다.
+
+> [!TIP]
+> **nginx는 이제 무엇을 하나**
+>
+> web(nginx)은 이제 `/`의 **정적 파일만** 내줍니다. `/api/…` 요청은 Gateway가 web을 거치지 않고 바로 각 서비스로 보냅니다. nginx 설정의 `location /api/` 부분은 이제 쓰이지 않습니다 — 정리는 회고 때 Try로 남겨 둘 만합니다.
+
+## 실습 11 · Host로 나누기
+
+2교시의 podinfo는 **default** 네임스페이스에 있습니다. 같은 문(30080)에 붙이되, **Host**가 `podinfo.localhost`일 때만 보냅니다.
+
+```bash
+sed -n '/spec:/,$p' gateway/podinfo-route.yaml
+kubectl apply -f gateway/podinfo-route.yaml
+kubectl get httproute -A
 ```
-
-이 경우에는 app log가 없다. container가 시작되지 않았기 때문이다. Pending은 대개 scheduler 단계 문제라 `describe pod`의 events가 핵심이다.
-
-Pending 출력 예시:
-```text
-NAME              READY   STATUS    RESTARTS   AGE
-too-large-pod     0/1     Pending   0          20s
-```
-
-판단:
-| 출력 | 의미 |
-|---|---|
-| `Pending` | scheduler가 배치하지 못했을 수 있음 |
-| `insufficient cpu` | request를 만족할 CPU capacity가 없음 |
-| `insufficient memory` | request를 만족할 memory capacity가 없음 |
-| log 없음 | container가 시작되지 않았으므로 정상 |
-
-## storage scheduling preview
-Pod 재배치는 CPU/memory만으로 결정되지 않는다. volume이 붙으면 storage가 갈 수 있는 node나 zone이 scheduler 판단에 영향을 줄 수 있다.
-
-Docker에서는 named volume을 붙이면 대체로 "이 Docker host 안에 data가 남는다" 정도로 이해했다.
-
-```text
-docker volume
-  -> 같은 host의 container 교체에는 유리
-  -> host를 넘는 scheduling 문제는 직접 다루지 않음
-```
-
-Kubernetes에서는 storage가 API object로 분리된다.
-
-| 리소스 | 역할 |
-|---|---|
-| PersistentVolumeClaim | Pod가 필요한 storage 요청 |
-| PersistentVolume | 실제 storage 자원 |
-| StorageClass | 어떤 방식으로 volume을 만들지 정의 |
-| volumeBindingMode | volume을 언제 binding할지 결정 |
-| PV nodeAffinity | 이 volume을 사용할 수 있는 node/topology 제약 |
-
-핵심은 compute scheduling과 storage scheduling을 분리해 생각하는 것이다.
-
-```text
-Deployment/ReplicaSet
-  -> replica 수를 맞춤
-Scheduler
-  -> Pod를 어느 node에 둘지 결정
-PVC/PV/StorageClass
-  -> volume이 붙을 수 있는 위치를 제한할 수 있음
-```
-
-## WaitForFirstConsumer가 필요한 이유
-StorageClass에는 `volumeBindingMode`가 있다. `WaitForFirstConsumer`는 Pod가 실제로 스케줄링될 때까지 volume binding/provisioning을 미루는 방식이다.
 
 ```yaml
-volumeBindingMode: WaitForFirstConsumer
+spec:
+  parentRefs:
+    - name: devmart
+      namespace: devmart        # 다른 네임스페이스의 Gateway
+  hostnames:
+    - podinfo.localhost
+  rules:
+    - backendRefs:
+        - name: podinfo
+          port: 9898
 ```
 
-이 방식은 zone이 있는 storage에서 중요하다. 먼저 volume을 아무 zone에 만들어버리면, 나중에 Pod가 다른 zone node에 배치되어 volume을 붙일 수 없는 상황이 생길 수 있다.
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> NAMESPACE   NAME      HOSTNAMES               AGE
+> default     podinfo   ["podinfo.localhost"]   3s
+> devmart     catalog                           10m
+> devmart     orders                            10m
+> devmart     web                               10m
+> ```
+> default의 라우트가 devmart의 Gateway에 붙을 수 있는 것은 Gateway가 `allowedRoutes: from: All`로 **허락**했기 때문입니다(4교시).
 
-## AWS EBS와 zone 제약
-AWS EBS는 zonal block storage다. 예를 들어 `us-east-1a`에 있는 EBS volume은 `us-east-1b`의 node에 attach할 수 없다.
-
-```text
-EBS volume: us-east-1a
-Pod scheduled node: us-east-1b
-  -> attach 불가
-  -> Pod Pending 또는 attach/mount 실패
+```bash
+curl -s -H 'Host: podinfo.localhost' localhost:30080 | grep -E '"(hostname|message)"'
+curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/api/products
+curl -s -H 'Host: podinfo.localhost' localhost:30080/api/orders | head -c 60; echo
 ```
 
-그래서 EBS-backed PVC를 쓰는 workload는 다음을 함께 봐야 한다.
+- `-H 'Host: …'` : 요청의 Host 헤더를 바꾼다 — DNS 없이 "이 도메인으로 왔다"고 흉내 낸다
 
-| 확인 | 이유 |
-|---|---|
-| Pod가 배치된 node의 zone | volume과 같은 zone인지 |
-| PV `nodeAffinity` | volume이 허용하는 topology |
-| StorageClass `volumeBindingMode` | binding 시점 |
-| Stateful workload 복구 전략 | node/AZ 장애 때 어떻게 옮길지 |
+> **🟢 확인: 보이는 것**
+>
+> ```text
+>   "hostname": "podinfo-7b9c8d6f5-k2x8p",
+>   "message": "upgrade로 바꿨습니다",
+> 200
+> 404 page not found
+> ```
+> - Host가 `podinfo.localhost`면 podinfo로, 아니면 DevMart로 — **같은 문, 같은 포트**에서 갈립니다.
+> - 마지막 줄이 4교시의 '함정'입니다. `/api/orders`인데도 DevMart가 아니라 **podinfo**로 갔습니다(podinfo가 그 경로를 몰라 404). **Host가 먼저** 갈리기 때문입니다.
 
-여러 node/AZ에서 동시에 공유해야 한다면 EBS가 아니라 EFS 같은 shared filesystem, 애플리케이션 레벨 복제, 또는 RDS 같은 managed database를 검토해야 한다.
+> [!WARNING]
+> **브라우저로 열면 안 될 수도 있다**
+>
+> 브라우저는 `podinfo.localhost`를 `127.0.0.1`로 찾아 주지만(`.localhost`는 예약된 이름), 요청에 **`Host: podinfo.localhost:30080`** — 포트가 붙은 Host — 를 보냅니다. Envoy는 기본으로 Host를 **포트까지 글자 그대로** 비교하므로, 설정에 따라 라우트에 안 맞아 404가 날 수 있습니다. 실제 서비스는 80/443 표준 포트를 쓰니 이 문제가 드뭅니다. 오늘은 `curl -H`로 확인합니다. Envoy Gateway의 ClientTrafficPolicy로 '포트 떼고 비교'를 켤 수도 있습니다.
 
-이 내용은 W5 AWS Storage에서 EBS/EFS/S3/RDS 선택 기준으로 다시 회수한다.
+## 실습 12 · 가중치로 나누기 — 카나리
 
-## CPU throttling은 왜 더 어렵나
-memory limit 초과는 OOMKilled로 비교적 선명하게 보인다. CPU limit은 보통 process가 죽지 않고 느려진다.
+새 버전을 모두에게 한꺼번에 내보내지 않고, **일부에게만** 먼저 보내는 것을 **카나리 배포**라고 합니다(3주차 4일차 7교시 학술 노트). 3주차의 롤링 업데이트는 Pod **개수**로 섞였지만, Gateway는 **요청 비율**을 직접 정합니다.
 
-```text
-CPU limit이 낮음
-  -> request 처리 시간이 늘어남
-  -> readiness timeout이 발생할 수 있음
-  -> 사용자는 latency 증가를 느낌
+### 단계 1 — 두 번째 버전 설치
+
+```bash
+cat helm/podinfo-canary-values.yaml
+helm install podinfo-canary oci://ghcr.io/stefanprodan/charts/podinfo --version 6.14.0 \
+  -f helm/podinfo-canary-values.yaml --wait
+kubectl get service -l 'app.kubernetes.io/name in (podinfo,podinfo-canary)'
 ```
 
-그래서 CPU 문제는 `kubectl top`만으로 끝나지 않고 W4D3 Prometheus/Grafana에서 더 깊게 본다.
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> ...
+> NAME             TYPE        CLUSTER-IP     PORT(S)             AGE
+> podinfo          ClusterIP   10.96.51.9     9898/TCP,9999/TCP   2h
+> podinfo-canary   ClusterIP   10.96.73.140   9898/TCP,9999/TCP   15s
+> ```
+> **같은 차트를 다른 릴리스 이름으로** 한 번 더 설치했습니다 — 1교시의 "릴리스 = 설치된 한 벌".
 
-## 서비스 성향별 resource 감각
-| 서비스 성향 | CPU 부하 | Memory 부하 | 주의 |
-|---|---|---|---|
-| API gateway | 중간 | 낮음~중간 | connection 수, timeout |
-| JSON CRUD API | 중간 | 중간 | DB latency와 thread pool |
-| image 처리 | 높음 | 높음 | CPU limit, memory peak |
-| batch worker | 높음 | 케이스별 | concurrency 제한 |
-| cache | 낮음~중간 | 높음 | memory limit과 eviction |
-| database | 중간 | 높음 | 보통 별도 운영/managed service |
+### 단계 2 — 80:20 라우트
 
-이 표는 정확한 sizing 공식이 아니다. 학생들이 “모든 container에 같은 limit을 넣으면 된다”는 착각을 피하기 위한 기준이다.
-
-## 운영 기준
-처음부터 완벽한 requests/limits 값을 맞추기는 어렵다. 하지만 아예 선언하지 않는 것은 더 위험하다. 최소 기준을 넣고 metrics를 보며 조정하는 루프가 필요하다.
-
-```text
-초기값 선언
-  -> metrics 관찰
-  -> peak와 idle 비교
-  -> requests/limits 조정
-  -> rollout
+```bash
+diff gateway/podinfo-route.yaml gateway/podinfo-split.yaml
+kubectl apply -f gateway/podinfo-split.yaml
 ```
 
-## Evidence Note
-```markdown
-# W4D1S6 Resources
-- runtime-api requests:
-- runtime-api limits:
-- OOMKilled 확인 결과:
-- Pending이면 먼저 볼 명령:
-- CPU limit이 낮을 때 나타날 수 있는 사용자 영향:
+> **🟢 확인: 보이는 것 (차이)**
+>
+> ```text
+> >           weight: 80
+> >         - name: podinfo-canary
+> >           port: 9898
+> >           weight: 20
+> ```
+> `podinfo-split.yaml`은 같은 이름(`podinfo`)의 라우트라서, 적용하면 **기존 라우트를 바꿉니다**(선언형).
+
+### 단계 3 — 세어 보기
+
+```bash
+for i in $(seq 1 50); do
+  curl -s -H 'Host: podinfo.localhost' localhost:30080 | grep -o '"message": "[^"]*"'
+done | sort | uniq -c
 ```
 
-## 한 줄 요약
-```text
-requests는 배치 약속이고, limits는 사용 상한이며, 둘 다 비용과 장애 양상을 바꾼다.
+> **🟢 확인: 보이는 것 (매번 조금 다름)**
+>
+> ```text
+>      41 "message": "upgrade로 바꿨습니다"
+>       9 "message": "카나리 — 새 버전"
+> ```
+> 50번 중 약 40 : 10. 정확히 80:20이 아닌 것은 **확률로** 나누기 때문입니다. 요청이 많을수록 비율에 가까워집니다.
+
+> **📘 예시 — 카나리를 끝까지 올리기**
+>
+> 문제가 없으면 `weight`를 50:50 → 0:100으로 옮기고, 마지막에 옛 릴리스를 `helm uninstall`합니다. 문제가 보이면 **0:100이 아니라 100:0으로** — 즉시 되돌립니다. 3주차의 `rollout undo`는 Pod를 다시 만들어야 했지만, 가중치 되돌리기는 **Envoy 설정 한 줄**이라 1초 안에 끝납니다. 4주차 4일차 Istio와 이후 Argo Rollouts가 이 단계를 자동으로 진행합니다(3주차 4일차 트렌드).
+
+### 표준 필드로 타임아웃
+
+3주차 2일차에 "안쪽일수록 짧게, nginx 60초 > catalog 2초"를 배웠습니다. Ingress 시절에는 어노테이션이었던 타임아웃이 HTTPRoute에서는 **표준 필드**입니다. (읽기만 — 4주차 4일차에 다시 다룹니다.)
+
+```yaml
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /api/orders }
+      timeouts:
+        request: 5s            # 손님 쪽에서 본 전체 시간 상한
+      backendRefs:
+        - name: order-api
+          port: 8000
 ```
 
+## 실습 13 · 비교표 마무리
 
-## 학습 제어
-### 시작 3분 회상
-- readiness와 liveness는 각각 traffic과 restart에 어떤 영향을 주는가?
-- requests와 limits는 scheduler, OOM, throttling에서 어떤 기준 상태인가?
-### 오늘 반드시 가져갈 것
-- request는 배치 보장 기준, limit은 실행 상한이며 둘은 비용·성능 증거와 연결된다.
-- OOMKilled와 CPU throttling은 서로 다른 resource failure다.
-### 최소 복구 경로
-- request/limit을 확인한다 → Pod placement와 events를 본다 → metrics/logs에서 압박 증거를 찾는다.
-- 성공 판정은 scheduling과 runtime 증거를 구분하는 것이다. 첫 실패는 events와 container termination reason에서 찾는다.
-- 다음 lesson 진입 조건은 metrics API와 workload 상태를 연결하는 것이다.
+3교시 실습 5의 마지막 열(Gateway API)을 오늘 해 본 것으로 채웁니다.
+
+> **🟢 확인: 예시 답**
+>
+> | | Gateway API (오늘) |
+> |---|---|
+> | 경로로 나누기 | **표준** HTTPRoute `matches.path` — 순서가 아니라 규칙으로 우선순위 |
+> | 설정을 바꾸려면 | 라우트를 고쳐 `apply` — **프록시 재시작 없이** 바로 반영(xDS) |
+> | 다른 구현으로 바꾸려면 | GatewayClass만 바꾸면 라우트는 **그대로** (표준 필드만 썼다면) |
+> | 장애 상태를 어디서 보나 | 라우트 · Gateway의 **status.conditions** (7교시) |
+
+> **🎓 학술 노트 — 카나리와 '작은 실험'**
+>
+> '탄광의 카나리아'에서 온 이름입니다 — 유독 가스에 민감한 새를 먼저 들여보내 위험을 알았듯, 새 버전을 소수에게 먼저 보내 문제를 일찍 봅니다. 구글 SRE 책의 *The Site Reliability Workbook*(Beyer 외, 2018) 16장 *Canarying Releases*는 카나리를 **통계적 실험**으로 다룹니다 — 카나리 집단과 대조 집단의 오류율을 비교해 차이가 의미 있는지 판단하고, 카나리 비율이 너무 작으면 문제를 못 보고 너무 크면 피해가 커진다는 균형을 설명합니다. 오늘 50번 중 9번처럼, 적은 요청 수로는 비율조차 흔들린다는 것을 직접 봤습니다.
+
+> **📈 트렌드 2026 — 입구 하나로 여러 앱**
+>
+> 오늘 하나의 Gateway(문)에 DevMart와 podinfo, 서로 다른 네임스페이스의 두 앱을 붙였습니다. 클라우드에서는 **로드 밸런서 하나가 곧 비용**이라(3교시), 여러 팀이 Gateway 하나를 나눠 쓰고 팀마다 라우트만 관리하는 구성이 흔합니다. Gateway API v1.5에서 표준이 된 **ListenerSet**은 한발 더 나아가, 팀마다 자기 **도메인 · 인증서(리스너)**까지 Gateway를 건드리지 않고 따로 붙이게 해 줍니다.
+
+> **✅ 확인 문제**
+>
+> 1. DevMart 경로를 라우트 하나가 아니라 셋으로 나눈 이유는?
+> 2. 라우트 status의 Accepted와 ResolvedRefs는 각각 무엇을 확인하나요?
+> 3. 요청 ID의 모양이 바뀐 이유는? 앱 코드를 고치지 않아도 된 이유는?
+> 4. `Host: podinfo.localhost`로 `/api/orders`를 요청하면 어디로 가나요? 왜?
+> 5. 가중치 되돌리기가 `rollout undo`보다 빠른 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 서비스(팀)마다 자기 라우트만 고치게 하려고 — 역할 분리
+> 2. Accepted — Gateway에 붙었나, ResolvedRefs — 보낼 Service를 모두 찾았나
+> 3. 이제 Envoy가 `x-request-id`를 UUID로 만들어 붙이기 때문. 앱은 헤더 이름만 보고 읽으니 값의 모양은 상관없다
+> 4. podinfo — Host가 지정된 라우트가 먼저 갈린다 (podinfo는 그 경로를 몰라 404)
+> 5. Pod를 새로 만들 필요 없이 Envoy 설정(비율)만 바꾸면 되기 때문
+>
+> </details>
+
+## 참고 문헌
+
+- Gateway API. *HTTP routing* · *HTTP traffic splitting* · *HTTP timeouts* · *Cross-namespace routing*. gateway-api.sigs.k8s.io/guides
+- Envoy Proxy Docs. *x-request-id header*. envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers
+- Envoy Gateway Docs. *HTTP Routing* · *Traffic Splitting*. gateway.envoyproxy.io/docs/tasks/traffic
+- Beyer, B., Murphy, N. R., Rensin, D. K., Kawahara, K., & Thorne, S. (Eds.) (2018). *The Site Reliability Workbook*, Ch. 16 "Canarying Releases". O'Reilly.
+
+---
+
+⬅️ 이전: [5교시 · Envoy Gateway 설치와 Gateway](lesson-05.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 장애 분석](lesson-07.md) ➡️

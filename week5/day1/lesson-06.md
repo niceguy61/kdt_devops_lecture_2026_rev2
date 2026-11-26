@@ -1,123 +1,141 @@
-# 6교시: EC2 첫 관찰
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
 
-![EC2 observation checklist map](./assets/lesson-06-ec2-observation.png)
+# 6교시 · 콘솔로 VPC 만들기
 
-## 수업 목표
-- EC2 instance를 compute resource 관점으로 읽는다.
-- AMI, instance type, key pair, public IP, user data, state를 구분한다.
-- stop과 terminate의 비용/복구 차이를 설명한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **VPC 생성 마법사**(VPC 등)로 5교시 설계대로 VPC를 만듭니다.
+> - 만들어진 것 — 서브넷 · 라우팅 테이블 · IGW · 엔드포인트 — 을 하나씩 열어 봅니다.
+> - CLI로 같은 것을 **다시 읽어** 설계와 맞는지 검증합니다.
+> - 클릭으로 만든 것의 **기록 문제**를 느껴 봅니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
-|---|---|---|---|
-| AMI | instance의 시작 image다 | OS와 기본 패키지 차이를 설명하지 못한다 | AMI name/id |
-| Instance type | compute/memory/network capacity와 비용을 좌우한다 | 필요 이상으로 큰 instance를 켠다 | instance type, pricing |
-| Key pair/접속 방식 | Linux EC2 접속의 identity material이다 | key를 잃거나 노출한다 | key pair name, SSH/browser connect |
-| Stop vs terminate | stop은 일부 비용이 남고, terminate는 영구 삭제다 | 비용이 계속 나거나 데이터를 잃는다 | instance state, EBS volume |
+## 실습 11 · 마법사로 만들기
 
-## EC2는 무엇인가
-EC2는 AWS에서 virtual server를 제공하는 service다. Docker container나 Kubernetes Pod보다 아래 계층의 compute에 가깝다. EC2 위에 Docker를 설치할 수도 있고, Kubernetes node로 사용할 수도 있다.
+콘솔(서울 리전 확인!) → 검색 `VPC` → **VPC 대시보드** → **VPC 생성**.
 
-```mermaid
-flowchart TB
-  EC2["EC2 instance"]
-  EC2 --> OS["Operating system from AMI"]
-  EC2 --> CPU["vCPU / memory from instance type"]
-  EC2 --> Disk["EBS volume"]
-  EC2 --> Net["ENI / private IP / optional public IP"]
-  EC2 --> SG["Security Group"]
-```
+| 칸 | 값 |
+|---|---|
+| 생성할 리소스 | **VPC 등** (VPC and more) |
+| 이름 태그 자동 생성 | 체크, `devmart` |
+| IPv4 CIDR 블록 | `10.0.0.0/16` |
+| IPv6 CIDR 블록 | 없음 |
+| 테넌시 | 기본값 |
+| 가용 영역(AZ) 수 | **2** → AZ 사용자 지정에서 `ap-northeast-2a`, `ap-northeast-2c` |
+| 퍼블릭 서브넷 수 | 2 |
+| 프라이빗 서브넷 수 | 2 |
+| 서브넷 CIDR 블록 사용자 지정 | 펼쳐서 5교시 값과 같은지 확인 (10.0.0.0/20 · 10.0.16.0/20 · 10.0.128.0/20 · 10.0.144.0/20) |
+| **NAT 게이트웨이** | **없음** ← 반드시 확인 |
+| VPC 엔드포인트 | **S3 게이트웨이** |
+| DNS 옵션 | 호스트 이름 · 확인 **둘 다 체크** (EKS에 필요) |
 
-## 생성 전 읽을 값
-오늘은 실제 생성을 강제하지 않는다. Day2에서 만들기 전에 다음 값을 읽는 법을 익힌다.
+오른쪽 **미리 보기**에 서브넷 넷, 라우팅 테이블 셋, 네트워크 연결(IGW · S3 엔드포인트)이 선으로 그려집니다. 5교시 그림과 비교한 뒤 **VPC 생성**.
 
-| 항목 | 의미 | 위험 |
-|---|---|---|
-| AMI | 어떤 OS image로 시작하는가 | 문서 명령과 OS가 다르면 실패 |
-| Instance type | CPU/memory/network 크기 | 비용 증가 |
-| Key pair | SSH 접속 key | 분실/노출 |
-| Network | VPC/subnet/public IP | 접속 불가 또는 public 노출 |
-| Security Group | 허용 traffic | 22/80 과다 노출 |
-| Storage | root EBS size/delete on termination | 잔여 비용 또는 데이터 삭제 |
-| Tag | owner/purpose 추적 | cleanup 누락 |
+> **🟢 확인: 확인**
+>
+> "VPC 생성 워크플로" 화면에 초록 체크가 열 개 남짓 차례로 찍힙니다 — VPC, DNS 설정, 서브넷 넷, IGW 생성 · 연결, 라우팅 테이블 셋과 경로, 엔드포인트. **VPC 보기**를 누릅니다.
 
-## Stop과 terminate
-AWS 공식 문서 기준으로 stopped instance는 compute 사용료가 멈추지만 EBS volume 같은 storage 비용은 남을 수 있다. terminate는 영구 삭제이며 복구할 수 없다.
+> [!WARNING]
+> **NAT를 실수로 만들었다면**
+>
+> 마법사 기본값이 'AZ당 1개'인 경우가 있습니다. 만들어졌다면 바로 **VPC → NAT 게이트웨이**에서 삭제하고, **탄력적 IP**에서 NAT용으로 할당된 주소도 **릴리스**합니다(둘 다 시간당 요금). 7교시 `check-account.sh`가 확인해 줍니다.
 
-| 상태 | 의미 | 비용/복구 관점 |
-|---|---|---|
-| running | instance 실행 중 | compute 비용 발생 |
-| stopped | instance 정지 | compute 비용은 멈추지만 EBS 비용 가능 |
-| terminated | instance 삭제 | 복구 불가, 연결 불가 |
+## 실습 12 · 하나씩 열어 보기
 
-## User data preview
-User data는 instance 최초 부팅 때 실행할 bootstrap script로 자주 사용된다. Day2에서는 간단한 web server를 자동 설치하는 데 사용할 수 있다. 오늘은 "서버에 들어가서 손으로 한 설정"과 "부팅 시 재현되는 설정"이 다르다는 점만 잡는다.
+**VPC → 리소스 맵** 탭이 가장 좋은 지도입니다. 서브넷 → 라우팅 테이블 → 네트워크 연결이 선으로 이어져 있습니다.
+
+| 열어 볼 곳 | 확인할 것 |
+|---|---|
+| **서브넷** | 넷, 각자의 AZ와 CIDR. public 서브넷의 **퍼블릭 IPv4 주소 자동 할당** — 마법사는 '아니요'로 둔다 |
+| **라우팅 테이블** | 셋: `devmart-rtb-public`(public 둘 연결), `devmart-rtb-private1-ap-northeast-2a`, `…private2-…2c` |
+| public 라우팅 테이블의 **라우팅** 탭 | `10.0.0.0/16 → local`, `0.0.0.0/0 → igw-…` |
+| private 라우팅 테이블의 **라우팅** 탭 | `10.0.0.0/16 → local`, `pl-… → vpce-…`(S3) — **0.0.0.0/0이 없다** |
+| **인터넷 게이트웨이** | `devmart-igw`, 상태 Attached |
+| **엔드포인트** | `devmart-vpce-s3`, 유형 Gateway |
+
+> [!IMPORTANT]
+> **local 경로**
+>
+> 모든 라우팅 테이블 맨 위의 `10.0.0.0/16 → local`은 지울 수 없습니다. **VPC 안의 서브넷끼리는 언제나 서로 닿는다**는 뜻입니다. 막고 싶으면 라우팅이 아니라 보안 그룹 · NACL(7교시)로 막습니다.
+
+## 실습 13 · CLI로 검증
 
 ```bash
-#!/bin/bash
-echo "hello from paperclip w5" > /var/www/html/index.html
+VPC=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=devmart-vpc --query 'Vpcs[0].VpcId' --output text)
+echo $VPC
+aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC \
+  --query 'sort_by(Subnets,&CidrBlock)[].[Tags[?Key==`Name`]|[0].Value,AvailabilityZone,CidrBlock,MapPublicIpOnLaunch]' --output table
+aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VPC \
+  --query 'RouteTables[].[Tags[?Key==`Name`]|[0].Value, join(`, `, Routes[].[DestinationCidrBlock || DestinationPrefixListId, GatewayId][] )]' --output table
 ```
 
-위 예시는 OS와 web server 설치 상태에 따라 그대로 동작하지 않을 수 있다. Day2에서는 AMI에 맞는 전체 script를 사용한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> vpc-0f1e2d3c4b5a69788
+> ------------------------------------------------------------------------------------------
+> |                                      DescribeSubnets                                    |
+> +-----------------------------------------------+------------------+----------------+------+
+> |  devmart-subnet-public1-ap-northeast-2a       |  ap-northeast-2a |  10.0.0.0/20   | False|
+> |  devmart-subnet-public2-ap-northeast-2c       |  ap-northeast-2c |  10.0.16.0/20  | False|
+> |  devmart-subnet-private1-ap-northeast-2a      |  ap-northeast-2a |  10.0.128.0/20 | False|
+> |  devmart-subnet-private2-ap-northeast-2c      |  ap-northeast-2c |  10.0.144.0/20 | False|
+> +-----------------------------------------------+------------------+----------------+------+
+> …
+> |  devmart-rtb-public                    |  10.0.0.0/16, local, 0.0.0.0/0, igw-0a1b…   |
+> |  devmart-rtb-private1-ap-northeast-2a  |  10.0.0.0/16, local, pl-78a54011, vpce-0c…  |
+> |  devmart-rtb-private2-ap-northeast-2c  |  10.0.0.0/16, local, pl-78a54011, vpce-0c…  |
+> ```
+> 5교시 설계표와 한 줄씩 맞춰 봅니다. 마지막 칸(`MapPublicIpOnLaunch`)이 모두 False — 내일 EC2를 띄울 때 공인 IP를 **직접** 정합니다.
 
+## 클릭의 대가
 
-## 생성 전 의사결정 표
-| 선택 | 초보자가 자주 하는 실수 | 안전한 판단 |
-|---|---|---|
-| AMI | 문서와 다른 OS 선택 | 수업 명령과 맞는 AMI 선택 |
-| Instance type | 큰 type 선택 | 실습 목적의 작은 type |
-| Key pair | 다운로드 후 위치 모름 | 저장 위치와 권한 기록 |
-| Public IP | 꺼둔 채 접속 기대 | public 접속 필요 시 enable |
-| Storage | terminate 후 data 보존 오해 | EBS delete 옵션 확인 |
-| Tag | 이름만 적음 | Owner/Purpose/Week tag 포함 |
+지금 VPC는 클릭 20번쯤으로 만들어졌습니다. 질문을 던져 봅니다.
 
-## stop이 안전한 삭제가 아닌 이유
-stopped 상태는 instance compute는 멈추지만 EBS volume, Elastic IP 연결 상태, snapshot, load balancer 같은 다른 resource 비용은 남을 수 있다. 그래서 수업 종료 checklist는 "EC2 stop" 하나로 끝나면 안 된다. 어떤 resource가 계속 비용을 만들 수 있는지 같이 확인해야 한다.
-
-## user data를 미리 보는 이유
-EC2에 접속해서 손으로 설치하면 당장은 성공할 수 있다. 하지만 다른 학생이나 다음 날의 내가 같은 서버를 다시 만들 때 순서가 누락될 수 있다. user data는 완전한 IaC는 아니지만, 최소한 bootstrap 절차를 instance 생성 시점에 묶어 재현성을 높인다.
-
-## 캡처 가이드
-EC2 launch summary에서 AMI, instance type, network, SG, storage, tag가 보이도록 캡처한다. private key 내용이나 계정 email은 절대 캡처하지 않는다.
-
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
+| 질문 | 지금 답할 수 있나 |
 |---|---|
-| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | running은 instance 상태이지 app 정상 상태가 아니다. |
-| 실패했을 때 어느 경계부터 볼 것인가 | public IP와 DNS는 접속 evidence가 된다. |
-| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | stop과 terminate의 비용 차이를 구분한다. |
+| 내일 동료가 같은 VPC를 다른 계정에 만들려면? | 오늘 표를 보고 **다시 20번 클릭** |
+| 누군가 콘솔에서 라우팅 하나를 바꿨다면? | 알 수 없다 — 4주차 3일차의 **어긋남(drift)** |
+| 무엇을 언제 왜 바꿨나? | CloudTrail 이벤트를 뒤져야 한다 |
+| 다 지우려면? | 의존 순서대로 하나씩 (엔드포인트 → 서브넷 → IGW 분리 → …) |
 
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| instance가 running인데 HTTP가 안 된다 | status check, SG, app process를 나누어 본다 |
+3주차 Kubernetes에서 `kubectl run` 대신 YAML 파일을 쓰게 된 것, 4주차에 Git이 원하는 상태가 된 것과 같은 길을 AWS에서도 갑니다 — **3일차 Terraform**에서 이 VPC를 코드 몇십 줄로 다시 만들고, 한 명령으로 지웁니다. 오늘 만든 VPC는 **무료**이므로 2일차 실습까지 그대로 둡니다.
 
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- instance state, public IP/DNS, instance type과 tag 중 최소 두 가지는 배움일기에 남긴다.
+> [!TIP]
+> **CloudTrail로 '누가 만들었나' 보기**
+>
+> 검색 `CloudTrail` → **이벤트 기록** → 이벤트 이름 `CreateVpc`. 방금 `devops-admin`이 만든 기록이 보입니다. 계정의 모든 API 호출(콘솔 클릭 포함)이 90일 동안 무료로 남습니다 — AWS판 감사 로그입니다.
 
-## Evidence Note
-```markdown
-# W5D1S6 ec2 observation
-- AMI 후보:
-- instance type 후보:
-- VPC/subnet:
-- public IP 필요 여부:
-- SG inbound 최소 rule:
-- stop과 terminate 차이:
-- 남을 수 있는 비용:
-```
+> **🎓 학술 노트 — 클릭옵스와 재현성**
+>
+> 수작업 설정의 재현성 문제는 Burgess(4주차 3일차)뿐 아니라 Morris의 *Infrastructure as Code*(O'Reilly, 2016; 3판 2025)가 정리한 '**눈송이 서버**'(snowflake server) — 손으로 하나하나 다듬어 똑같이 다시 만들 수 없는 서버 — 개념으로 널리 알려졌습니다. 콘솔 클릭으로 만든 VPC는 눈송이 네트워크입니다. Morris는 IaC의 목표를 "**쉽게 다시 만들 수 있는**(reproducible) · **버릴 수 있는**(disposable) 시스템"으로 요약합니다.
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: EC2 launch 화면에서 실제 launch 직전까지 값을 읽고, 생성하지 않고 취소한다.
-- 공식 문서 키워드: `EC2 instance lifecycle`, `stop instance`, `terminate instance`, `security group`.
-- 스스로 확인할 화면: EC2 Launch instance, Instance state, Storage tab, Security tab.
-- 흔한 실패 3개: key pair를 잃음, stop하면 모든 비용이 0이라고 오해함, terminate를 rollback처럼 생각함.
-- 다음 준비 상태: Day2에서 EC2를 만들기 전 AMI/type/network/SG/storage/tag를 설명할 수 있어야 한다.
+> **📈 트렌드 2026 — 콘솔에서 코드로 내보내기**
+>
+> AWS는 콘솔에서 만든 자원을 **IaC 코드로 뽑아 주는** 기능(CloudFormation IaC generator, 콘솔의 'Infrastructure Composer로 내보내기')을 넓혀 왔고, Terraform도 `terraform query`(1.14+) · import 블록 생성으로 기존 자원을 코드로 가져오는 흐름을 강화했습니다. "처음엔 콘솔로 익히고, 굳히는 것은 코드로"가 현실적인 경로입니다 — 이번 주의 순서이기도 합니다.
 
-## 한 줄 요약
-```text
-EC2는 만들기 전에 AMI, type, network, security group, storage, tag, cleanup 기준을 먼저 읽어야 한다.
-```
+> **✅ 확인 문제**
+>
+> 1. 마법사에서 NAT를 '없음'으로 한 이유와, 실수로 만들었을 때 지울 것 둘은?
+> 2. 모든 라우팅 테이블의 local 경로는 무슨 뜻인가요?
+> 3. private 라우팅 테이블에 있는 `pl-… → vpce-…`는 무엇인가요?
+> 4. 콘솔로 만든 VPC의 문제 셋은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 켜 두기만 해도 시간당 요금. NAT 게이트웨이와 그 탄력적 IP
+> 2. VPC 안 서브넷끼리는 언제나 서로 닿는다
+> 3. S3로 가는 게이트웨이 엔드포인트 경로 (인터넷을 거치지 않는 무료 샛길)
+> 4. 다시 만들기 어렵다, 어긋나도 모른다, 변경 기록과 삭제 순서를 사람이 기억해야 한다
+>
+> </details>
+
+## 참고 문헌
+
+- AWS Docs. *Create a VPC (VPC and more)*, *VPC resource map*, *Gateway endpoints for Amazon S3*. docs.aws.amazon.com/vpc
+- AWS Docs. *Viewing events with CloudTrail Event history*. docs.aws.amazon.com/awscloudtrail
+- Morris, K. (2025). *Infrastructure as Code*, 3rd ed. O'Reilly.
+
+---
+
+⬅️ 이전: [5교시 · VPC의 구성 요소](lesson-05.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 보안 그룹 · NACL + 비용 점검](lesson-07.md) ➡️

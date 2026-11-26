@@ -1,132 +1,189 @@
-# 3교시: EC2 웹 서버 실행
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md)
 
-![EC2 user data web server flow](./assets/lesson-03-ec2-user-data-web.png)
+# 3교시 · Session Manager · 메타데이터 · S3
 
-## 수업 목표
-- user data로 EC2 bootstrap을 재현 가능한 형태로 만든다.
-- browser와 `curl`로 HTTP 응답을 확인한다.
-- user data 실패 시 system log와 instance 상태를 확인한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **Session Manager**로 포트 없이 서버에 들어갑니다.
+> - user data가 잘 돌았는지 로그와 `docker ps`로 확인합니다.
+> - **인스턴스 메타데이터(IMDSv2)**에서 서버가 자기 자신과 **역할 자격 증명**을 어떻게 얻는지 봅니다.
+> - S3 버킷을 만들고, 서버에서 **키 없이** 읽고, **Deny**에 막히는 것을 봅니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
-|---|---|---|---|
-| User Data | 최초 부팅 시 설정을 자동 실행해 재현성을 높인다 | 서버마다 손작업이 달라진다 | Advanced details, system log |
-| Listen port | app이 실제로 어느 port에서 응답하는지 알아야 한다 | SG는 열렸는데 응답이 없다 | HTTP 80, process |
-| HTTP evidence | "됐다"는 말보다 status/body를 남겨야 한다 | 장애 재현과 비교가 안 된다 | browser, curl |
+## 실습 3 · Session Manager로 들어가기
 
-## User data 예시
-AMI에 따라 package manager와 service name이 다르다. Amazon Linux 계열을 기준으로 단순 HTTP 응답을 만들 때는 다음 형태를 사용할 수 있다.
+EC2 → 인스턴스 → `devmart-web-1` 체크 → **연결** → **Session Manager** 탭 → **연결**
 
-```bash
-#!/bin/bash
-dnf update -y
-dnf install -y httpd
-systemctl enable --now httpd
-cat > /var/www/html/index.html <<'EOF'
-<h1>paperclip w5d2 ec2 web</h1>
-<p>hello from EC2 user data</p>
-EOF
-```
-
-Ubuntu 계열을 선택했다면 `apt`와 `apache2` 기준으로 달라진다. 수업에서는 AMI와 명령을 맞추는 것을 중요하게 본다.
-
-## 확인 순서
-```text
-EC2 state = running
-Status checks = passed
-Public IPv4 exists
-Security Group allows TCP 80
-Browser/curl returns HTTP response
-```
+브라우저 안에 터미널이 열립니다(사용자 `ssm-user`).
 
 ```bash
-curl -i http://<EC2_PUBLIC_IP>/
+whoami; hostname
+sudo docker ps
+curl -s localhost:9898/ | head -8
+sudo tail -3 /var/log/cloud-init-output.log
 ```
 
-기대 결과는 `HTTP/1.1 200 OK` 또는 브라우저에서 index page가 보이는 것이다.
+> **🟢 확인: 확인**
+>
+> ```text
+> ssm-user
+> ip-10-0-5-183.ap-northeast-2.compute.internal
+> CONTAINER ID   IMAGE                                  COMMAND                  STATUS         PORTS                    NAMES
+> 3f2a9c1d8b7e   ghcr.io/stefanprodan/podinfo:6.14.0    "./podinfo --port=98…"   Up 4 minutes   0.0.0.0:9898->9898/tcp   podinfo
+> {
+>   "hostname": "3f2a9c1d8b7e",
+>   "version": "6.14.0",
+>   "revision": "…",
+>   "color": "#34577c",
+>   "logo": "…",
+>   "message": "DevMart on EC2",
+> …
+> Cloud-init v. 22.2.2 finished at … Up 58.31 seconds
+> ```
+> - user data가 Docker를 깔고 podinfo를 띄웠습니다. 사람은 한 번도 들어오지 않았습니다.
+> - 보안 그룹에 22번이 **없는데** 들어왔습니다. 서버 안의 SSM 에이전트가 **밖으로** AWS에 연결을 열어 두고, 우리는 그 연결로 들어온 것입니다. 2교시에 붙인 `AmazonSSMManagedInstanceCore` 정책이 그 권한입니다.
 
-## 실패 증상별 첫 확인
-| 증상 | 첫 확인 |
-|---|---|
-| timeout | public IP, route table, SG inbound 80 |
-| connection refused | web server process/listen port |
-| 403/404 | document root, index file |
-| SSH는 되는데 HTTP 안 됨 | SG 80, web server |
-| user data가 안 된 것 같음 | system log, cloud-init log |
+> [!IMPORTANT]
+> **SSH 대신 Session Manager**
+>
+> | | SSH | Session Manager |
+> |---|---|---|
+> | 열어야 할 포트 | 22 (인바운드) | **없음** |
+> | 열쇠 | 키 파일 (잃어버리기 · 새기 쉽다) | IAM 로그인 + MFA |
+> | 누가 들어왔나 | 서버 로그를 뒤져야 | CloudTrail에 **누가 · 언제** 남는다 |
+> | 4주차에서 | — | `kubectl exec` + RBAC |
 
-## 직접 설치 경로
-user data가 실패하면 SSH 또는 EC2 Instance Connect로 접속해 같은 작업을 직접 수행할 수 있다. 다만 직접 고친 내용은 재현성이 떨어진다. 수업 evidence에는 "user data 실패 -> system log 확인 -> 직접 설치로 임시 복구"처럼 경로를 남긴다.
+## 실습 4 · 메타데이터와 역할 자격 증명
 
+서버는 `169.254.169.254`라는 특별한 주소에서 **자기 자신에 대한 정보**를 얻습니다. IMDSv2는 먼저 **토큰**을 받아야 합니다.
 
-## user data와 수동 설치 비교
-| 구분 | user data | 수동 설치 |
-|---|---|---|
-| 재현성 | instance 생성과 함께 반복 가능 | 사람이 기억해야 함 |
-| 실패 확인 | system log/cloud-init log | shell history/log |
-| 수정 속도 | 재생성 필요할 수 있음 | 빠르게 고칠 수 있음 |
-| 수업 목적 | 표준 절차 학습 | 장애 복구 보조 |
-
-## HTTP 확인 기준
-브라우저에 페이지가 보이는 것만으로는 부족하다. `curl -i`로 status code와 response header/body를 같이 확인하면 ALB, cache, redirect, 403/404 같은 문제를 더 정확히 볼 수 있다.
-
-## 복구 절차 예시
-1. `curl` timeout이면 SG와 public IP를 확인한다.
-2. SSH는 되는데 HTTP가 안 되면 web server service 상태를 확인한다.
-3. service가 없으면 user data가 실패했는지 system log를 본다.
-4. AMI와 package manager가 맞는지 확인한다.
-5. 직접 설치로 임시 복구했다면 user data 수정 필요성을 기록한다.
-
-## 캡처 가이드
-EC2 details의 public IP, Security tab의 inbound 80, browser/curl 결과, system log 일부를 각각 캡처한다. private key나 terminal prompt에 민감정보가 보이지 않게 한다.
-
-## 구조로 보기
-```mermaid
-flowchart LR
-  Launch["EC2 launch"] --> UserData["User Data script"]
-  UserData --> Package["Install web server"]
-  Package --> Service["Start service"]
-  Service --> HTTP["HTTP response"]
-  HTTP --> Logs["System / cloud-init logs"]
-  Logs --> Evidence["Evidence note"]
+```bash
+TOKEN=$(curl -s -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
+md() { curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/$1; echo; }
+md instance-id
+md placement/availability-zone
+md iam/security-credentials/
+md iam/security-credentials/devmart-ec2-role | head -6
+curl -s -m 2 http://169.254.169.254/latest/meta-data/instance-id -o /dev/null -w 'v1(토큰 없이): %{http_code}\n'
+aws sts get-caller-identity
 ```
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | User Data는 bootstrap 재현성을 높인다. |
-| 실패했을 때 어느 경계부터 볼 것인가 | 처음 실행 로그를 확인해야 실패 원인을 알 수 있다. |
-| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | HTTP 응답은 app, SG, route가 함께 맞아야 나온다. |
+> **🟢 확인: 확인**
+>
+> ```text
+> i-0a1b2c3d4e5f60718
+> ap-northeast-2a
+> devmart-ec2-role
+> {
+>   "Code" : "Success",
+>   "LastUpdated" : "2026-11-30T02:31:07Z",
+>   "Type" : "AWS-HMAC",
+>   "AccessKeyId" : "ASIA…",
+>   "SecretAccessKey" : "…",
+> v1(토큰 없이): 401
+> {
+>     "UserId": "AROA…:i-0a1b2c3d4e5f60718",
+>     "Account": "123456789012",
+>     "Arn": "arn:aws:sts::123456789012:assumed-role/devmart-ec2-role/i-0a1b2c3d4e5f60718"
+> }
+> ```
+> - 역할의 **임시 자격 증명**(`ASIA…`, 만료 시각 있음)이 메타데이터로 나옵니다. 서버 안의 AWS CLI · SDK는 이것을 **자동으로** 씁니다 — 파일에 키를 넣지 않았는데 `aws` 명령이 됩니다.
+> - `Arn`이 **assumed-role/devmart-ec2-role/인스턴스ID** — "이 서버가 역할을 맡았다". 4주차 5일차의 `system:serviceaccount:devmart:pod-reader`와 같은 모양의 신원입니다.
+> - 토큰 없는 요청(v1)은 **401** — IMDSv2만 허용했기 때문입니다.
 
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| User Data가 실행되지 않았는데 SG만 고친다 | system log나 cloud-init log를 먼저 본다 |
+> [!WARNING]
+> **IMDSv2를 강제하는 이유**
+>
+> 2019년 Capital One 사고에서 공격자는 웹 앱의 취약점(SSRF)으로 서버가 **메타데이터 주소에 대신 요청**하게 만들어 역할 자격 증명을 빼냈습니다. IMDSv2는 먼저 **PUT으로 토큰**을 받아야 하므로, 단순한 GET만 흉내 낼 수 있는 SSRF로는 자격 증명을 얻기 어렵습니다. 새 인스턴스는 v2만 허용이 기본입니다 — 끄지 않습니다.
 
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- User Data script, bootstrap log, HTTP 응답 중 최소 두 가지는 배움일기에 남긴다.
+## 실습 5 · S3 버킷과 키 없는 읽기
 
-## Evidence Note
-```markdown
-# W5D2S3 EC2 web
-- EC2 public IP:
-- User data 사용 여부:
-- Web server package:
-- SG inbound 80:
-- curl result:
-- 실패 시 첫 확인:
+이번에는 **내 노트북 터미널**(Session Manager가 아닌)에서 버킷을 만듭니다.
+
+```bash
+ID=$(gh api user -q .login | tr 'A-Z' 'a-z')
+B=devmart-assets-$ID
+aws s3 mb s3://$B --region ap-northeast-2
+echo "DevMart 공지 — $(date +%F)" > /tmp/notice.txt
+aws s3 cp /tmp/notice.txt s3://$B/notice.txt
+aws s3 ls s3://$B/
+aws s3api get-public-access-block --bucket $B --query 'PublicAccessBlockConfiguration'
 ```
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: EC2 public IP로 `curl -i`를 실행하고 status/body를 기록한다.
-- 공식 문서 키워드: `EC2 user data`, `system log`, `EC2 status checks`.
-- 스스로 확인할 화면: EC2 instance details, Connect tab, System log, Security tab.
-- 흔한 실패 3개: AMI와 package manager가 다름, SG 80을 열지 않음, public IP를 확인하지 않음.
-- 다음 준비 상태: EC2 직접 접속과 HTTP 응답 확인을 분리해서 설명할 수 있어야 한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> make_bucket: devmart-assets-niceguy61
+> upload: ../tmp/notice.txt to s3://devmart-assets-niceguy61/notice.txt
+> 2026-11-30 11:35:02         36 notice.txt
+> {
+>     "BlockPublicAcls": true,
+>     "IgnorePublicAcls": true,
+>     "BlockPublicPolicy": true,
+>     "RestrictPublicBuckets": true
+> }
+> ```
+> S3 버킷 이름은 **전 세계에서 유일**해야 합니다(그래서 GitHub ID를 붙였다). **퍼블릭 액세스 차단** 네 개가 모두 true — 새 버킷은 기본으로 인터넷에 공개되지 않습니다.
 
-## 한 줄 요약
-```text
-EC2 웹 서버 실습의 성공 증거는 instance running이 아니라 HTTP response다.
+다시 **Session Manager 터미널**(서버 안)로 갑니다.
+
+```bash
+B=devmart-assets-niceguy61          # 내 ID로 바꾼다
+aws s3 ls s3://$B/
+aws s3 cp s3://$B/notice.txt - 
+aws s3 rm s3://$B/notice.txt
+aws ec2 describe-instances --max-items 1 >/dev/null
 ```
+
+> **🟢 확인: 확인**
+>
+> ```text
+> 2026-11-30 11:35:02         36 notice.txt
+> DevMart 공지 — 2026-11-30
+> delete failed: s3://devmart-assets-niceguy61/notice.txt An error occurred (AccessDenied) when calling the DeleteObject operation: User: arn:aws:sts::123456789012:assumed-role/devmart-ec2-role/i-0a1b… is not authorized to perform: s3:DeleteObject on resource: "arn:aws:s3:::devmart-assets-niceguy61/notice.txt" with an explicit deny in an identity-based policy
+> An error occurred (UnauthorizedOperation) when calling the DescribeInstances operation: You are not authorized to perform this operation. …
+> ```
+> - 읽기는 됩니다 — **키 파일 없이**.
+> - 삭제는 **explicit deny**로 막혔습니다 — 1일차 3교시의 Deny 문장이 실제로 동작했습니다. 오류 메시지가 "어떤 정책 종류의 명시적 거절"인지까지 알려 줍니다.
+> - EC2 조회는 정책에 **아예 없으므로**(암묵적 거절) 막혔습니다.
+
+Session Manager 창은 **종료**를 눌러 닫습니다.
+
+> **❓ 오해 — S3는 웹 서버처럼 열려 있다**
+>
+> S3 사고 뉴스("수백만 명의 개인정보가 담긴 버킷 공개") 때문에 생긴 인상이지만, 2023년 4월부터 새 버킷은 **퍼블릭 액세스 차단이 기본**입니다. 공개 사고는 누군가 이 차단을 **일부러 끄고** 정책을 잘못 쓴 경우입니다. 공개해야 할 정적 파일은 버킷을 열지 말고 CloudFront 같은 앞단을 둡니다.
+
+> **🎓 학술 노트 — SSRF와 메타데이터 서비스**
+>
+> 서버가 공격자 대신 내부 주소에 요청하게 만드는 **SSRF**(Server-Side Request Forgery)는 클라우드 메타데이터 서비스와 결합하면서 위험이 커졌고, OWASP Top 10(2021)에 독립 항목(A10)으로 들어갔습니다. Capital One 사고(2019)에 대한 분석(예: 미국 상원 보고서, 다수의 사후 분석)은 ① 과한 역할 권한, ② IMDSv1, ③ WAF 설정 오류가 겹친 결과로 정리합니다. 오늘 한 세 가지 — **좁은 역할 · IMDSv2 · Deny 문장** — 가 각각 그 고리 하나씩을 끊습니다.
+
+> **📈 트렌드 2026 — 데이터 경계**
+>
+> "우리 계정의 역할은 **우리 계정의 버킷에만**, 우리 VPC에서만 접근할 수 있다"를 조직 전체에 강제하는 **데이터 경계**(data perimeter) — SCP · RCP(리소스 제어 정책) · VPC 엔드포인트 정책의 조합 — 가 AWS 보안의 표준 설계가 되었습니다. 1일차에 만든 S3 게이트웨이 엔드포인트도 그 재료 중 하나입니다.
+
+> **✅ 확인 문제**
+>
+> 1. 보안 그룹에 22번이 없는데 Session Manager로 들어갈 수 있는 이유는?
+> 2. 서버 안의 `aws` 명령은 자격 증명을 어디서 얻나요?
+> 3. IMDSv2가 SSRF를 어렵게 만드는 방법은?
+> 4. 삭제(AccessDenied)와 EC2 조회(UnauthorizedOperation)가 막힌 이유의 차이는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 서버의 SSM 에이전트가 밖으로 AWS에 연결을 열어 두고, 그 연결로 들어오기 때문 (인바운드 포트 불필요)
+> 2. 인스턴스 메타데이터(169.254.169.254)의 역할 임시 자격 증명 — SDK · CLI가 자동으로 쓴다
+> 3. 먼저 PUT으로 토큰을 받아 헤더에 넣어야 해서 단순 GET만 흉내 내는 SSRF로는 얻기 어렵다
+> 4. 삭제는 명시적 Deny에 걸렸고, EC2 조회는 Allow가 없어 암묵적으로 거절됐다
+>
+> </details>
+
+## 참고 문헌
+
+- AWS Docs. *AWS Systems Manager Session Manager*. docs.aws.amazon.com/systems-manager
+- AWS Docs. *Use IMDSv2*, *Retrieve security credentials from instance metadata*. docs.aws.amazon.com/AWSEC2
+- AWS Docs. *Blocking public access to your Amazon S3 storage*. docs.aws.amazon.com/AmazonS3
+- OWASP (2021). *A10:2021 – Server-Side Request Forgery*. owasp.org/Top10
+
+---
+
+⬅️ 이전: [2교시 · 역할을 붙인 첫 EC2](lesson-02.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 시작 템플릿과 Auto Scaling 그룹](lesson-04.md) ➡️

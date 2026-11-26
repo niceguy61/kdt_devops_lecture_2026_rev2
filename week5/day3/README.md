@@ -1,89 +1,51 @@
-# Week 5 Day 3: AWS 컨테이너 실행과 관찰
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md)
 
-## Overview
-W5D3는 Docker와 Kubernetes에서 배운 container image, port, health check, rollout, log 개념을 AWS의 ECR, ECS 또는 App Runner, CloudWatch로 연결한다. W5D2에서 EC2와 ALB를 직접 다뤘다면, 오늘은 container image를 AWS registry에 넣고 managed container 실행 서비스에서 app을 실행하는 흐름을 본다.
+# 5주차 3일차 — Terraform 기초
 
-계정 권한, 비용, Docker Hub/ECR 인증 상태에 따라 ECS와 App Runner 중 하나를 실습 경로로 선택할 수 있다. EKS는 선택 심화 실습으로 다루며, 일단 lab 전용 IAM user credential과 `AdministratorAccess`, `aws eks update-kubeconfig`, `kubectl get nodes`를 통해 Week4 Kubernetes 경험을 AWS managed Kubernetes에 연결한다. 중요한 것은 특정 Console 화면을 외우는 것이 아니라, image -> service -> health -> logs -> update -> rollback의 운영 루프와, EKS를 선택할 때 생기는 kubeconfig/IAM/VPC/비용 경계를 이해하는 것이다. AdministratorAccess는 랩 안정성을 위한 시작점이며, 수업 뒤 least privilege로 줄인다.
+📕 5주차 이북 PDF: [보기](../../downloads/pdf/week5.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week5.pdf) &nbsp;|&nbsp; 📊 3일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week5-day3.pptx)
 
-## Learning Goals
-- Docker/Kubernetes 관점에서 ECR, ECS, EKS, App Runner의 역할 차이를 설명한다.
-- ECR repository, image tag, push/pull 인증 흐름을 이해한다.
-- ECS task definition, service, desired count 또는 App Runner service의 실행 단위를 설명한다.
-- container service와 ALB/listener/target group/health check 연결을 이해한다.
-- image tag 변경, service update, 실패 시 이전 image 또는 revision 복구 흐름을 설명한다.
-- CloudWatch Logs/Metrics/Alarm의 기본 위치와 확인 순서를 익힌다.
-- 선택 심화로 EKS cluster와 local `kubectl`을 kubeconfig로 연결하는 절차를 설명한다.
+## 오늘의 목표
 
-## Lesson Index
-| 교시 | 주제 | 핵심 확인 |
+어제 배움일기의 마지막 질문은 "클릭 백 번을 **코드로 적어 두고**, 한 줄로 만들고 한 줄로 지울 수는 없을까? 그 코드가 실제 계정과 **어긋나면** 어떻게 알까?"였습니다. 오늘 그 답은 **Terraform**입니다. 3주차에 `kubectl run` 대신 YAML을 쓰기 시작한 것, 4주차에 Git을 원하는 상태로 삼은 것을 이번에는 **AWS 자원**에 합니다.
+
+- **IaC**(코드로 인프라)와 Terraform의 작업 흐름 — init · plan · apply · destroy — 를 익힙니다.
+- 변수 · locals · 데이터 소스 · `for_each` · 자원 사이의 **참조**로 코드를 씁니다.
+- **state**가 무엇인지, 콘솔에서 손댄 **어긋남**을 plan이 어떻게 잡는지, 콘솔 자원을 **import**하는 법을 봅니다.
+- state를 **S3에 두고 잠금**을 겁니다.
+- **모듈**로 1일차의 VPC를 코드 몇십 줄로 다시 만들고, 콘솔 VPC는 지웁니다.
+- GitHub Actions가 **키 없이(OIDC)** 역할을 맡아 PR마다 plan을 돌리게 합니다.
+
+## 시간표
+
+| 교시 | 주제 | 실습 결과물 |
 |---|---|---|
-| 1교시 | Day2 요약 + 컨테이너 실행 서비스 매핑 | ECR, ECS, EKS, App Runner 역할 비교 |
-| 2교시 | ECR 실습 | repository, image tag, auth, push/pull 주의 |
-| 3교시 | ECS 또는 App Runner 맛보기 | task/service, desired count, logs, health |
-| 4교시 | Container service와 ALB 연결 | listener, target group, container port, health check |
-| 5교시 | 배포 변경과 rollback preview | 새 image tag, service update, previous revision |
-| 6교시 | CloudWatch Logs 기본 | log group, log stream, app stdout/stderr |
-| 7교시 | CloudWatch Metrics와 Alarm | CPU, memory, ALB target health, threshold |
-| 8교시 | 구름 EXP 배움일기 | ECR/ECS/App Runner/CloudWatch evidence와 cleanup |
+| 1교시 | 2일차 요약 + 코드로 인프라 | 콘솔 · CLI · IaC 비교표 |
+| 2교시 | 설치와 첫 리소스 | S3 버킷 하나를 만들고 지우기 |
+| 3교시 | HCL — 변수 · 참조 · for_each | 버킷 둘 + 설정 + 파일, 의존 그래프 |
+| 4교시 | state · 어긋남 · import | 콘솔 수정을 plan이 잡는다 |
+| 5교시 | 원격 state와 잠금 | `devmart-tfstate-…` 버킷, 잠금 충돌 |
+| 6교시 | 모듈로 VPC | `devmart-tf` VPC, 콘솔 VPC 정리 |
+| 7교시 | GitHub Actions에서 plan (OIDC) | `devmart-infra` 저장소, PR의 plan 요약 |
+| 8교시 | 배움일기 | |
 
-## Practice Files
-| 자료 | 용도 |
-|---|---|
-| `academic-foundations.md` | 공식 문서 기반 개념 근거와 읽을 키워드 |
-| `eks-kubectl-lab.md` | 선택 심화 EKS/kubectl 연결 실습 |
-| `lesson-01.md` ~ `lesson-08.md` | 교시별 강의 자료 |
-| `assets/lesson-01-container-service-map.png` | AWS container service map |
-| `assets/lesson-02-ecr-image-flow.png` | ECR image push/pull flow |
-| `assets/lesson-03-ecs-apprunner-service.png` | ECS/App Runner 실행 단위 |
-| `assets/lesson-04-container-alb-link.png` | container service와 ALB 연결 |
-| `assets/lesson-05-deploy-rollback.png` | image update와 rollback |
-| `assets/lesson-06-cloudwatch-logs.png` | CloudWatch Logs 흐름 |
-| `assets/lesson-07-cloudwatch-metrics-alarm.png` | Metrics와 Alarm |
-| `assets/lesson-08-container-cleanup-journal.png` | 배움일기와 cleanup board |
+## 교시별 자료
 
-## Official References
-| Topic | Reference |
-|---|---|
-| Amazon ECR private repositories | https://docs.aws.amazon.com/AmazonECR/latest/userguide/Repositories.html |
-| Pushing Docker image to ECR | https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-push-ecr-image.html |
-| Amazon ECS task definitions | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html |
-| Amazon ECS services | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html |
-| ECS service load balancing | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html |
-| AWS App Runner | https://docs.aws.amazon.com/apprunner/latest/dg/what-is-apprunner.html |
-| App Runner image service | https://docs.aws.amazon.com/apprunner/latest/dg/service-source-image.html |
-| EKS kubeconfig connection | https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html |
-| EKS Auto Mode CLI start | https://docs.aws.amazon.com/eks/latest/userguide/automode-get-started-cli.html |
-| EKS cluster API endpoint | https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html |
-| IAM user access keys | https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html |
-| AWS CLI configuration | https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html |
-| IAM least privilege | https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started-reduce-permissions.html |
-| CloudWatch Logs | https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/WhatIsCloudWatchLogs.html |
-| CloudWatch metrics | https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/working_with_metrics.html |
-| CloudWatch alarms | https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html |
+1. [2일차 요약 + 코드로 인프라](lesson-01.md)
+2. [설치와 첫 리소스](lesson-02.md)
+3. [HCL — 변수 · 참조 · for_each](lesson-03.md)
+4. [state · 어긋남 · import](lesson-04.md)
+5. [원격 state와 잠금](lesson-05.md)
+6. [모듈로 VPC](lesson-06.md)
+7. [GitHub Actions에서 plan (OIDC)](lesson-07.md)
 
-## Preparation Checklist
-- W5D2 cleanup 완료 또는 유지 resource 사유 기록
-- AWS CLI 사용 가능 여부 확인. CLI가 어렵다면 Console 중심 시뮬레이션 경로 사용
-- Docker login/build/tag/push 기본 흐름 이해
-- ECR repository 생성 권한 확인
-- ECS 또는 App Runner 생성 권한과 비용 가능성 확인
-- 선택 심화 EKS 경로를 사용할 경우 lab 전용 IAM user, `AdministratorAccess`, access key, AWS CLI profile, `kubectl`, EKS cluster 접근 권한 확인
-- CloudWatch Logs/Metrics 접근 권한 확인
-- 수업 종료 전 ECR image, ECS/App Runner service, ALB/target group, log retention cleanup 기준 확인
+> [!IMPORTANT]
+> **오늘 실습 전에 확인할 것**
+>
+> - `aws login` → `aws sts get-caller-identity`가 `user/devops-admin`.
+> - 어제 지운 것이 남지 않았는지: `~/devops-lab/aws/w5d1/check-account.sh | tail -4`.
+> - 오늘 만드는 것은 S3 · VPC · IAM · 보안 그룹 — **모두 무료**(S3 사용량은 거의 0)입니다. 그래도 7교시에 정리합니다.
+> - 실습 파일은 강의 저장소의 `labs/week5/day3/`입니다.
 
-## Deliverables
-- ECR repository/image tag evidence
-- ECS task/service 또는 App Runner service evidence
-- container port와 health check mapping note
-- deployment update/rollback note
-- CloudWatch Logs/Metrics 확인 note
-- 선택 심화: EKS kubeconfig context와 `kubectl get nodes` evidence
-- cleanup checklist
+---
 
-## End Of Day Checklist
-- ECS service/App Runner service가 계속 비용을 만들지 않는지 확인했는가
-- ALB/target group을 만들었다면 삭제 또는 유지 사유를 남겼는가
-- ECR repository와 image retention을 확인했는가
-- EKS 선택 실습을 했다면 cluster, node, load balancer, kubeconfig context, CloudWatch log group 잔여 상태를 확인했는가
-- CloudWatch log group retention을 확인했는가
-- Day4 S3/RDS 수업으로 넘어가기 전 container app의 config/secret/database 연결 질문을 남겼는가
+⬅️ 이전: [7교시 · 지우는 순서 + 비용 점검](../day2/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 2일차 요약 + 코드로 인프라](lesson-01.md) ➡️

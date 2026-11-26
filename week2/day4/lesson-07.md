@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+
 # 7교시 · 세 컨테이너 손으로 조립하기
 
 > [!NOTE]
@@ -11,7 +13,7 @@
 
 ## 오늘의 완성 그림
 
-![DevMart 3계층 — 브라우저는 web(8080)만 알고, web은 catalog-api를, catalog-api는 db를 이름으로 찾는다](../../assets/week2/day4/w2d4-three-tier.png)
+![DevMart 3계층 — 브라우저는 web(8080)만 알고, web은 catalog-api를, catalog-api는 db를 이름으로 찾는다](../../v3/assets/week2/day4/w2d4-three-tier.png)
 
 - 바깥으로 열린 문은 **`web`의 8080 하나**뿐입니다.
 - 브라우저가 `/api/products`를 요청하면 **nginx가 대신** `catalog-api:8000`에 물어보고 답을 돌려줍니다.
@@ -364,3 +366,7 @@ bash ../day4/devmart-up.sh
 - Compose Specification. compose-spec.io
 - Beyer, B., Jones, C., Petoff, J., & Murphy, N. R. (Eds.). (2016). *Site Reliability Engineering*. O'Reilly.
 - Testcontainers. testcontainers.com
+
+---
+
+⬅️ 이전: [6교시 · 환경 변수와 비밀값](lesson-06.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [2주차 5일차 목차](../day5/README.md) ➡️

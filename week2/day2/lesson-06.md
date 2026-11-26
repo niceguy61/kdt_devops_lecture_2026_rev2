@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+
 # 6교시 · 생명주기와 정리
 
 > [!NOTE]
@@ -10,7 +12,7 @@
 
 ## 컨테이너의 일생
 
-![컨테이너 생명주기 — create, start, stop, rm 사이의 상태 변화](../../assets/week2/day2/w2d2-lifecycle.png)
+![컨테이너 생명주기 — create, start, stop, rm 사이의 상태 변화](../../v3/assets/week2/day2/w2d2-lifecycle.png)
 
 | 상태 | 뜻 | 들어가는 명령 |
 |---|---|---|
@@ -288,3 +290,7 @@ docker images
 - Docker Docs. *Prune unused Docker objects*. docs.docker.com/engine/manage-resources/pruning
 - IEEE & The Open Group. *POSIX.1-2024, signal.h*.
 - Testcontainers. *Testcontainers documentation*. testcontainers.com
+
+---
+
+⬅️ 이전: [5교시 · 관찰하기 — logs · exec · inspect · stats](lesson-05.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 실패 사례 다섯 가지](lesson-07.md) ➡️

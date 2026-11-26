@@ -1,118 +1,154 @@
-# 4교시: Security Group 장애 분석
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [2일차](README.md)
 
-![Security Group failure drill](./assets/lesson-04-security-group-debug.png)
+# 4교시 · 시작 템플릿과 Auto Scaling 그룹
 
-## 수업 목표
-- Security Group rule 변경으로 의도적 접속 실패를 만들고 복구한다.
-- SSH 22와 HTTP 80의 source CIDR 위험을 구분한다.
-- wrong rule, wrong port, wrong source를 evidence로 분석한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 손으로 띄운 서버를 **시작 템플릿**으로 굳힙니다.
+> - **Auto Scaling 그룹**으로 "AZ 둘에 서버 2대"를 원하는 상태로 적습니다.
+> - 손으로 만든 첫 서버는 지우고, 그룹이 만든 서버만 남깁니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
-|---|---|---|---|
-| Inbound rule | 외부에서 resource로 들어오는 traffic gate다 | app 장애로 오진한다 | SG inbound tab |
-| Source CIDR | 누가 들어올 수 있는지 정한다 | SSH가 전체 공개된다 | 내 IP, `0.0.0.0/0` |
-| Port mismatch | app listen port와 SG port가 맞아야 한다 | SG를 열어도 응답이 없다 | port 80/8080 |
-| Recheck | rule 수정 후 같은 명령으로 다시 확인해야 한다 | 고쳤는지 증명하지 못한다 | curl/ssh retry |
+## 시작 템플릿 = Pod 템플릿
 
-## 장애 주입 1: HTTP 80 닫기
-1. EC2 Security Group inbound rule에서 TCP 80을 제거한다.
-2. 브라우저 또는 `curl`로 다시 접속한다.
-3. timeout 또는 접속 실패를 기록한다.
-4. TCP 80 rule을 복구한다.
-5. 같은 `curl` 명령으로 다시 확인한다.
+| 시작 템플릿에 담는 것 | 오늘 값 | 3주차 Deployment에서 |
+|---|---|---|
+| AMI | Amazon Linux 2023 | 이미지 |
+| 인스턴스 유형 | t3.micro | resources |
+| 보안 그룹 | devmart-app-sg | (4주차 메시 정책) |
+| IAM 인스턴스 프로파일 | devmart-ec2-role | serviceAccountName |
+| user data | podinfo 띄우기 | command · env |
+| **담지 않는 것: 서브넷** | (그룹이 정한다) | (스케줄러가 노드를 정한다) |
+
+템플릿에는 **버전**이 붙습니다. 고치면 새 버전이 생기고, 그룹은 "최신" 또는 특정 버전을 씁니다 — 3주차 4일차의 ReplicaSet 리비전과 같은 생각입니다.
+
+## 실습 6 · 실행 중인 서버에서 템플릿 만들기
+
+EC2 → 인스턴스 → `devmart-web-1` 체크 → **작업** → **이미지 및 템플릿** → **인스턴스에서 템플릿 생성**
+
+| 칸 | 값 |
+|---|---|
+| 시작 템플릿 이름 | `devmart-lt` |
+| 템플릿 버전 설명 | `podinfo 6.14.0 on AL2023` |
+| Auto Scaling 지침 | **체크** (그룹용으로 쓰기 좋은지 검사해 준다) |
+| 네트워크 설정 → 서브넷 | **시작 템플릿에 포함하지 않음** |
+| 고급 네트워크 구성 → 네트워크 인터페이스 1 | 퍼블릭 IP 자동 할당 **활성화**, 보안 그룹 `devmart-app-sg` |
+| 고급 세부 정보 | IAM 인스턴스 프로파일 `devmart-ec2-role`, 사용자 데이터에 user-data.sh가 **그대로 들어 있는지** 확인 |
+
+**시작 템플릿 생성**.
+
+> [!TIP]
+> **네트워크 설정이 겹친다는 경고**
+>
+> '방화벽(보안 그룹)'과 '네트워크 인터페이스'에 보안 그룹을 **둘 다** 넣으면 시작이 실패합니다. 네트워크 인터페이스를 쓰면 위쪽 방화벽 칸은 비워 둡니다 — Auto Scaling 지침이 이것을 짚어 줍니다.
 
 ```bash
-curl -m 5 -i http://<EC2_PUBLIC_IP>/
+aws ec2 describe-launch-templates --launch-template-names devmart-lt \
+  --query 'LaunchTemplates[0].[LaunchTemplateId,LatestVersionNumber]' --output text
+aws ec2 describe-launch-template-versions --launch-template-name devmart-lt --versions '$Latest' \
+  --query 'LaunchTemplateVersions[0].LaunchTemplateData.{type:InstanceType,profile:IamInstanceProfile.Arn,publicIp:NetworkInterfaces[0].AssociatePublicIpAddress,userData:UserData}' --output yaml | sed 's/\(userData: .\{40\}\).*/\1…/'
 ```
 
-## 장애 주입 2: source 잘못 지정
-HTTP 80 source를 현재 내 IP가 아닌 다른 CIDR로 제한하면 외부에서 접속이 실패한다. 이때 instance와 web server는 정상일 수 있다.
+> **🟢 확인: 확인**
+>
+> ```yaml
+> lt-0a1b2c3d4e5f60718    1
+> profile: arn:aws:iam::123456789012:instance-profile/devmart-ec2-role
+> publicIp: true
+> type: t3.micro
+> userData: IyEvYmluL2Jhc2gKIyBFQzLqsIAg7LKY7J2MIOy…
+> ```
+> user data는 **base64**로 저장됩니다(3주차 Secret과 같은 인코딩 — 암호화가 아니다). 그래서 user data에 비밀번호를 넣으면 안 됩니다.
 
-| 원인 | 증거 |
-|---|---|
-| app process down | EC2 접속 후 process/service 상태 불량 |
-| SG 80 closed | TCP timeout, inbound rule 없음 |
-| wrong source | rule은 있으나 source가 내 IP와 다름 |
-| wrong port | app은 8080, SG는 80 또는 반대 |
+## 실습 7 · Auto Scaling 그룹
 
-## SSH 22 주의
-SSH 22를 `0.0.0.0/0`으로 오래 열어두지 않는다. 교육장/개인 IP가 자주 바뀌는 경우에는 일시적으로 열 수 있지만, evidence에 사유와 종료 시각을 남긴다.
+EC2 → 왼쪽 맨 아래 **Auto Scaling 그룹** → **Auto Scaling 그룹 생성**
 
-| Rule | 수업 판단 |
-|---|---|
-| TCP 22 from my IP | 권장 |
-| TCP 22 from `0.0.0.0/0` | 임시 예외, 종료 전 삭제 |
-| TCP 80 from `0.0.0.0/0` | public web 확인 목적 가능 |
-| DB port from `0.0.0.0/0` | 금지에 가깝게 다룸 |
-
-
-## 왜 일부러 고장내는가
-운영자는 정상 화면만 보고 성장하지 않는다. 일부러 80을 닫고, source를 틀리고, port를 바꾸어 보면 증상이 어떻게 달라지는지 몸으로 익힌다. 이 경험이 있어야 실제 장애에서 app code와 cloud network 문제를 분리할 수 있다.
-
-## SG 변경 시 주의
-Security Group rule 변경은 즉시 반영될 수 있다. 같은 instance를 여러 학생이 공유하면 한 명의 rule 변경이 다른 사람 실습에 영향을 준다. 개인 계정/개인 SG를 쓰는 이유는 이 영향 범위를 줄이기 위해서다.
-
-## Recheck 원칙
-복구했다면 반드시 실패를 확인했던 같은 명령으로 다시 확인한다. 브라우저 새로고침만으로는 DNS/cache/redirect 때문에 판단이 흐릴 수 있다. `curl -m 5 -i` 같은 명령을 고정하면 전후 비교가 쉽다.
-
-## 운영 판단 표
-| 바꿀 rule | 수업 중 허용 | 종료 후 상태 |
+| 단계 | 칸 | 값 |
 |---|---|---|
-| TCP 22 from my IP | 가능 | 필요 없으면 삭제 |
-| TCP 22 from public | 피함 | 반드시 삭제 |
-| TCP 80 from public | HTTP 실습 중 가능 | EC2/ALB 삭제 또는 rule 삭제 |
-| DB port from public | 사용하지 않음 | 없어야 함 |
+| 1 | 이름 · 시작 템플릿 | `devmart-asg` · `devmart-lt`, 버전 **Latest** |
+| 2 | VPC · 가용 영역 및 서브넷 | `devmart-vpc` · `…public1-ap-northeast-2a`, `…public2-ap-northeast-2c` |
+| 3 | 로드 밸런싱 | **로드 밸런서 없음** (5교시에 붙인다) |
+| 3 | 상태 확인 | EC2 (기본값, 5교시에 ELB를 더한다) |
+| 4 | 그룹 크기 | 원하는 용량 **2**, 최소 **1**, 최대 **3** |
+| 4 | 크기 조정 정책 | **없음** (6교시에 손으로 바꾼다) |
+| 6 | 태그 | `Name` = `devmart-asg-node` (**새 인스턴스에 태그 지정** 체크) |
 
-## 구조로 보기
-```mermaid
-flowchart TD
-  Request["curl / browser request"] --> SG["Security Group inbound"]
-  SG --> Port["Port 80 / 22"]
-  SG --> Source["Source CIDR"]
-  Port --> Instance["EC2 instance"]
-  Source --> Instance
-  Instance --> Result["Timeout / Success"]
-  Result --> Recheck["Same command recheck"]
+**Auto Scaling 그룹 생성**.
+
+```bash
+sleep 90
+aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names devmart-asg \
+  --query 'AutoScalingGroups[0].{desired:DesiredCapacity,instances:Instances[].[InstanceId,AvailabilityZone,LifecycleState,HealthStatus]}' --output yaml
 ```
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | port, source, direction을 함께 봐야 한다. |
-| 실패했을 때 어느 경계부터 볼 것인가 | 실패와 복구는 같은 명령으로 비교한다. |
-| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | SSH public open은 임시 예외로만 다룬다. |
+> **🟢 확인: 확인**
+>
+> ```yaml
+> desired: 2
+> instances:
+> - - i-0b2c3d4e5f6071829
+>   - ap-northeast-2a
+>   - InService
+>   - Healthy
+> - - i-0c3d4e5f607182930
+>   - ap-northeast-2c
+>   - InService
+>   - Healthy
+> ```
+> **AZ 둘에 하나씩** 흩어졌습니다. 그룹은 서브넷이 여럿이면 AZ 사이에 고르게 나눕니다 — 한 AZ가 멈춰도 한 대는 남습니다(1일차 5교시).
 
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| port만 보고 source CIDR을 놓친다 | inbound rule의 source와 현재 IP를 비교한다 |
+## 실습 8 · 손으로 만든 서버 지우기
 
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- before/after rule, curl 실패, curl 복구 중 최소 두 가지는 배움일기에 남긴다.
+`devmart-web-1`은 그룹이 모르는 서버입니다. 템플릿을 만들었으니 더는 필요 없습니다.
 
-## Evidence Note
-```markdown
-# W5D2S4 SG failure drill
-- 실패 주입:
-- 실패 증상:
-- SG rule before:
-- SG rule after:
-- 같은 명령으로 recheck:
-- 보안상 위험했던 rule:
+```bash
+ID1=$(aws ec2 describe-instances --filters Name=tag:Name,Values=devmart-web-1 Name=instance-state-name,Values=running --query 'Reservations[0].Instances[0].InstanceId' --output text)
+aws ec2 terminate-instances --instance-ids $ID1 --query 'TerminatingInstances[0].CurrentState.Name'
 ```
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: TCP 80 inbound rule을 제거하고 `curl -m 5` 실패를 확인한 뒤 복구한다.
-- 공식 문서 키워드: `EC2 security groups`, `inbound rules`, `outbound rules`, `virtual firewall`.
-- 스스로 확인할 화면: EC2 Security tab, Security Groups inbound rules.
-- 흔한 실패 3개: outbound만 보고 inbound를 안 봄, source CIDR을 안 봄, rule 수정 후 같은 명령으로 재확인하지 않음.
-- 다음 준비 상태: "timeout이면 app log보다 SG/route/public IP를 먼저 본다"는 판단을 설명할 수 있어야 한다.
+> **🟢 확인: 확인**
+>
+> `"shutting-down"` — 몇 분 뒤 **종료됨**. 그룹의 서버 둘은 그대로입니다. 그룹은 **자기가 만든 것만** 셉니다 — 4주차 Argo CD가 추적 표시가 붙은 것만 관리한 것과 같습니다.
 
-## 한 줄 요약
-```text
-Security Group 장애 분석은 port, source, direction, recheck를 한 세트로 본다.
-```
+> [!IMPORTANT]
+> **Auto Scaling 그룹의 두 가지 일**
+>
+> ① **수를 맞춘다** — 원하는 용량과 실제 서버 수가 다르면 만들거나 지운다(6교시). ② **건강하지 않은 것을 바꾼다** — 상태 검사에 실패한 서버를 종료하고 새로 만든다(6교시). '고친다'가 아니라 '**바꾼다**'입니다 — 2교시 학술 노트의 불변 인프라.
+
+> **❓ 오해 — Auto Scaling은 트래픽이 늘 때만 쓴다**
+>
+> 이름 때문에 '자동 확장'만 떠올리지만, 실무에서 가장 많이 쓰는 이유는 **원하는 수 유지와 자동 교체**입니다. 최소 = 최대 = 원하는 수 = 2로 두어도 그룹은 가치가 있습니다. 서버가 죽으면 사람이 깨지 않아도 다시 2대가 됩니다.
+
+> **🎓 학술 노트 — 오토스케일링의 제어 이론**
+>
+> 부하에 따라 서버 수를 조절하는 문제는 제어 이론의 **피드백 제어**로 연구되어 왔습니다. Lorido-Botran 외의 *A Review of Auto-scaling Techniques for Elastic Applications in Cloud Environments*(J. Grid Computing, 2014)는 방법을 ① 정해진 규칙(임계값), ② 강화 학습, ③ 큐잉 이론, ④ 제어 이론, ⑤ 시계열 예측으로 분류했습니다. AWS의 **대상 추적 정책**(예: "평균 CPU 50% 유지")은 ④의 단순한 형태이고, **예측 조정**(predictive scaling)은 ⑤입니다.
+
+> **📈 트렌드 2026 — 시작 템플릿 대신 '의도'를**
+>
+> EC2 인스턴스 유형을 하나로 고르지 않고 "vCPU 2개 · 메모리 4GB 이상"처럼 **속성으로** 고르게 하는 속성 기반 선택(attribute-based instance type selection)과, 여러 유형 · 스팟을 섞는 혼합 인스턴스 정책이 표준이 되었습니다. Kubernetes 쪽에서는 Karpenter가 같은 일을 Pod 요구에 맞춰 합니다(4일차 트렌드).
+
+> **✅ 확인 문제**
+>
+> 1. 시작 템플릿에 서브넷을 넣지 않은 이유는?
+> 2. user data에 비밀번호를 넣으면 안 되는 이유는?
+> 3. 그룹이 서버를 AZ 둘에 나눈 이유는?
+> 4. 손으로 만든 devmart-web-1을 지웠는데 그룹이 새 서버를 만들지 않은 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 어느 서브넷(AZ)에 둘지는 Auto Scaling 그룹이 정하게 하려고
+> 2. base64로 저장될 뿐 암호화가 아니라, 템플릿을 볼 수 있는 누구나 읽을 수 있다
+> 3. 한 AZ가 멈춰도 다른 AZ의 서버가 남도록
+> 4. 그룹은 자기가 만든 인스턴스만 세기 때문
+>
+> </details>
+
+## 참고 문헌
+
+- AWS Docs. *Create a launch template from an existing instance*, *Auto Scaling groups*. docs.aws.amazon.com/autoscaling
+- Lorido-Botran, T., Miguel-Alonso, J. & Lozano, J. A. (2014). *A Review of Auto-scaling Techniques for Elastic Applications in Cloud Environments*. Journal of Grid Computing 12(4).
+
+---
+
+⬅️ 이전: [3교시 · Session Manager · 메타데이터 · S3](lesson-03.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 대상 그룹과 ALB](lesson-05.md) ➡️

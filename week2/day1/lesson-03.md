@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+
 # 3교시 · Git 설치와 설정
 
 > [!NOTE]
@@ -20,14 +22,14 @@
 
 ### 단계 1 — 설치
 
-**Windows(WSL Ubuntu) / Linux:**
+**Windows — WSL Ubuntu 터미널 (bash) · Linux**
 
 ```bash
 sudo apt install -y git
 git --version
 ```
 
-**Mac:**
+**Mac — 터미널 (Homebrew)**
 
 ```bash
 brew install git
@@ -40,6 +42,17 @@ git --version
 > git version 2.43.0
 > ```
 > 숫자는 달라도 됩니다. Ubuntu 24.04에는 Git이 이미 들어 있는 경우가 많아 "이미 최신 버전"이라는 메시지가 나올 수도 있습니다.
+
+> [!TIP]
+> **다른 설치 방법 — winget · 직접 다운로드**
+>
+> | 방법 | 어디서 | 명령 · 주소 |
+> |---|---|---|
+> | winget | Windows PowerShell | `winget install -e --id Git.Git` (Git for Windows) |
+> | Xcode 명령줄 도구 | Mac 터미널 | `xcode-select --install` (Apple이 주는 git) |
+> | 직접 다운로드 | 브라우저 | [git-scm.com/downloads](https://git-scm.com/downloads) |
+>
+> winget은 **Windows 쪽**에 설치하므로 PowerShell에서만 보입니다. 수업 명령은 WSL Ubuntu(bash)에서 치므로, Windows 사용자도 위의 **WSL 방법**으로 설치합니다. Git for Windows는 WSL 밖(PowerShell · Windows 앱)에서 Git이 필요할 때만 깝니다. 전체 목록은 **부록 A · 도구 설치 가이드**.
 
 ### 단계 2 — 이름과 이메일
 
@@ -173,3 +186,7 @@ cat ~/.gitconfig
 - Git. *git-config Documentation*. git-scm.com/docs/git-config
 - Chacon, S., & Straub, B. (2014). *Pro Git* (2nd ed.), Ch. 1.6, Ch. 10. git-scm.com/book/ko/v2
 - GitHub Docs. *Setting your commit email address*, *About commit signature verification*. docs.github.com
+
+---
+
+⬅️ 이전: [2교시 · 터미널과 VS Code](lesson-02.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · GitHub 계정과 인증](lesson-04.md) ➡️

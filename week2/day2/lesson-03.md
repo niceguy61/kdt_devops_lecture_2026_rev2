@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+
 # 3교시 · nginx를 백그라운드로 실행
 
 > [!NOTE]
@@ -182,3 +184,7 @@ curl http://localhost:80
 - nginx. *nginx news*. nginx.org/en/news.html
 - Docker Docs. *docker container run — detached mode (-d), --name*. docs.docker.com
 - Burns, B., & Oppenheimer, D. (2016). Design patterns for container-based distributed systems. *HotCloud '16*.
+
+---
+
+⬅️ 이전: [2교시 · 컨테이너 안에 들어가 보기](lesson-02.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 포트 연결](lesson-04.md) ➡️

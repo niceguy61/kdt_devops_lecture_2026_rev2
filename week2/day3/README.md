@@ -1,4 +1,8 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+
 # 2주차 3일차 — 이미지와 Dockerfile
+
+📕 2주차 이북 PDF: [보기](../../downloads/pdf/week2.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week2.pdf) &nbsp;|&nbsp; 📊 3일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week2-day3.pptx)
 
 ## 오늘의 목표
 
@@ -34,3 +38,7 @@
 5. [빌드 캐시와 명령 순서](lesson-05.md)
 6. [태그와 Docker Hub](lesson-06.md)
 7. [멀티 스테이지와 이미지 크기·보안](lesson-07.md)
+
+---
+
+⬅️ 이전: [7교시 · 실패 사례 다섯 가지](../day2/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 이미지 레이어](lesson-01.md) ➡️

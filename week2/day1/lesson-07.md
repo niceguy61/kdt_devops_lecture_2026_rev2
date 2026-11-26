@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+
 # 7교시 · 설치 점검과 문제 해결
 
 > [!NOTE]
@@ -46,7 +48,7 @@ docker run hello-world
 
 hello-world는 스스로 **무슨 일이 일어났는지** 설명해 줍니다. 6교시의 구조 그림과 맞춰 읽어 봅시다.
 
-![hello-world가 실행되는 네 단계 — CLI가 엔진에 요청, 엔진이 레지스트리에서 이미지를 받고, 컨테이너를 만들어 출력을 돌려준다](../../assets/week2/day1/w2d1-hello-flow.png)
+![hello-world가 실행되는 네 단계 — CLI가 엔진에 요청, 엔진이 레지스트리에서 이미지를 받고, 컨테이너를 만들어 출력을 돌려준다](../../v3/assets/week2/day1/w2d1-hello-flow.png)
 
 | 출력의 단계 | 우리말로 | 6교시 그림에서 |
 |---|---|---|
@@ -266,3 +268,7 @@ docker rnu hello-world
 - Docker. *docker run reference*, *Get started*. docs.docker.com
 - Docker Hub. *hello-world Official Image*. hub.docker.com/_/hello-world
 - GNU Bash Manual. *Special Parameters ($?)*. gnu.org/software/bash/manual
+
+---
+
+⬅️ 이전: [6교시 · Docker Desktop 설치](lesson-06.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [2주차 2일차 목차](../day2/README.md) ➡️

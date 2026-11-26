@@ -1,128 +1,129 @@
-# 2교시: AWS 계정 안전장치
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
 
-![AWS account safety map](./assets/lesson-02-account-safety.png)
+# 2교시 · 계정 만들기와 루트 지키기
 
-## 수업 목표
-- root user와 IAM identity의 차이를 설명한다.
-- MFA, Budget, access key, billing permission을 실습 전 안전장치로 확인한다.
-- 비용과 보안 사고를 막기 위한 최소 checklist를 만든다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - AWS 계정을 만들고 **Free 플랜과 Paid 플랜**의 차이를 이해합니다.
+> - **루트 사용자**에 MFA를 걸고, 평소에 쓰지 않을 준비를 합니다.
+> - **예산 알림** 두 개(0달러 초과 · 월 20달러)를 겁니다.
+> - 콘솔의 기본 리전을 서울로 맞춥니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
-|---|---|---|---|
-| root user 최소 사용 | root user는 계정 전체에 강한 권한을 가진다 | 실습 중 실수와 credential 노출의 영향 범위가 커진다 | IAM root user best practices |
-| MFA | password 하나로 계정이 뚫리지 않게 한다 | 계정 탈취 시 비용/삭제/권한 사고가 커진다 | root/IAM user MFA 상태 |
-| Budget 먼저 | AWS는 resource를 만들면 비용이 날 수 있다 | 실습 후 잔여 resource 비용을 늦게 발견한다 | AWS Budgets, Billing dashboard |
-| access key 제한 | 장기 access key는 유출되면 자동화된 악용 대상이 된다 | GitHub, README, screenshot에 key가 남는다 | IAM access keys, CloudTrail |
+## 실습 1 · 계정 만들기
 
-## root user를 어떻게 볼 것인가
-AWS 공식 문서는 root user를 일상 작업에 사용하지 말 것을 권장한다. root user는 계정 생성 시 생기는 최상위 identity이고, billing, account closure, 일부 account-level 작업처럼 root가 필요한 경우가 있다. 수업 실습에서 EC2, S3, VPC를 만드는 일상 작업은 root로 하지 않는 것을 원칙으로 둔다.
+<https://aws.amazon.com> → **AWS 계정 생성**(Create an AWS Account).
 
-| identity | 수업에서의 기준 |
-|---|---|
-| root user | MFA 설정, 계정 복구 정보 확인, 꼭 필요한 account-level 작업에만 사용 |
-| IAM user | 개인 실습 계정에서 Console 로그인용으로 사용할 수 있음 |
-| IAM role | 실제 운영과 cloud service 간 권한 위임에 주로 사용 |
-| access key | 오늘은 만들지 않는 것을 기본값으로 둠 |
-
-## MFA 확인
-MFA는 root user와 IAM user 모두에 설정할 수 있다. root user MFA는 특히 중요하다. MFA device를 하나만 등록하고 복구 수단이 없으면 분실 시 접근 문제가 생길 수 있으므로, 계정 정책에 맞게 복구 절차를 남긴다.
-
-```text
-Console -> IAM -> Security credentials -> Multi-factor authentication
-```
-
-## Budget과 Billing 확인
-AWS Budgets는 비용 또는 사용량 기준으로 알림을 설정하는 도구다. Cost Explorer는 비용과 사용량을 분석하는 도구다. Cost Explorer는 처음 열 때 활성화가 필요할 수 있고, 데이터가 바로 충분히 보이지 않을 수 있다.
-
-| 항목 | 오늘 확인할 것 |
-|---|---|
-| Billing dashboard | 월 누적 비용, forecast |
-| Budget | 예산 금액, 알림 이메일 |
-| Cost Explorer | service별 비용 확인 가능 여부 |
-| Tag | 비용 추적을 위한 `Course`, `Owner`, `Purpose` |
-
-## Access key 위험
-AWS access key는 CLI나 SDK에서 AWS API를 호출할 때 쓰인다. 오늘 수업은 Console 중심이므로 새 access key를 만들 필요가 없다. key가 필요해지는 날에도 `.env`, README, screenshot, GitHub issue, 메신저에 남기지 않는다.
-
-```mermaid
-flowchart LR
-  Key["Access key"] --> Repo["GitHub/README leak"]
-  Repo --> Abuse["Unauthorized API calls"]
-  Abuse --> Cost["Unexpected cost"]
-  Abuse --> Delete["Resource deletion"]
-```
-
-## 계정 안전 Checklist
-| 확인 | 상태 |
-|---|---|
-| root user MFA가 설정되어 있다 |  |
-| 실습 중 root user를 사용하지 않는다 |  |
-| 오늘 사용할 Region을 정했다 |  |
-| Budget 또는 비용 알림을 확인했다 |  |
-| access key를 새로 만들지 않는다 |  |
-| 모든 resource에 tag를 붙인다 |  |
-| 실습 종료 전 cleanup 시간을 남긴다 |  |
-
-
-## 실습 전 안전 점검 절차
-1. Console 상단에서 현재 로그인 identity와 account를 확인한다.
-2. root user로 들어와 있다면 일상 실습용 IAM identity로 전환한다.
-3. IAM 또는 Security credentials 화면에서 MFA 상태를 확인한다.
-4. Billing and Cost Management에서 Budget 또는 비용 알림 접근 가능 여부를 확인한다.
-5. 오늘 새 access key를 만들지 않는다는 원칙을 배움일기에 적는다.
-
-## 비용 사고 예시
-| 상황 | 왜 위험한가 | 예방 |
+| 단계 | 입력 | 주의 |
 |---|---|---|
-| ALB를 삭제하지 않음 | traffic이 없어도 시간 비용이 발생할 수 있음 | Day2 종료 전 ALB cleanup |
-| RDS 삭제 보호를 켜고 방치 | DB instance/storage 비용 지속 | Day4 실습 전 삭제 계획 |
-| NAT Gateway를 무심코 생성 | 초보 실습에서 큰 비용이 날 수 있음 | W5에서는 기본 생성 금지 |
-| access key 유출 | 자동 API 호출로 비용/삭제 사고 가능 | key 미생성, CloudTrail 확인 |
+| 이메일 · 계정 이름 | 자주 보는 개인 이메일, 계정 이름 `devops-lab-이름` | 이 이메일이 **루트 사용자**가 된다. 공용 메일 금지 |
+| 이메일 확인 코드 | 메일로 온 숫자 | |
+| 루트 비밀번호 | 길고 유일한 비밀번호 (비밀번호 관리자 권장) | 다른 곳에서 쓰는 비밀번호 금지 |
+| **플랜 선택** | **Free 플랜** (아래 표) | |
+| 연락처 · 결제 수단 | 개인 · 본인 카드 | 확인용 소액 승인이 잠깐 보일 수 있다 |
+| 본인 확인 | 문자 또는 음성 전화 | |
+| 지원 플랜 | **Basic (무료)** | |
 
-## 운영 판단 기준
-실습에서 권한이 막히면 무조건 관리자 권한을 요구하지 않는다. 어떤 action이 막혔는지, 어떤 service 권한이 필요한지, 그 권한이 수업 목표에 꼭 필요한지 먼저 분리한다. 이 습관이 IAM 최소 권한 설계의 출발점이다.
+| | Free 플랜 | Paid 플랜 |
+|---|---|---|
+| 크레딧 | 가입 $100 + 활동으로 최대 $100 더 (총 $200) | 같다 |
+| 기간 | **6개월 또는 크레딧 소진까지** — 그 뒤 Paid로 바꾸지 않으면 계정이 멈춘다 | 계속 |
+| 크레딧을 넘으면 | **청구되지 않는다** — 넘을 수 없다 | 정가로 청구 |
+| 쓸 수 있는 서비스 | 대부분 (EC2 · VPC · ELB · S3 · **EKS** · IAM …) | 전부 |
 
-## 캡처 가이드
-MFA 화면과 Billing 화면은 민감정보가 많다. 공개 자료에는 전체 화면 캡처를 넣지 말고, MFA enabled 상태 또는 Budget 이름/상태만 잘라서 남긴다. account email과 결제 수단 정보는 가린다.
+이번 주 실습은 **Free 플랜으로 모두 됩니다.** Free 플랜은 "크레딧을 넘으면 청구되는 대신 멈춘다"는 안전장치가 있어 실습에 알맞습니다.
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | root user는 일상 실습 계정이 아니다. |
-| 실패했을 때 어느 경계부터 볼 것인가 | MFA와 Budget은 첫날 만들어야 뒤 실습이 흔들리지 않는다. |
-| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | access key, MFA code, account email은 evidence에 남기지 않는다. |
+> [!WARNING]
+> **가입 화면이 다르게 보인다면**
+>
+> AWS는 2026년 가을부터 가입 화면을 단계적으로 바꾸고 있습니다(프로젝트 · 지출 한도 등). 화면 배치가 위 표와 달라도 **플랜 선택 · 결제 수단 · 본인 확인**의 순서는 같습니다. 막히면 강사에게 화면을 보여 주세요. 이미 예전에 만든 계정이 있다면 Free 플랜과 크레딧 대상이 아니므로, 오늘의 예산 알림을 **반드시** 겁니다.
 
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| Budget이 비용을 차단한다고 오해한다 | Budget은 알림 장치이며 resource 삭제 책임은 사용자에게 있다 |
+## 실습 2 · 루트에 MFA
 
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- MFA 상태, Budget threshold, 실습 user 또는 role 중 최소 두 가지는 배움일기에 남긴다.
+가입이 끝나면 **루트 사용자**로 콘솔에 들어와 있습니다. 오른쪽 위 계정 이름 → **보안 자격 증명**(Security credentials).
 
-## Evidence Note
-```markdown
-# W5D1S2 account safety
-- root MFA 확인 여부:
-- 실습 identity:
-- Budget 이름/금액 또는 확인 상태:
-- 오늘 사용할 공통 tag:
-- access key 생성 여부: no
-- 가장 먼저 조심할 resource:
-```
+1. **멀티 팩터 인증(MFA)** → **MFA 디바이스 할당**
+2. 디바이스 이름 `root-mfa`, 종류는 **패스키 또는 보안 키**(지문 · 얼굴 인식이 되는 휴대폰 · 노트북) 또는 **인증 관리자 앱**
+3. 앱이라면 QR 코드를 찍고, 연속된 코드 두 개를 입력 → **MFA 추가**
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: IAM dashboard에서 MFA 상태를 확인하고, Billing and Cost Management에서 Budget/Cost Explorer 접근 가능성을 확인한다.
-- 공식 문서 키워드: `root user best practices`, `MFA for root user`, `AWS Budgets`, `Cost Explorer`.
-- 스스로 확인할 화면: IAM security credentials, Billing dashboard, Budgets list.
-- 흔한 실패 3개: root로 계속 실습함, Budget 없이 유료 resource를 만듦, access key를 만들어 로컬에 방치함.
-- 다음 준비 상태: "내가 지금 어떤 identity로 어떤 account와 Region에서 작업 중인지" 설명할 수 있어야 한다.
+> **🟢 확인: 확인**
+>
+> 보안 자격 증명 화면의 MFA 표에 `root-mfa`가 한 줄 보입니다. 로그아웃 → 루트로 다시 로그인하면 비밀번호 뒤에 MFA를 묻습니다.
 
-## 한 줄 요약
-```text
-AWS 실습은 root/MFA/Budget/access key를 먼저 잠그고 시작해야 한다.
-```
+같은 화면에서 **액세스 키**(Access keys) 칸이 **비어 있는지** 확인합니다. 루트의 액세스 키는 **절대 만들지 않습니다** — 그 키는 계정의 모든 것을 지울 수 있는 영구 열쇠입니다.
+
+> [!IMPORTANT]
+> **루트는 왜 따로 지키나**
+>
+> 루트 사용자는 **어떤 정책으로도 막을 수 없습니다.** 계정 해지, 결제 수단 변경, 지원 플랜 변경 같은 일은 루트만 할 수 있습니다. 그래서 루트는 **MFA를 걸고, 비밀번호를 금고(비밀번호 관리자)에 넣고, 평소에는 쓰지 않습니다.** 매일 쓸 신원은 3교시에 만드는 IAM 사용자입니다. 4주차의 `kubernetes-admin` 인증서와 비슷하지만, 그것보다 훨씬 강합니다 — 결제까지 할 수 있으니까요.
+
+## 실습 3 · 예산 알림
+
+콘솔 위 검색창에 `Budgets` → **AWS Budgets** → **예산 생성**.
+
+**① 0달러 초과 알림**
+1. **템플릿 사용(간소화)** → **제로 지출 예산**(Zero spend budget)
+2. 예산 이름 `zero-spend`, 이메일 수신자에 내 이메일 → **예산 생성**
+
+**② 월 20달러 알림**
+1. 다시 **예산 생성** → **템플릿 사용** → **월별 비용 예산**(Monthly cost budget)
+2. 이름 `monthly-20`, 금액 `20`, 이메일 → **예산 생성**
+3. 만들어진 `monthly-20`을 열어 **알림** 편집: 실제 비용 **50%**, 예상 비용 **100%** 두 줄이 있는지 확인
+
+> **🟢 확인: 확인**
+>
+> Budgets 목록에 `zero-spend`와 `monthly-20` 두 줄이 보입니다.
+
+> [!WARNING]
+> **예산은 '알림'이지 '차단'이 아니다**
+>
+> 예산 알림은 기준을 넘으면 **메일을 보낼 뿐**, 자원을 멈추지 않습니다. 또 비용 집계는 **몇 시간 늦게** 반영됩니다. 그래서 알림이 왔을 때는 이미 그만큼 쓴 뒤입니다. 그리고 Free 플랜에서는 크레딧이 비용을 덮으므로 "제로 지출" 알림이 **크레딧 차감 전 금액**으로 올 수도, 오지 않을 수도 있습니다. 결국 가장 확실한 방법은 **매일 남은 것을 직접 확인하고 지우는 것**입니다(7교시).
+
+## 실습 4 · 기본 리전과 결제 화면
+
+1. 콘솔 오른쪽 위 리전 → **아시아 태평양(서울) ap-northeast-2**
+2. 오른쪽 위 계정 이름 → **설정**(Unified Settings) → **기본 리전**을 서울로 → 저장
+3. 검색창에 `Billing` → **결제 및 비용 관리** → 왼쪽 **크레딧**(Credits)에서 받은 크레딧 금액과 만료일 확인
+
+> **🟢 확인: 확인**
+>
+> 크레딧 화면에 `$100.00`(또는 그 이상)과 만료일이 보입니다. 이 화면은 이번 주 매일 봅니다.
+
+> **❓ 오해 — Free Tier면 무엇을 해도 공짜다**
+>
+> "Free Tier"는 ① **크레딧**(금액 한도)과 ② **항상 무료 사용량**(예: 매달 Lambda 100만 요청)으로 이루어져 있습니다. EKS 클러스터나 NAT 게이트웨이는 항상 무료 대상이 아니라 **크레딧에서 차감**됩니다. 크레딧은 유한하고, 6개월 뒤에는 사라집니다.
+
+> **🎓 학술 노트 — 가장 강한 열쇠를 쓰지 않는 원칙**
+>
+> 보안 공학은 "가장 큰 권한은 **가장 드물게**, 가장 많은 확인을 거쳐 쓰라"고 가르칩니다. Saltzer와 Schroeder(1975, 4주차 5일차)의 **최소 권한**과 함께, 금융 · 군사 분야의 **이중 통제**(two-person rule)가 그 예입니다. 클라우드에서는 루트 계정을 금고에 넣고 비상시에만 쓰는 **break-glass** 절차로 구현됩니다. CIS AWS Foundations Benchmark는 "루트 MFA 활성화", "루트 액세스 키 없음", "루트 사용 기록 감시"를 첫 항목들로 둡니다.
+
+> **📈 트렌드 2026 — 루트 MFA 의무화와 루트 없는 계정**
+>
+> AWS는 2024~2025년에 걸쳐 **루트 사용자 MFA를 의무화**했고, 패스키(FIDO2)를 루트 MFA로 쓸 수 있게 했습니다. AWS Organizations를 쓰는 회사에서는 하위 계정의 **루트 자격 증명 자체를 지우는**(centralized root access) 기능이 표준이 되었습니다. 개인 실습 계정은 Organizations 없이 루트 MFA로 지킵니다.
+
+> **✅ 확인 문제**
+>
+> 1. Free 플랜이 실습에 알맞은 이유는?
+> 2. 루트 사용자를 평소에 쓰지 않는 이유와, 대신 쓰는 것은?
+> 3. 예산 알림만으로 비용 사고를 막을 수 없는 이유 두 가지는?
+> 4. EKS 클러스터 비용은 Free Tier의 어느 쪽에서 나가나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. 크레딧을 넘으면 청구되지 않고 멈추는 안전장치가 있다
+> 2. 어떤 정책으로도 막을 수 없는 최강의 권한이기 때문. 3교시의 IAM 사용자를 쓴다
+> 3. 알림일 뿐 자원을 멈추지 않는다, 비용 집계가 몇 시간 늦다 (크레딧과의 관계도)
+> 4. 크레딧 (항상 무료 대상이 아니다)
+>
+> </details>
+
+## 참고 문헌
+
+- AWS. *AWS Free Tier FAQs*, *Free Tier Terms*. aws.amazon.com/free
+- AWS Docs. *Root user best practices*, *Enable a passkey or security key for the root user*. docs.aws.amazon.com/IAM
+- AWS Docs. *Creating a budget — zero spend budget*. docs.aws.amazon.com/cost-management
+- CIS. *CIS Amazon Web Services Foundations Benchmark v4*. cisecurity.org
+
+---
+
+⬅️ 이전: [1교시 · 4주차 요약 + 노트북에서 클라우드로](lesson-01.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · IAM — 사용자 · 그룹 · 역할 · 정책](lesson-03.md) ➡️

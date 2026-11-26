@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+
 # 2교시 · up · ps · logs · down과 헬스 체크
 
 > [!NOTE]
@@ -218,3 +220,7 @@ docker compose exec db psql -U devmart -d devmart -c "SELECT count(*) FROM produ
 - Docker Docs. *Control startup order in Compose*. docs.docker.com/compose/how-tos/startup-order
 - Nygard, M. T. (2018). *Release It!* (2nd ed.). Pragmatic Bookshelf.
 - Kompose. kompose.io
+
+---
+
+⬅️ 이전: [1교시 · compose.yaml 읽기](lesson-01.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Compose로 하는 일상 작업](lesson-03.md) ➡️

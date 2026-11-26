@@ -1,4 +1,8 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+
 # 2주차 2일차 — Docker 기본
+
+📕 2주차 이북 PDF: [보기](../../downloads/pdf/week2.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week2.pdf) &nbsp;|&nbsp; 📊 2일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week2-day2.pptx)
 
 ## 오늘의 목표
 
@@ -41,3 +45,7 @@
 5. [관찰하기 — logs·exec·inspect·stats](lesson-05.md)
 6. [생명주기와 정리](lesson-06.md)
 7. [실패 사례 다섯 가지](lesson-07.md)
+
+---
+
+⬅️ 이전: [7교시 · 설치 점검과 문제 해결](../day1/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 이미지와 컨테이너](lesson-01.md) ➡️

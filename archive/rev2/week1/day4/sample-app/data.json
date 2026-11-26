@@ -1,0 +1,21 @@
+{
+  "message": "정상: data.json을 읽어서 화면에 표시했습니다.",
+  "services": [
+    {
+      "name": "HTML",
+      "check": "화면 구조를 제공합니다."
+    },
+    {
+      "name": "CSS",
+      "check": "화면 스타일을 적용합니다."
+    },
+    {
+      "name": "JavaScript",
+      "check": "data.json을 읽고 화면을 갱신합니다."
+    },
+    {
+      "name": "Local server",
+      "check": "브라우저와 curl 요청을 처리합니다."
+    }
+  ]
+}

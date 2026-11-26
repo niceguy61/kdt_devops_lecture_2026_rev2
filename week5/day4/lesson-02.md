@@ -1,118 +1,213 @@
-# 2교시: S3 bucket/object/public access
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
 
-![S3 access control flow](./assets/lesson-02-s3-access-control.png)
+# 2교시 · 코드 읽기와 apply
 
-이 visual에서는 object URL, policy, Block Public Access가 서로 다른 위치에서 접근을 결정한다는 점을 본다. S3 공개 문제는 한 화면만 보고 판단하지 않는다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - `devmart-infra`에 EKS 코드를 넣고, 파일마다 무엇을 만드는지 읽습니다.
+> - 3일차 VPC와 **달라진 세 줄**을 찾습니다.
+> - plan에서 **무엇을 봐야 하는지** 정하고, apply를 시작합니다(15~20분).
 
-## 수업 목표
-- S3 bucket과 object의 차이를 설명한다.
-- Block Public Access, bucket policy, IAM permission의 역할을 구분한다.
-- object URL과 public access를 혼동하지 않는다.
+## 실습 1 · 코드 넣기
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
-|---|---|---|---|
-| Bucket과 object | bucket은 container, object는 실제 데이터 단위다 | 삭제와 권한 범위를 잘못 잡는다 | bucket list, object detail |
-| Block Public Access | 의도치 않은 공개를 막는 안전장치다 | 실습 파일이나 개인정보가 공개될 수 있다 | Permissions tab |
-| Bucket policy | resource 기반 접근 규칙이다 | IAM과 policy 경계를 혼동한다 | policy JSON |
-| Object URL | URL 존재와 공개 접근은 다르다 | URL만 보고 public이라고 판단한다 | browser access, AccessDenied |
-
-## 핵심 개념
-S3는 파일 서버처럼 보이지만 운영 모델은 다르다. bucket 이름은 전역적으로 고유해야 하고, object는 key를 가진 데이터다. 접근은 IAM identity policy, bucket policy, ACL, Block Public Access 같은 여러 계층의 영향을 받는다. 수업에서는 public website hosting을 깊게 만들기보다, 왜 기본적으로 public access를 막아야 하는지와 공개가 필요할 때 어떤 evidence를 남겨야 하는지에 집중한다.
-
-## AWS 문서 근거로 짚기
-AWS 문서는 S3를 확장성, 가용성, 보안, 성능을 제공하는 object storage로 설명한다. 따라서 이 교시에서는 S3를 "서버의 폴더"가 아니라 `bucket`, `object`, `key`, `Region`, `policy`가 결합된 resource로 읽는다.
-
-General purpose bucket 문서에서는 데이터를 S3에 업로드하려면 먼저 AWS Region 안에 bucket을 만들어야 하고, 모든 object는 bucket 안에 포함된다고 설명한다. object URL은 object를 주소로 표현하는 방법일 뿐이며, 실제 접근 가능 여부는 IAM, bucket policy, Block Public Access 같은 권한 경계가 함께 결정한다.
-
-보안 best practice 문서는 최신 S3 사용에서 ACL보다 policy 기반 접근 제어를 우선하도록 안내한다. 특히 Object Ownership의 bucket owner enforced 설정에서는 ACL이 비활성화되고, 접근 제어는 IAM user policy, S3 bucket policy, VPC endpoint policy 같은 정책으로 관리된다. 수업에서는 ACL을 먼저 만지는 대신 Block Public Access, bucket policy, IAM permission 순서로 evidence를 남긴다.
-
-## 구조로 보기
-```mermaid
-flowchart TD
-  User["User or App"] --> IAM["IAM permission"]
-  IAM --> Bucket["S3 bucket"]
-  Bucket --> BPA["Block Public Access"]
-  Bucket --> Policy["Bucket policy"]
-  Bucket --> Object["Object key"]
-  Object --> Result["AccessAllowed or AccessDenied"]
+```bash
+mkdir -p ~/devops-lab/aws/w5d4 && cp -r ~/course/labs/week5/day4/* ~/devops-lab/aws/w5d4/
+cd ~/devmart-infra && git switch main && git pull
+cp -r ~/devops-lab/aws/w5d4/terraform/eks terraform/
+cd terraform/eks
+ID=$(gh api user -q .login | tr 'A-Z' 'a-z')
+sed -i "s/YOUR_ID/$ID/" versions.tf
+cp terraform.tfvars.example terraform.tfvars && sed -i "s/your-github-id/$ID/" terraform.tfvars
+ls
 ```
 
-Mermaid 흐름은 Console 화면을 외우기 위한 그림이 아니다. 어떤 resource가 어느 경계에서 접근, 비용, 복구, 감사 책임을 갖는지 확인하기 위한 지도다. 그림의 각 node는 evidence note에 남길 수 있는 실제 Console 화면이나 설정값으로 연결되어야 한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> eks.tf  outputs.tf  pod-identity.tf  terraform.tfvars  terraform.tfvars.example  variables.tf  versions.tf  vpc.tf
+> ```
 
-## 공식 문서 확인 지점
-| 확인할 문서 키워드 | 읽을 때 볼 질문 |
+| 파일 | 만드는 것 |
 |---|---|
-| AWS User Guide | 이 기능이 해결하려는 운영 문제는 무엇인가 |
-| Permissions 또는 Security | 누가 접근할 수 있고 어떤 기본 차단이 있는가 |
-| Pricing 또는 Cost 관련 항목 | 켜져 있는 동안, 저장된 동안, 요청이 발생할 때 비용이 생기는가 |
-| Delete, restore, retention | 삭제 후 무엇이 남고 무엇을 복구할 수 있는가 |
+| `versions.tf` | 프로바이더 · backend (`w5d4/eks/`) · 기본 태그 |
+| `variables.tf` | 클러스터 이름 · 버전 1.36 · 노드 유형 · 수 |
+| `vpc.tf` | VPC + 서브넷 4 + **NAT 하나** |
+| `eks.tf` | EKS 클러스터 + 애드온 + 관리형 노드 그룹 |
+| `pod-identity.tf` | Pod가 맡을 IAM 역할 둘 (EBS CSI · Load Balancer Controller) |
+| `outputs.tf` | kubeconfig 명령 등 |
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
+## vpc.tf — 3일차와 달라진 세 곳
+
+```bash
+diff ~/devops-lab/aws/w5d3/terraform/04-vpc/main.tf vpc.tf | grep '^[<>]' | head -20
+```
+
+```hcl
+  enable_nat_gateway   = true # 노드(private)가 이미지를 받으려면 밖으로 나가야 한다
+  single_nat_gateway   = true # 실습: 하나만 (운영: AZ마다 하나)
+
+  public_subnet_tags  = { "kubernetes.io/role/elb" = 1 }
+  private_subnet_tags = { "kubernetes.io/role/internal-elb" = 1 }
+```
+
+| 바뀐 곳 | 왜 |
 |---|---|
-| bucket을 공개해야 하는가 | 정적 웹 사이트나 공개 자료처럼 명확한 목적이 있을 때만 검토한다 |
-| object 단위 접근인가 bucket 단위 접근인가 | 필요한 key 범위만 공개하는 방향을 우선한다 |
-| 실습 후 무엇을 되돌릴 것인가 | public policy, object, bucket, tag를 함께 확인한다 |
+| **NAT 켜기** | 노드가 private 서브넷에 있다(1일차 5교시). GHCR · Docker Hub에서 이미지를 받으려면 밖으로 나가야 한다 |
+| **NAT 하나만** | AZ마다 두면 한 AZ가 죽어도 안전하지만 두 배 비용. 실습은 하나 |
+| **서브넷 태그** | 4교시의 Load Balancer Controller가 "인터넷용 로드 밸런서는 어느 서브넷에?"를 이 태그로 찾는다 |
 
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| object URL이 있으니 누구나 볼 수 있다고 생각한다 | 브라우저 접근 결과와 Permissions tab의 Block Public Access 상태를 함께 본다 |
+## eks.tf — 클러스터
 
-## 화면 캡처 가이드
-- Region, resource name, 상태값, tag, policy 상태처럼 재현 가능한 값이 보이게 캡처한다.
-- account email, secret value, access key, token, password는 캡처하지 않는다.
-- 실패 화면은 error message만 자르지 말고 어떤 service와 설정 화면에서 나온 결과인지 알 수 있게 남긴다.
-- 삭제 또는 정리 evidence는 삭제 버튼 화면보다 삭제 후 검색 결과가 더 중요하다.
+```hcl
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 21.0"
 
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- bucket name과 Region, Block Public Access 상태, AccessDenied 또는 정상 접근 결과 중 최소 두 가지는 배움일기에 남긴다.
+  name               = var.cluster_name        # devmart
+  kubernetes_version = var.kubernetes_version  # 1.36
 
-## 실습/시뮬레이션 절차
-1. S3 bucket 목록에서 오늘 사용할 bucket 이름과 Region을 확인한다.
-2. object 하나를 기준으로 object URL, metadata, permissions 위치를 확인한다.
-3. Permissions tab에서 Block Public Access가 account와 bucket 어느 수준에서 적용되는지 본다.
-4. 공개가 필요한 시나리오와 공개가 필요 없는 시나리오를 나누어 bucket policy 영향을 적는다.
-5. browser 접근 결과가 `AccessDenied`인지 정상 응답인지 기록하고, 그 이유를 policy와 함께 설명한다.
+  endpoint_public_access                   = true   # 실습: 내 노트북에서 kubectl
+  enable_cluster_creator_admin_permissions = true   # apply한 사람 = 클러스터 관리자 (3교시)
 
-## 복구와 정리 기준
-| 상황 | 먼저 볼 화면 | 복구 또는 정리 |
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets           # 노드는 private에
+
+  addons = {
+    vpc-cni                = { before_compute = true }
+    eks-pod-identity-agent = { before_compute = true }
+    kube-proxy             = {}
+    coredns                = {}
+    metrics-server         = {}
+    aws-ebs-csi-driver     = { pod_identity_association = [{ role_arn = …, service_account = "ebs-csi-controller-sa" }] }
+  }
+
+  eks_managed_node_groups = {
+    default = {
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = ["t3.medium"]
+      min_size = 1, max_size = 3, desired_size = 2
+    }
+  }
+}
+```
+
+| 애드온 | 하는 일 | kind에서는 |
 |---|---|---|
-| object가 안 열린다 | object key, Block Public Access, policy | 공개 목적이 맞는지 먼저 확인한다 |
-| bucket 삭제가 안 된다 | object list, version list | object와 version/delete marker를 정리한다 |
-| public 경고가 보인다 | Permissions tab | 의도한 공개인지 evidence를 남긴다 |
-| 권한 판단이 어렵다 | IAM policy simulator 또는 access result | policy 범위를 줄여 다시 확인한다 |
+| `vpc-cni` | Pod에 **VPC IP**를 준다 — 노드보다 먼저(`before_compute`) | kindnet |
+| `eks-pod-identity-agent` | Pod가 IAM 역할을 맡게 (3교시) | — |
+| `kube-proxy` · `coredns` | Service 규칙 · 클러스터 DNS (3주차 4일차) | 같은 것 |
+| `metrics-server` | `kubectl top` (6교시) | — |
+| `aws-ebs-csi-driver` | PVC → **EBS 볼륨** (4 · 6교시) | local-path |
 
-## 공식 문서로 검증할 질문
-- S3는 왜 file storage가 아니라 object storage로 설명되는가?
-- bucket은 어느 Region에 만들어지고 object URL은 어떤 정보를 드러내는가?
-- Block Public Access가 bucket policy보다 어떤 방식으로 우선 동작하는가?
-- bucket policy 예시는 어떤 principal과 action을 허용하는가?
-- ACL과 policy를 동시에 사용할 때 운영 복잡도는 어떻게 늘어나는가?
+> [!TIP]
+> **v21의 이름들**
+>
+> EKS 모듈 v21(2025)은 입력 이름을 정리했습니다 — `cluster_name` → `name`, `cluster_version` → `kubernetes_version`, `cluster_addons` → `addons`. 인터넷의 v20 예제를 쓸 때 가장 많이 걸리는 곳입니다(3일차 6교시의 "모듈 기본값 · 이름을 읽는다").
 
-## Evidence Note
-```markdown
-# W5D4S2 S3 access
-- Region:
-- Resource name:
-- 확인한 설정:
-- 실패 또는 주의할 증상:
-- 비용/보안 영향:
-- cleanup 또는 유지 사유:
+## 실습 2 · init · plan
+
+```bash
+terraform init
+terraform plan -out=eks.tfplan | tail -3
+terraform show -json eks.tfplan | python3 -c "
+import sys,json,collections
+p=json.load(sys.stdin); c=collections.Counter()
+for r in p['resource_changes']:
+    if 'create' in r['change']['actions']: c[r['type']]+=1
+for k,v in c.most_common(12): print(f'{v:3} {k}')
+print('합계', sum(c.values()))"
 ```
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: bucket 하나와 test object 하나를 기준으로 Permissions tab과 object URL 접근 결과를 비교한다.
-- 공식 문서 키워드: `S3 Block Public Access`, `bucket policy`, `object ownership`, `AccessDenied`
-- 스스로 확인할 화면: S3 Buckets, Object detail, Permissions tab, browser access result
-- 흔한 실패 3개: Region을 틀림, public policy와 Block Public Access 충돌을 못 봄, object 삭제 후 bucket 삭제 순서를 놓침
-- 다음 준비 상태: S3 접근 문제를 IAM, bucket policy, Block Public Access, object key로 나누어 설명할 수 있어야 한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> Plan: 5○ to add, 0 to change, 0 to destroy.
+>  ○ aws_iam_role_policy_attachment
+>  ○ aws_route_table_association
+>  ○ aws_security_group_rule
+>  ○ aws_subnet
+>  ○ aws_eks_addon
+>  2 aws_iam_role …
+>  1 aws_eks_cluster
+>  1 aws_eks_node_group
+>  1 aws_nat_gateway
+>  …
+> 합계 5○
+> ```
+> 어제 질문의 답 — **50~60개**(모듈 버전마다 조금 다르다). `-out`으로 저장한 plan은 apply할 때 **그대로** 쓰입니다 — 리뷰한 것과 실행되는 것이 같다는 보장입니다.
 
-## 한 줄 요약
+> [!IMPORTANT]
+> **50개 plan에서 무엇을 보나**
+>
+> 전부 읽을 수는 없습니다. 3일차 2교시의 원칙대로 ① `destroy`와 `-/+`가 **0인지**, ② **돈이 나가는 것**(`aws_eks_cluster` · `aws_nat_gateway` · `aws_eks_node_group` · `aws_eip`)의 개수와 설정(인스턴스 유형 · 수), ③ **권한**(`aws_iam_*` — 어떤 정책이 붙나), ④ **공개**(`endpoint_public_access`, `0.0.0.0/0`)를 봅니다. 돈 · 권한 · 공개 · 삭제 — 이 넷이 사람이 보는 곳입니다.
+
+## 실습 3 · apply 시작
+
+```bash
+date +%T; time terraform apply eks.tfplan
+```
+
+apply가 도는 동안 3교시로 넘어갑니다. 진행이 이렇게 보입니다.
+
 ```text
-S3 public access는 URL 하나가 아니라 Block Public Access, policy, IAM, object key가 함께 결정한다.
+module.vpc.aws_vpc.this[0]: Creating...
+module.vpc.aws_eip.nat[0]: Creating...
+…
+module.eks.aws_eks_cluster.this[0]: Creating...
+module.eks.aws_eks_cluster.this[0]: Still creating... [1m0s elapsed]
+…
+module.eks.aws_eks_cluster.this[0]: Creation complete after 9m12s
+module.eks.aws_eks_addon.before_compute["vpc-cni"]: Creating...
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Creating...
+…
+Apply complete! Resources: 5○ added, 0 changed, 0 destroyed.
+real    16m○s
 ```
+
+컨트롤 플레인 **약 10분** + 노드 그룹 **약 3분** + 애드온. 3주차 kind의 1분과 비교됩니다 — 실제 데이터센터의 서버와 네트워크를 고르고 잇는 시간입니다.
+
+> **🛠️ 막혔다면: apply가 실패하면**
+>
+> | 오류 | 원인 | 해결 |
+> |---|---|---|
+> | `UnsupportedAvailabilityZoneException` | 그 AZ에 EKS 용량이 없다 | `vpc.tf`의 AZ를 `a`, `b`로 바꿔 다시 |
+> | `ExpiredToken` | 16분 사이 `aws login` 만료 | `aws login` 후 `terraform apply` 다시 (이미 만든 것은 건너뛴다) |
+> | `InvalidParameterException … version` | 1.36을 아직 고를 수 없다 | `aws eks describe-cluster-versions --query 'clusterVersions[].clusterVersion'`로 최신을 보고 `variables.tf` 수정 |
+> | 잠금 오류 | 다른 터미널의 plan | 3일차 5교시 |
+>
+> Terraform은 **멱등**이라, 중간에 실패해도 다시 apply하면 만든 것은 두고 남은 것만 합니다.
+
+> **🎓 학술 노트 — 변경 집합의 리뷰**
+>
+> 큰 변경을 리뷰할 때 사람이 놓치는 것은 '양'보다 '**어느 줄이 위험한가**'입니다. Bacchelli와 Bird의 *Expectations, Outcomes, and Challenges of Modern Code Review*(ICSE 2013)는 마이크로소프트의 코드 리뷰를 분석해, 리뷰어가 실제로 찾는 결함보다 **이해**에 더 많은 시간을 쓴다는 것을 보였습니다. IaC 리뷰에서 plan 요약(자원 종류별 개수, 돈 · 권한 · 공개 · 삭제 체크)을 자동으로 만드는 이유가 그 이해 비용을 줄이려는 것입니다.
+
+> **📈 트렌드 2026 — EKS를 만드는 여러 길**
+>
+> `eksctl`(명령 한 줄), 콘솔의 '빠른 구성'(Auto Mode), CloudFormation · CDK, Terraform 모듈, 그리고 **EKS Blueprints**(애드온까지 묶은 참조 구성)가 공존합니다. 조직은 대개 오늘처럼 Terraform 모듈로 클러스터를 만들고, 그 위의 플랫폼(입구 · Argo CD …)은 **GitOps**로 올리는 두 층 구조를 택합니다 — 4교시의 `install.sh`를 내일 Argo CD Application으로 바꾸는 것이 다음 걸음입니다.
+
+> **✅ 확인 문제**
+>
+> 1. 3일차 VPC와 달라진 세 곳과 각각의 이유는?
+> 2. `before_compute = true`인 애드온 둘과 이유는?
+> 3. 50개 plan에서 사람이 꼭 보는 넷은?
+> 4. apply가 중간에 실패하면 어떻게 하나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. NAT 켜기(private 노드가 이미지를 받으려고), NAT 하나(비용), 서브넷 태그(LBC가 로드 밸런서 서브넷을 찾으려고)
+> 2. vpc-cni(노드가 뜨자마자 Pod 네트워크가 필요), eks-pod-identity-agent(Pod가 역할을 맡게) — 노드보다 먼저
+> 3. 삭제 · 교체(-/+)가 0인지, 돈이 나가는 자원, 권한(IAM), 공개(public endpoint · 0.0.0.0/0)
+> 4. 원인을 고치고 다시 apply — 멱등이라 남은 것만 만든다
+>
+> </details>
+
+## 참고 문헌
+
+- terraform-aws-modules. *eks — AWS EKS Terraform module (v21)*, *UPGRADE-21.0*. registry.terraform.io/modules/terraform-aws-modules/eks/aws
+- AWS Docs. *Amazon EKS add-ons*, *Managed node groups*. docs.aws.amazon.com/eks
+- Bacchelli, A. & Bird, C. (2013). *Expectations, Outcomes, and Challenges of Modern Code Review*. ICSE 2013.
+
+---
+
+⬅️ 이전: [1교시 · 3일차 요약 + EKS의 구조](lesson-01.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 기다리는 동안 — 신원 두 방향 · kubeconfig](lesson-03.md) ➡️

@@ -1,315 +1,137 @@
-# 2-1교시: DB 직접 설치해 보기
+[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md)
 
-## 수업 목표
-- DB 설치가 실행 파일 하나를 추가하는 일이 아니라는 점을 이해한다.
-- PostgreSQL을 Linux/WSL 또는 macOS 환경에 직접 설치하고 service, port, account, password, data path를 관찰한다.
-- 수업용 DB 계정과 DB를 만든 뒤, 비밀번호로 접속 가능한지 command로 검증한다.
-- Docker를 배우기 전에 로컬 직접 설치 방식의 장점과 부담을 말할 수 있다.
+# 2교시 · 소프트웨어가 만들어지는 흐름 — SDLC와 CI/CD
 
-## 시각 자료
-![DB 직접 설치해 보기](./assets/lesson-02-1-db-local-install.png)
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 소프트웨어 개발 생명주기(SDLC)의 단계를 압니다.
+> - 폭포수 방식과 애자일의 차이를 설명합니다.
+> - CI(지속적 통합)와 CD(지속적 전달·배포)가 무엇인지 이해합니다.
+> - CI/CD 파이프라인이 각 단계에서 하는 일을 압니다.
 
-## 도입 시나리오
-강사가 이렇게 시작한다.
+## 소프트웨어 개발 생명주기(SDLC)
 
-```text
-어제까지는 앱이 여러 구성요소로 돌아간다는 이야기를 했다.
-그중 DB는 코드 옆에 있는 파일 하나가 아니다.
+**SDLC(Software Development Life Cycle)**는 소프트웨어가 만들어지고 운영되는 전체 과정입니다. 회사마다 이름은 달라도 대체로 이런 단계를 거칩니다.
 
-오늘은 Docker 없이 DB를 직접 설치해 보면서,
-"설치했다"라는 말이 실제로 무엇을 남기는지 관찰한다.
-```
+| 단계 | 하는 일 | 주로 누가 | DevOps 엔지니어의 관심사 |
+|---|---|---|---|
+| 계획 | 무엇을 만들지 정한다 | 기획, PM | 일정, 필요한 인프라 |
+| 설계 | 어떻게 만들지 정한다 | 개발, 아키텍트 | 구조, 확장성, 비용 |
+| 개발 | 코드를 짠다 | 개발 | 개발 환경, 브랜치 전략 |
+| 테스트 | 제대로 동작하는지 확인 | QA, 개발 | **자동 테스트** |
+| 배포 | 사용자에게 내놓는다 | 운영, DevOps | **배포 자동화**, 되돌리기 |
+| 운영 | 잘 돌아가게 지킨다 | 운영, SRE | **모니터링**, 장애 대응 |
+| 피드백 | 사용자 반응을 보고 개선 | 모두 | 지표, 로그 |
 
-오늘의 핵심은 DB를 잘 다루는 것이 아니다. 학생들이 다음 문장을 이해하는 것이다.
+## 폭포수에서 애자일로
 
-```text
-DB 설치 = 실행 파일 + 백그라운드 서비스 + 포트 + 계정 + 데이터 폴더 + 설정 파일
-```
+![폭포수와 애자일 — 한 번에 크게 vs 작게 자주](../../v3/assets/week1/day5/w1d5-waterfall-agile.png)
 
-## 운영 기준
-이 실습은 성공/실패를 성적처럼 다루지 않는다. 목적은 설치 완주보다 관찰이다.
-
-| 구분 | 오늘의 기준 |
-|---|---|
-| 필수 | DB가 OS에 어떤 흔적을 남기는지 설명한다. |
-| 권장 | PostgreSQL service를 시작하고 상태를 확인한다. |
-| 권장 | 수업용 계정과 DB를 만든 뒤 비밀번호 접속을 확인한다. |
-| 선택 | `psql`로 접속해 간단한 DB 목록과 현재 접속 정보를 확인한다. |
-| 실패 시 | 오류 메시지를 캡처하고 어떤 단계에서 막혔는지 분류한다. |
-
-설치가 막힌 학생도 수업에서 빠지지 않게 한다. 막힌 지점 자체가 Week2 Docker의 좋은 질문이 된다.
-
-## 실습 전 확인
-학생 환경이 대부분 WSL 또는 macOS라면 Windows GUI 설치는 피한다. 기준은 terminal에서 관찰 가능한 절차로 둔다.
-
-```text
-내 환경:
-- WSL Ubuntu / Linux
-- macOS
-- 기타
-
-확인할 것:
-- terminal 실행 가능
-- package manager 사용 가능
-- 관리자 권한 또는 설치 권한
-- 디스크 여유 공간
-```
-
-## Linux / WSL 기준 실습
-Ubuntu 계열을 기준으로 한다.
-
-```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo service postgresql start
-sudo service postgresql status
-```
-
-상태 확인에서 봐야 할 것은 "초록색 성공"만이 아니다.
-
-```text
-이름이 무엇인가?
-service로 등록되었는가?
-실행 중인가?
-중지할 수 있는가?
-다시 시작할 수 있는가?
-```
-
-가능하면 다음도 확인한다.
-
-```bash
-sudo -u postgres psql
-```
-
-`psql`에 들어갔다면 다음 명령만 확인하고 나온다.
-
-```sql
-\l
-\q
-```
-
-### Linux / WSL: 수업용 계정과 DB 만들기
-설치가 끝났다면 "DB 서버가 켜졌다"에서 멈추지 않고, 실제 앱이 접속할 수 있는 계정과 DB를 만든다.
-
-수업용 예시는 다음 값으로 통일한다. 실제 프로젝트에서는 이런 단순 비밀번호를 쓰면 안 된다.
-
-```text
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=devuser
-DB_PASSWORD=devpass
-DB_NAME=appdb
-```
-
-PostgreSQL 관리자 계정으로 수업용 사용자와 DB를 만든다.
-
-```bash
-sudo -u postgres psql -c "CREATE USER devuser WITH PASSWORD 'devpass';"
-sudo -u postgres psql -c "CREATE DATABASE appdb OWNER devuser;"
-```
-
-이미 `devuser`가 있다는 오류가 나면 비밀번호만 다시 맞춘다.
-
-```bash
-sudo -u postgres psql -c "ALTER USER devuser WITH PASSWORD 'devpass';"
-```
-
-비밀번호 접속을 확인한다. 이 명령은 일부러 `-h localhost`를 붙인다. 그래야 OS 사용자 인증이 아니라 TCP 접속과 비밀번호 인증 흐름을 확인할 수 있다.
-
-```bash
-psql -h localhost -p 5432 -U devuser -d appdb
-```
-
-비밀번호를 물어보면 다음을 입력한다.
-
-```text
-devpass
-```
-
-접속에 성공하면 `psql` 안에서 다음을 실행한다.
-
-```sql
-SELECT current_user;
-SELECT current_database();
-CREATE TABLE health_check (id serial PRIMARY KEY, message text);
-INSERT INTO health_check (message) VALUES ('db connection ok');
-SELECT * FROM health_check;
-\q
-```
-
-한 줄로 연결 확인만 하고 싶다면 다음 명령을 사용한다.
-
-```bash
-psql -h localhost -p 5432 -U devuser -d appdb -c "SELECT current_user, current_database();"
-```
-
-## macOS 기준 실습
-Homebrew가 설치되어 있다는 전제로 진행한다.
-
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-brew services list
-```
-
-macOS에서는 `brew services`가 service 관찰 포인트다.
-
-```text
-서비스 이름은 무엇인가?
-상태가 started인가?
-로그 위치가 표시되는가?
-중지 명령은 무엇인가?
-```
-
-필요하면 다음처럼 접속을 확인한다.
-
-```bash
-psql postgres
-```
-
-### macOS: 수업용 계정과 DB 만들기
-Homebrew PostgreSQL은 설치 상태에 따라 기본 관리자 계정이 OS 사용자 이름일 수 있다. 먼저 `psql postgres`로 접속해 보고, 접속되면 같은 방식으로 수업용 계정과 DB를 만든다.
-
-```bash
-psql postgres -c "CREATE USER devuser WITH PASSWORD 'devpass';"
-psql postgres -c "CREATE DATABASE appdb OWNER devuser;"
-```
-
-이미 `devuser`가 있다는 오류가 나면 비밀번호만 다시 맞춘다.
-
-```bash
-psql postgres -c "ALTER USER devuser WITH PASSWORD 'devpass';"
-```
-
-비밀번호 접속을 확인한다.
-
-```bash
-psql -h localhost -p 5432 -U devuser -d appdb
-```
-
-비밀번호를 물어보면 다음을 입력한다.
-
-```text
-devpass
-```
-
-접속에 성공하면 다음을 실행한다.
-
-```sql
-SELECT current_user;
-SELECT current_database();
-CREATE TABLE health_check (id serial PRIMARY KEY, message text);
-INSERT INTO health_check (message) VALUES ('db connection ok');
-SELECT * FROM health_check;
-\q
-```
-
-한 줄 연결 확인:
-
-```bash
-psql -h localhost -p 5432 -U devuser -d appdb -c "SELECT current_user, current_database();"
-```
-
-## 연결 정보와 앱 설정 연결
-이제 DB 접속 정보는 앱의 `.env` 값으로 바꿔 말할 수 있다.
-
-```text
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=devuser
-DB_PASSWORD=devpass
-DB_NAME=appdb
-```
-
-강사는 여기서 다음을 강조한다.
-
-```text
-DB가 설치되어 있어도 계정, 비밀번호, DB 이름, port가 맞지 않으면 앱은 연결되지 않는다.
-```
-
-대표 연결 오류를 미리 분류한다.
-
-| 증상 | 가능한 원인 | 확인할 것 |
+| 비교 | 폭포수 (Waterfall) | 애자일 (Agile) |
 |---|---|---|
-| `connection refused` | DB service가 꺼져 있음 | service 상태 |
-| `password authentication failed` | 비밀번호가 다름 | `DB_PASSWORD`, 계정 비밀번호 |
-| `database "appdb" does not exist` | DB를 만들지 않음 | DB 목록 |
-| `role "devuser" does not exist` | 사용자를 만들지 않음 | 사용자 생성 |
-| 명령이 멈춘 것처럼 보임 | 비밀번호 입력 대기 중 | 터미널 prompt |
+| 흐름 | 단계를 **한 번씩 순서대로** | 짧은 주기(1~4주)를 **반복** |
+| 배포 | 마지막에 **한 번에 크게** | 주기마다 **작게** |
+| 변경 | 중간에 바꾸기 어렵다 | 변경을 **환영**한다 |
+| 위험 | 마지막에야 문제를 발견 | 일찍, 자주 발견 |
+| 비유 | 완성된 요리를 한 번에 내놓기 | 한 숟가락씩 맛보며 간 맞추기 |
 
-## 관찰 포인트
-학생들이 명령어를 따라 치는 동안 강사는 칠판에 다음 표를 채운다.
+> **🎓 학술 노트 — 폭포수의 오해와 애자일 선언 (1970, 2001)**
+>
+> **폭포수는 원래 '하지 말라'는 그림이었다?** 폭포수 모델의 출처로 자주 인용되는 윈스턴 로이스(Winston Royce)의 1970년 논문 「대규모 소프트웨어 시스템 개발 관리」에는 단계가 아래로 흐르는 그림이 나옵니다. 그런데 로이스는 바로 그 그림 아래에 이 방식이 **"위험하고 실패를 부른다"**고 쓰고, 단계 사이에 되돌아가는 피드백과 반복을 넣어야 한다고 주장했습니다. 역사상 가장 유명한 개발 방법론이 사실은 **비판 대상의 그림**에서 이름을 얻은 셈입니다.
+>
+> **애자일 선언 (2001).** 2001년 2월, 미국 유타주 스노버드에 17명의 개발자가 모여 「애자일 소프트웨어 개발 선언」을 발표했습니다. 네 가지 가치는 이렇습니다.
+>
+> - 공정과 도구보다 **개인과 상호작용**을
+> - 포괄적인 문서보다 **작동하는 소프트웨어**를
+> - 계약 협상보다 **고객과의 협력**을
+> - 계획을 따르기보다 **변화에 대응하기**를
+>
+> (왼쪽에 있는 것도 가치가 있지만, 오른쪽을 더 높게 가치 있게 여긴다고 덧붙였습니다.) DevOps는 이 애자일의 정신을 **개발팀 바깥, 운영과 배포까지** 넓힌 것이라고 볼 수 있습니다.
+>
+> - Royce, W. W. (1970). Managing the development of large software systems. *Proceedings of IEEE WESCON*.
+> - Beck, K. et al. (2001). *Manifesto for Agile Software Development*. agilemanifesto.org
 
-| 관찰 항목 | 질문 | 예시 |
+## CI — 지속적 통합 (Continuous Integration)
+
+여러 개발자가 같은 코드를 고치다가 몇 주 만에 합치면, 서로 충돌해서 합치는 데만 며칠이 걸리곤 했습니다. 이것을 **통합 지옥(integration hell)**이라고 불렀습니다.
+
+**CI(지속적 통합)**는 개발자가 코드를 **하루에도 여러 번 자주** 공용 저장소에 합치고, 합칠 때마다 **자동으로 빌드하고 테스트**하는 방식입니다. 문제가 생기면 몇 분 안에 알 수 있고, 방금 바꾼 작은 부분만 보면 되므로 고치기도 쉽습니다.
+
+## CD — 지속적 전달과 지속적 배포
+
+| 용어 | 뜻 | 사람의 역할 |
 |---|---|---|
-| 실행 파일 | DB 프로그램은 어디에 설치되었는가? | `/usr/bin`, Homebrew 경로 |
-| service | DB가 백그라운드에서 실행되는가? | `postgresql`, `postgresql@16` |
-| port | 클라이언트가 어디로 접속하는가? | `5432` |
-| account | 어떤 계정으로 접속하는가? | `postgres`, `devuser` |
-| password | 비밀번호 인증이 되는가? | `devpass` |
-| data path | 데이터는 어디에 저장되는가? | `/var/lib/postgresql/...` |
-| config | 설정 파일은 어디에 있는가? | `postgresql.conf` |
+| **지속적 전달** (Continuous Delivery) | 테스트를 통과한 코드는 **언제든 배포할 수 있는 상태**로 준비 | 운영 배포 버튼은 **사람이 누른다** |
+| **지속적 배포** (Continuous Deployment) | 테스트를 통과하면 **운영까지 자동으로** 배포 | 사람이 개입하지 않는다 |
 
-학생에게 다음 질문을 던진다.
+둘 다 줄여서 CD라고 부르므로, 대화할 때는 어느 쪽인지 확인하는 것이 좋습니다.
 
-```text
-내가 프로젝트 폴더를 삭제하면 DB 데이터도 같이 삭제될까?
-DB 프로그램을 삭제하면 DB 데이터도 항상 같이 삭제될까?
-다른 프로젝트가 같은 port를 쓰면 어떻게 될까?
-비밀번호가 맞지 않으면 앱에서는 어떤 오류가 날까?
-```
+## CI/CD 파이프라인
 
-## 직접 설치 방식의 장점도 말한다
-Docker로 넘어가기 위한 수업이라고 해서 직접 설치를 나쁘게만 말하지 않는다.
+![CI/CD 파이프라인 — 커밋에서 운영 배포까지](../../v3/assets/week1/day5/w1d5-cicd.png)
 
-| 장점 | 설명 |
-|---|---|
-| OS와 직접 통합 | service, log, client 도구를 그대로 쓸 수 있다. |
-| 성능과 경로 확인이 쉽다 | 실제 로컬 디스크와 프로세스를 직접 본다. |
-| 기초 개념을 배운다 | port, process, account, data path를 몸으로 익힌다. |
+| 단계 | 하는 일 | 실패하면 | 이 과정에서 |
+|---|---|---|---|
+| ① 커밋·푸시 | 개발자가 코드를 저장소에 올린다 | — | 3교시 Git |
+| ② 빌드 | 코드를 실행 가능한 형태로 만든다 | 컴파일 에러 | 2주차 `docker build` |
+| ③ 테스트 | 자동 테스트를 돌린다 | 기능 버그 | 3주차 GitHub Actions |
+| ④ 보안 검사 | 취약점, 비밀값 유출 검사 | 보안 위험 | 3주차 이미지 스캔 |
+| ⑤ 이미지 저장 | 결과물을 저장소에 보관 | — | 2주차 레지스트리 |
+| ⑥ 배포 | 테스트 → 스테이징 → 운영 | 장애 → **되돌리기** | 4주차 Argo CD |
 
-다만 협업과 반복 실습에서는 부담이 커진다.
+> [!IMPORTANT]
+> **파이프라인은 '품질 관문'의 연속**
+>
+> 파이프라인의 각 단계는 **관문(gate)**입니다. 앞 단계를 통과하지 못하면 다음으로 갈 수 없습니다. 사람이 매번 "테스트 돌렸어?" "보안 검사 했어?"를 확인하는 대신, 기계가 **매번, 똑같이, 빠짐없이** 확인합니다. 그제 배운 **종료 코드**를 기억하세요. 파이프라인은 각 단계 명령의 종료 코드가 0이면 다음으로, 0이 아니면 멈춥니다. "자동화는 이 숫자만 본다"는 말의 실제 모습입니다.
 
-```text
-모두가 같은 버전으로 설치했는가?
-모두가 같은 port를 쓰는가?
-데이터 폴더가 섞이지 않았는가?
-삭제할 때 무엇을 지워야 하는가?
-```
+> **🎓 학술 노트 — CI와 CD의 정리 (Fowler 2000/2006, Humble & Farley 2010)**
+>
+> CI는 1990년대 후반 켄트 벡(Kent Beck)의 **익스트림 프로그래밍(XP)**에서 실천법으로 등장했고, 마틴 파울러(Martin Fowler)가 2000년 처음 쓰고 2006년 개정한 글 「Continuous Integration」으로 널리 정리되었습니다. 파울러는 "모든 사람이 매일 메인 라인에 커밋한다", "모든 커밋은 빌드되어야 한다", "깨진 빌드는 즉시 고친다" 같은 실천법을 제시했습니다.
+>
+> 제즈 험블(Jez Humble)과 데이비드 팔리(David Farley)는 2010년 책 『Continuous Delivery』에서 이를 배포까지 확장하고 **배포 파이프라인**이라는 개념을 체계화했습니다. 핵심 주장은 **"배포가 고통스럽다면, 더 자주 하라"**입니다. 자주 하면 한 번에 바뀌는 양이 작아지고, 자동화하지 않을 수 없게 되며, 결국 배포가 지루할 만큼 평범한 일이 됩니다.
+>
+> - Fowler, M. (2006). *Continuous Integration*. martinfowler.com
+> - Humble, J., & Farley, D. (2010). *Continuous Delivery*. Addison-Wesley.
 
-## 학생 활동
-각자 자기 컴퓨터에서 관찰한 내용을 적는다.
+> **📈 트렌드 — 공급망 보안이 파이프라인에 들어온다**
+>
+> 최근 파이프라인에서 가장 빠르게 커지는 단계는 **보안**입니다. 1일차에 본 연구처럼 AI가 존재하지 않는 패키지 이름을 지어내기도 하고(패키지 환각), 유명 오픈소스 패키지에 악성 코드가 숨어 들어가는 **공급망 공격**도 늘고 있습니다. 그래서 "이 결과물이 어떤 재료로, 어떤 과정을 거쳐 만들어졌는지"를 기록하는 **SBOM(소프트웨어 자재 명세서)**, 결과물에 **서명**해 위변조를 막는 기술, 빌드 과정의 신뢰 수준을 정의한 **SLSA** 같은 표준이 파이프라인의 기본 단계로 자리 잡고 있습니다. 보안을 마지막에 따로 하지 않고 파이프라인 안에 일찍 넣는 것을 **"시프트 레프트(shift left)"**라고 부릅니다.
 
-```text
-내 OS:
-설치한 DB:
-service 이름:
-상태 확인 명령:
-기본 port:
-접속 계정:
-접속 비밀번호 확인 여부:
-접속 확인 명령:
-접속한 DB 이름:
-데이터가 남는 위치:
-막힌 단계:
-오류 메시지:
-```
+## 정리
 
-설치가 실패한 학생은 실패 기록을 완성하면 된다. 실패 기록도 좋은 산출물이다.
+- **SDLC**는 계획 → 설계 → 개발 → 테스트 → 배포 → 운영 → 피드백의 반복입니다.
+- **폭포수**는 한 번에 크게, **애자일**은 작게 자주. 애자일 선언은 2001년입니다.
+- **CI**는 자주 합치고 매번 자동으로 빌드·테스트하는 것입니다.
+- **CD**는 언제든 배포할 수 있는 상태(전달) 또는 자동 운영 배포(배포)입니다.
+- 파이프라인은 **종료 코드로 움직이는 품질 관문**의 연속이며, 보안이 점점 앞으로 들어오고 있습니다.
 
-## Docker 연결
-오늘의 결론은 다음이다.
+> **✅ 확인 문제**
+>
+> 1. 폭포수와 애자일의 가장 큰 차이를 한 문장으로 말해 보세요.
+> 2. 여러 사람이 몇 주 만에 코드를 합칠 때 생기던 문제를 무엇이라고 불렀나요?
+> 3. 지속적 전달과 지속적 배포의 차이는?
+> 4. 파이프라인은 각 단계의 성공과 실패를 무엇으로 판단하나요?
+> 5. "배포가 고통스럽다면 ○○ ○○ 하라" — 빈칸은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 폭포수는 단계를 한 번씩 순서대로 거쳐 마지막에 크게 배포하고, 애자일은 짧은 주기를 반복하며 작게 자주 배포한다
+> 2. 통합 지옥(integration hell)
+> 3. 전달은 운영 배포를 사람이 결정하고, 배포는 운영까지 자동으로 나간다
+> 4. 각 단계 명령의 종료 코드(0이면 성공)
+> 5. 더 자주
+>
+> </details>
 
-```text
-DB를 직접 설치해 보니 DB는 OS에 service, port, account, data, config를 남긴다.
-앱이 DB에 연결되려면 host, port, user, password, database가 모두 맞아야 한다.
-Docker는 이 조건들을 container, port binding, volume, env로 더 명시적으로 다루게 해 준다.
-```
+## 참고 문헌
 
-## 마무리 체크
-학생이 말할 수 있어야 하는 문장:
+- Royce, W. W. (1970). Managing the development of large software systems. *IEEE WESCON*.
+- Beck, K. et al. (2001). *Manifesto for Agile Software Development*.
+- Fowler, M. (2006). *Continuous Integration*. martinfowler.com/articles/continuousIntegration.html
+- Humble, J., & Farley, D. (2010). *Continuous Delivery*. Addison-Wesley.
+- OpenSSF. *SLSA — Supply-chain Levels for Software Artifacts*. slsa.dev
 
-```text
-DB 설치는 프로그램 하나를 추가하는 일이 아니라 실행 서비스, 포트, 계정, 비밀번호, 데이터 폴더, 설정 파일을 로컬 환경에 만드는 일이다.
-DB 연결 확인은 실제 계정과 비밀번호로 `psql -h localhost -p 5432 -U devuser -d appdb`에 접속해 검증한다.
-```
+---
+
+⬅️ 이전: [1교시 · DevOps는 왜 생겼나](lesson-01.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Git과 GitHub 맛보기 (강사 시연)](lesson-03.md) ➡️

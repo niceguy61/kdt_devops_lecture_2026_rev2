@@ -1,300 +1,154 @@
-# 7교시: Mesh Traffic 확인
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
 
-![Week 4 Day 5 Lesson 7](./assets/lesson-07-mesh-traffic-kiali.png)
+# 7교시 · 4주차 회고 + 보안 점검표
 
-## 수업 목표
-- sidecar가 붙은 sample app을 실행한다.
-- Kiali graph에서 service-to-service traffic을 확인한다.
-- VirtualService로 지연 주입을 걸고 관찰 지점을 정리한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 4주차에 만든 것을 **한 장의 그림**으로 정리합니다.
+> - **보안 점검표**를 채우고 빈 곳을 Try로 옮깁니다.
+> - KPT로 회고하고, 숫자로 한 주를 봅니다.
+> - 5주차(AWS)로 무엇을 가져가는지 정리합니다.
 
-## 수업 순서와 필수·선택 경계
+## 정리 먼저
 
-필수 실습은 작은 경로 하나로 닫는다.
-
-```text
-namespace injection → Pod 2/2 확인 → frontend → api 요청 → app log와 proxy log 비교
-```
-
-이 경로를 완료한 뒤에만 선택 심화를 연다. MSA 6-service graph, Prometheus scrape helper, Kiali graph 확장, VirtualService fault injection은 모두 선택 preview이며 lesson 통과 조건이 아니다. 선택 심화도 한 번에 모두 수행하지 않고 다음 중 하나만 고른다: `Kiali graph`, `MSA graph`, `fault injection`.
-
-## sample app 구조
-먼저 아주 단순한 구조로 sidecar와 graph가 보이는지 확인한다.
-
-```text
-mesh-frontend
-  -> mesh-api
-```
-
-`mesh-frontend`는 반복적으로 `mesh-api`에 요청한다. 그래야 Kiali graph와 Envoy access log에서 traffic이 보인다.
-
-그 다음 MSA 형태의 샘플을 실행한다.
-
-```text
-frontend
-  -> bff
-      -> catalog
-      -> inventory
-      -> order
-          -> inventory
-          -> payment
-```
-
-이 구조는 "mesh가 왜 필요한가"를 더 잘 보여준다. 서비스가 2개일 때는 proxy graph가 단순하지만, MSA에서는 한 요청이 여러 서비스로 퍼지고 특정 서비스의 지연이 전체 응답에 영향을 준다.
-
-## manifest 확인
 ```bash
-find week4/day5/labs/mesh-app -type f | sort
+kubectl delete pod client -n devmart
+kubectl delete namespace outsider
+kubectl delete pod plain -n default --ignore-not-found
 ```
 
-구성:
-| 파일 | 역할 |
+## 4주차 한 장 — 요청 하나와 변경 하나
+
+| | 요청 하나 (손님이 주문) | 변경 하나 (개발자가 2.1.0 배포) |
+|---|---|---|
+| 1 | 입구 **Gateway**(1일차) — /api/orders → order-api | PR → CI 테스트 · 빌드 → GHCR (3주차 · 3일차) |
+| 2 | ztunnel이 **mTLS**로 감싸 order-api로 (4일차) | CI 봇이 배포 저장소에 태그 커밋 (3일차) |
+| 3 | order-api → catalog-api: waypoint가 **order-api인지** 확인, 타임아웃 · 재시도 (4 · 5일차) | Argo CD가 당겨 와 apiserver로 (3일차) |
+| 4 | ztunnel(L4)이 waypoint인지 확인 → catalog-api (5일차) | **RBAC**: Argo CD SA는 쓸 수 있다 (5일차) |
+| 5 | Envoy · waypoint가 요청 수 · 오류 · 시간을 남긴다 → **Prometheus · Grafana · 알림** (2일차) | **Kyverno**: latest가 아닌가, limits는 (5일차) |
+| 6 | 이상하면 런북 (2일차) | 롤링 업데이트, 문제면 `git revert` (3일차) |
+
+1일차의 Helm이 이 모든 도구(Envoy Gateway · kube-prometheus-stack · Argo CD · Istio · Kiali · Kyverno)를 설치한 방법이었습니다.
+
+## 실습 14 · 보안 점검표
+
+```bash
+cd ~/devops-lab/k8s/w4d5
+cat security-checklist.md
+```
+
+각 줄의 **근거** 칸에 적힌 명령으로 직접 확인하고 `지금` 칸에 ✓ · △ · ✗를 적습니다.
+
+```bash
+kubectl auth can-i create deployments -n devmart --as=jane --as-group=devmart-devs
+grep -rniE "password|secret_key|token" ~/devmart-deploy/devmart --include=*.yaml | grep -v secretKeyRef | grep -v "^.*#" || echo "비밀 값 없음"
+kubectl get sa -n devmart
+kubectl get peerauthentication,authorizationpolicy -n devmart
+kubectl get policyreport -n devmart -o wide
+```
+
+> **🟢 확인: 대표적인 결과**
+>
+> | 항목 | 지금 |
+> |---|---|
+> | latest 금지 | ✓ Deny |
+> | root 금지 | △ Audit — 6개 모두 FAIL |
+> | 사람은 읽기만 | ✓ (`no`) |
+> | 비밀 값은 Git에 없다 | ✓ |
+> | 서비스마다 SA | △ 셋만 (db · redis · web은 default) |
+> | mTLS STRICT · catalog-api 허가 | ✓ — 다른 서비스(db · redis)는 허가 규칙 없음 △ |
+> | 입구 TLS | ✗ (http만) |
+
+△ · ✗ 줄이 Try 후보입니다. 모두 고칠 필요는 없습니다 — **무엇이 비어 있는지 알고 있다**는 것이 점검표의 목적입니다.
+
+## 실습 15 · KPT 회고
+
+```bash
+cat retro-week4.md
+```
+
+3주차 5일차와 같은 방법입니다. 혼자 5분 적고 → 짝과 5분 나누고 → 반 전체에서 Try 하나씩.
+
+"숫자로 본 한 주"는 지난 사흘의 배움일기에서 옮깁니다 — 합치기 → 반영 시간, revert → 복구 시간, 오늘 훈련에서 알아채기까지의 시간, 클러스터 전체 메모리(Grafana의 Nodes 대시보드).
+
+> [!TIP]
+> **좋은 Try의 모양**
+>
+> "보안을 더 신경 쓴다"는 Try가 아닙니다. "**db · redis에 ServiceAccount와 L4 허가 규칙을 커밋한다 — catalog-l4.yaml을 본떠서**"처럼 다음 주에 **한 번에 끝낼 수 있는 행동**이어야 합니다(3주차 5일차).
+
+## '5분 복구' — 4주차 최종판
+
+클러스터가 통째로 사라졌을 때의 순서입니다. 각자의 `~/devops-lab/k8s/RECOVERY.md`에 옮겨 적습니다.
+
+| 순서 | 명령 | 출처 |
+|---|---|---|
+| 1 | `kind create cluster --config kind-devmart.yaml` | 3주차 3일차 |
+| 2 | Secret: `devmart-db`, `grafana-admin` (`kubectl create secret`) | 3주차 5일차 · 2일차 |
+| 3 | `helm install` — Envoy Gateway → kps → Istio 네 차트 → Kiali → Kyverno → Argo CD (VERSIONS.txt의 버전으로) | 1~5일차 |
+| 4 | 플랫폼 `apply` — GatewayClass · EnvoyProxy · Gateway, PodMonitor들, RBAC, Kyverno 정책, envoy-gateway-system 라벨 | `platform-changes.md` |
+| 5 | `kubectl apply -f devmart-app-auto.yaml` | 3일차 |
+| 6 | 나머지는 Argo CD가 배포 저장소에서 | |
+
+> [!WARNING]
+> **4번이 가장 길다**
+>
+> 배포 저장소 덕분에 앱은 한 줄(5번)이지만, **플랫폼은 여전히 손으로** 여러 줄입니다. 이 표의 4번을 줄이는 것 — 플랫폼도 Git과 Argo CD로(app of apps, 3일차 7교시) — 이 실무 플랫폼 팀의 일입니다. 5주차에는 **Terraform**으로 1번(클러스터 자체)까지 코드로 만듭니다.
+
+## 5주차로 가져가는 것
+
+| 4주차 (kind) | 5주차 (AWS) |
 |---|---|
-| `namespace.yaml` | `istio-injection=enabled` namespace |
-| `deployments.yaml` | frontend/api workload |
-| `services.yaml` | api Service |
-| `virtualservice-preview.yaml` | fault injection preview |
+| kind 클러스터 — 내 노트북 | **EKS** — 각자의 AWS 계정, 실습 당일 만들고 당일 지운다 |
+| NodePort 30080 | **ALB** (AWS 로드 밸런서) |
+| PVC — 노드 디스크 | EBS · RDS |
+| 클러스터를 손으로 만든다 | **Terraform** — 네트워크 · 클러스터를 코드로 |
+| SA 토큰 · SPIFFE | **IAM 역할**과 Pod Identity |
+| 배포 저장소 + Argo CD | 그대로 — **destination만 EKS로** |
 
-MSA 샘플:
-```bash
-find week4/day5/labs/mesh-msa-app -type f | sort
-```
+마지막 줄이 4주차의 핵심입니다. 앱의 원하는 상태(배포 저장소)는 클러스터가 바뀌어도 그대로 갑니다.
 
-구성:
-| 파일 | 역할 |
-|---|---|
-| `namespace.yaml` | `istio-injection=enabled` namespace |
-| `deployments.yaml` | frontend, bff, catalog, inventory, order, payment |
-| `services.yaml` | 각 workload 앞의 ClusterIP Service |
-| `virtualservice-order-delay.yaml` | order 서비스 지연 주입 preview |
+> **🎓 학술 노트 — 보안은 성질이 아니라 과정**
+>
+> Schneier는 *Secrets and Lies*(2000)에서 "보안은 제품이 아니라 **과정**"이라고 썼습니다. 오늘의 점검표가 ✓로 가득 차도, 내일 새 서비스가 들어오면 다시 빈 곳이 생깁니다. 그래서 4주차의 장치들 — 정책을 Audit로 넣어 **보고서로 계속 보기**, 변경을 **PR로 리뷰하기**, 장애 훈련을 **반복하기** — 은 상태가 아니라 과정을 만드는 도구입니다. NIST의 Cybersecurity Framework 2.0(2024)이 '식별 · 보호 · 탐지 · 대응 · 복구'에 '**거버넌스**'를 더한 것도 같은 이유입니다.
 
-## 배포
-```bash
-kubectl apply -f week4/day5/labs/mesh-app/namespace.yaml
-kubectl apply -f week4/day5/labs/mesh-app/deployments.yaml
-kubectl apply -f week4/day5/labs/mesh-app/services.yaml
-```
+> **📈 트렌드 2026 — 공급망 보안**
+>
+> 2026년 보안 논의의 중심은 "내 클러스터에 들어오는 이미지가 **정말 내 CI가 만든 것인가**"입니다. 이미지 서명(Sigstore cosign)과 빌드 증명(SLSA provenance)을 CI에서 만들고, Kyverno의 `ImageValidatingPolicy`로 **서명이 없는 이미지는 입장 거절**하는 구성이 표준이 되어 가고 있습니다. 3주차 2일차의 CI에 서명 단계를 더하는 것이 다음 걸음입니다.
 
-확인:
-```bash
-kubectl -n mesh-demo get pods
-kubectl -n mesh-demo get svc
-```
+> **✅ 확인 문제**
+>
+> 1. 손님의 주문 요청 하나가 4주차의 어느 장치들을 지나가나요? 셋 이상.
+> 2. 변경 하나(2.1.0 배포)를 막을 수 있는 관문 셋은?
+> 3. '5분 복구'에서 가장 긴 단계와 그것을 줄이는 방법은?
+> 4. 5주차에 EKS로 옮겨도 그대로 가져가는 것은?
+>
+> <details><summary>정답</summary>
+>
+> 1. Gateway, ztunnel(mTLS · L4 허가), waypoint(L7 허가 · 타임아웃 · 재시도), Prometheus · Grafana · 알림 중 셋 이상
+> 2. PR 리뷰 · CI 테스트, apiserver RBAC, Kyverno 입장 제어
+> 3. 플랫폼 설치 · apply 단계. 플랫폼도 Git과 Argo CD(app of apps)로, 클러스터는 Terraform으로
+> 4. 배포 저장소(원하는 상태)와 Argo CD 방식 — destination만 바꾼다
+>
+> </details>
 
-정상 기준:
-```text
-READY 2/2
-```
+> [!NOTE]
+> **오늘의 배움일기 — 4주차 마지막**
+>
+> - 세 관문(인증 · 인가 · 입장 제어)을 오늘 본 메시지 하나씩과 함께
+> - 3교시에 order-api에서 사라진 토큰 — 그것이 있었을 때 무엇이 위험했나
+> - L7 규칙과 L4 규칙이 각각 막은 것
+> - 종합 훈련에서 내가 맡은 장애: 알아채기까지 · 복구까지 걸린 시간, 그리고 '누가 거절했나'
+> - 4주차 전체에서 가장 "운영을 바꿨다"고 느낀 하루와 그 이유
+> - 다음 주 전에 궁금한 것: 지금까지 클러스터는 내 노트북 안에 있었다. **클라우드의 클러스터는 누가, 어떤 네트워크 위에, 얼마의 비용으로** 만드는가?
 
-`1/1`이면 sidecar injection이 안 된 것이다. namespace label과 Pod 생성 시점을 다시 본다.
+## 참고 문헌
 
-## 로그 확인
-앱 container 로그:
-```bash
-kubectl -n mesh-demo logs deploy/mesh-frontend -c frontend --tail=20
-```
+- Schneier, B. (2000). *Secrets and Lies: Digital Security in a Networked World*. Wiley.
+- NIST (2024). *The NIST Cybersecurity Framework (CSF) 2.0*. NIST CSWP 29.
+- Sigstore Docs. *cosign*, SLSA. *Supply-chain Levels for Software Artifacts v1.1*. slsa.dev
+- Kyverno Docs. *ImageValidatingPolicy*. kyverno.io/docs
 
-proxy 로그:
-```bash
-kubectl -n mesh-demo logs deploy/mesh-frontend -c istio-proxy --tail=20
-kubectl -n mesh-demo logs deploy/mesh-api -c istio-proxy --tail=20
-```
+---
 
-앱 로그와 proxy 로그는 성격이 다르다.
-
-| 로그 | 의미 |
-|---|---|
-| app container log | 애플리케이션이 남긴 로그 |
-| istio-proxy log | proxy가 본 network request log |
-
-백엔드 앱이 정상이어도 proxy 로그에서 timeout, reset, routing 문제를 볼 수 있다.
-
-## Kiali graph 확인
-```bash
-kubectl -n istio-system port-forward svc/kiali 20001:20001
-```
-
-브라우저에서:
-```text
-http://localhost:20001
-```
-
-확인 순서:
-| 위치 | 확인 |
-|---|---|
-| Namespace | `mesh-demo` 선택 |
-| Graph | `mesh-frontend -> mesh-api` edge |
-| Edge label | request rate, response code |
-| Workloads | sidecar 있음 |
-| Services | mesh-api traffic |
-
-Graph가 안 보이면 frontend가 실제로 요청을 보내고 있는지 로그부터 확인한다.
-
-## Kiali graph가 비어 있을 때
-이 예제는 `frontend` Deployment 안의 `traffic-generator` 컨테이너가 내부 요청을 자동으로 만듭니다. 그래서 먼저 “트래픽이 없는 문제”와 “Prometheus 수집 문제”를 분리해서 봅니다.
-
-트래픽 생성 확인:
-```bash
-kubectl -n mesh-msa-demo logs deploy/frontend -c traffic-generator --tail=20
-kubectl -n mesh-msa-demo logs deploy/frontend -c istio-proxy --tail=20
-kubectl -n mesh-msa-demo logs deploy/bff -c istio-proxy --tail=20
-```
-
-proxy log에 `frontend -> bff`, `bff -> catalog/inventory/order` 요청이 보이는데 Kiali graph가 비어 있으면 Prometheus가 Istio sidecar metric을 scrape하지 못하는 상태일 수 있다. 이때 다음 helper를 적용한다.
-
-```bash
-bash week4/day5/labs/istio/enable-istio-prometheus-scrape.sh
-```
-
-30-60초 기다린 뒤 Prometheus metric을 확인한다.
-
-```bash
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
-```
-
-Prometheus query:
-```text
-http://localhost:9090/api/v1/query?query=istio_requests_total
-```
-
-기대 evidence:
-```text
-frontend -> bff
-bff -> catalog
-bff -> inventory
-bff -> order
-```
-
-Kiali에서는 namespace를 `mesh-msa-demo`로 선택하고 graph range를 `Last 5m` 또는 `Last 10m`로 둔 뒤 refresh한다.
-
-## MSA mesh sample 배포
-단순 예제가 보이면 MSA 샘플을 배포한다.
-
-```bash
-kubectl apply -f week4/day5/labs/mesh-msa-app/namespace.yaml
-kubectl apply -f week4/day5/labs/mesh-msa-app/deployments.yaml
-kubectl apply -f week4/day5/labs/mesh-msa-app/services.yaml
-```
-
-확인:
-```bash
-kubectl -n mesh-msa-demo get pods
-kubectl -n mesh-msa-demo get svc
-```
-
-정상 기준:
-```text
-frontend-...    2/2
-bff-...         2/2
-catalog-...     2/2
-inventory-...   2/2
-order-...       2/2
-payment-...     2/2
-```
-
-traffic generator 로그:
-```bash
-kubectl -n mesh-msa-demo logs deploy/frontend -c traffic-generator --tail=20
-```
-
-Kiali에서 `mesh-msa-demo` namespace를 선택한다. 기대 graph는 다음과 같다.
-
-| Edge | 의미 |
-|---|---|
-| `frontend -> bff` | 사용자 진입점 |
-| `bff -> catalog` | 상품 목록 조회 |
-| `bff -> inventory` | 재고 조회 |
-| `bff -> order` | 주문 API 호출 |
-| `order -> inventory` | 주문 처리 중 재고 확인 |
-| `order -> payment` | 결제 승인 호출 |
-
-이 graph를 보면 어떤 서비스가 upstream이고 downstream인지, 한 서비스 지연이 어떤 경로로 전파되는지 설명할 수 있다.
-
-## fault injection preview
-VirtualService를 적용하면 일부 요청에 지연을 넣을 수 있다.
-
-```bash
-kubectl apply -f week4/day5/labs/mesh-app/virtualservice-preview.yaml
-```
-
-파일 핵심:
-```yaml
-fault:
-  delay:
-    percentage:
-      value: 20
-    fixedDelay: 2s
-```
-
-이 설정은 mesh-api로 가는 요청 중 일부를 2초 늦춘다.
-
-확인:
-```bash
-kubectl -n mesh-demo get virtualservice
-kubectl -n mesh-demo logs deploy/mesh-frontend -c frontend --tail=40
-```
-
-Kiali graph에서도 response time이 달라지는지 확인한다.
-
-MSA 샘플에서는 order 서비스에 지연을 넣는다.
-
-```bash
-kubectl apply -f week4/day5/labs/mesh-msa-app/virtualservice-order-delay.yaml
-kubectl -n mesh-msa-demo get virtualservice
-kubectl -n mesh-msa-demo logs deploy/frontend -c traffic-generator --tail=40
-```
-
-Kiali에서 `frontend -> bff -> order` 경로의 latency 변화를 확인한다. 이때 `catalog` 경로와 `order` 경로의 차이를 비교하면 mesh traffic policy가 어느 호출 경로에 영향을 주는지 이해하기 쉽다.
-
-## Troubleshooting
-| 증상 | 확인 |
-|---|---|
-| Pod가 `1/1` | namespace label, Pod 재생성 |
-| Graph가 비어 있음 | traffic 발생 여부, Prometheus, namespace 선택 |
-| Kiali 접속 실패 | port-forward service/namespace |
-| VirtualService 효과 없음 | host 이름, namespace, CRD 설치 |
-| 요청은 되는데 graph 없음 | Prometheus scrape 지연 |
-| MSA graph edge 일부만 보임 | 해당 경로 요청이 아직 충분히 발생하지 않음 |
-| MSA Pod가 `1/1` | namespace label 적용 전 Pod 생성, 재생성 필요 |
-
-## Cleanup
-```bash
-kubectl delete -f week4/day5/labs/mesh-app/virtualservice-preview.yaml --ignore-not-found
-kubectl delete -f week4/day5/labs/mesh-app/services.yaml
-kubectl delete -f week4/day5/labs/mesh-app/deployments.yaml
-kubectl delete -f week4/day5/labs/mesh-app/namespace.yaml
-kubectl delete -f week4/day5/labs/mesh-msa-app/virtualservice-order-delay.yaml --ignore-not-found
-kubectl delete namespace mesh-msa-demo --ignore-not-found
-```
-
-## Evidence Note
-```markdown
-# W4D5S7 Mesh traffic
-- Pod READY:
-- frontend app log:
-- frontend istio-proxy log:
-- Kiali graph edge:
-- MSA graph edges:
-- VirtualService 적용 여부:
-- delay 관찰 결과:
-```
-
-## 한 줄 요약
-```text
-Mesh traffic 확인은 Pod 2/2, app log, proxy log, MSA graph, traffic policy 효과를 순서대로 보는 것이다.
-```
-
-
-## 학습 제어
-### 시작 3분 회상
-- GitOps drift 복구 evidence를 먼저 확보했는가?
-- mesh traffic에서 app log와 istio-proxy log, Kiali graph는 각각 무엇을 증명하는가?
-### 오늘 반드시 가져갈 것
-- app log는 업무 처리, proxy log는 network request, Kiali graph는 관찰된 edge의 evidence다.
-- fault injection은 mesh 운영 질문을 실험하는 선택 preview이지 GitOps 복구 기준이 아니다.
-### 최소 복구 경로
-- Git desired state/Application sync/health/drift 복구를 먼저 확인한다 → 선택으로 Pod 2/2와 app/proxy logs를 본다 → traffic/Kiali/fault 효과를 비교한다.
-- 성공 판정은 각 log 성격과 traffic edge를 구분하는 것이다. 첫 실패는 GitOps conditions, mesh는 traffic generator와 proxy logs에서 찾는다.
-- 다음 lesson 진입 조건은 필수와 선택 결과를 별도 표로 기록하는 것이다.
-
-### W4D5 범위 경계
-lesson 5~7 mesh 주제는 **GitOps 필수 경로 완료 후 선택 심화**다. Istio/Kiali/sidecar/mTLS/fault injection을 완료하지 않아도 GitOps 필수 학습은 통과할 수 있다.
+⬅️ 이전: [6교시 · 4주차 종합 장애 훈련](lesson-06.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [5주차 1일차 목차](../../week5/day1/README.md) ➡️

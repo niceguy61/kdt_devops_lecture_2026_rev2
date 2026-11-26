@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+
 # 6교시 · Docker Desktop 설치
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 `docker` 명령 하나만 보이지만, 뒤에서는 여러 부품이 함께 일합니다.
 
-![Docker의 구조 — 내가 입력하는 CLI, 실제 일을 하는 엔진, 이미지를 내려받는 레지스트리](../../assets/week2/day1/w2d1-docker-arch.png)
+![Docker의 구조 — 내가 입력하는 CLI, 실제 일을 하는 엔진, 이미지를 내려받는 레지스트리](../../v3/assets/week2/day1/w2d1-docker-arch.png)
 
 | 부품 | 하는 일 | 비유 |
 |---|---|---|
@@ -36,6 +38,12 @@
 ### 단계 1 — 설치 파일 받기
 
 [docs.docker.com/desktop/setup/install/windows-install](https://docs.docker.com/desktop/setup/install/windows-install/)에서 **Docker Desktop for Windows - x86_64**를 받습니다. (ARM 노트북이라면 Arm 버전)
+
+또는 **PowerShell**에서 winget으로 받아 설치할 수 있습니다(설치 마법사가 뜨면 단계 2와 같이 진행).
+
+```powershell
+winget install -e --id Docker.DockerDesktop
+```
 
 > [!WARNING]
 > **WSL 안에 Docker를 따로 설치하지 마세요**
@@ -214,3 +222,7 @@ Docker는 노트북의 메모리를 나눠 씁니다. 이번 주 실습은 **메
 - Open Container Initiative. *About the OCI*. opencontainers.org
 - Merkel, D. (2014). Docker: Lightweight Linux containers for consistent development and deployment. *Linux Journal*, 2014(239).
 - Stack Overflow (2026). *2026 Developer Survey — Technology*. survey.stackoverflow.co
+
+---
+
+⬅️ 이전: [5교시 · 첫 저장소 — commit과 push](lesson-05.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 설치 점검과 문제 해결](lesson-07.md) ➡️

@@ -1,7 +1,0 @@
-deployment:
-  replicas: 1
-config:
-  envoyGateway:
-    logging:
-      level:
-        default: info

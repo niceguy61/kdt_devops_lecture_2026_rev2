@@ -153,7 +153,7 @@ jobs:
 cd ~/devops-lab
 git switch main && git pull
 git switch -c ci/devmart-tests
-cp ~/course/v3/labs/week3/day2/.github/workflows/devmart-ci.yml .github/workflows/
+cp ~/course/labs/week3/day2/.github/workflows/devmart-ci.yml .github/workflows/
 git add .github/workflows/devmart-ci.yml
 git commit -m "CI: DevMart 테스트 · compose 검사 · 이미지 빌드"
 git push -u origin ci/devmart-tests

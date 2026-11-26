@@ -1,0 +1,89 @@
+# 2교시: 개발자가 많이 쓰는 GitHub 흐름
+
+![Week 3 Day 3 Lesson 2](./assets/lesson-02-github-developer-flow.png)
+
+## 수업 목표
+- 개발자가 GitHub에서 issue, branch, PR, review를 어떻게 쓰는지 설명한다.
+- 작은 PR과 code review가 왜 중요한지 이해한다.
+- GitHub Flow를 기본 협업 모델로 설명한다.
+
+## 개발자의 기본 흐름
+```text
+issue 확인
+  -> branch 생성
+  -> code 변경
+  -> commit/push
+  -> pull request
+  -> review
+  -> status check
+  -> merge
+```
+
+## GitHub Flow
+| 단계 | 설명 |
+|---|---|
+| main은 항상 배포 가능해야 한다 | 안정 branch |
+| branch는 짧게 유지한다 | 충돌과 drift 감소 |
+| PR은 작게 만든다 | review 가능성 증가 |
+| CI를 통과해야 merge한다 | 자동 gate |
+
+## PR에 들어갈 내용
+```markdown
+## What changed
+-
+
+## Why
+-
+
+## Verification
+-
+
+## Risk
+-
+```
+
+## 개발자 관점의 GitHub 기능
+| 기능 | 개발자 사용 |
+|---|---|
+| Issue | 작업 요구사항과 버그 기록 |
+| Pull Request | 코드 리뷰와 토론 |
+| Review comment | 코드 라인 단위 피드백 |
+| Status check | test/lint/build 결과 |
+| Code owner | 특정 파일 담당 reviewer 자동 지정 |
+
+## 나쁜 PR과 좋은 PR
+| 나쁜 PR | 좋은 PR |
+|---|---|
+| 여러 기능을 한 번에 수정 | 하나의 의도만 수정 |
+| 테스트 없음 | 실행한 검증 명령 포함 |
+| 제목이 `fix` | 변경 목적이 드러남 |
+| 큰 binary와 코드가 섞임 | 산출물과 코드 변경 분리 |
+
+## 핵심 포인트
+개발자가 GitHub를 잘 쓴다는 것은 commit을 많이 한다는 뜻이 아니다. 변경을 reviewer와 CI가 이해할 수 있는 단위로 쪼갠다는 뜻이다.
+
+## Evidence Note
+```markdown
+# W3D3S2 Developer GitHub Flow
+- issue:
+- branch:
+- PR title:
+- review point:
+- status check:
+```
+
+
+## 학습 제어
+### 시작 3분 회상
+- commit/branch가 변경 이력의 기준을 어떻게 보존하는가?
+- issue→branch→commit/push→PR→review→status check→merge 중 PR 뒤의 증거는 무엇인가?
+### 오늘 반드시 가져갈 것
+- PR은 코드 전달이 아니라 review와 CI 기준 상태를 함께 만드는 협업 계약이다.
+- merge의 안전성은 status check와 review evidence로 판단한다.
+### 최소 복구 경로
+- branch를 만들고 작은 commit을 push한다 → PR을 연다 → 실패 check의 로그를 기록한다.
+- 성공 판정은 review·check·merge 상태를 설명하는 것이다. 첫 실패는 PR check detail과 workflow log에서 찾는다.
+- 다음 lesson 진입 조건은 실패 증거를 로컬 수정으로 연결할 수 있는 것이다.
+
+### W3D3 필수 흐름
+`branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`을 필수로 수행한다. rebase/tag는 선택 심화다.

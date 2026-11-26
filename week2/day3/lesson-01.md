@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+
 # 1교시 · 이미지 레이어
 
 > [!NOTE]
@@ -32,7 +34,7 @@ docker rm -f warmup
 
 어제 `docker pull`에서 `Pull complete`가 여러 줄 나온 것을 기억하나요? 이미지는 **투명한 필름을 여러 장 겹친 것**과 같습니다. 각 필름(레이어)에는 "이전 층에서 무엇이 바뀌었나"만 담겨 있고, 위에서 내려다보면 하나의 완성된 파일 시스템으로 보입니다.
 
-![이미지 레이어 — 읽기 전용 층들이 쌓이고, 맨 위에 컨테이너마다 쓰기 가능한 층이 올라간다](../../assets/week2/day3/w2d3-layers.png)
+![이미지 레이어 — 읽기 전용 층들이 쌓이고, 맨 위에 컨테이너마다 쓰기 가능한 층이 올라간다](../../v3/assets/week2/day3/w2d3-layers.png)
 
 ## 실습 1 · 레이어 들여다보기
 
@@ -139,3 +141,7 @@ docker image history nginx:1.30-alpine
 - Pendry, J.-S., & McKusick, M. K. (1995). Union mounts in 4.4BSD-Lite. *USENIX 1995*.
 - Harter, T. et al. (2016). Slacker: Fast distribution with lazy Docker containers. *USENIX FAST '16*.
 - OCI. *Image Format Specification — Layer*. github.com/opencontainers/image-spec
+
+---
+
+⬅️ 이전: [2주차 3일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · DevMart API와 Dockerfile 문법](lesson-02.md) ➡️

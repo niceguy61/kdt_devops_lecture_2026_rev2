@@ -1,297 +1,265 @@
-# 2교시: Control Plane 밑바닥 - API Server, etcd, Scheduler, Controller
+[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [4일차](README.md)
 
-![Week 3 Day 4 Lesson 2](./assets/lesson-02-control-plane-internals.png)
+# 2교시 · 첫 Pod
 
-## 수업 목표
-- Kubernetes control plane을 구성하는 핵심 컴포넌트를 역할별로 설명한다.
-- `kubectl apply`가 실제로 container를 바로 실행하는 명령이 아니라 API object를 저장하는 요청임을 이해한다.
-- API Server, etcd, Scheduler, Controller Manager가 서로 어떻게 이어지는지 설명한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 매니페스트 한 장으로 catalog-api **Pod**를 만들고, 상태가 바뀌는 과정을 지켜봅니다.
+> - Pod의 IP · 노드 · Events · 로그를 읽습니다.
+> - `port-forward`로 내 노트북에서 Pod에 접속하고, `exec`로 Pod 안을 봅니다.
+> - Pod를 지우면 **아무도 되살려 주지 않는다**는 것을 확인합니다.
 
-## 수업 순서와 필수 범위
+## 매니페스트 읽기
 
-처음에는 세 층만 구분한다.
-
-```text
-kubectl = API client
-API Server = 요청을 받고 검증하는 입구
-etcd = cluster 상태 저장소
+```bash
+cat pod.yaml
 ```
 
-그 다음에 Scheduler는 배치, Controller는 상태 수렴, kubelet은 node 실행이라는 책임을 하나씩 추가한다. control plane node 선택 기준, etcd quorum, managed Kubernetes 비교는 운영 확장 설명이며 첫 번째 `kubectl apply` 흐름을 이해한 뒤 읽는다. 오늘의 첫 성공 기준은 container 실행이 아니라 “object 제출과 상태 저장을 구분해 설명하는 것”이다.
-
-## Control Plane이란
-control plane은 cluster의 두뇌라기보다 "상태 저장, 요청 접수, 배치 결정, 조정 loop"를 담당하는 관리 계층이다.
-
-```text
-kubectl
-  -> API Server
-    -> etcd에 desired state 저장
-    -> Scheduler가 Pod 배치 결정
-    -> Controller가 상태 차이 감시
-    -> kubelet이 node에서 Pod 실행
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: catalog-api
+  labels:
+    app: catalog-api
+spec:
+  containers:
+    - name: catalog-api
+      image: ghcr.io/niceguy61/devmart-catalog-api:sha-7f3c2e1
+      ports:
+        - containerPort: 8000
 ```
 
-예전 자료에서는 control plane node를 "master node"라고 부르는 경우가 많다. 지금은 master/slave 표현을 피하고, 공식 문서와 실무 문서에서도 보통 `control plane node`라는 표현을 사용한다. 수업에서는 "master node"라는 말을 들으면 "control plane 역할을 수행하는 node"로 해석한다.
+| 줄 | 뜻 | 2주차 Compose라면 |
+|---|---|---|
+| `apiVersion: v1` · `kind: Pod` | 가장 기본 묶음(core)의 Pod | — |
+| `metadata.name` | Pod 이름. 네임스페이스 안에서 하나뿐 | `services:` 아래 이름 |
+| `metadata.labels` | 꼬리표. 4 · 6교시에 Deployment와 Service가 이것으로 찾는다 | — |
+| `containers:` | 목록 — Pod 안에 컨테이너가 여럿일 수 있다(3일차 3교시) | — |
+| `image` | GHCR의 SHA 태그 이미지 | `image:` |
+| `containerPort: 8000` | 컨테이너가 듣는 포트. **정보용 표시**일 뿐, 포트를 여는 것은 아니다 | `expose:` 에 가깝다 (`ports:` 아님) |
 
-## 기본 구성요소 먼저 잡기
-Kubernetes를 처음 볼 때는 이름이 많아서 헷갈린다. 먼저 각 요소가 "명령 도구인지, 관리 계층인지, 저장소인지, node agent인지, 실제 workload인지"를 구분해야 한다.
+> **❓ 오해 — containerPort를 적어야 포트가 열린다**
+>
+> 아닙니다. 컨테이너 안의 gunicorn은 `containerPort`가 있든 없든 8000에서 듣습니다. 이 칸은 "이 컨테이너는 8000을 쓴다"는 **설명**이고, 다른 도구가 읽어 가는 정보입니다. 노트북에서 접속하려면 `port-forward`(이번 교시)나 Service(6교시)가 따로 필요합니다. 2주차 Dockerfile의 `EXPOSE`와 같은 성격입니다.
 
-| 구성요소 | 어디에 있는가 | 기본 역할 | 직접 실행하는가 |
-|---|---|---|---|
-| `kubectl` | 사용자 PC, 운영자 터미널, CI runner | Kubernetes API를 호출하는 command line client | container를 직접 실행하지 않음 |
-| API Server | control plane | 모든 요청의 입구, 인증/인가, validation, object 읽기/쓰기 | container를 직접 실행하지 않음 |
-| Control Plane | control plane node | cluster 상태 저장, 배치 판단, 상태 조정 loop를 담당하는 관리 계층 | workload 실행 주체가 아님 |
-| etcd | control plane | cluster object와 상태를 저장하는 key-value store | 실행/배치 판단을 하지 않음 |
-| Scheduler | control plane | 아직 node가 정해지지 않은 Pod를 어느 node에 둘지 결정 | container를 직접 실행하지 않음 |
-| Controller Manager | control plane | desired state와 current state 차이를 계속 줄이는 controller 묶음 | 필요한 object를 만들거나 수정함 |
-| kubelet | 각 worker/control-plane node | 자기 node에 배정된 Pod spec을 보고 runtime에 실행을 요청 | 직접 process를 만들기보다 runtime에 요청 |
-| Container Runtime | 각 node | image pull, container create/start를 실제 수행 | container process 실행 |
-| Pod | 각 node | Kubernetes가 배치하는 최소 workload 단위 | 하나 이상의 container를 품는 실행 단위 |
+## 실습 2 · Pod 만들고 지켜보기
 
-이 표에서 가장 중요한 연결은 다음이다.
+> **🧪 실습: 실습 목표**
+>
+> Pod를 만들고, 어제 배운 6단계가 상태 변화로 나타나는 것을 봅니다.
 
-```text
-kubectl은 API Server에 요청한다.
-API Server는 etcd에 상태를 저장한다.
-Scheduler는 Pod가 올라갈 node를 결정한다.
-Controller Manager는 원하는 상태가 유지되는지 계속 본다.
-kubelet은 자기 node에 배정된 Pod를 실행 상태로 맞춘다.
-Pod 안에서 실제 application container가 돈다.
+### 단계 1 — 만들기
+
+터미널을 **두 개** 엽니다. 터미널 A에서 지켜보기를 먼저 겁니다.
+
+```bash
+# 터미널 A
+kubectl get pods -w
 ```
 
-헷갈리기 쉬운 구분:
-
-| 헷갈리는 지점 | 정확한 구분 |
-|---|---|
-| `kubectl` vs API Server | `kubectl`은 client, API Server는 server다 |
-| API Server vs etcd | API Server는 요청 입구, etcd는 상태 저장소다 |
-| Scheduler vs kubelet | Scheduler는 node를 고르고, kubelet은 그 node에서 실행을 맞춘다 |
-| Controller Manager vs Scheduler | Controller는 상태 차이를 줄이고, Scheduler는 배치되지 않은 Pod의 node를 정한다 |
-| Pod vs container | Pod는 Kubernetes 배포 단위, container는 Pod 안에서 실행되는 process 단위다 |
-| Control Plane vs Worker Node | control plane은 관리/판단, worker node는 workload 실행이 중심이다 |
-
-장애를 볼 때도 이 구분을 그대로 사용한다.
-
-| 증상 | 먼저 의심할 구성요소 |
-|---|---|
-| `kubectl` 연결 실패 | kubeconfig, context, API Server 접근 |
-| object 조회/저장 이상 | API Server, RBAC, admission, etcd |
-| Pod가 계속 Pending | Scheduler, node resource, taint/toleration, volume |
-| Pod는 배치됐지만 실행 안 됨 | kubelet, container runtime, image pull, volume mount |
-| replica 수가 맞지 않음 | Controller Manager, Deployment/ReplicaSet 상태 |
-| 앱은 떴지만 traffic이 안 감 | Pod readiness, Service selector, endpoint |
-
-## Control Plane Node를 고르는 기준
-운영 cluster에서 아무 node나 control plane으로 고르면 안 된다. control plane node는 app workload를 많이 올리는 worker node와 성격이 다르다. API Server, etcd, Scheduler, Controller Manager가 안정적으로 돌아가야 하므로 "서비스 트래픽을 많이 처리하는 서버"보다 "cluster 운영 상태를 안정적으로 관리할 서버"를 기준으로 선택한다.
-
-| 기준 | 왜 중요한가 |
-|---|---|
-| 안정적인 CPU/memory | API 요청, controller loop, scheduler 판단이 밀리면 cluster 전체 반응이 느려짐 |
-| 빠르고 안정적인 disk | etcd가 cluster state를 저장하므로 disk latency와 손상이 직접 장애로 이어짐 |
-| 안정적인 network | worker node의 kubelet, admin의 kubectl, component 간 통신이 모두 API Server를 거침 |
-| 시간 동기화 | 인증서, lease, event, etcd consensus에서 시간 차이가 문제를 만들 수 있음 |
-| 장애 도메인 분산 | 여러 control plane node를 둘 때 같은 host/rack/AZ에 몰아두면 동시에 죽을 수 있음 |
-| 운영 접근 통제 | cluster 권한의 중심이므로 SSH, kubeconfig, certificate, firewall을 엄격히 관리해야 함 |
-| app workload 격리 | control plane 자원을 app Pod가 잡아먹으면 cluster 운영 자체가 흔들림 |
-
-실무 기준으로는 다음처럼 나눈다.
-
-| 환경 | control plane 구성 기준 |
-|---|---|
-| 학습용 local cluster | 단일 control plane으로 충분. kind에서는 Docker container 하나가 control plane node 역할 |
-| 소규모 내부 실습/lab | 1대 또는 3대. 장애 복구보다 단순성이 더 중요할 수 있음 |
-| 운영 self-managed cluster | 보통 3대 이상의 홀수 개 control plane. etcd quorum과 장애 도메인 분산 고려 |
-| managed Kubernetes | cloud provider가 control plane을 운영. 사용자는 worker node, IAM/RBAC, workload 정책에 집중 |
-
-중요한 오해:
-
-```text
-control plane node = 가장 성능 좋은 app server가 아니다.
-control plane node = cluster 상태를 안정적으로 저장하고 조정하는 운영 중심 node다.
+```bash
+# 터미널 B
+cd ~/devops-lab/k8s/day4
+kubectl apply -f pod.yaml
 ```
 
-kind 실습에서는 `paperclip-week3-control-plane` container 하나가 control plane node이자 worker node처럼 동작한다. 이것은 학습을 단순화하기 위한 구조다. 운영 cluster에서는 control plane node와 worker node를 분리하거나, control plane node에 일반 app Pod가 스케줄링되지 않도록 taint를 두는 구성이 흔하다.
+> **🟢 확인: 터미널 B**
+>
+> ```text
+> pod/catalog-api created
+> ```
 
-## 핵심 구성요소 구조도
-아래 도식은 "누가 상태를 저장하고, 누가 판단하고, 누가 실행하는가"를 보기 위한 구조도다.
+> **🟢 확인: 터미널 A — 몇 초에 걸쳐 한 줄씩**
+>
+> ```text
+> NAME          READY   STATUS              RESTARTS   AGE
+> catalog-api   0/1     Pending             0          0s
+> catalog-api   0/1     Pending             0          0s
+> catalog-api   0/1     ContainerCreating   0          0s
+> catalog-api   1/1     Running             0          9s
+> ```
+> | 보이는 상태 | 어제 6단계 중 |
+> |---|---|
+> | `Pending` (첫 줄) | 2 — etcd에 저장됨, 아직 노드 없음 |
+> | `Pending` (둘째 줄) | 3 — 스케줄러가 노드를 정함 (상태 이름은 그대로) |
+> | `ContainerCreating` | 4 · 5 — kubelet이 발견, 이미지 받는 중 |
+> | `Running` · `1/1` | 6 — 컨테이너가 떴다고 보고 |
+>
+> 처음엔 이미지를 받느라 `ContainerCreating`이 10초 이상 걸릴 수 있습니다. 터미널 A는 Ctrl+C로 멈춥니다.
 
-```mermaid
-flowchart TB
-  user["사용자 / 운영자"]
-  kubectl["kubectl / client"]
+### 단계 2 — 어디에, 어떤 IP로
 
-  subgraph cp["Control Plane Node"]
-    apiserver["API Server\n요청 접수, 인증/인가, validation"]
-    etcd["etcd\ncluster state 저장"]
-    scheduler["Scheduler\nPod 배치 결정"]
-    controller["Controller Manager\ndesired/current 차이 조정"]
-  end
-
-  subgraph node1["Worker Node A"]
-    kubelet1["kubelet"]
-    runtime1["container runtime"]
-    pod1["Pod"]
-  end
-
-  subgraph node2["Worker Node B"]
-    kubelet2["kubelet"]
-    runtime2["container runtime"]
-    pod2["Pod"]
-  end
-
-  user --> kubectl --> apiserver
-  apiserver <--> etcd
-  scheduler --> apiserver
-  controller --> apiserver
-  apiserver <--> kubelet1
-  apiserver <--> kubelet2
-  kubelet1 --> runtime1 --> pod1
-  kubelet2 --> runtime2 --> pod2
+```bash
+kubectl get pod catalog-api -o wide
 ```
 
-## 연결 흐름 구조도
-아래 도식은 `kubectl apply` 이후 실제로 어떤 연결이 이어지는지를 보여준다. 핵심은 `kubectl`이 worker node에 직접 접속하지 않는다는 점이다.
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> NAME          READY   STATUS    RESTARTS   AGE   IP           NODE              NOMINATED NODE   READINESS GATES
+> catalog-api   1/1     Running   0          40s   10.244.2.3   devmart-worker2   <none>           <none>
+> ```
+> - **IP** `10.244.x.y` — kindnet이 준 Pod 전용 주소. 노드마다 대역이 다릅니다(worker는 `10.244.1.*`, worker2는 `10.244.2.*`).
+> - **NODE** — 스케줄러가 고른 노드. 컨트롤 플레인이 아닌 것을 확인하세요(어제 7교시 단계 7의 테인트).
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as 사용자
-  participant K as kubectl
-  participant A as API Server
-  participant E as etcd
-  participant S as Scheduler
-  participant C as Controller Manager
-  participant L as kubelet
-  participant R as Container Runtime
+### 단계 3 — Events 읽기
 
-  U->>K: kubectl apply -f pod.yaml
-  K->>A: API object 제출
-  A->>A: 인증/인가, validation, admission
-  A->>E: desired state 저장
-  S->>A: 미배치 Pod 감시
-  S->>A: node binding 기록
-  C->>A: desired/current state 감시
-  L->>A: 자기 node에 배정된 Pod 확인
-  L->>R: image pull/create/start 요청
-  L->>A: Pod status 보고
-  A->>E: current state 갱신
+```bash
+kubectl describe pod catalog-api
 ```
 
-## API Server
-API Server는 Kubernetes의 정문이다.
+긴 출력입니다. 위에서부터 **이름 · 노드 · 라벨 · IP**, 가운데 **컨테이너 정보**, 맨 아래 **Events**가 있습니다. 맨 아래부터 봅니다.
 
-| 역할 | 설명 |
-|---|---|
-| 요청 접수 | `kubectl`, controller, scheduler 요청을 받음 |
-| 인증/인가 | 누가 어떤 API를 호출할 수 있는지 확인 |
-| validation | object schema와 정책 확인 |
-| admission | 저장 전후 정책 hook 적용 |
-| state 접근 | etcd에 저장된 object를 읽고 씀 |
+> **🟢 확인: Events (맨 아래)**
+>
+> ```text
+> Events:
+>   Type    Reason     Age   From               Message
+>   ----    ------     ----  ----               -------
+>   Normal  Scheduled  60s   default-scheduler  Successfully assigned default/catalog-api to devmart-worker2
+>   Normal  Pulling    59s   kubelet            Pulling image "ghcr.io/niceguy61/devmart-catalog-api:sha-7f3c2e1"
+>   Normal  Pulled     52s   kubelet            Successfully pulled image "ghcr.io/…" in 7.1s …
+>   Normal  Created    52s   kubelet            Created container: catalog-api
+>   Normal  Started    52s   kubelet            Started container catalog-api
+> ```
+> **From** 칸을 보세요. `Scheduled`는 **스케줄러**가, 나머지는 worker2의 **kubelet**이 남겼습니다. 어제 2 · 3교시에 "결정은 본부, 실행은 현장"이라고 한 것이 기록으로 남아 있습니다.
 
-중요한 점:
+> [!TIP]
+> **Events는 금방 사라진다**
+>
+> Events는 기본 **1시간** 뒤 지워집니다. 장애가 지나간 뒤에 보면 이미 없을 수 있습니다. 그래서 운영 환경에서는 Events도 로그처럼 따로 모아 둡니다(4주차 2일차).
 
-```text
-kubectl은 node에 직접 명령하지 않는다.
-kubectl은 API Server에 요청한다.
+### 단계 4 — 로그
+
+```bash
+kubectl logs catalog-api
 ```
 
-## etcd
-etcd는 Kubernetes cluster state의 저장소다.
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> [2026-11-26 01:12:40 +0000] [1] [INFO] Starting gunicorn 27.0.1
+> [2026-11-26 01:12:40 +0000] [1] [INFO] Listening at: http://0.0.0.0:8000 (1)
+> [2026-11-26 01:12:40 +0000] [1] [INFO] Using worker: sync
+> [2026-11-26 01:12:40 +0000] [7] [INFO] Booting worker with pid: 7
+> ```
+> 2주차에 `docker logs`로 보던 것과 같습니다. 컨테이너의 표준 출력을 kubelet이 모아 두었다가 보여 줍니다.
 
-| 저장되는 것 | 예 |
-|---|---|
-| desired state | Deployment spec, Pod spec, Service spec |
-| current state | Pod status, node status |
-| metadata | labels, annotations, resourceVersion |
-| config object | ConfigMap, Secret metadata 등 |
+## 실습 3 · Pod에 접속하기
 
-etcd는 단순 로그 저장소가 아니다. cluster가 "무엇이 있어야 하는지" 기억하는 핵심 저장소다. 그래서 운영 cluster에서 etcd 백업은 매우 중요하다.
+### 단계 1 — port-forward
 
-## Scheduler
-Scheduler는 새로 만들어져야 하는 Pod가 어느 node에 올라갈지 결정한다.
+Pod의 IP `10.244.2.3`은 클러스터 **안**의 주소라, 노트북에서 바로 `curl`할 수 없습니다. `port-forward`로 임시 통로를 뚫습니다.
 
-판단 재료:
-
-| 판단 재료 | 의미 |
-|---|---|
-| node resource | CPU/memory 여유 |
-| node 상태 | Ready 여부 |
-| taint/toleration | 특정 Pod만 들어갈 수 있는 node |
-| affinity | 특정 node/Pod 근처 또는 반대 |
-| constraints | zone, label, policy |
-
-Scheduler는 container를 직접 실행하지 않는다. "이 Pod는 이 node에 배치한다"는 binding 결정을 API Server에 기록한다.
-
-## Controller Manager
-Controller는 desired state와 current state의 차이를 계속 본다.
-
-예:
-
-```text
-Deployment desired replicas = 3
-현재 Ready Pod = 2
-ReplicaSet controller가 Pod 1개 추가 생성
+```bash
+# 터미널 A
+kubectl port-forward pod/catalog-api 8000:8000
 ```
 
-대표 controller:
+- `8000:8000` : 내 노트북의 8000 → Pod의 8000
 
-| Controller | 하는 일 |
-|---|---|
-| Deployment controller | rollout과 ReplicaSet 관리 |
-| ReplicaSet controller | Pod replica 수 유지 |
-| Node controller | node 상태 감시 |
-| Job controller | 완료되어야 하는 batch workload 관리 |
-| EndpointSlice controller | Service 뒤의 Pod endpoint 갱신 |
+> **🟢 확인: 터미널 A — 이 상태로 기다린다**
+>
+> ```text
+> Forwarding from 127.0.0.1:8000 -> 8000
+> Forwarding from [::1]:8000 -> 8000
+> ```
 
-## kubelet과의 경계
-control plane은 node 바깥에서 상태를 결정하고 조정한다. kubelet은 node 안에서 Pod를 실제 상태로 맞춘다.
-
-```text
-control plane: 이 Pod가 node A에 있어야 한다.
-kubelet on node A: Pod spec을 보고 container runtime에 실행 요청한다.
+```bash
+# 터미널 B
+curl -s localhost:8000/api/info; echo
+curl -s localhost:8000/api/products; echo
 ```
 
-이 경계를 헷갈리면 Kubernetes 장애 분석이 어려워진다.
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> {"env":"local","hostname":"catalog-api","service":"catalog-api","version":"2.0.0"}
+> {"detail":"KeyError","error":"database unavailable"}
+> ```
+> - `hostname` 이 **Pod 이름**과 같습니다. Kubernetes는 컨테이너의 호스트 이름을 Pod 이름으로 줍니다(6교시에 이 값으로 부하 분산을 눈으로 봅니다).
+> - `/api/products`는 **503**입니다. DB가 없기 때문입니다. `KeyError`는 `DB_HOST` 환경 변수가 없어서 난 오류입니다. Pod는 `Running`인데 기능은 실패하는 경우 — 3교시 장애 지도의 마지막 줄입니다. DB는 내일 올립니다.
 
-## 요청 흐름 예시
-`kubectl apply -f pod.yaml`의 실제 흐름:
+터미널 A는 Ctrl+C로 통로를 닫습니다.
 
-```text
-1. kubectl이 kubeconfig에서 current-context 확인
-2. API Server에 Pod object 제출
-3. API Server가 validation/admission 수행
-4. etcd에 Pod desired state 저장
-5. Scheduler가 node 선택
-6. kubelet이 자기 node에 배정된 Pod 확인
-7. container runtime이 image pull/create/start 수행
-8. kubelet이 Pod status를 API Server에 보고
+> [!WARNING]
+> **port-forward는 디버깅용**
+>
+> `port-forward`는 **kubectl이 켜져 있는 동안만** 열리는 개인용 통로입니다. 터미널을 닫으면 끊기고, 다른 사람은 쓸 수 없고, Pod 하나에만 붙습니다. 서비스로 여는 방법은 6교시의 Service입니다.
+
+### 단계 2 — Pod 안에서 명령
+
+```bash
+kubectl exec catalog-api -- env | grep -E '^(HOSTNAME|APP_|KUBERNETES_SERVICE)'
+kubectl exec catalog-api -- python -c "import socket; print(socket.gethostname())"
 ```
 
-## 한 줄 요약
-```text
-API Server는 입구, etcd는 기억, Scheduler는 배치, Controller는 조정, kubelet은 node 실행 담당이다.
+- `--` 뒤가 컨테이너 안에서 실행할 명령 (2주차 `docker exec`와 같다)
+
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> HOSTNAME=catalog-api
+> APP_VERSION=2.0.0
+> KUBERNETES_SERVICE_HOST=10.96.0.1
+> KUBERNETES_SERVICE_PORT=443
+> catalog-api
+> ```
+> `APP_VERSION`은 Dockerfile의 `ENV`에서 왔습니다. `KUBERNETES_SERVICE_*`는 내가 넣지 않았는데 있습니다 — Kubernetes가 모든 Pod에 **apiserver의 클러스터 안 주소**를 넣어 줍니다. 6교시 Service에서 이 주소의 정체를 봅니다.
+
+## 실습 4 · Pod를 지우면
+
+```bash
+kubectl delete pod catalog-api
+kubectl get pods
 ```
 
-## Evidence Note
-```markdown
-# W3D4S2 Control Plane
-- API Server 역할:
-- etcd 역할:
-- Scheduler 역할:
-- Controller Manager 역할:
-- kubelet과 control plane의 경계:
-- kubectl apply 흐름:
-```
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> pod "catalog-api" deleted
+> No resources found in default namespace.
+> ```
+> **사라지고 끝입니다.** 어제 실험 1에서 coredns Pod는 지우자마자 새로 생겼는데, 이번엔 아무도 다시 만들지 않습니다. 차이는? coredns Pod 뒤에는 "2개여야 한다"고 지키는 **Deployment**가 있었고, 지금 만든 Pod 뒤에는 아무도 없습니다.
 
+> [!IMPORTANT]
+> **Pod를 직접 만드는 일은 거의 없다**
+>
+> 직접 만든 Pod는 **reconcile 반복 밖**에 있습니다. 노드가 꺼져도, 실수로 지워도 그만입니다. 그래서 실무에서는 Pod를 직접 만들지 않고 Deployment(4교시) 같은 **컨트롤러에게 Pod를 맡깁니다.** 오늘 Pod를 직접 만든 것은 가장 작은 단위를 손으로 만져 보기 위해서입니다. 3교시의 망가진 Pod 실험까지만 직접 만듭니다.
 
-## 학습 제어
-### 시작 3분 회상
-- Kubernetes가 컨테이너 운영에서 맡는 상태 관리 책임은 무엇인가?
-- API Server, etcd, Scheduler, Controller는 desired state를 어떤 순서로 다루는가?
-### 오늘 반드시 가져갈 것
-- API Server는 기준 진입점, etcd는 상태 저장, controller는 수렴 책임, scheduler는 배치 책임이다.
-- apply 성공은 요청 수락 증거이지 workload Ready 증거가 아니다.
-### 최소 복구 경로
-- manifest를 API에 적용한다 → object 상태와 events를 확인한다 → controller/scheduler 결과를 대조한다.
-- 성공 판정은 요청·저장·배치·수렴 evidence를 나누는 것이다. 첫 실패는 API object conditions/events에서 찾는다.
-- 다음 lesson 진입 조건은 apply와 Ready를 구분하는 것이다.
+> **🎓 학술 노트 — 왜 Pod는 IP를 하나씩 받는가**
+>
+> Docker는 처음에 컨테이너들이 **호스트의 IP를 나눠 쓰고 포트로 구분**하는 방식이었습니다(2주차 `-p 8080:80`). 그러면 같은 포트를 쓰는 앱 두 개가 한 서버에 못 올라가고, 포트 번호를 서로 조율해야 합니다. Borg에서 이 문제를 겪은 Kubernetes 설계자들은 **Pod마다 고유 IP**를 주기로 했습니다. 모든 Pod가 NAT 없이 서로의 IP로 바로 통신할 수 있어야 한다는 것이 Kubernetes 네트워크 모델의 기본 규칙입니다. 3일차 1교시의 Burns 외(2016)가 Borg의 교훈 중 하나로 이것을 꼽습니다.
+
+> **📈 트렌드 2026 — 디버깅용 임시 컨테이너**
+>
+> 운영용 이미지는 보안을 위해 셸이나 `curl` 없이 최소한으로 만드는 경우가 늘었습니다(distroless 등). 그러면 `kubectl exec … -- sh`가 안 됩니다. 이때 쓰는 것이 **`kubectl debug`** 입니다. 실행 중인 Pod 옆에 도구가 든 **임시 컨테이너**(ephemeral container)를 붙여 같은 네트워크 · 프로세스를 들여다봅니다. 예: `kubectl debug -it catalog-api --image=busybox:1.37 --target=catalog-api`.
+
+> **✅ 확인 문제**
+>
+> 1. `kubectl get pods -w`에서 `Pending`이 두 번 나오는 이유는?
+> 2. `describe`의 Events에서 `Scheduled`를 남긴 것은 누구이고, `Pulled`를 남긴 것은 누구인가요?
+> 3. Pod가 `Running`인데 `/api/products`가 503입니다. 무엇을 봐야 하나요?
+> 4. 직접 만든 Pod를 지웠을 때 되살아나지 않는 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 첫 줄은 저장 직후(노드 없음), 둘째 줄은 스케줄러가 노드를 정한 직후. 상태 이름은 같지만 단계가 다르다
+> 2. Scheduled — default-scheduler(컨트롤 플레인), Pulled — kubelet(노드)
+> 3. 앱의 로그와 응답 내용 (`kubectl logs`, 응답의 `detail`) — 클러스터는 할 일을 다 했고, 문제는 앱 안이다
+> 4. 그 Pod를 '몇 개여야 한다'고 지키는 컨트롤러가 없기 때문
+>
+> </details>
+
+## 참고 문헌
+
+- Kubernetes Docs. *Pods* · *Pod Lifecycle*. kubernetes.io/docs/concepts/workloads/pods
+- Kubernetes Docs. *Use Port Forwarding to Access Applications in a Cluster*. kubernetes.io/docs/tasks
+- Kubernetes Docs. *Debug Running Pods — Ephemeral containers*. kubernetes.io/docs/tasks/debug
+- Kubernetes Docs. *Cluster Networking — The Kubernetes network model*. kubernetes.io/docs/concepts/cluster-administration/networking
+
+---
+
+⬅️ 이전: [1교시 · 3일차 요약 + kubectl 루프](lesson-01.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Pod 장애 읽기](lesson-03.md) ➡️

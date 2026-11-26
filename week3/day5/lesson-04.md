@@ -1,198 +1,221 @@
-# 4교시: Deployment가 필요한 이유
+[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md)
 
-![Week 3 Day 5 Lesson 4](./assets/lesson-04-deployment-self-healing.png)
+# 4교시 · requests와 limits
 
-## 수업 목표
-- 직접 만든 Pod와 Deployment의 차이를 운영 관점으로 설명한다.
-- Deployment, ReplicaSet, Pod의 소유 관계를 확인한다.
-- Pod를 삭제했을 때 Deployment가 replica 수를 다시 맞추는 self-healing을 관찰한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **requests**(예약)와 **limits**(상한)가 누구에게 어떻게 쓰이는지 구분합니다.
+> - CPU 단위(`m`)와 메모리 단위(`Mi`)를 읽습니다.
+> - 노드의 **예약 현황**을 보고, kind 노드의 특이한 점을 이해합니다.
+> - 메모리 상한을 넘은 Pod가 **OOMKilled**되는 것을 직접 봅니다.
+> - QoS 등급이 무엇이고, 왜 requests 없는 Pod가 위험한지 압니다.
 
-## 직접 Pod에서 생기는 운영 문제
-2교시에서 만든 `hello-pod`는 학습용으로는 좋지만 운영 배포 단위로는 부족하다.
+## 두 숫자, 두 주인
 
-| 운영 요구 | 직접 Pod의 한계 |
-|---|---|
-| 같은 앱을 2개 이상 띄우기 | Pod manifest를 여러 개 직접 관리해야 함 |
-| 죽은 Pod 복구 | Pod를 다시 만들어 줄 controller가 없음 |
-| image 교체 | rollout/history/undo 흐름이 약함 |
-| 서비스 연결 | label과 endpoint 관리가 불안정 |
-| 배포 상태 확인 | `rollout status` 같은 배포 단위 상태가 없음 |
+어제 3교시 `too-big`은 메모리 100Gi를 **요청**해서 놓일 곳이 없었습니다. 그 `requests`와 짝이 되는 것이 `limits`입니다.
 
-Deployment는 이 문제를 해결하기 위해 Pod template과 replica 수를 선언한다.
+![requests는 스케줄러가 노드의 남은 예약량과 비교하는 예약이고, limits는 커널이 지키는 상한으로 CPU는 느려지고 메모리는 넘으면 죽는다](../../v3/assets/week3/day5/w3d5-resources.png)
 
-```text
-Deployment
-  -> ReplicaSet
-    -> Pod 1
-    -> Pod 2
-```
-
-## Deployment와 ReplicaSet count가 둘 다 보이는 이유
-처음 Kubernetes를 볼 때 가장 헷갈리는 지점이 여기다. `Deployment`에도 replica 수가 있고, 그 아래 `ReplicaSet`에도 replica 수가 있다. 둘 중 하나가 node별 count를 의미하는 것은 아니다.
-
-| 항목 | count가 의미하는 것 | node와의 관계 |
+| | requests | limits |
 |---|---|---|
-| Deployment `spec.replicas` | 이 application version을 최종적으로 몇 개 유지할지 선언 | node를 직접 고르지 않음 |
-| ReplicaSet `spec.replicas` | 특정 Pod template으로 Pod를 몇 개 유지할지 실행 | node를 직접 고르지 않음 |
-| Scheduler | 만들어진 Pod를 어느 node에 둘지 결정 | node 배치 담당 |
-| DaemonSet | 보통 node마다 Pod 1개씩 유지 | node 수와 강하게 연결 |
+| 뜻 | "최소 이만큼은 **예약**해 줘" | "아무리 많아도 이만큼**까지만**" |
+| 누가 쓰나 | **스케줄러** — 놓을 노드를 고를 때 | **리눅스 커널**(cgroup) — 실행 중에 |
+| CPU를 넘으면 | (예약은 넘을 수 있다 — 노드에 여유가 있으면 더 쓴다) | **느려진다**(throttling). 죽지 않는다 |
+| 메모리를 넘으면 | (마찬가지) | **죽는다** — OOMKilled, Exit Code 137 |
 
-Deployment는 "앱 배포 단위"다. ReplicaSet은 Deployment가 만든 "특정 Pod template의 Pod 집합"이다. node별 배치는 ReplicaSet이 아니라 Scheduler가 한다.
+> **🧩 비유 — 식당 예약과 1인 주문 한도**
+>
+> **requests**는 **테이블 예약**입니다. 4인석을 예약하면 2명만 와도 4석은 내 몫이라, 식당(스케줄러)은 남은 자리만 보고 다음 손님을 받습니다. **limits**는 **1인 주문 한도**입니다. CPU는 "음식이 늦게 나올 뿐"이고, 메모리는 "넘으면 퇴장"입니다.
 
-```text
-Deployment: hello-web v1을 2개 유지해
-  -> ReplicaSet: 이 Pod template으로 2개 유지해
-    -> Pod 2개 생성
-      -> Scheduler: 각 Pod를 어느 node에 둘지 결정
-```
+### 단위 읽기
 
-따라서 아래처럼 설명한다.
-
-```text
-Deployment의 replica count = 운영자가 원하는 앱 전체 개수
-ReplicaSet의 replica count = 현재 Pod template을 기준으로 유지해야 하는 Pod 개수
-node별 count = ReplicaSet이 아니라 Scheduler/DaemonSet/scheduling 정책의 영역
-```
-
-rolling update 때 ReplicaSet count가 더 중요하게 보인다. 새 template이 생기면 새 ReplicaSet이 만들어지고, Deployment는 새 ReplicaSet의 count를 늘리면서 기존 ReplicaSet의 count를 줄인다.
-
-```text
-Deployment desired replicas = 2
-old ReplicaSet replicas: 2 -> 1 -> 0
-new ReplicaSet replicas: 0 -> 1 -> 2
-```
-
-## Deployment 배포
-```bash
-export NS=week3
-export LAB=week3/day5/labs/k8s-first-app
-
-kubectl apply -f "$LAB/deployment.yaml"
-kubectl -n "$NS" rollout status deployment/hello-web
-kubectl -n "$NS" get deploy,rs,pod -l app=hello-web -o wide
-```
-
-예상 패턴:
-```text
-deployment.apps/hello-web successfully rolled out
-deployment.apps/hello-web   2/2
-replicaset.apps/hello-web-...
-pod/hello-web-...           Running
-pod/hello-web-...           Running
-```
-
-Deployment와 ReplicaSet의 count를 나란히 본다.
-
-```bash
-kubectl -n "$NS" get deploy hello-web
-kubectl -n "$NS" get rs -l app=hello-web
-```
-
-읽는 법:
-
-| 출력 | 해석 |
+| 표기 | 뜻 |
 |---|---|
-| Deployment `READY 2/2` | Deployment가 원하는 전체 앱 replica 2개 중 2개가 Ready |
-| ReplicaSet `DESIRED 2` | 현재 Pod template을 가진 ReplicaSet이 Pod 2개를 유지해야 함 |
-| Pod `NODE` | Scheduler가 각 Pod를 어느 node에 배치했는지 보여줌 |
+| `cpu: 1` | CPU 코어 1개 분량 |
+| `cpu: 100m` | **밀리코어** — 1코어의 1000분의 100 = 0.1코어 |
+| `memory: 64Mi` | 64 **메비바이트** (2의 거듭제곱, 64 × 1024 × 1024) |
+| `memory: 64M` | 64 **메가바이트** (10의 거듭제곱) — `Mi`와 다르다. 실수하기 쉬우니 `Mi` · `Gi`를 쓴다 |
 
-kind 단일 node 실습에서는 Pod가 같은 node에 몰려 보일 수 있다. 이것은 ReplicaSet이 node별로 배치했다는 뜻이 아니라, cluster에 node가 하나뿐이라 Scheduler가 선택할 node가 하나뿐인 것이다.
+## 실습 12 · catalog-api에 자원 정하기
 
-노드마다 1개씩 떠야 하는 예시는 Deployment/ReplicaSet이 아니라 DaemonSet이다.
+### 단계 1 — 최종본 적용
 
-```text
-로그 수집 agent
-node exporter
-CNI agent
-storage CSI node plugin
-```
-
-이런 workload는 "앱 replica 수"보다 "node마다 agent가 있어야 한다"는 목적이 강하다.
-
-## Deployment가 유지하는 상태
-manifest에서 가장 중요한 부분은 replica 수와 Pod template이다.
-
-```yaml
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: hello-web
-  template:
-    metadata:
-      labels:
-        app: hello-web
-    spec:
-      containers:
-        - name: nginx
-          image: nginx:1.27
-```
-
-| 필드 | 의미 |
-|---|---|
-| `replicas: 2` | Ready Pod 2개를 유지하고 싶다 |
-| `selector.matchLabels` | Deployment가 관리할 Pod를 찾는 기준 |
-| `template.metadata.labels` | 새로 만들 Pod에 붙일 label |
-| `template.spec.containers` | Pod 안 container spec |
-
-selector와 template label이 맞지 않으면 Deployment는 Pod를 제대로 소유할 수 없다. 이 부분은 Week4 Ingress/Service 장애에서도 계속 등장한다.
-
-## Self-healing 확인
-Pod 하나를 삭제해도 Deployment가 replica 수를 다시 맞춘다.
+`devmart/catalog-api.yaml`은 v2에 `resources:`를 더한 **최종본**입니다.
 
 ```bash
-POD_NAME=$(kubectl -n "$NS" get pod -l app=hello-web -o jsonpath='{.items[0].metadata.name}')
-kubectl -n "$NS" delete pod "$POD_NAME"
-kubectl -n "$NS" get pod -l app=hello-web -w
+cd ~/devops-lab/k8s/day5
+grep -A3 'resources:' devmart/catalog-api.yaml
+kubectl apply -f devmart/catalog-api.yaml
+kubectl rollout status deployment/catalog-api -n devmart
 ```
 
-관찰 포인트:
-```text
-삭제된 Pod는 Terminating이 된다.
-새 Pod가 생성된다.
-최종적으로 Running Pod가 다시 2개가 된다.
-```
+> **🟢 확인: 보이는 것**
+>
+> ```text
+>           resources:
+>             requests: { cpu: 50m, memory: 64Mi }
+>             limits: { memory: 256Mi }
+> deployment.apps/catalog-api configured
+> service/catalog-api unchanged
+> deployment "catalog-api" successfully rolled out
+> ```
+> `replicas`도 2로 같고 probe도 그대로이니, 바뀐 것은 자원 설정뿐입니다. 그래도 **템플릿이 바뀌었으니** 롤링 업데이트가 일어났습니다. probe 덕분에 FAIL은 없습니다.
 
-`-w`는 watch 모드다. 흐름을 확인한 뒤 `Ctrl+C`로 종료한다.
+> [!IMPORTANT]
+> **왜 이 숫자인가**
+>
+> - **메모리 requests 64Mi · limits 256Mi** — gunicorn + Flask 한 일꾼은 보통 50~80Mi를 씁니다. 평소 쓰는 양 근처를 예약하고, 상한은 넉넉히 둡니다.
+> - **CPU는 requests만** — CPU limit을 두면 순간적으로 바쁠 때 느려지기만 하고 얻는 것이 적다는 의견이 많습니다(아래 학술 노트). 오늘은 CPU limit을 두지 않습니다.
+> - 정답 숫자는 없습니다. **실제로 재 보고** 정합니다. 4주차 2일차에 Prometheus로 실제 사용량을 보고 다시 맞춥니다.
 
-## owner 관계 확인
+### 단계 2 — 노드의 예약 현황
+
 ```bash
-kubectl -n "$NS" get pod -l app=hello-web -o jsonpath='{range .items[*]}{.metadata.name}{" <- "}{.metadata.ownerReferences[0].kind}{"/"}{.metadata.ownerReferences[0].name}{"\n"}{end}'
+kubectl describe node devmart-worker | sed -n '/^Allocatable/,/^System Info/p' | head -8
+kubectl describe node devmart-worker | sed -n '/Allocated resources/,/Events/p' | head -8
 ```
 
-예상:
-```text
-hello-web-xxxxx <- ReplicaSet/hello-web-xxxxx
+> **🟢 확인: 보이는 것 (숫자는 노트북마다 다름)**
+>
+> ```text
+> Allocatable:
+>   cpu:                8
+>   ephemeral-storage:  …
+>   hugepages-1Gi:      0
+>   hugepages-2Mi:      0
+>   memory:             8029444Ki
+>   pods:               110
+> ```
+> ```text
+> Allocated resources:
+>   (Total limits may be over 100 percent, i.e., overcommitted.)
+>   Resource           Requests     Limits
+>   --------           --------     ------
+>   cpu                250m (3%)    100m (1%)
+>   memory             306Mi (3%)   690Mi (8%)
+> ```
+> - **Allocatable** — 이 노드가 Pod에게 내줄 수 있는 양.
+> - **Allocated resources** — 이미 이 노드에 놓인 Pod들의 requests · limits 합계. 스케줄러는 `Allocatable − Requests`가 새 Pod의 requests보다 커야 놓습니다.
+> - Limits 합계는 100%를 넘을 수 있습니다(과다 할당, overcommit). "모두가 동시에 상한까지 쓰지는 않는다"는 가정입니다.
+
+> [!WARNING]
+> **kind 노드는 노트북 전체를 자기 것으로 안다**
+>
+> kind의 노드 세 대는 같은 노트북 위의 컨테이너라, **세 노드 모두 노트북 전체의 CPU · 메모리를 자기 것으로 보고합니다.** 그래서 kind에서는 예약 합계가 노트북 실제 메모리를 넘어도 스케줄러가 막지 않습니다. 진짜 서버라면 노드마다 자기 몫이 따로 있습니다. 5주차 EKS 노드에서 이 숫자를 다시 비교합니다.
+
+### 단계 3 — QoS 등급
+
+```bash
+kubectl get pods -n devmart -o custom-columns=NAME:.metadata.name,QOS:.status.qosClass
 ```
 
-Deployment가 직접 Pod를 붙잡는 것처럼 보이지만 중간에 ReplicaSet이 있다. rollout 때 새 ReplicaSet과 기존 ReplicaSet의 replica 수를 조정하는 것도 이 구조 때문이다.
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> NAME                           QOS
+> catalog-api-5c9b7d8f6e-4tq2k   Burstable
+> catalog-api-5c9b7d8f6e-x9wzm   Burstable
+> db-7b6d9c5f8-kp4vn             Burstable
+> ```
 
-## 한 줄 요약
-```text
-Deployment는 Pod를 직접 실행하는 방법이 아니라,
-Pod template과 replica 수를 원하는 상태로 유지하는 controller 단위다.
+| QoS 등급 | 조건 | 노드 메모리가 모자랄 때 |
+|---|---|---|
+| **Guaranteed** | 모든 컨테이너가 CPU · 메모리 requests = limits | 가장 나중에 쫓겨난다 |
+| **Burstable** | requests가 있지만 limits와 다르다 (오늘의 모두) | 중간 |
+| **BestEffort** | requests · limits가 **하나도 없다** (4일차의 catalog-api) | **가장 먼저** 쫓겨난다 |
+
+> **❓ 오해 — requests를 안 쓰면 제한이 없으니 자유롭다**
+>
+> requests가 없으면 스케줄러는 그 Pod가 **자원을 0만큼 쓴다**고 칩니다. 그래서 한 노드에 그런 Pod가 잔뜩 몰려도 막지 않고, 실제로는 서로 메모리를 다투다 노드가 버티지 못하면 **BestEffort부터 쫓겨납니다**(eviction). '자유'가 아니라 '보호받지 못함'입니다. 그래서 운영 클러스터는 네임스페이스에 **LimitRange**(기본값 강제)나 정책(4주차 5일차 Kyverno: "requests 없으면 거절")을 둡니다.
+
+## 실습 13 · 메모리 상한을 넘으면
+
+```bash
+cat steps/oom.yaml | sed -n '/command/,$p'
+kubectl apply -f steps/oom.yaml
+sleep 20
+kubectl get pod oom-demo -n devmart
 ```
 
-## Evidence Note
-```markdown
-# W3D5S4 Deployment
-- deployment READY:
-- replica count:
-- ReplicaSet name:
-- deleted Pod:
-- newly created Pod:
-- self-healing evidence:
+> **🟢 확인: 보이는 것**
+>
+> ```text
+>       command: ["python", "-c", "import time; x = 'x' * (300 * 1024 * 1024); print('다 썼다'); time.sleep(60)"]
+>       resources:
+>         requests: { memory: 64Mi }
+>         limits: { memory: 128Mi }
+> pod/oom-demo created
+> NAME       READY   STATUS      RESTARTS   AGE
+> oom-demo   0/1     OOMKilled   0          20s
+> ```
+> 300MB를 한꺼번에 잡으려다 128Mi 상한에 걸려, **커널이 프로세스를 즉시 끝냈습니다.** `python:3.14-slim` 이미지를 처음 받느라 20초보다 오래 걸릴 수 있습니다.
+
+```bash
+kubectl describe pod oom-demo -n devmart | grep -A4 'State:'
+kubectl logs oom-demo -n devmart
 ```
 
+> **🟢 확인: 보이는 것**
+>
+> ```text
+>     State:          Terminated
+>       Reason:       OOMKilled
+>       Exit Code:    137
+>       Started:      …
+>       Finished:     …
+> ```
+> 로그는 **비어 있습니다.** `print('다 썼다')`까지 가지 못했고, 커널의 강제 종료(SIGKILL)는 앱에게 마지막 말을 남길 기회를 주지 않습니다. 4일차 3교시의 "Exit Code 137 = 밖에서 강제로 죽임"을 직접 만들었습니다.
 
-## 학습 제어
-### 시작 3분 회상
-- Pod 단독 실행의 복구 한계는 무엇인가?
-- Deployment→ReplicaSet→Pod 소유 관계가 self-healing을 어떻게 만든다?
-### 오늘 반드시 가져갈 것
-- Deployment는 Pod가 아니라 원하는 replica와 rollout 상태의 책임자다.
-- self-healing은 Pod 실행 상태를 복구하지만 앱 업무 성공을 보장하지 않는다.
-### 최소 복구 경로
-- Deployment를 apply한다 → ReplicaSet/Pod owner를 확인한다 → replica와 Ready를 비교한다.
-- 성공 판정은 소유 관계와 복구 evidence를 설명하는 것이다. 첫 실패는 Deployment conditions/events에서 찾는다.
-- 다음 lesson 진입 조건은 manifest 구조를 live state와 비교하는 것이다.
+> **📘 예시 — 실무에서 OOMKilled를 만나면**
+>
+> | 상황 | 판단 |
+> |---|---|
+> | 늘 쓰는 양이 상한에 붙어 있다 | 상한이 너무 낮다 → limits를 올린다 |
+> | 시간이 지날수록 메모리가 계속 는다 | **메모리 누수** — limits를 올려도 언젠가 또 죽는다. 앱을 고친다 |
+> | 특정 요청(큰 파일 업로드 등) 때만 | 그 경로를 고치거나 요청 크기를 제한한다 |
+>
+> 재 보지 않고 상한만 올리는 것은 2일차의 "타임아웃을 넉넉하게"와 같은 함정입니다.
+
+정리합니다.
+
+```bash
+kubectl delete -f steps/oom.yaml
+```
+
+> **🎓 학술 노트 — CPU limit 논쟁과 Borg의 교훈**
+>
+> Borg 논문(Verma 외, 2015)은 작업들이 **요청한 것보다 덜 쓴다**는 관찰에서 출발해, 남는 예약분을 다른 작업이 빌려 쓰게 하는 방식으로 서버를 크게 절약했다고 보고합니다. requests(예약)와 실제 사용을 나눈 Kubernetes 설계의 뿌리입니다. 한편 리눅스 CFS 스케줄러의 CPU 상한(quota)은 짧은 시간 단위(기본 100ms)로 잘라 적용되어, 평균 사용률은 낮아도 순간적으로 몰리는 요청에서 **지연이 튀는** 현상이 여러 회사의 엔지니어링 블로그로 보고되었습니다. 그래서 "CPU는 requests만, 메모리는 requests와 limits 모두"가 널리 쓰이는 출발점이 되었습니다 — 오늘의 선택입니다.
+
+> **📈 트렌드 2026 — 재 보고 맞춰 주는 자동화**
+>
+> requests를 사람이 짐작으로 정하면 대부분 **너무 크게** 잡습니다(혹시 모르니까). 1주차의 FinOps 조사가 꼽은 클라우드 낭비의 큰 원인 중 하나입니다. 그래서 실제 사용량을 보고 requests를 추천하거나 바꿔 주는 **VerticalPodAutoscaler**, 그리고 v1.35에서 정식이 된 **실행 중 Pod 자원 변경**(3일차 3교시)을 묶어, 재시작 없이 requests를 맞춰 가는 방식이 확산되고 있습니다.
+
+> **✅ 확인 문제**
+>
+> 1. 스케줄러가 노드를 고를 때 보는 것은 requests인가요, limits인가요?
+> 2. CPU limit을 넘으면? 메모리 limit을 넘으면?
+> 3. `250m`과 `64Mi`를 우리말로 읽으면?
+> 4. requests · limits가 없는 Pod의 QoS 등급과 그 위험은?
+> 5. OOMKilled된 Pod의 `kubectl logs`가 비어 있던 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. requests
+> 2. CPU — 느려진다(throttling), 메모리 — 죽는다(OOMKilled, Exit Code 137)
+> 3. 0.25코어, 64메비바이트
+> 4. BestEffort — 스케줄러가 0으로 쳐서 한 노드에 몰릴 수 있고, 노드 메모리가 모자라면 가장 먼저 쫓겨난다
+> 5. 커널이 SIGKILL로 즉시 끝내서, 앱이 출력할 기회가 없었다
+>
+> </details>
+
+## 참고 문헌
+
+- Kubernetes Docs. *Resource Management for Pods and Containers* · *Pod Quality of Service Classes*. kubernetes.io/docs/concepts
+- Kubernetes Docs. *Node-pressure Eviction* · *Limit Ranges*. kubernetes.io/docs/concepts
+- Verma, A. 외 (2015). Large-scale cluster management at Google with Borg. *EuroSys '15*.
+- Kubernetes Autoscaler. *Vertical Pod Autoscaler*. github.com/kubernetes/autoscaler
+
+---
+
+⬅️ 이전: [3교시 · probe — 준비됐나, 살아 있나](lesson-03.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · DevMart MSA를 Kubernetes에](lesson-05.md) ➡️

@@ -1,4 +1,8 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+
 # 2주차 4일차 — 볼륨 · 네트워크 · 환경 변수
+
+📕 2주차 이북 PDF: [보기](../../downloads/pdf/week2.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week2.pdf) &nbsp;|&nbsp; 📊 4일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week2-day4.pptx)
 
 ## 오늘의 목표
 
@@ -47,3 +51,6 @@
 > - 오늘은 PostgreSQL 이미지(풀면 수백 MB)를 처음 받습니다. 강의실 네트워크가 느리면 1교시 시작 전에 `docker pull postgres:18`을 미리 해 둡니다.
 > - 실습 폴더는 `~/devops-lab/devmart/`입니다. 반드시 **WSL(Linux) 쪽 폴더**에서 합니다. `/mnt/c/...` 아래에서 하면 3교시 바인드 마운트가 느리고 파일 변경 감지가 잘 안 됩니다.
 
+---
+
+⬅️ 이전: [7교시 · 멀티 스테이지와 이미지 크기·보안](../day3/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 컨테이너의 데이터는 어디에](lesson-01.md) ➡️

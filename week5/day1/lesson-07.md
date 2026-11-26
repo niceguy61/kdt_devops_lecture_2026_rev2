@@ -1,118 +1,164 @@
-# 7교시: S3 첫 관찰
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
 
-![S3 object storage and public access map](./assets/lesson-07-s3-observation.png)
+# 7교시 · 보안 그룹 · NACL + 비용 점검
 
-## 수업 목표
-- S3를 file server가 아니라 object storage로 이해한다.
-- bucket, object, Region, public access block의 관계를 설명한다.
-- static website hosting preview와 public access 위험을 구분한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **보안 그룹**과 **네트워크 ACL**의 차이를 이해합니다.
+> - 내일 쓸 보안 그룹 둘을 만들고, **보안 그룹이 다른 보안 그룹을 출발지로** 지목하는 방법을 익힙니다.
+> - 오늘 만든 것과 **돈이 나가는 것**을 확인합니다.
+> - 첫날 배움일기를 씁니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
-|---|---|---|---|
-| Bucket/Object | S3는 directory가 아니라 bucket 안 object를 저장한다 | file system처럼 permission과 path를 오해한다 | bucket, object key |
-| Public Access Block | public policy/ACL보다 상위에서 public access를 제한한다 | 의도치 않은 공개 또는 공개 실패를 설명하지 못한다 | bucket/account BPA setting |
-| Bucket name | bucket name은 전역적으로 unique해야 한다 | 같은 이름으로 만들 수 없어서 Region 문제로 착각한다 | bucket create error |
-| Lifecycle/cost | 저장량, 요청, class, versioning에 따라 비용이 달라진다 | 작은 실습 object가 쌓인다 | storage class, lifecycle |
+## 두 겹의 방화벽
 
-## S3의 기본 구조
-```mermaid
-flowchart TB
-  S3["Amazon S3"]
-  S3 --> Bucket["Bucket: globally unique name"]
-  Bucket --> Obj1["Object: index.html"]
-  Bucket --> Obj2["Object: image.png"]
-  Bucket --> BPA["Block Public Access"]
-  Bucket --> Life["Lifecycle / Storage class"]
+![보안 그룹은 인스턴스에 붙는 상태 저장 허가 목록, NACL은 서브넷에 붙는 상태 없는 허가 · 거절 목록](../../v3/assets/week5/day1/w5d1-sg-nacl.png)
+
+| | 보안 그룹 | 네트워크 ACL |
+|---|---|---|
+| 붙는 곳 | 인스턴스 · 로드 밸런서 · DB의 **네트워크 카드** | **서브넷** |
+| 규칙 | **허가만** (기본은 거절) | 허가 · 거절, 번호 순서 |
+| 상태 | **상태 저장** — 들어온 요청의 응답은 자동으로 나간다 | **상태 없음** — 응답 방향도 따로 열어야 |
+| 출발지 | IP 대역 **또는 다른 보안 그룹** | IP 대역만 |
+| 실무 | **주로 이것으로** 통제 | 기본(모두 허가) 그대로, 특정 대역 차단에만 |
+
+> [!IMPORTANT]
+> **보안 그룹을 출발지로**
+>
+> "app 서버의 8000 포트는 **web 보안 그룹이 붙은 것**에서만" — 이렇게 쓰면 web 서버가 몇 대든, IP가 바뀌든 규칙이 그대로입니다. 4주차 5일차에 IP가 아니라 **신원**(SPIFFE)으로 허가한 것과 같은 생각을 네트워크 수준에서 하는 것입니다.
+
+## 실습 14 · 보안 그룹 둘
+
+내일 EC2 실습에서 쓸 것을 미리 만듭니다.
+
+**VPC → 보안 그룹 → 보안 그룹 생성**
+
+**① devmart-web-sg** — 인터넷에서 웹 요청을 받는 곳 (내일 ALB)
+
+| 칸 | 값 |
+|---|---|
+| 이름 · 설명 | `devmart-web-sg` · `HTTP from internet` |
+| VPC | `devmart-vpc` |
+| 인바운드 | 유형 **HTTP**, 소스 **Anywhere-IPv4** (0.0.0.0/0) |
+| 아웃바운드 | 기본값(모두 허가) |
+| 태그 | `Project` = `devmart` |
+
+**② devmart-app-sg** — 앱 서버 (내일 EC2)
+
+| 칸 | 값 |
+|---|---|
+| 이름 · 설명 | `devmart-app-sg` · `app port from web-sg only` |
+| VPC | `devmart-vpc` |
+| 인바운드 | 유형 **사용자 지정 TCP**, 포트 `9898`, 소스 **사용자 지정** → 검색창에 `devmart-web-sg` 선택 |
+| 태그 | `Project` = `devmart` |
+
+9898은 4주차 1일차에 만난 **podinfo**의 포트입니다. 내일 EC2에서 podinfo를 띄웁니다.
+
+```bash
+VPC=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=devmart-vpc --query 'Vpcs[0].VpcId' --output text)
+aws ec2 describe-security-groups --filters Name=vpc-id,Values=$VPC Name=group-name,Values='devmart-*' \
+  --query 'SecurityGroups[].{name:GroupName,in:IpPermissions[].{port:FromPort,cidr:IpRanges[0].CidrIp,sg:UserIdGroupPairs[0].GroupId}}' --output yaml
 ```
 
-S3는 object storage다. object는 key와 data, metadata를 가진다. 폴더처럼 보이는 UI가 있어도 실제 운영 판단은 bucket, object key, permission, public access, versioning, lifecycle을 기준으로 한다.
+> **🟢 확인: 확인**
+>
+> ```yaml
+> - in:
+>   - cidr: 0.0.0.0/0
+>     port: 80
+>     sg: null
+>   name: devmart-web-sg
+> - in:
+>   - cidr: null
+>     port: 9898
+>     sg: sg-0a1b2c3d4e5f60718
+>   name: devmart-app-sg
+> ```
+> app-sg의 출발지가 **IP가 아니라 보안 그룹 ID**입니다.
 
-## Public Access Block
-AWS 공식 문서 기준으로 S3 Block Public Access는 account, bucket, access point 수준에서 public access 관리를 돕고, public policy나 permission보다 강하게 작동할 수 있다. 새 bucket은 기본적으로 public access를 허용하지 않는 방향으로 시작한다.
+> [!WARNING]
+> **SSH(22)를 0.0.0.0/0에 열지 않는다**
+>
+> 예전 교재는 EC2에 SSH 22번을 전 세계에 열고 키 파일로 접속합니다. 그 포트는 몇 분 안에 전 세계 스캐너가 두드립니다. 내일은 **Session Manager**(SSM)로 포트 없이 접속합니다 — 보안 그룹에 22가 아예 없습니다.
 
-| 상황 | 확인할 것 |
-|---|---|
-| 정적 웹사이트가 403이다 | Block Public Access, bucket policy, object ownership |
-| object를 공개하고 싶다 | 공개 목적, policy, 최소 범위, 교육 계정 규칙 |
-| 실습 후 닫고 싶다 | bucket policy 제거, BPA enabled 확인 |
-| bucket 삭제가 안 된다 | object/version이 남아 있는지 확인 |
+## 실습 15 · 오늘의 비용 점검
 
-## Static hosting preview
-S3 static website hosting은 Day4 이후 storage와 app delivery를 연결할 때 다시 볼 수 있다. 오늘은 preview 수준으로만 본다.
-
-| 일반 object access | static website hosting |
-|---|---|
-| S3 API endpoint 중심 | website endpoint 제공 |
-| permission이 닫혀 있으면 접근 불가 | public hosting을 하려면 별도 설정 필요 |
-| private object 저장에 적합 | 공개 정적 사이트에 사용 가능 |
-
-## S3와 Kubernetes storage 비교
-| Kubernetes | AWS/S3 |
-|---|---|
-| ConfigMap mount | 작은 설정 파일처럼 보일 수 있지만 목적이 다름 |
-| PV/PVC | block/file storage와 더 가까움 |
-| object storage | S3가 대표적 |
-| container image layer | ECR이 더 직접적 |
-
-S3는 Pod에 mount하는 일반 disk처럼 생각하면 안 된다. app이 S3 API로 object를 읽고 쓰는 구조가 일반적이다.
-
-
-## S3를 file server처럼 보면 생기는 문제
-S3 Console은 폴더처럼 보이는 UI를 제공하지만, 운영 모델은 object storage다. directory permission을 바꾸는 감각으로 접근하면 bucket policy, object ownership, public access block, lifecycle을 놓치기 쉽다. 특히 web hosting 실습에서 403이 나오면 app server 문제가 아니라 S3 permission 계층 문제일 가능성이 크다.
-
-## Public access 판단 계층
-| 계층 | 확인 |
-|---|---|
-| Account-level Block Public Access | 계정 전체 차단 여부 |
-| Bucket-level Block Public Access | bucket 단위 차단 여부 |
-| Bucket policy | public read 허용/거부 |
-| Object ownership/ACL | ACL 사용 여부와 ownership |
-| Website hosting | endpoint와 index document |
-
-## 비용과 삭제
-작은 object 몇 개는 비용이 작지만, versioning을 켜고 계속 업로드하거나 log/archive object가 쌓이면 관리가 필요하다. bucket 삭제가 안 될 때는 object뿐 아니라 versioned object와 delete marker도 확인해야 한다.
-
-## 캡처 가이드
-Bucket 이름, Region, Block Public Access 상태, Properties의 static website hosting 상태를 따로 캡처한다. 공개 URL을 남길 때는 실습 종료 후 public access를 닫았는지 함께 기록한다.
-
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | bucket은 Region과 이름 정책을 가진 resource다. |
-| 실패했을 때 어느 경계부터 볼 것인가 | object가 있다고 public인 것은 아니다. |
-| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | Block Public Access는 기본 안전장치다. |
-
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| URL이 있으니 공개됐다고 생각한다 | object permission과 Block Public Access를 확인한다 |
-
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- bucket Region, Block Public Access, object metadata 중 최소 두 가지는 배움일기에 남긴다.
-
-## Evidence Note
-```markdown
-# W5D1S7 s3 observation
-- bucket 이름 규칙:
-- Region:
-- public access block 상태:
-- object 예시:
-- static hosting을 켤 때 필요한 조건:
-- 삭제 전 확인할 것:
+```bash
+~/devops-lab/aws/w5d1/check-account.sh
 ```
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: S3 create bucket 화면에서 bucket name, Region, Block Public Access 설정을 읽고 생성하지 않아도 된다.
-- 공식 문서 키워드: `S3 Block Public Access`, `bucket`, `object`, `static website hosting`.
-- 스스로 확인할 화면: S3 Buckets, Permissions tab, Properties tab.
-- 흔한 실패 3개: bucket name 중복을 Region 문제로 봄, public access block 때문에 website가 안 되는 것을 app 문제로 봄, bucket 안 object를 지우지 않아 삭제가 안 됨.
-- 다음 준비 상태: S3 bucket을 만들기 전 이름, Region, public access, lifecycle, 삭제 기준을 말할 수 있어야 한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> == 나는 누구인가
+> …  arn:aws:iam::123456789012:user/devops-admin …
+> == 기본 리전
+> ap-northeast-2
+> == 루트 MFA (1이면 켜짐)
+> 1
+> == IAM 사용자
+> devops-admin
+> == 예산
+> zero-spend      0.0
+> monthly-20      20.0
+> == VPC
+> | vpc-0f1e2d3c4b5a69788 | 10.0.0.0/16   | devmart-vpc | False |
+> | vpc-0a1b2c3d4e5f6a7b8 | 172.31.0.0/16 | None        | True  |
+> == 돈이 나가는 것 (NAT · EIP · LB)
+> (세 줄 모두 비어 있어야 한다)
+> ```
+> 마지막 칸이 **비어 있으면** 오늘 시간당 요금이 나가는 것은 없습니다. VPC · 서브넷 · 보안 그룹 · S3 게이트웨이 엔드포인트는 무료이므로 내일까지 둡니다.
 
-## 한 줄 요약
-```text
-S3는 object storage이고, public access는 의도와 안전장치를 함께 확인해야 한다.
-```
+**결제 및 비용 관리 → 홈**에서 이번 달 비용이 `$0.00`인지도 봅니다(몇 시간 늦게 반영).
+
+## 태그 — 비용의 이름표
+
+오늘 만든 것에 `Name` · `Project` 태그가 붙었습니다. 태그는 ① 콘솔 · CLI에서 **찾기**, ② 결제 화면에서 **프로젝트별 비용 보기**(비용 할당 태그), ③ 마지막 날 **남은 것 찾기**(Resource Explorer · 태그 편집기)에 쓰입니다. 4주차의 Kubernetes 라벨과 같은 역할입니다. 3일차부터는 Terraform이 모든 자원에 태그를 **자동으로** 붙입니다.
+
+> **❓ 오해 — 보안 그룹에서 '거절' 규칙을 만들면 된다**
+>
+> 보안 그룹에는 거절 규칙이 **없습니다.** 허가에 없으면 거절입니다(RBAC · IAM과 같다). 특정 IP 대역을 **명시적으로 막아야** 할 때만 NACL의 거절 규칙을 씁니다. NACL은 상태가 없어서 응답 포트까지 계산해야 하므로, 꼭 필요할 때만 건드립니다.
+
+> **🎓 학술 노트 — 상태 저장 방화벽**
+>
+> 패킷을 하나씩 보는 **상태 없는**(stateless) 필터는 응답 패킷을 따로 허가해야 해서 규칙이 커지고 실수가 잦았습니다. Check Point의 FireWall-1(1994)이 상용화한 **상태 저장 검사**(stateful inspection)는 연결 상태를 기억해 "나간 요청의 응답"을 자동으로 받아들입니다. Cheswick · Bellovin의 *Firewalls and Internet Security*(1994)가 이 시기의 고전입니다. 보안 그룹(상태 저장)과 NACL(상태 없음)은 이 두 세대를 한 VPC 안에 나란히 둔 것입니다.
+
+> **📈 트렌드 2026 — 보안 그룹도 코드와 분석으로**
+>
+> 보안 그룹이 수백 개가 되면 "이 DB에 인터넷에서 닿는 경로가 있나"를 사람이 추적하기 어렵습니다. AWS의 **VPC Reachability Analyzer** · **Network Access Analyzer**는 3교시의 Zelkova처럼 **경로를 수학적으로 분석**해 답합니다. 그리고 보안 그룹 변경은 Terraform PR로 리뷰하고, 정책 검사(Checkov · tfsec류)가 "0.0.0.0/0에 22번"을 PR 단계에서 막는 구성이 표준입니다(3일차).
+
+> **✅ 확인 문제**
+>
+> 1. 보안 그룹과 NACL의 차이 셋은?
+> 2. app-sg의 출발지를 IP가 아니라 web-sg로 한 장점은?
+> 3. 오늘 지우지 않고 내일까지 둔 것과 그 이유는?
+> 4. 태그의 쓰임 셋은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 붙는 곳(인스턴스 vs 서브넷), 규칙(허가만 vs 허가 · 거절), 상태(저장 vs 없음)
+> 2. web 서버 대수 · IP가 바뀌어도 규칙이 그대로다
+> 3. VPC · 서브넷 · 보안 그룹 · S3 게이트웨이 엔드포인트 — 무료이기 때문
+> 4. 찾기, 프로젝트별 비용 보기, 남은 것 찾기
+>
+> </details>
+
+> [!NOTE]
+> **오늘의 배움일기**
+>
+> - kind에서 AWS로 옮길 때 바뀌는 것 셋, 그대로인 것 셋
+> - 루트 · IAM 사용자 · IAM 역할을 한 문장씩, 4주차의 무엇과 닮았나
+> - 오늘 읽은 정책 JSON에서 Deny 문장이 하는 일
+> - 내 VPC 그림을 손으로 그리고, public과 private을 가르는 한 줄을 적기
+> - 이번 주 비용 계산표에서 가장 무서운 줄과, 그것을 막는 내 습관
+> - 내일 전에 궁금한 것: 오늘 VPC는 비어 있다. 여기에 **서버를 띄우고, 여러 대로 늘리고, 하나가 죽어도 손님이 모르게** 하려면 무엇이 필요할까?
+
+## 참고 문헌
+
+- AWS Docs. *Control traffic to your AWS resources using security groups*, *Network ACLs*. docs.aws.amazon.com/vpc
+- AWS Docs. *Tagging best practices*, *VPC Reachability Analyzer*. docs.aws.amazon.com
+- Cheswick, W. R. & Bellovin, S. M. (1994). *Firewalls and Internet Security: Repelling the Wily Hacker*. Addison-Wesley.
+
+---
+
+⬅️ 이전: [6교시 · 콘솔로 VPC 만들기](lesson-06.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [5주차 2일차 목차](../day2/README.md) ➡️

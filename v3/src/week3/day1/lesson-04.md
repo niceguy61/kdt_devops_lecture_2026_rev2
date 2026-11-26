@@ -12,8 +12,8 @@
 
 ```bash
 cd ~
-git clone https://github.com/강의저장소주소.git course      # 강사가 알려 준 주소
-cp -r ~/course/v3/labs/week3/devmart-msa ~/devops-lab/
+git clone https://github.com/niceguy61/kdt_devops_lecture_2026_rev2.git course
+cp -r ~/course/labs/week3/devmart-msa ~/devops-lab/
 cd ~/devops-lab/devmart-msa
 ls
 ```

@@ -1,144 +1,249 @@
-# 7교시: Incident Timeline과 현실형 Runbook
+[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [2일차](README.md)
 
-![Week 3 Day 2 Lesson 7](./assets/lesson-07-connection-failure-analysis.png)
+# 7교시 · CI 실패 읽기와 main 보호
 
-## 수업 목표
-- 단일 장애 리포트가 아니라 사고 timeline을 작성한다.
-- client, API, DB, queue, worker, audit evidence를 시간 순서로 묶는다.
-- 사고 유형별 의사결정표를 만든다.
-- 복구 명령보다 복구 기준을 먼저 정의한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - CI가 실패하는 **대표적인 세 가지**를 일부러 만들고 로그로 원인을 찾습니다.
+> - `main`에 **"CI가 초록이어야 병합 가능"** 규칙을 겁니다.
+> - 경로 필터와 필수 검사가 부딪히는 **함정**을 압니다.
+> - 오늘을 정리하고 배움일기를 씁니다.
 
-## 왜 timeline인가
-MSA 사고는 한 줄로 설명하기 어렵다.
+## CI 실패 읽는 순서
 
-나쁜 리포트:
+![CI 실패 로그 읽는 순서 — 어느 워크플로 · 잡 · 스텝에서, 마지막 에러 줄은 무엇인가](../../v3/assets/week3/day2/w3d2-ci-failure.png)
 
-```text
-Redis 장애로 주문이 안 됐습니다.
-```
-
-좋은 timeline:
-
-```text
-T1 client가 주문 요청을 보냈다.
-T2 order-api가 DB에 pending 주문을 만들었다.
-T3 Redis publish가 실패했다.
-T4 client는 503을 받았다.
-T5 queue에는 event가 없다.
-T6 audit에는 order_created만 있고 order_processed는 없다.
-T7 이 주문은 자동 처리되지 않는 ghost pending order다.
-```
-
-## Timeline Template
-| 단계 | Evidence | 해석 |
+| 순서 | 질문 | 어디서 |
 |---|---|---|
-| Client | HTTP status/body | 사용자가 본 결과 |
-| API | order-api log 또는 audit | API가 어느 단계까지 수행했는가 |
-| DB | `orders` row | 업무 상태가 남았는가 |
-| Queue | Redis `LLEN` | 처리 event가 존재하는가 |
-| Worker | worker log | event를 소비/실패했는가 |
-| Audit | `audit_logs` | 업무 event가 어느 단계까지 기록됐는가 |
-| Decision | 조치 | 재처리/취소/대기/확대 판단 |
+| ① | **어느 잡**이 빨간가? | PR 화면 체크 목록, `gh pr checks` |
+| ② | 그 잡의 **어느 스텝**인가? | 실행 화면에서 빨간 스텝, `gh run view --log-failed` |
+| ③ | **마지막 에러 줄**은? | 로그 맨 아래에서 위로 — `##[error]` 바로 위 |
+| ④ | 내 노트북에서 **재현**되나? | 같은 명령을 로컬에서 (5교시 `docker run … pytest`) |
 
-## 사고 유형별 Decision Table
-| 사고 | 판단 기준 | 우선 조치 |
-|---|---|---|
-| Ghost pending order | DB pending row 있음, queue event 없음 | 재발행/취소 정책 확인 |
-| Worker backlog | queue length 증가, pending 다수 | worker 복구 또는 scale out |
-| Poison message | worker_error, audit 없음 | DLQ 격리, payload 검증 |
-| Duplicate request | 같은 request id row 다수 | idempotency 설계 필요 |
-| DB down | 여러 API readiness 실패 | DB 복구 후 dependent service 확인 |
+로그는 **아래에서 위로** 읽습니다. 맨 아래 `Process completed with exit code 1`은 "실패했다"는 사실뿐이고, 진짜 이유는 그 몇 줄 위에 있습니다.
 
-## Runbook은 명령 모음이 아니다
-명령만 있는 runbook은 부족하다.
+## 실습 16 · 실패 세 가지
 
-나쁜 runbook:
+> **🧪 실습: 실습 목표**
+>
+> 한 브랜치에서 실패를 하나씩 만들고, 각각 어느 잡 · 어느 스텝에서 어떤 문장으로 실패하는지 기록합니다.
 
 ```bash
-docker compose restart order-worker
-docker compose logs order-worker
+cd ~/devops-lab
+git switch main && git pull
+git switch -c ci/failure-drills
 ```
 
-좋은 runbook:
+### 실패 1 · Dockerfile 오타
 
-| 순서 | 확인 | 판단 | 다음 행동 |
+`devmart-msa/order-worker/Dockerfile`의 한 줄을 틀리게 고칩니다.
+
+```dockerfile
+COPY wroker.py .
+```
+
+```bash
+git commit -am "실패 연습 1: Dockerfile 오타"
+git push -u origin ci/failure-drills
+gh pr create --title "CI 실패 연습" --body "일부러 실패시키는 PR — 병합하지 않습니다"
+gh pr checks --watch
+gh run view --log-failed | grep -i error | tail -3
+```
+
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> X  build (order-worker)
+> ✓  build (catalog-api)
+> ✓  build (order-api)
+> ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref …: "/wroker.py": not found
+> ```
+> 잡: `build (order-worker)` → 스텝: `빌드` → 원인: **`"/wroker.py": not found`**. 테스트는 통과했는데 빌드에서 걸렸습니다. order-worker에는 테스트가 없어서, 빌드가 첫 관문입니다. PR에서도 **빌드만은 해 보는** 이유가 이것입니다. 매트릭스의 다른 두 서비스는 영향 없이 성공했습니다.
+
+```bash
+sed -i 's/wroker.py/worker.py/' devmart-msa/order-worker/Dockerfile
+git commit -am "실패 연습 1 고침"
+```
+
+### 실패 2 · compose.yaml 들여쓰기
+
+`devmart-msa/compose.yaml`의 `redis:` 서비스에서 `image` 뒤의 콜론을 빠뜨립니다.
+
+```yaml
+  redis:
+    image redis:8-alpine
+```
+
+```bash
+docker compose -f devmart-msa/compose.yaml config --quiet     # 로컬에서 먼저 확인
+git commit -am "실패 연습 2: compose 문법"
+git push
+gh pr checks --watch
+```
+
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> X  compose-check
+> -  build (…)      (건너뜀)
+> services.redis must be a mapping
+> ```
+> `compose-check`가 실패하자 `build` 셋이 모두 건너뛰어졌습니다(`needs`). 로컬의 `docker compose config`에서도 **같은 문장**이 나왔을 것입니다. CI는 로컬에서 할 수 있는 검사를 **빠뜨리지 않게** 해 주는 장치입니다.
+
+```bash
+git restore --source=main devmart-msa/compose.yaml
+git commit -am "실패 연습 2 고침"
+```
+
+### 실패 3 · 권한 부족
+
+`build` 잡의 `permissions:`에서 `packages: write` 줄을 지웁니다. 이 실패는 **push가 일어나는 main**에서만 드러나므로, 실습용으로 잠시 `push: true`로 바꿔 PR에서도 push를 시도하게 만듭니다.
+
+```yaml
+    permissions:
+      contents: read
+    …
+      - name: GHCR 로그인 (main에 push될 때만)
+        if: true
+    …
+          push: true
+```
+
+```bash
+git commit -am "실패 연습 3: 권한 부족"
+git push
+gh pr checks --watch
+gh run view --log-failed | grep -i "denied\|error" | tail -3
+```
+
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> X  build (catalog-api)
+> ERROR: failed to push ghcr.io/내아이디/devmart-catalog-api:sha-…: denied: permission_denied: write_package
+> ```
+> (메시지는 계정 종류에 따라 `denied: installation not allowed to Write organization package`처럼 조금 다를 수 있습니다.) 핵심 단어는 **`denied`** — 로그인은 됐지만 **쓸 권한이 없다**입니다. 2주차 4일차 5교시의 "이름 → 연결 → 인증 → 권한" 순서에서 맨 마지막 층입니다.
+
+```bash
+git restore --source=main .github/workflows/devmart-ci.yml
+git commit -am "실패 연습 3 고침"
+git push
+gh pr checks --watch            # 다시 모두 초록
+gh pr close --delete-branch     # 연습용 PR은 병합하지 않고 닫는다
+```
+
+| 실패 | 잡 | 결정적 문장 | 층 |
 |---|---|---|---|
-| 1 | client status | 실패/성공 여부 | 내부 상태와 비교 |
-| 2 | DB order row | pending/processed/duplicate | queue 또는 worker 확인 |
-| 3 | Redis queue | event 있음/없음 | worker 복구 또는 재발행 판단 |
-| 4 | worker log | processed/error/없음 | poison/backlog/down 구분 |
-| 5 | audit log | created/processed 여부 | 업무 단계 확정 |
-| 6 | recovery evidence | 상태 정상화 여부 | incident close |
+| 1 Dockerfile 오타 | `build (order-worker)` | `"/wroker.py": not found` | 빌드 재료 |
+| 2 compose 문법 | `compose-check` | `services.redis must be a mapping` | 설정 문법 |
+| 3 권한 부족 | `build (…)` | `denied` | 레지스트리 권한 |
+| (5교시) 테스트 | `test (order-api)` | `assert 500 == 200` | 코드 동작 |
 
-## 실습
-네 스크립트 중 하나를 다시 실행하고 timeline을 작성한다.
+## 실습 17 · main 보호 — 초록이어야 병합
+
+> **🧪 실습: 실습 목표**
+>
+> `main`에 "PR을 거쳐야 하고, CI 검사가 모두 통과해야 병합할 수 있다"는 규칙을 겁니다.
+
+2주차 5일차 5교시 "도전"에서 본 **Rulesets**를 씁니다.
+
+1. 저장소 **Settings** → **Rules** → **Rulesets** → **New ruleset** → **New branch ruleset**
+2. **Ruleset Name**: `main 보호`, **Enforcement status**: `Active`
+3. **Target branches** → **Add target** → **Include default branch**
+4. 규칙 체크:
+    - **Require a pull request before merging** (Required approvals: 혼자 실습하면 `0`, 짝과 하면 `1`)
+    - **Require status checks to pass** → **Add checks**에서 `test (catalog-api)`, `test (order-api)`, `compose-check`, `build (catalog-api)`, `build (order-api)`, `build (order-worker)` 선택
+    - **Block force pushes**
+5. **Create**
+
+> **🟢 확인: 이렇게 되면 성공**
+>
+> 실패 연습 PR처럼 빨간 X가 있는 PR은 병합 버튼이 **회색**으로 잠기고 "Required statuses must pass before merging"이 표시됩니다. `main`에 직접 `git push`를 하면 다음처럼 거절됩니다.
+>
+> ```text
+> remote: error: GH013: Repository rule violations found for refs/heads/main.
+> remote: - Changes must be made through a pull request.
+> ```
+
+> [!WARNING]
+> **함정 — 경로 필터와 필수 검사**
+>
+> 우리 워크플로에는 `paths: ["devmart-msa/**", …]`가 있습니다. 그러면 **`notes/`만 고친 PR**에서는 CI가 아예 돌지 않습니다. 그런데 규칙은 "`test (order-api)`가 통과해야 병합"이라고 요구합니다. 돌지도 않은 검사를 기다리느라 PR이 **영원히 "Expected — Waiting for status"** 상태로 막힙니다.
+>
+> 해결 방법은 몇 가지가 있습니다. ① 필수 검사를 정할 때 이 점을 알고 쓴다 ② 워크플로에서 `paths:`를 빼고 잡 안에서 바뀐 파일을 확인해 건너뛴다 ③ 항상 도는 작은 "요약" 잡 하나만 필수로 지정한다. 실습에서는 notes만 고칠 때 **규칙을 잠시 끄거나**, 그런 PR에서는 관리자 권한으로 우회(bypass)합니다. 실무에서 아주 자주 만나는 함정이라 이름을 기억해 두세요.
 
 ```bash
-cd week3/day2/labs/incident-scenarios
-./01_ghost_pending_order.sh
+cd ~/devops-lab
+git switch main && git pull
+git push origin main          # 이제 거절되어야 한다 (새 커밋이 없으면 Everything up-to-date)
 ```
 
-또는:
+> **🎓 학술 노트 — 빨간 빌드는 '줄을 멈춰라'**
+>
+> 토요타 생산 방식에는 **안돈(andon) 줄**이 있습니다. 조립 라인의 누구든 문제를 발견하면 줄을 당겨 **라인 전체를 멈추고**, 모두가 문제를 해결한 뒤에 다시 움직입니다. 불량을 다음 공정으로 넘기지 않기 위해서입니다(Ohno, 『도요타 생산 방식』, 1978).
+>
+> 제즈 험블(Jez Humble)과 데이비드 팔리(David Farley)의 『Continuous Delivery』(2010)는 이 원칙을 소프트웨어로 옮겨, **"빌드가 깨지면 누구도 새 코드를 올리지 말고, 먼저 고쳐라"**를 CI의 핵심 규율로 꼽았습니다. 깨진 `main` 위에 다른 사람이 코드를 쌓으면, 어디서 무엇이 깨졌는지 점점 알 수 없게 되기 때문입니다. 오늘 만든 "초록이어야 병합" 규칙은 사람의 규율을 **도구가 강제하게** 만든 것입니다.
+>
+> - Ohno, T. (1988). *Toyota Production System: Beyond Large-Scale Production*. Productivity Press. (일본어 원서 1978)
+> - Humble, J., & Farley, D. (2010). *Continuous Delivery*. Addison-Wesley.
 
-```bash
-COUNT=8 ./02_backlog_drain.sh
-./03_poison_message.sh
-./04_duplicate_request.sh
-```
+> **📈 트렌드 — 실패한 CI를 AI가 먼저 읽는다**
+>
+> CI 실패 로그는 길고, 원인은 그 안의 한 줄입니다. 최근 CI 화면에는 실패한 잡의 로그를 AI가 요약해 "원인은 `wroker.py` 오타로 보입니다"처럼 설명해 주는 기능이 붙고 있고, 에이전트가 실패를 보고 **고친 커밋을 제안**하기도 합니다. 그래도 오늘 연습한 "잡 → 스텝 → 마지막 에러 줄 → 로컬 재현" 순서를 아는 사람만이 그 제안이 맞는지 판단할 수 있습니다. 1주차 1일차의 AI 검증 4단계가 CI에서도 그대로 적용됩니다.
 
-## 운영 리포트 표
-| 항목 | 작성 내용 |
-|---|---|
-| Incident title | |
-| Scenario script | |
-| Request id / prefix | |
-| User-visible symptom | |
-| Internal state mismatch | |
-| Queue evidence | |
-| DB evidence | |
-| Worker evidence | |
-| Audit evidence | |
-| Immediate action | |
-| Long-term fix | |
+## 정리 — 오늘 끝
 
-## 복구 기준 예시
-| 사고 | 복구 기준 |
-|---|---|
-| Ghost pending order | pending 주문이 재발행/취소/처리 중 하나로 정리됨 |
-| Backlog | queue length가 정상 범위로 감소하고 pending이 processed로 전환 |
-| Poison message | 실패 message가 DLQ 또는 조사 대상으로 격리됨 |
-| Duplicate request | 중복 row 영향이 정리되고 idempotency 보완 계획이 생김 |
+> **🧹 정리: 정리**
+>
+> ```bash
+> cd ~/devops-lab/devmart-msa
+> docker compose down          # 볼륨은 남긴다
+> ```
+> `.github/workflows/hello.yml`은 지우거나 `on: workflow_dispatch`만 남기고 PR로 병합합니다(이제 main은 PR로만 바뀝니다).
 
-## 핵심 포인트
-현실적인 장애 대응은 "뭘 재시작할까"보다 "어떤 상태를 정상으로 볼까"를 먼저 정하는 일이다.
+- 실패 로그는 **잡 → 스텝 → 마지막 에러 줄 → 로컬 재현** 순서로, 아래에서 위로 읽는다.
+- 빌드 재료(`not found`) · 설정 문법(`must be a mapping`) · 권한(`denied`) · 코드 동작(`assert`) — 층을 구분한다.
+- **Rulesets**: PR 필수 + 필수 상태 검사 + 강제 push 금지 → 빨간 PR은 병합 불가.
+- 함정: `paths:` 필터 때문에 돌지 않은 필수 검사가 PR을 영원히 막을 수 있다.
 
-```text
-recovery command
-  < recovery evidence
-  < recovery criteria
-```
+> **✅ 확인 문제**
+>
+> 1. CI 로그는 왜 아래에서 위로 읽나요?
+> 2. order-worker의 Dockerfile 오타가 테스트 단계가 아니라 빌드 단계에서 걸린 이유는?
+> 3. compose-check가 실패했을 때 build 잡들이 건너뛰어진 이유는?
+> 4. 로그의 `denied`는 이름 · 연결 · 인증 · 권한 중 어느 층의 문제인가요?
+> 5. `paths:` 필터가 있는 워크플로의 검사를 필수로 지정하면 어떤 문제가 생길 수 있나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. 맨 아래는 "실패했다"는 사실(exit code 1)뿐이고, 진짜 원인은 그 몇 줄 위에 있기 때문
+> 2. order-worker에는 테스트가 없고, Dockerfile은 빌드할 때 처음 읽히기 때문
+> 3. build에 `needs: [test, compose-check]`가 있어서 앞 잡이 하나라도 실패하면 시작하지 않는다
+> 4. 권한 (로그인은 됐지만 쓸 권한이 없다)
+> 5. 해당 경로를 바꾸지 않은 PR에서는 워크플로가 돌지 않아, 필수 검사를 영원히 기다리며 병합할 수 없게 된다
+>
+> </details>
 
-## Evidence Note
-```markdown
-# W3D2S7 Incident Timeline
-- scenario:
-- timeline:
-- mismatch:
-- decision:
-- recovery criteria:
-- immediate action:
-- long-term fix:
-```
+> [!NOTE]
+> **오늘의 배움일기**
+>
+> - catalog-api를 얼렸을 때 주문 목록까지 느려진 이유를 '콜센터' 말고 **내 비유**로
+> - 재시도가 도움이 된 경우와 해가 된 경우를 숫자(초)와 함께
+> - `/health`와 `/ready`를 섞어 쓰면 생기는 사고를 한 문장으로
+> - 유령 주문과 유실 주문 — 어느 쪽이 더 무섭다고 느꼈는지, 왜
+> - 내 GHCR 이미지 주소 하나와 그 SHA 태그
+> - 오늘 본 CI 실패 네 가지 중 실무에서 가장 자주 만날 것 같은 것
+> - 내일(Kubernetes) 전에 궁금한 것: 처리기가 죽으면 **누가** 다시 띄워 줄까? 컴퓨터가 여러 대라면?
 
+## 참고 문헌
 
-## 학습 제어
-### 시작 3분 회상
-- request ID와 idempotency key의 차이는 incident timeline에서 어떻게 보이는가?
-- client/API/DB/queue/worker evidence를 시간순으로 묶는 이유는 무엇인가?
-### 오늘 반드시 가져갈 것
-- 타임라인은 사실과 해석을 분리해 첫 실패와 복구 순서를 고정한다.
-- runbook은 명령 모음이 아니라 증상→확인→판정→복구→handoff의 책임 흐름이다.
-### 최소 복구 경로
-- timestamp와 request ID로 사건을 정렬한다 → 첫 실패를 찾는다 → 복구 성공 기준과 handoff를 적는다.
-- 성공 판정은 다른 사람이 같은 증거 루프를 재현하는 것이다. 첫 실패는 가장 이른 오류 logs/metric에서 찾는다.
-- 다음 lesson 진입 조건은 5단계 timeline과 복구 조건을 남기는 것이다.
+- GitHub Docs. *About rulesets*, *Available rules for rulesets — Require status checks to pass*. docs.github.com/repositories
+- GitHub Docs. *Troubleshooting required status checks — Handling skipped but required checks*. docs.github.com
+- GitHub CLI Manual. *gh pr checks*, *gh run view*. cli.github.com/manual
+- Humble, J., & Farley, D. (2010). *Continuous Delivery*. Addison-Wesley.
+- Ohno, T. (1988). *Toyota Production System*. Productivity Press.
+
+---
+
+⬅️ 이전: [6교시 · 이미지 자동 빌드와 GHCR](lesson-06.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [3주차 3일차 목차](../day3/README.md) ➡️

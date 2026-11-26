@@ -1,82 +1,58 @@
-# Week 4 Day1: 운영 가능한 Workload와 Helm 기반 관찰
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
 
-## Overview
-W4D1은 W3D4~W3D5에서 배운 Kubernetes 기본 요소를 운영 가능한 workload 기준으로 끌어올리는 날이다. Pod, Deployment, Service를 만들 수 있다는 것은 시작점일 뿐이다. 실제 운영에서는 image 밖 설정, secret 주입, health check, resource 요청/제한, metric 관찰이 함께 있어야 한다.
+# 4주차 1일차 — Helm + Gateway API
 
-오늘부터 add-on 설치 표준은 Helm이다. `kubectl apply -f <remote-url>`로 설치를 끝내지 않고, chart repository, release name, namespace, values file, upgrade, rollback, uninstall까지 하나의 설치 루프로 기록한다.
+📕 4주차 이북 PDF: [보기](../../downloads/pdf/week4.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week4.pdf) &nbsp;|&nbsp; 📊 1일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week4-day1.pptx)
 
-## Learning Goals
-- W3D4~W3D5에서 배운 Pod, Deployment, Service를 운영 기준으로 다시 설명한다.
-- Helm의 chart, repository, release, namespace, values, upgrade, rollback, uninstall을 구분한다.
-- Helm 설치를 `repo add/update -> upgrade --install -> status/list -> values 확인 -> uninstall` 루프로 반복한다.
-- ConfigMap과 Secret을 image 밖 runtime config로 사용하고 `.env`와 Kubernetes object의 관계를 설명한다.
-- liveness/readiness/startup probe가 restart와 traffic 수용에 미치는 차이를 확인한다.
-- resource requests/limits가 scheduling, OOMKilled, CPU throttling, 비용 감각과 연결되는 이유를 설명한다.
-- metrics-server를 Helm으로 설치하고 `kubectl top node/pod`로 resource metric을 확인한다.
-- 실습 결과를 구름 EXP 배움일기에 운영 evidence 중심으로 정리한다.
+## 오늘의 목표
 
-## Lesson Index
-| 교시 | 주제 | 핵심 확인 |
+3주차 금요일, DevMart 여섯 서비스가 `kubectl apply -k` 한 줄로 클러스터에 떴습니다. 매니페스트 여덟 개를 **직접** 썼습니다. 그런데 4주차에 설치할 도구들 — Envoy Gateway, Prometheus, Argo CD, Istio, Kyverno — 은 하나에 매니페스트가 **수십~수백 개**입니다. 이것을 손으로 쓰지 않습니다. **Helm**으로 설치합니다.
+
+그리고 DevMart의 입구를 바꿉니다. 지금은 nginx Pod 하나가 NodePort 30080으로 손님을 받아 API로 나눠 보냅니다(3주차 1일차의 API 게이트웨이). 오늘은 이 역할을 Kubernetes의 **표준 입구 API — Gateway API**에 맡깁니다. 오랫동안 표준 노릇을 하던 ingress-nginx가 **2026년 3월 은퇴**했기 때문에, 이제 새로 배우는 사람은 Gateway API부터 배웁니다.
+
+- **Helm**이 무엇이고 Kustomize와 무엇이 다른지 설명합니다.
+- 연습용 앱 podinfo로 **설치 → 확인 → 바꾸기 → 되돌리기 → 지우기** 루프를 손에 붙입니다.
+- Ingress가 왜 한계에 부딪혔는지, ingress-nginx 은퇴가 무엇을 뜻하는지 압니다.
+- Gateway API의 **역할별 리소스** — GatewayClass · Gateway · HTTPRoute — 를 구분합니다.
+- **Envoy Gateway**를 Helm으로 설치하고, DevMart의 문을 Gateway로 바꿉니다.
+- HTTPRoute로 **경로 · Host · 가중치**에 따라 나눕니다.
+- 라우트의 `status`를 읽어 **404와 500의 원인**을 찾습니다.
+
+## 시간표
+
+| 교시 | 주제 | 실습 결과물 |
 |---|---|---|
-| 1교시 | Week3 Kubernetes 2일 요약 + 운영 가능한 workload 기준 | config, secret, health, resource, metric 기준 |
-| 2교시 | Helm 기본 개념과 release 검증 | chart, repository, release, values, status; metrics-server TLS와 `kubectl top`은 선택 troubleshooting |
-| 3교시 | Helm 공통 설치 루프 | repo add/update, upgrade --install, list/status, uninstall |
-| 4교시 | ConfigMap과 Secret | `.env`, runtime config, Secret base64와 보안 주의 |
-| 5교시 | probe와 readiness | liveness/readiness/startup, endpoint, restart |
-| 6교시 | resource requests/limits | scheduler, OOMKilled, CPU throttling, 비용 |
-| 7교시 | metrics-server 설치와 관찰 | Helm install, Metrics API, `kubectl top`, HPA preview |
-| 8교시 | 구름 EXP 배움일기 | Helm 패턴과 운영 evidence 정리 |
+| 1교시 | 3주차 요약 + Helm 개념 | Helm 4 설치 |
+| 2교시 | Helm 설치 루프 | podinfo 설치 · 업그레이드 · 롤백 |
+| 3교시 | Ingress의 역사와 ingress-nginx 은퇴 | 입구 방식 비교표 |
+| 4교시 | Gateway API 구조 | 역할별 리소스 읽기 |
+| 5교시 | Envoy Gateway 설치와 Gateway | NodePort 30080의 Gateway |
+| 6교시 | HTTPRoute — 경로 · Host · 가중치 | DevMart를 Gateway 뒤로, 카나리 80:20 |
+| 7교시 | 장애 분석 | 라우트 장애 4종 진단 기록 |
+| 8교시 | 배움일기 | |
 
-## Practice Files
-| 자료 | 용도 |
-|---|---|
-| `hands-on-lab.md` | 당일 실습 명령, 예상 결과, 장애 확인 순서 |
-| `academic-foundations.md` | Helm, ConfigMap/Secret, probe, resource, metrics-server 개념 정리 |
-| `labs/workload-basics/` | 운영형 Deployment, ConfigMap, Secret, probe/resource 실습 manifest |
-| `labs/helm-metrics-server/values.yaml` | kind/local 실습용 metrics-server Helm values |
+## 교시별 자료
 
-## Evidence Policy
-오늘 evidence는 “설치했다”보다 “설치 기준과 관찰 결과를 설명할 수 있다”에 둔다.
+1. [3주차 요약 + Helm 개념](lesson-01.md)
+2. [Helm 설치 루프](lesson-02.md)
+3. [Ingress의 역사와 ingress-nginx 은퇴](lesson-03.md)
+4. [Gateway API 구조](lesson-04.md)
+5. [Envoy Gateway 설치와 Gateway](lesson-05.md)
+6. [HTTPRoute — 경로 · Host · 가중치](lesson-06.md)
+7. [장애 분석](lesson-07.md)
 
-| Evidence | 남길 내용 |
-|---|---|
-| Helm release | `helm list -A`, `helm status ...` |
-| values | `helm get values ...`, 수업 repo의 values file |
-| runtime config | `kubectl describe pod`, env 주입 결과 |
-| readiness | Service endpoint 변화, readiness 실패 메시지 |
-| resource | `kubectl describe pod`, requests/limits, OOMKilled 또는 throttling 힌트 |
-| metrics | `kubectl top node`, `kubectl top pod -n week4` |
+> [!IMPORTANT]
+> **오늘 실습 전에 확인할 것**
+>
+> - 3주차의 `devmart` 클러스터가 살아 있고, `devmart` 네임스페이스의 DevMart가 `localhost:30080`에서 열려야 합니다. 주말에 노트북을 껐다면 `docker start devmart-control-plane devmart-worker devmart-worker2` 후 40초 기다립니다.
+> - 오늘 처음 받는 것: Helm 4 실행 파일, podinfo 이미지(수십 MB), Envoy Gateway 컨트롤러 · Envoy 프록시 이미지(합쳐 200MB 안팎).
+> - 실습 파일은 강의 저장소의 `labs/week4/day1/`입니다.
 
-## Official References
-| Topic | Reference |
-|---|---|
-| Helm install/upgrade | https://helm.sh/docs/helm/helm_upgrade/ |
-| Helm rollback | https://helm.sh/docs/helm/helm_rollback/ |
-| ConfigMaps | https://kubernetes.io/docs/concepts/configuration/configmap/ |
-| Secrets | https://kubernetes.io/docs/concepts/configuration/secret/ |
-| Probes | https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
-| Resource management | https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/ |
-| Metrics Server | https://github.com/kubernetes-sigs/metrics-server |
+> [!WARNING]
+> **이번 주의 공통 주의 — values 파일이 원하는 상태다**
+>
+> 4주차에는 Helm으로 여러 도구를 설치합니다. 설정을 `--set`으로 명령줄에서 바꾸면 3주차 4일차의 `kubectl scale`처럼 **파일에 남지 않습니다.** 설정은 항상 **values 파일을 고치고** `helm upgrade -f`로 반영합니다. 이 주의는 교시마다 반복하지 않습니다.
 
-## End-Of-Day Checklist
-- [ ] Helm chart, repository, release, values의 차이를 설명했다.
-- [ ] `helm upgrade --install`을 왜 기본 설치 명령으로 쓰는지 설명했다.
-- [ ] ConfigMap과 Secret을 image 재빌드 없이 runtime config로 주입했다.
-- [ ] Secret이 base64일 뿐 암호화 자체가 아니라는 점을 설명했다.
-- [ ] readiness 실패가 Service endpoint에서 빠지는 흐름을 확인했다.
-- [ ] requests/limits가 scheduling과 장애 양상에 미치는 영향을 설명했다.
-- [ ] metrics-server를 Helm으로 설치하고 `kubectl top` 결과를 확인했다.
+---
 
-
-## 학습 제어: 회상·핵심·복구
-
-### 시작 5분 회상
-W3D5 내용을 다시 보지 않고 `Pod`, `Deployment`, `Service`의 책임을 각각 한 문장으로 설명한다. 이어서 `Running`과 `Ready`의 차이를 적는다.
-
-### 오늘 반드시 가져갈 것
-1. Running은 process 실행에 가깝고, Ready는 traffic 수용 기준을 통과했다는 뜻이다.
-2. readiness/liveness/startup probe는 서로 다른 질문에 답한다.
-3. requests/limits는 scheduling·장애·자원 판단을 연결한다.
-
-### 최소 복구 경로
-`kubectl config current-context` → `kubectl -n week4 get pod,svc,endpoints` → `describe pod` → `logs` → `kubectl top` 순서로 운영 가능성의 빈 증거를 찾는다. 다음 날로 넘어가기 전 Running/Ready/endpoint의 관계를 설명할 수 있어야 한다.
+⬅️ 이전: [7교시 · 3주차 회고](../../week3/day5/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 3주차 요약 + Helm 개념](lesson-01.md) ➡️

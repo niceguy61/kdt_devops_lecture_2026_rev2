@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+
 # 5교시 · API와 DB 연결하기
 
 > [!NOTE]
@@ -22,7 +24,7 @@
 
 `DB_HOST`가 비어 있으면 샘플을 주고, 값이 있으면 그 주소의 PostgreSQL에서 상품을 읽습니다. **코드는 한 줄도 바꾸지 않고 환경 변수만 바꿔** 동작을 바꾸는 것, 어제 3교시의 "이미지는 한 번, 설정은 환경마다"입니다.
 
-![브라우저 → API(포트 공개) → devmart-net 안에서 이름으로 DB 찾기 → 볼륨에 저장된 데이터](../../assets/week2/day4/w2d4-api-db.png)
+![브라우저 → API(포트 공개) → devmart-net 안에서 이름으로 DB 찾기 → 볼륨에 저장된 데이터](../../v3/assets/week2/day4/w2d4-api-db.png)
 
 ## 실습 8 · API를 DB에 연결
 
@@ -170,7 +172,7 @@ docker logs api-nonet 2>&1 | grep ERROR
 
 ## 연결 문제 진단 순서
 
-![API → DB 연결 고장 진단 순서 — 로그의 오류 문장으로 원인을 좁힌다](../../assets/week2/day4/w2d4-debug-order.png)
+![API → DB 연결 고장 진단 순서 — 로그의 오류 문장으로 원인을 좁힌다](../../v3/assets/week2/day4/w2d4-debug-order.png)
 
 | 로그에 보이는 말 | 뜻 | 확인할 것 |
 |---|---|---|
@@ -227,3 +229,7 @@ docker logs api-nonet 2>&1 | grep ERROR
 - PostgreSQL Docs. *pg_isready*. postgresql.org/docs/18/app-pg-isready.html
 - Rotem-Gal-Oz, A. (2006). *Fallacies of Distributed Computing Explained*.
 - Kubernetes Docs. *Configure Liveness, Readiness and Startup Probes*. kubernetes.io/docs/tasks/configure-pod-container
+
+---
+
+⬅️ 이전: [4교시 · Docker 네트워크와 이름 찾기](lesson-04.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 환경 변수와 비밀값](lesson-06.md) ➡️

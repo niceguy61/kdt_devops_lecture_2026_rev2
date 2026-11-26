@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+
 # 7교시 · 실패 사례 다섯 가지
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 1주차 3일차 6교시의 "앞에서부터 하나씩 좁혀 가기"를 컨테이너에 맞게 바꾸면 이렇습니다.
 
-![컨테이너 디버깅 순서 — 이미지, 상태, 로그, 포트, 안쪽 순서로 좁혀 간다](../../assets/week2/day2/w2d2-debug-order.png)
+![컨테이너 디버깅 순서 — 이미지, 상태, 로그, 포트, 안쪽 순서로 좁혀 간다](../../v3/assets/week2/day2/w2d2-debug-order.png)
 
 | 순서 | 질문 | 명령 |
 |---|---|---|
@@ -271,3 +273,7 @@ git push
 - Python Docs. *http.server — HTTP servers (--bind)*. docs.python.org/3/library/http.server.html
 - Zeller, A. (2009). *Why Programs Fail* (2nd ed.). Morgan Kaufmann.
 - Agans, D. J. (2002). *Debugging: The 9 Indispensable Rules*. AMACOM.
+
+---
+
+⬅️ 이전: [6교시 · 생명주기와 정리](lesson-06.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [2주차 3일차 목차](../day3/README.md) ➡️

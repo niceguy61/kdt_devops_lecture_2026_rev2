@@ -145,7 +145,7 @@ slides:
   - type: code
     title: "실습 3 · 한 줄로 띄우기"
     code: |
-      cp -r ~/course/v3/labs/week3/devmart-msa ~/devops-lab/
+      cp -r ~/course/labs/week3/devmart-msa ~/devops-lab/
       cd ~/devops-lab/devmart-msa && cp .env.example .env
       docker compose config --quiet && echo "문법 OK"
       docker compose up -d --build

@@ -1,133 +1,100 @@
-# 1교시: Day2 요약 + 컨테이너 실행 서비스 매핑
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md)
 
-![AWS container service map](./assets/lesson-01-container-service-map.png)
+# 1교시 · 2일차 요약 + 코드로 인프라
 
-## 수업 목표
-- W5D2의 EC2/ALB traffic path를 container service 관점으로 확장한다.
-- ECR, ECS, EKS, App Runner가 해결하는 문제를 Docker/Kubernetes와 비교한다.
-- 오늘의 운영 루프를 image -> service -> health -> logs -> update -> rollback으로 잡는다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 어제 깨끗이 지웠는지 확인하고, 어제의 '클릭'을 숫자로 돌아봅니다.
+> - **IaC**(Infrastructure as Code)가 무엇이고 무엇을 해결하는지 압니다.
+> - 콘솔 · CLI 스크립트 · Terraform을 비교합니다.
+> - Terraform의 작업 흐름과 **state**의 역할을 그림으로 봅니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
+## 2일차 요약 — 손으로 다시 확인
+
+```bash
+~/devops-lab/aws/w5d1/check-account.sh | tail -5
+aws ec2 describe-instances --filters Name=instance-state-name,Values=running --query 'length(Reservations)'
+```
+
+> **🟢 확인: 이렇게 나오면 준비 완료**
+>
+> "돈이 나가는 것" 세 줄이 비어 있고, 실행 중인 인스턴스가 `0`.
+
+| 2일차 | 오늘 이어지는 곳 |
+|---|---|
+| 클릭 백 번, 지우는 순서를 사람이 기억 | 코드 몇십 줄, `destroy` 한 줄 (2교시) |
+| user data로 서버 설정을 굳혔다 | 인프라 전체를 코드로 굳힌다 |
+| CloudTrail에서 '누가 만들었나' 찾기 | Git 커밋이 곧 기록 (7교시) |
+| 역할 — 키 없는 신원 | GitHub Actions가 역할을 맡는다 (7교시) |
+
+## 세 가지 방법
+
+| | 콘솔 | CLI 스크립트 (`aws …` 나열) | **Terraform** |
 |---|---|---|---|
-| Registry와 runtime 분리 | ECR은 image 저장소이고 ECS/App Runner는 실행 계층이다 | ECR에 push하면 서비스가 실행된다고 오해한다 | ECR repo vs running service |
-| Task/service 관점 | container는 한 번 실행보다 유지/복구/확장이 중요하다 | desired count와 health를 못 읽는다 | ECS service, App Runner service |
-| 운영 루프 | 배포는 image 변경 후 로그/health/evidence까지 이어진다 | push 성공만 보고 배포 성공으로 착각한다 | logs, health, metrics |
+| 적는 것 | 없음 (기억) | **어떻게** — 명령 순서 | **무엇을** — 원하는 상태 |
+| 두 번 실행하면 | — | 대개 오류(이미 있음) 또는 중복 | **아무것도 안 바뀐다** (멱등) |
+| 일부만 바뀌면 | 사람이 찾아서 | 스크립트를 새로 | 차이만 바꾼다 (plan) |
+| 지우기 | 순서대로 클릭 | 지우기 스크립트를 따로 | `terraform destroy` |
+| 어긋남 | 모른다 | 모른다 | **plan이 보여 준다** |
+| 리뷰 | 불가능 | 가능하지만 결과를 상상해야 | 코드 + **plan 결과**를 PR에서 |
 
-## Day2에서 이어지는 구조
-Day2는 EC2 web server와 ALB를 직접 연결했다.
+3주차 3일차의 "명령형 vs 선언형"이 그대로입니다. Kubernetes YAML이 **클러스터 안의 것**을 선언했다면, Terraform은 **클러스터를 포함한 인프라 전체**를 선언합니다.
 
-```text
-Browser -> ALB -> Target Group -> EC2 Web Server
-```
+## Terraform의 작업 흐름
 
-Day3는 EC2에 직접 web server를 설치하는 대신, container image를 registry에 저장하고 managed container service가 실행하게 한다.
+![코드 → init → plan → apply → state, destroy는 장부의 것을 역순으로 지운다](../../v3/assets/week5/day3/w5d3-workflow.png)
 
-```text
-Docker image -> ECR -> ECS/App Runner -> Health/Logs -> ALB or Service URL
-```
-
-## AWS container service map
-| 서비스 | 역할 | Docker/Kubernetes와 연결 |
+| 단계 | 하는 일 | 4주차에서 닮은 것 |
 |---|---|---|
-| ECR | container image 저장소 | Docker Hub와 유사한 private registry |
-| ECS | task/service 기반 container 실행 | Kubernetes Deployment/Service 일부와 비교 가능 |
-| EKS | managed Kubernetes control plane | Kubernetes를 AWS에서 운영 |
-| App Runner | web app 실행 단순화 managed service | image/source에서 web service로 빠르게 배포 |
-| CloudWatch | logs/metrics/alarm | `docker logs`, `kubectl logs`, metrics 관찰 확장 |
+| 코드 `.tf` | 원하는 상태 — `resource "aws_s3_bucket" "x" { … }` | 배포 저장소의 YAML |
+| `init` | **프로바이더**(AWS와 말하는 플러그인) · 모듈 내려받기, state 위치 연결 | `helm repo add` |
+| `plan` | 코드 ↔ state ↔ 실제 AWS를 비교해 **할 일 목록** | `argocd app diff` |
+| `apply` | 목록대로 AWS API를 **의존 순서대로** 호출, state 갱신 | `argocd app sync` |
+| state | 내가 만든 것의 **장부** — 코드의 이름 ↔ AWS의 ID | Argo CD의 추적 표시 |
 
-## EKS는 선택 심화로 다룬다
-EKS는 Week4에서 배운 Kubernetes API와 `kubectl` 경험을 AWS로 옮기는 경로다. 다만 ECS/App Runner보다 준비물이 많다. cluster endpoint, kubeconfig, IAM identity, Kubernetes RBAC, VPC subnet, node 비용을 함께 이해해야 하므로 기본 경로가 아니라 선택 심화 실습으로 둔다.
+> [!IMPORTANT]
+> **Terraform은 pull이 아니라 push다**
+>
+> 4주차 3일차에 GitOps는 **pull**(에이전트가 계속 맞춘다)이라고 했습니다. Terraform은 사람이나 CI가 `apply`를 **실행할 때만** 맞춥니다 — push입니다. 그래서 콘솔에서 누가 손대면 **다음 plan까지** 모릅니다(4교시). 계속 맞추고 싶다면 Terraform을 주기적으로 plan하거나, Kubernetes 안에서 AWS 자원을 관리하는 도구(ACK · Crossplane)를 씁니다(아래 트렌드).
 
-EKS 경로를 선택하면 수업의 성공 기준은 service URL이 아니라 다음 연결 증거다.
+> **❓ 오해 — IaC는 큰 회사에나 필요하다**
+>
+> 오늘처럼 **혼자 실습하는 계정**에서도 IaC는 바로 이득입니다. 내일 EKS 클러스터를 **만들었다 지웠다** 하는 일은 콘솔로는 하루에 한 번도 힘들지만, 코드로는 명령 하나입니다. 그리고 "다 지웠나?"에 Terraform은 장부로 답합니다.
 
-| 확인 | evidence |
-|---|---|
-| AWS identity | `aws sts get-caller-identity` 또는 `aws sts get-caller-identity --profile default` |
-| kubeconfig 연결 | `aws eks update-kubeconfig --name <cluster> --profile default` |
-| cluster context | `kubectl config current-context` |
-| cluster 접근 | `kubectl get nodes`, `kubectl get ns` |
-| cleanup | cluster/node/load balancer/log/kubeconfig context 잔여 확인 |
+## Terraform과 OpenTofu
 
-## ECS와 App Runner 선택
-오늘은 계정 권한, 비용, 수업 환경에 따라 ECS 또는 App Runner를 선택할 수 있다.
+Terraform은 HashiCorp가 만들었고, 2023년에 라이선스를 오픈소스(MPL)에서 **BUSL**로 바꿨습니다. 그 직전 버전에서 갈라져 나온 커뮤니티 판이 **OpenTofu**(Linux Foundation)입니다. 둘의 문법 · 프로바이더 · 사용법은 거의 같아서, 오늘 배우는 것은 둘 다에 통합니다. 과정에서는 Terraform을 쓰고, 명령의 `terraform`을 `tofu`로 바꾸면 OpenTofu로도 대부분 그대로 동작합니다.
 
-| 기준 | ECS | App Runner | EKS 선택 심화 |
-|---|---|---|---|
-| 학습 포인트 | task definition, service, ALB 연결 | source/image 기반 web service 단순 배포 | managed Kubernetes, kubeconfig, kubectl |
-| 네트워크 제어 | VPC/subnet/SG/ALB 이해 필요 | 상대적으로 단순 | VPC/subnet/API endpoint/node 경계 확인 |
-| Kubernetes 연결 | Deployment/Service/desired state 비교가 좋음 | managed platform 감각이 좋음 | Week4 `kubectl` 경험을 그대로 확장 |
-| 실습 난이도 | 높음 | 낮음 | 매우 높음, 비용/권한 통제 필요 |
+> **🎓 학술 노트 — 수렴 · 멱등 · 선언**
+>
+> IaC의 이론적 뿌리는 4주차 3일차의 Burgess(CFEngine, 수렴)와, 같은 작업을 여러 번 해도 결과가 같은 **멱등성**(idempotence)입니다. Rahman 외의 체계적 문헌 조사 *A systematic mapping study of infrastructure as code research*(IST, 2019)는 IaC 연구를 프레임워크 · 도입 · 품질(결함 · 보안 냄새)로 나눴고, 이어진 연구 *The Seven Sins: Security Smells in Infrastructure as Code Scripts*(ICSE 2019)는 코드에 박힌 비밀번호 · 너무 넓은 권한 같은 **보안 냄새**가 IaC에도 흔하다는 것을 보였습니다. 오늘 `.gitignore`와 7교시의 좁은 역할이 그 처방입니다.
 
-## 오늘의 운영 루프
-```mermaid
-flowchart LR
-  Build["Build Image"] --> ECR["ECR"]
-  ECR --> Run["ECS/App Runner"]
-  ECR -. "optional" .-> EKS["EKS + kubectl"]
-  Run --> Health["Health"]
-  EKS --> Kube["kubeconfig / nodes"]
-  Run --> Logs["CloudWatch Logs"]
-  Health --> Update["Update Tag"]
-  Update --> Rollback["Rollback"]
-```
+> **📈 트렌드 2026 — IaC의 갈래**
+>
+> Terraform 1.15(2026년 4월)는 모듈 주소에 변수를 쓰는 **동적 소스**와 변수 폐기 표시를 더했고, 8월의 1.16이 최신 안정판입니다. 한편 AWS CDK · Pulumi처럼 **일반 프로그래밍 언어**로 인프라를 쓰는 갈래, ACK · Crossplane처럼 **Kubernetes 안에서** AWS 자원을 선언해 GitOps로 계속 맞추는 갈래가 자리 잡았습니다. 그리고 AI 도구가 Terraform 코드를 쓰는 일이 흔해지면서, **plan 결과를 사람이 리뷰하는 능력**의 가치가 오히려 커졌습니다.
 
+> **✅ 확인 문제**
+>
+> 1. CLI 스크립트와 Terraform의 결정적인 차이는?
+> 2. state는 무엇이고 없으면 어떤 문제가 생기나요?
+> 3. Terraform이 GitOps(pull)와 다른 점은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 스크립트는 '어떻게'(명령 순서), Terraform은 '무엇을'(원하는 상태) 적는다 — 그래서 멱등이고 차이만 바꾼다
+> 2. 코드의 이름과 실제 AWS 자원 ID를 잇는 장부. 없으면 무엇을 만들었는지 몰라 중복으로 만들거나 지우지 못한다
+> 3. 사람이나 CI가 apply할 때만 맞추는 push 방식이라, 그 사이의 어긋남은 다음 plan까지 모른다
+>
+> </details>
 
-## 왜 컨테이너 실행 서비스가 필요한가
-EC2에 직접 web server를 설치하면 서버 단위 운영이 된다. container image를 사용하면 실행 패키지가 표준화되고, service는 원하는 개수의 task를 유지하며, 배포 변경은 image tag와 revision으로 추적할 수 있다. 이 변화는 Week2 Docker와 Week4 Kubernetes의 중간 다리다.
+## 참고 문헌
 
-## 서비스 선택 의사결정
-| 질문 | ECS가 적합 | App Runner가 적합 | EKS 선택 심화가 적합 |
-|---|---|---|---|
-| ALB/target group 연결을 직접 보고 싶은가 | 예 | 제한적 | Service type과 Ingress/LoadBalancer를 별도 설계 |
-| 빠르게 public web service를 보고 싶은가 | 상대적으로 복잡 | 예 | 느림, cluster 준비 필요 |
-| Kubernetes 개념과 비교하고 싶은가 | task/service가 비교에 좋음 | platform 관점 비교 | 직접 `kubectl`로 확인 가능 |
-| 네트워크 제어가 중요한가 | subnet/SG 설정 가능 | 단순화됨 | subnet, endpoint, node, CNI까지 확인 |
-| `kubectl`을 AWS cluster에 연결하고 싶은가 | 간접 비교 | 아니오 | EKS 선택 심화 |
+- HashiCorp. *Terraform — Core workflow*, *Purpose of Terraform State*. developer.hashicorp.com/terraform
+- Rahman, A., Mahdavi-Hezaveh, R. & Williams, L. (2019). *A systematic mapping study of infrastructure as code research*. Information and Software Technology 108.
+- Rahman, A., Parnin, C. & Williams, L. (2019). *The Seven Sins: Security Smells in Infrastructure as Code Scripts*. ICSE 2019.
+- OpenTofu. *Migrating to OpenTofu*. opentofu.org/docs
 
-## 운영 루프에서 확인할 것
-Image가 ECR에 있어도 service가 pull하지 못하면 배포는 실패한다. Service가 떠도 health check가 실패하면 traffic은 가지 않는다. Health가 좋아도 log와 metric을 보지 않으면 성능/오류를 놓친다. 그래서 오늘의 성공 기준은 ECR, service health, logs, metrics까지 이어진다.
+---
 
-## 캡처 가이드
-ECR repository, service detail, health/status, CloudWatch log group을 각각 캡처한다. Console 화면마다 Region이 보이면 좋다.
-
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | ECR은 image 저장소이고 실행 서비스가 아니다. |
-| 실패했을 때 어느 경계부터 볼 것인가 | ECS/App Runner는 container 실행 책임 경계가 다르다. |
-| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | managed service도 비용과 관찰 책임은 남는다. |
-
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| ECR에 push하면 app이 실행된다고 생각한다 | image 저장과 runtime service를 분리한다 |
-
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- 서비스 선택 표, image 위치, runtime 책임 중 최소 두 가지는 배움일기에 남긴다.
-
-## Evidence Note
-```markdown
-# W5D3S1 container service map
-- 선택 경로: ECS / App Runner
-- image registry:
-- 실행 service:
-- health 확인 위치:
-- logs 확인 위치:
-- rollback 기준:
-```
-
-## 혼자 다시 따라오기
-- 최소 재현 경로: ECR, ECS, App Runner, CloudWatch를 각각 "저장/실행/관찰" 관점으로 분류한다.
-- 공식 문서 키워드: `ECR repositories`, `ECS task definition`, `ECS service`, `App Runner service`, `EKS update-kubeconfig`, `CloudWatch Logs`.
-- 스스로 확인할 화면: ECR repositories, ECS clusters/services, App Runner services, EKS clusters, CloudWatch Logs.
-- 흔한 실패 3개: ECR push를 배포 성공으로 봄, desired count와 running count를 구분하지 않음, logs 위치를 모름.
-- 다음 준비 상태: image와 service와 health/log를 분리해 설명할 수 있어야 한다.
-
-## 한 줄 요약
-```text
-AWS 컨테이너 운영은 image 저장소와 실행 서비스와 관찰 계층을 분리해서 읽어야 한다.
-```
+⬅️ 이전: [5주차 3일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 설치와 첫 리소스](lesson-02.md) ➡️

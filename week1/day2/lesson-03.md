@@ -1,209 +1,159 @@
-# 3교시: Git/GitHub/VS Code 기본 실습 - clone, MFA/PAT, commit, push
+[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md)
 
-## 수업 목표
-- GitHub repository를 만들고 clone, commit, push 흐름을 수행한다.
-- clone한 repository를 VS Code에서 열고 README를 수정한다.
-- GitHub MFA와 personal access token(PAT) 설정 흐름을 이해한다.
-- 토큰, MFA 코드, 복구 코드를 기록하지 않는 보안 기준을 적용한다.
-- README를 첫 handoff/확인 기록 문서로 작성한다.
+# 3교시 · 프로그램·프로세스·스레드
 
-## 50분 흐름
-| 시간 | 활동 |
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 프로그램, 프로세스, 스레드를 구분합니다.
+> - 프로세스가 생기고, 실행되고, 끝나는 생명주기를 이해합니다.
+> - **종료 코드(exit code)**가 자동화에서 왜 중요한지 설명합니다.
+> - 컨테이너와 Kubernetes 파드가 결국 "프로세스"라는 것을 연결합니다.
+
+## 프로그램과 프로세스는 다르다
+
+**프로그램**은 디스크에 저장된 실행 파일입니다. 아직 아무 일도 하지 않습니다. 이 프로그램을 실행하면 운영체제가 메모리를 나눠 주고 CPU 시간을 배정해 **실행 중인 상태**로 만드는데, 이것이 **프로세스(process)**입니다.
+
+> **🧩 비유 — 레시피와 요리 중인 상태**
+>
+> **프로그램**은 요리책에 적힌 **레시피**입니다. **프로세스**는 그 레시피대로 지금 **요리하고 있는 상태**입니다. 같은 레시피(nginx 프로그램)로 동시에 여러 번 요리(nginx 프로세스 여러 개)할 수 있고, 각 요리는 자기 냄비와 재료(메모리)를 따로 씁니다.
+
+| 개념 | 어디에 있나 | 예시 | 확인하는 방법 |
+|---|---|---|---|
+| 프로그램 | 디스크의 파일 | `/usr/sbin/nginx` | `ls`, `which nginx` |
+| 프로세스 | 메모리에서 실행 중 | PID 1234번 nginx | `ps`, `top` |
+| 스레드 | 프로세스 안의 실행 흐름 | nginx 워커의 처리 흐름들 | `top -H`, `ps -T` |
+
+## 프로세스가 가진 것들
+
+![프로세스와 스레드 — 프로세스는 자기만의 메모리를, 스레드는 프로세스 안에서 메모리를 공유](../../v3/assets/week1/day2/w1d2-process-thread.png)
+
+운영체제는 프로세스마다 다음 정보를 따로 관리합니다.
+
+| 항목 | 설명 |
 |---|---|
-| 0-5분 | Git/VS Code 준비 상태 점검 |
-| 5-15분 | repository, commit, remote, 인증 흐름 설명 |
-| 15-28분 | repository 생성, clone, VS Code 열기, README 작성 |
-| 28-40분 | MFA 확인, PAT 생성 기준, commit/push |
-| 40-50분 | 실패 증상과 인증 막힘 기록 정리 |
+| PID (Process ID) | 프로세스를 구분하는 고유 번호 |
+| PPID | 나를 만든 부모 프로세스의 번호 |
+| 메모리 공간 | 코드, 데이터, 스택 — 다른 프로세스는 볼 수 없다 |
+| 열린 파일·네트워크 연결 | 이 프로세스가 사용 중인 자원 목록 |
+| 사용자(UID) | 누구의 권한으로 실행 중인가 |
+| 환경 변수 | 실행할 때 전달받은 설정값 (예: `PORT=8080`) |
+| 상태 | 실행 중, 대기 중, 종료됨 등 |
 
-## 0-5분 Git/VS Code 준비 상태 점검
-- 완료 조건: Git CLI와 VS Code 터미널 준비 상태를 말할 수 있다.
+**프로세스끼리는 메모리가 분리**되어 있어서, 한 프로세스가 죽어도 다른 프로세스에는 영향이 없습니다. 이것이 2교시에서 본 운영체제의 **격리** 기능입니다.
 
-### 준비 확인
-```bash
-git --version
-pwd
-```
+## 스레드 — 프로세스 안의 여러 일꾼
 
-VS Code CLI가 등록되어 있으면 아래 명령도 확인한다.
+**스레드(thread)**는 프로세스 안에서 동시에 실행되는 작업 흐름입니다. 같은 프로세스 안의 스레드들은 **메모리를 공유**합니다.
 
-```bash
-code --version
-```
-
-`code --version`이 실패해도 수업 진행은 가능하다. VS Code GUI에서 `File > Open Folder` 또는 `Terminal > New Terminal`을 사용할 수 있으면 된다.
-
-### 시각 자료 1: clone부터 push까지
-![MFA, PAT, Git push 인증 흐름](./assets/lesson-03-mfa-pat-git-flow.png)
-
-이 이미지는 Git 작업 실패를 “Git이 어렵다”로 뭉개지 않고 계정 로그인, MFA, PAT, 로컬 변경, push의 단계별 문제로 분리하게 한다. 토큰 값은 수업 산출물에 기록하지 않고, 생성 여부와 push 결과만 확인 기록으로 남긴다.
-
-```mermaid
-sequenceDiagram
-    participant A as GitHub auth
-    participant G as GitHub repository
-    participant L as Local repository
-    participant V as VS Code
-    participant R as README.md
-    A->>G: MFA/PAT 준비
-    G->>L: git clone
-    L->>V: code . 또는 Open Folder
-    L->>R: 확인 표 작성
-    R->>L: git add / git commit
-    L->>G: git push
-```
-
-## 5-15분 repository, commit, remote, 인증 흐름 설명
-- 완료 조건: 학생이 GitHub 비밀번호, MFA, PAT, credential manager의 차이를 구분한다.
-
-Git commit은 단순 저장이 아니라 "어떤 변경을 어떤 이유로 남겼는가"를 기록하는 단위다. GitHub repository는 그 기록을 다른 사람과 공유하는 원격 장소다. README는 repository에 들어온 사람이 가장 먼저 읽는 실행 설명서이자 확인 기록 목차다.
-
-MFA는 GitHub 계정 로그인을 보호하는 장치다. PAT는 HTTPS push나 API 접근에서 비밀번호 대신 쓰는 제한된 access token이다. 수업에서 확인할 것은 설정 상태와 막힘 기록이지, 토큰 값 자체가 아니다.
-
-### 공식 참고
-- Creating a repository: https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository
-- About README files: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
-- Configuring two-factor authentication: https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication
-- Managing personal access tokens: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
-
-### 시각 자료 2: Git 단계별 확인 기록 표
-| 단계 | 보이는 확인 기록 | 운영 의미 |
+| 비교 | 프로세스 여러 개 | 스레드 여러 개 |
 |---|---|---|
-| MFA 확인 | GitHub 로그인 후 2FA challenge 통과 | 계정 보호 기준을 충족했다. |
-| PAT 준비 | 토큰 값이 아니라 설정 여부와 만료일만 기록 | HTTPS push 인증 수단을 준비했다. |
-| clone 직후 | repository 폴더 생성 | 원격 기준을 로컬로 가져왔다. |
-| VS Code 열기 | Explorer에 repository 파일 표시 | 수정할 작업공간을 확인했다. |
-| commit 직후 | commit hash 출력 | 변경 이유가 로컬 이력에 남았다. |
-| push 직후 | GitHub README 표시 | 팀원이 같은 확인 기록을 볼 수 있다. |
+| 메모리 | 각자 따로 | 공유 |
+| 만드는 비용 | 크다 | 작다 |
+| 하나가 죽으면 | 다른 프로세스는 무사 | 보통 프로세스 전체가 죽음 |
+| 데이터 주고받기 | 어렵다 (별도 통신 필요) | 쉽다 (같은 메모리) |
+| 위험 | 상대적으로 안전 | 동시에 같은 데이터를 고치면 꼬일 수 있음 (경쟁 상태) |
 
-## 15-28분 repository 생성, clone, VS Code 열기, README 작성
-- 완료 조건: repository 폴더가 로컬에 있고, VS Code에서 README를 수정한다.
+어제 공부한 AWS 장애 기사를 기억하나요? 2025년 10월 AWS 버지니아 리전 장애의 근본 원인은 DynamoDB의 DNS 관리 자동화에 숨어 있던 **경쟁 상태(race condition)**였습니다. 두 작업이 같은 데이터를 거의 동시에 고치면서 순서가 꼬인 것입니다. 스레드와 동시성 문제는 이렇게 세계적인 장애로 이어지기도 합니다. 이 사례는 3일차 DNS 수업에서 자세히 봅니다.
 
-GitHub 웹에서 새 repository를 만든 뒤 `<YOUR_REPOSITORY_URL>`을 자신의 주소로 바꿔 실행한다.
+## 프로세스의 생명주기
 
-```bash
-git clone <YOUR_REPOSITORY_URL>
-cd <YOUR_REPOSITORY_NAME>
-git status
-```
+![프로세스의 생명주기 — 생성, 준비, 실행, 대기, 종료](../../v3/assets/week1/day2/w1d2-process-lifecycle.png)
 
-VS Code CLI가 등록되어 있으면 repository 폴더를 바로 연다.
-
-```bash
-code .
-```
-
-`code .`가 실패하면 VS Code GUI에서 `File > Open Folder`를 선택하고 clone한 repository 폴더를 연다.
-
-README에 다음 표를 작성한다. 토큰, 비밀번호, MFA 코드, 복구 코드는 쓰지 않는다.
-
-| 확인 항목 | 값 |
+| 상태 | 뜻 |
 |---|---|
-| git 버전 | |
-| repository URL | |
-| working directory | |
-| VS Code open method | `code .` 또는 `Open Folder` |
-| MFA 상태 | 활성화/막힘 |
-| PAT 상태 | 준비됨/막힘, 값 기록 금지 |
+| 생성 (New) | 프로그램이 메모리에 올라가는 중 |
+| 준비 (Ready) | 실행할 준비가 됐고 CPU 차례를 기다리는 중 |
+| 실행 (Running) | CPU에서 지금 명령을 실행하는 중 |
+| 대기 (Waiting) | 디스크 읽기, 네트워크 응답 등을 기다리는 중 |
+| 종료 (Terminated) | 일을 마치고 **종료 코드**를 남긴 상태 |
 
-### 시각 자료 3: README 변경 흐름
-```mermaid
-flowchart TD
-    A[README 수정] --> B{git status 확인}
-    B --> C[git add README.md]
-    C --> D[git commit]
-    D --> E[git push]
-    E --> F[GitHub 화면에서 README 확인]
-```
+CPU 코어 하나는 한순간에 하나의 프로세스(스레드)만 실행할 수 있습니다. 그런데도 우리 컴퓨터에서 수백 개의 프로세스가 동시에 도는 것처럼 보이는 이유는, 운영체제의 **스케줄러**가 아주 짧은 시간(밀리초 단위)마다 실행할 프로세스를 바꿔 주기 때문입니다. 이것을 **문맥 교환(context switch)**이라고 합니다.
 
-## 28-40분 MFA 확인, PAT 생성 기준, commit/push
-- 완료 조건: push 성공 또는 인증 막힘 기록을 안전하게 기록한다.
+> **📈 트렌드 — Linux 스케줄러의 세대교체**
+>
+> Linux는 2007년부터 15년 넘게 **CFS(Completely Fair Scheduler)**라는 스케줄러를 써 왔습니다. 2023년 커널 6.6부터는 **EEVDF**라는 새 스케줄러로 바뀌기 시작했습니다. 학술 논문(1995년 Stoica 등)에 바탕을 둔 이 알고리즘은 공정성은 유지하면서 응답이 급한 작업을 더 잘 처리하도록 설계됐습니다. 30년 전 논문이 오늘 여러분의 클라우드 서버 안에서 돌아가고 있는 셈입니다.
 
-### MFA 설정 기준
-GitHub 웹에서 push 권한과 계정 보호를 다룰 때 MFA는 선택 장식이 아니라 기본 보안 조건이다. 수업에서는 MFA 비밀값, 복구 코드, 인증 앱 화면을 공유하지 않는다.
+## 종료 코드 — 자동화의 언어
 
-1. GitHub 우측 상단 profile menu에서 `Settings`로 이동한다.
-2. `Password and authentication`에서 Two-factor authentication 설정 상태를 확인한다.
-3. 가능한 경우 TOTP authenticator app을 우선 사용한다.
-4. 복구 코드는 개인이 안전하게 보관하고 README, 채팅, 화면 캡처에 남기지 않는다.
+프로세스가 끝나면 운영체제에 **종료 코드(exit code)**라는 숫자를 남깁니다.
 
-### PAT 생성 기준
-HTTPS로 `git push`가 인증을 요구할 때는 GitHub 비밀번호를 쓰지 않고 PAT 또는 credential manager 흐름을 사용한다. GitHub 공식 문서는 command line/API 인증에서 personal access token을 비밀번호 대신 사용할 수 있다고 설명한다.
-
-수업용 fine-grained PAT 권장값:
-
-| 설정 | 권장값 |
+| 종료 코드 | 관례상 의미 |
 |---|---|
-| Token type | Fine-grained token |
-| Expiration | 수업 기간에 맞춘 짧은 만료일 |
-| Repository access | Only select repositories |
-| Selected repository | 오늘 만든 repository |
-| Repository permissions | Contents: Read and write, Metadata: Read-only |
-| 기록 금지 | 토큰 값, 복구 코드, MFA 코드 |
+| `0` | 성공 |
+| `1` | 일반적인 실패 |
+| `2` | 명령 사용법 오류 |
+| `126` | 실행 권한이 없음 |
+| `127` | 명령을 찾을 수 없음 (오타, 설치 안 됨) |
+| `130` | 사용자가 Ctrl+C로 중단 |
+| `137` | 강제 종료됨 (`kill -9`, 메모리 초과로 OOM Kill 된 경우가 많음) |
 
-생성 절차:
-1. GitHub `Settings > Developer settings > Personal access tokens > Fine-grained tokens`로 이동한다.
-2. `Generate new token`을 선택한다.
-3. token name, expiration, repository access, permission을 위 표처럼 최소 범위로 지정한다.
-4. 생성된 토큰 값은 한 번만 보인다. 복사해서 credential prompt에만 사용하고 README에 붙이지 않는다.
-5. 토큰을 잃어버리면 재확인하지 않고 폐기 후 새로 만든다.
+사람은 화면의 메시지를 읽고 성공인지 판단하지만, **자동화 도구는 종료 코드만 봅니다.** 3주차 GitHub Actions의 파이프라인은 테스트 명령의 종료 코드가 0이 아니면 다음 단계(배포)로 넘어가지 않습니다. 4주차 Kubernetes에서 컨테이너가 `Exit Code: 137`로 죽었다면 "메모리가 부족했구나"를 먼저 의심합니다.
 
-README를 저장한 뒤 VS Code 터미널에서 실행한다.
+> **📘 강사 시연 — 종료 코드 확인하기**
+>
+> ```bash
+> ls /tmp          # 정상 실행
+> echo $?          # 직전 명령의 종료 코드 → 0
+>
+> ls /없는폴더      # 실패
+> echo $?          # → 2 (No such file or directory)
+>
+> nginxx           # 오타
+> echo $?          # → 127 (command not found)
+> ```
+> `$?`는 "방금 실행한 명령의 종료 코드"를 담고 있는 특별한 변수입니다. 1주차에는 직접 칠 필요 없이, **숫자를 읽는 법**만 기억해 두세요.
 
-```bash
-git status
-git add README.md
-git commit -m "Add week 1 확인 표"
-git push
-```
+## 부모와 자식, 그리고 PID 1
 
-`git push`에서 username/비밀번호를 묻는 경우:
-- username에는 GitHub username을 입력한다.
-- 비밀번호 자리에는 GitHub 비밀번호가 아니라 PAT를 입력한다.
-- Git Credential Manager 또는 browser login이 뜨면 공식 인증 흐름을 따른다.
-- 토큰 값은 터미널 출력, README, 스크린샷, 채팅에 남기지 않는다.
+Linux에서 새 프로세스는 기존 프로세스가 자기를 복제(`fork`)한 뒤, 복제본이 새 프로그램으로 자신을 바꾸는(`exec`) 방식으로 만들어집니다. 그래서 모든 프로세스는 **부모**가 있고, 거슬러 올라가면 컴퓨터가 켜질 때 가장 먼저 시작되는 **PID 1번** 프로세스(보통 `systemd`)에 닿습니다.
 
-## 40-50분 실패 증상과 인증 막힘 기록 정리
-- 완료 조건: GitHub README 표시됨 여부와 인증 막힘 기록을 확인 기록으로 남긴다.
+> [!IMPORTANT]
+> **컨테이너와 PID 1**
+>
+> 2주차에 Docker 컨테이너 안에서 `ps`를 실행하면, 여러분의 앱이 **PID 1번**으로 보입니다. 컨테이너는 "자기만의 프로세스 세계"를 가진 격리된 프로세스이기 때문입니다(7교시). 그리고 **PID 1이 끝나면 컨테이너도 끝납니다.** "컨테이너가 바로 꺼져요"라는 초보자의 흔한 질문 대부분은 메인 프로세스가 곧바로 종료됐기 때문입니다. 종료 코드를 보면 이유를 알 수 있습니다.
 
-### 실패 증상 분류
-| 증상 | 먼저 확인할 것 | 기록 금지 |
-|---|---|---|
-| Authentication failed | PAT permission/expiration, credential cache | 토큰 값 |
-| 403 | repository permission, selected repository scope | 토큰 값 |
-| Repository not found | repository URL, owner/name typo | 토큰 값 |
-| credential prompt 반복 | credential manager cache, wrong token | 토큰 값 |
+> **🎓 학술 노트 — 프로세스라는 개념의 탄생**
+>
+> "프로세스"라는 개념은 1960년대 MIT의 **Multics** 프로젝트와 시분할(time-sharing) 시스템 연구에서 자리 잡았습니다. 여러 사용자가 한 대의 비싼 컴퓨터를 동시에 쓰려면, 실행 중인 각 작업을 독립된 단위로 관리하고 CPU를 번갈아 나눠 줘야 했기 때문입니다. 이 아이디어는 Multics에 참여했던 톰프슨과 리치를 통해 Unix로 이어졌고, 오늘날 Linux의 `fork`/`exec` 모델로 남았습니다.
+>
+> 한편 네덜란드의 컴퓨터 과학자 에츠허르 데이크스트라(Edsger Dijkstra)는 1965년 무렵 여러 프로세스가 같은 자원을 안전하게 나눠 쓰기 위한 **세마포어(semaphore)**를 제안했습니다. 앞에서 본 경쟁 상태를 막는 고전적인 해법이며, 지금도 운영체제 교과서의 핵심 주제입니다.
+>
+> - Dijkstra, E. W. (1968). Cooperating sequential processes. In *Programming Languages*. Academic Press.
 
-### 실습 확인 기록
-| 확인 항목 | 값 |
-|---|---|
-| repository URL | |
-| 첫 commit 메시지 | |
-| `git status` push 후 | |
-| GitHub README 표시됨 | 예/아니오 |
-| MFA 상태 | 활성화/막힘 |
-| PAT 상태 | 준비됨/막힘, 값 기록 금지 |
-| 인증 막힘 기록 | 없음 또는 증상만 기록 |
+## 정리
 
-### 흔한 오해
-| 오해 | 교정 |
-|---|---|
-| commit은 push와 같다. | commit은 로컬 기록이고 push는 원격 전송이다. |
-| README는 마지막에 쓰는 문서다. | README는 실행 조건과 확인 기록을 계속 누적하는 문서다. |
-| MFA를 켜면 push도 자동으로 된다. | MFA는 웹 로그인 보호이고, HTTPS push에는 PAT 또는 credential manager 인증이 별도로 필요할 수 있다. |
-| PAT는 GitHub 비밀번호와 같다. | PAT는 범위와 만료가 있는 access token이다. 값은 비밀번호처럼 보호하고 필요 최소 권한으로 만든다. |
-| 인증 오류는 Git 문제다. | 토큰 권한, credential manager, repository 권한, URL 오타 문제일 수 있다. 증상을 기록한다. |
+- **프로그램**은 디스크의 파일, **프로세스**는 실행 중인 프로그램, **스레드**는 프로세스 안의 실행 흐름입니다.
+- 프로세스끼리는 메모리가 분리되어 안전하고, 스레드끼리는 메모리를 공유해 빠르지만 경쟁 상태에 주의해야 합니다.
+- **종료 코드 0은 성공**, 0이 아니면 실패입니다. 자동화 도구는 이 숫자로 판단합니다.
+- 컨테이너는 격리된 프로세스이며, 메인 프로세스(PID 1)가 끝나면 컨테이너도 끝납니다.
 
-### 학술 근거와 DevOps 관점
-소프트웨어 공학에서 형상 관리는 변경 통제의 핵심이다. DevOps 현업에서는 배포 가능한 변경을 commit, pull request, release로 추적한다. 여기에 인증과 권한 관리가 붙으면 "누가 어떤 권한으로 어떤 변경을 원격에 보냈는가"까지 운영 확인 기록이 된다. 작은 README commit이라도 "변경을 설명하고 보호된 계정으로 공유한다"는 협업의 기본 단위다.
+> **✅ 확인 문제**
+>
+> 1. 같은 nginx 프로그램을 3번 실행하면 프로세스는 몇 개가 되나요?
+> 2. 같은 프로세스 안의 스레드들이 공유하는 것은 무엇인가요?
+> 3. 명령을 실행했더니 종료 코드가 127입니다. 가장 먼저 무엇을 의심해야 하나요?
+> 4. Kubernetes에서 컨테이너가 `Exit Code: 137`로 종료됐습니다. 흔한 원인은?
+> 5. 컨테이너 안의 PID 1 프로세스가 종료되면 컨테이너는 어떻게 되나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. 3개 (각각 다른 PID를 가짐)
+> 2. 메모리 (코드, 데이터, 힙)
+> 3. 명령어 오타이거나 프로그램이 설치되지 않은 경우 (command not found)
+> 4. 메모리 제한을 넘어 OOM Kill 되었거나, 강제 종료(`kill -9`)된 경우
+> 5. 컨테이너도 함께 종료됩니다.
+>
+> </details>
 
-### 다음 주차 매핑
-컨테이너 실행 환경 정의, Kubernetes manifest, Terraform file도 모두 Git에 남는다. commit message와 README 확인 기록은 나중에 배포 변경과 장애 원인을 추적하는 최소 단서가 된다.
+## 참고 문헌
 
-### 평가 기준
-| 기준 | 2점 확인 기록 |
-|---|---|
-| Git/GitHub/VS Code 연결 | repository를 clone하고 VS Code에서 열어 README를 수정했다. |
-| 인증 준비 | MFA/PAT 상태를 토큰 값 없이 기록했다. |
-| commit/push | README 변경을 commit하고 push하거나, 실패 증상을 비밀값 없이 기록했다. |
-| 보안 책임 | 토큰, MFA 코드, 복구 코드를 README, 스크린샷, 채팅에 남기지 않았다. |
+- Arpaci-Dusseau, R. H., & Arpaci-Dusseau, A. C. (2018). *Operating Systems: Three Easy Pieces* — Part I: Virtualization (Processes).
+- Dijkstra, E. W. (1968). Cooperating sequential processes.
+- Stoica, I., & Abdel-Wahab, H. (1995). Earliest Eligible Virtual Deadline First: A Flexible and Accurate Mechanism for Proportional Share Resource Allocation. Technical Report.
+- The Linux Kernel Documentation. *EEVDF Scheduler*. docs.kernel.org
+- AWS (2025). *Summary of the Amazon DynamoDB Service Disruption in the Northern Virginia (US-EAST-1) Region*. aws.amazon.com/message/101925
+
+---
+
+⬅️ 이전: [2교시 · 운영체제가 하는 일](lesson-02.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 파일과 저장소](lesson-04.md) ➡️

@@ -1,0 +1,82 @@
+name: Terraform R1 drift remediation
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-r1-replaceable
+  cancel-in-progress: false
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    environment: terraform-r1-auto-remediation
+    defaults:
+      run:
+        working-directory: services/replaceable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_R1_REMEDIATION_ROLE_ARN }}
+          aws-region: ap-northeast-2
+      - run: terraform init -input=false
+
+      - id: plan
+        shell: bash
+        run: |
+          set +e
+          terraform plan -input=false -no-color -detailed-exitcode -out=tfplan > plan.txt 2>&1
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          terraform show -json tfplan > plan.json 2>/dev/null || true
+          exit 0
+
+      - name: Stop when plan contains delete or replacement
+        if: steps.plan.outputs.exit_code == '2'
+        shell: bash
+        run: |
+          if jq -e '.resource_changes[]? | .change.actions | select(index("delete"))' plan.json >/dev/null; then
+            echo "Delete or replacement requires human review."
+            exit 1
+          fi
+
+      - name: Apply the saved R1 plan
+        if: steps.plan.outputs.exit_code == '2'
+        run: terraform apply -input=false tfplan
+
+      - name: Verify convergence
+        if: steps.plan.outputs.exit_code == '2'
+        run: terraform plan -input=false -detailed-exitcode
+
+      - name: Build applied resource report
+        if: always()
+        shell: bash
+        run: |
+          jq -r '[.resource_changes[]? | select(.change.actions != ["no-op"]) | {address, actions: .change.actions}]' plan.json > changes.json 2>/dev/null || echo '[]' > changes.json
+
+      - name: Notify Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PLAN_EXIT_CODE: ${{ steps.plan.outputs.exit_code }}
+        working-directory: .
+        run: |
+          changes=$(jq -c '.' services/replaceable/changes.json 2>/dev/null || echo '[]')
+          payload=$(jq -n \
+            --arg code "$PLAN_EXIT_CODE" \
+            --arg changes "$changes" \
+            --arg url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{text: ("Terraform R1 remediation\ninitial-exit=" + $code + "\nresources=" + $changes + "\nrun=" + $url)}')
+          curl --fail --silent --show-error -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
+
+      - name: Reject plan errors
+        if: steps.plan.outputs.exit_code == '1'
+        run: exit 1

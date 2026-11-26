@@ -13,7 +13,7 @@
 ```bash
 cd ~/course && git pull
 cd ~/devops-lab/devmart-msa
-cp -r ~/course/v3/labs/week3/devmart-msa/catalog-api ~/course/v3/labs/week3/devmart-msa/order-api .
+cp -r ~/course/labs/week3/devmart-msa/catalog-api ~/course/labs/week3/devmart-msa/order-api .
 git status --short .                    # 바뀐 파일 확인
 docker compose up -d --build
 docker compose ps --format 'table {{.Service}}\t{{.Status}}'

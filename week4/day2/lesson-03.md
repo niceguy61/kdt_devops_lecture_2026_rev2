@@ -1,263 +1,245 @@
-# 3교시: Gateway API와 Envoy Gateway 설치
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [2일차](README.md)
 
-![Week 4 Day 2 Lesson 3](./assets/lesson-03-ingress-nginx-helm-install.png)
+# 3교시 · 타깃과 PromQL
 
-## 수업 목표
-- Gateway API의 `GatewayClass`, `Gateway`, `HTTPRoute` 역할을 구분한다.
-- Envoy Gateway를 Helm으로 설치하고 controller Pod, GatewayClass, CRD를 확인한다.
-- Docker reverse proxy 감각이 Kubernetes controller/data plane 구조로 어떻게 확장되는지 설명한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - Prometheus 화면에서 **무엇을 긁어 가고 있는지**(target) 확인합니다.
+> - **PodMonitor**로 Envoy 프록시의 지표를 수집 대상에 더합니다.
+> - 지표 원본(텍스트)을 직접 보고, **카운터 · 게이지 · 히스토그램**을 구분합니다.
+> - **PromQL**로 DevMart의 R · E · D를 한 단계씩 계산합니다.
 
-## 수업 순서와 필수 vertical slice
+## 실습 3 · Prometheus 화면
 
-먼저 다음 두 흐름을 분리해서 읽는다.
-
-```text
-선언 경로: HTTPRoute → Service → EndpointSlice → Ready Pod
-반영 경로: Gateway controller → Envoy data plane
-```
-
-Gateway API object는 proxy 자체가 아니며, controller가 선언을 data plane 설정으로 반영한다. 필수 실습 순서는 `GatewayClass/controller 확인 → 최소 Gateway와 HTTPRoute 의미 확인 → 설치 상태 검증 → Gateway/Route condition → Service/EndpointSlice → curl`이다. Route를 아직 만들지 않은 단계의 404는 controller 실패가 아니라 route 부재일 수 있으므로, 설치 성공과 routing 성공을 별도 증거로 기록한다.
-
-## Docker reverse proxy에서 Kubernetes Gateway로
-Docker Compose에서는 NGINX container 하나를 reverse proxy로 세우고 설정 파일에 route를 적는 방식이 흔했다.
-
-```text
-browser
-  -> nginx reverse proxy container
-  -> frontend/api container
-```
-
-Kubernetes에서는 이 역할을 API object와 controller로 나눈다.
-
-```text
-Gateway API object
-  -> GatewayClass / Gateway / HTTPRoute
-
-Gateway controller
-  -> Envoy Gateway
-
-data plane
-  -> Envoy proxy
-```
-
-즉 학생들이 기억해야 할 변화는 이것이다.
-
-```text
-Docker: proxy 설정 파일을 직접 관리하는 느낌
-Kubernetes: routing 의도를 API object로 선언하고 controller가 proxy를 맞춤
-```
-
-## Gateway API 구성요소
-| 리소스 | 누가 주로 관리하나 | 의미 |
-|---|---|---|
-| GatewayClass | platform/infra team | 어떤 controller가 Gateway를 처리할지 지정 |
-| Gateway | platform/app platform team | listener, port, protocol, route attach 범위 |
-| HTTPRoute | app/team owner | host/path/header 기반 routing |
-| Service | app/team owner | backend 안정 진입점 |
-| EndpointSlice | Kubernetes controller | Ready Pod IP 목록 |
-
-Ingress에서는 하나의 Ingress object에 많은 의미가 몰렸다. Gateway API는 역할을 더 잘게 나누어 platform owner와 application owner의 책임을 분리하기 쉽다.
-
-## NGINX Ingress는 왜 언급만 하는가
-NGINX Ingress Controller는 오래 쓰였고 현업에서 여전히 많이 만난다. 하지만 이번 수업은 새 traffic API를 기준으로 한다.
-
-| 항목 | 이번 수업 기준 |
-|---|---|
-| NGINX Ingress | 기존 방식으로 비교 언급 |
-| Gateway API | 직접 작성 |
-| Envoy Gateway | 직접 설치 |
-| HTTPRoute | 직접 route 작성 |
-
-현장에서 NGINX Ingress를 만나면 `IngressClass`, `Ingress`, controller log를 보면 된다. 이번 수업에서는 같은 사고방식을 `GatewayClass`, `Gateway`, `HTTPRoute`, Envoy Gateway log로 확장한다.
-
-## Helm values 확인
 ```bash
-cat week4/day2/labs/envoy-gateway/values.yaml
+kubectl port-forward -n monitoring service/kps-prometheus 9090:9090
 ```
 
-수업 values는 최소 설정만 둔다.
+브라우저에서 **http://localhost:9090** → 위쪽 메뉴 **Status → Target health**.
+
+> **🟢 확인: 보이는 것 (줄여서)**
+>
+> | 대상 (job) | 상태 | 개수 |
+> |---|---|---|
+> | serviceMonitor/monitoring/kps-kubelet/… | **UP** | 노드 3 × 몇 개 |
+> | serviceMonitor/monitoring/kps-prometheus-node-exporter/0 | **UP** | 3 |
+> | serviceMonitor/monitoring/kps-kube-state-metrics/0 | **UP** | 1 |
+> | serviceMonitor/monitoring/kps-apiserver/0 | **UP** | 1 |
+> | serviceMonitor/monitoring/kps-coredns/0 | **UP** | 2 |
+> | … (Prometheus · Alertmanager · Grafana · 운영자 자신) | **UP** | |
+>
+> 2교시에 끈 컨트롤러 매니저 · 스케줄러 · etcd는 **목록에 없습니다.** 모두 UP이어야 합니다. Envoy는 아직 없습니다.
+
+> **📖 용어 — 타깃과 긁기(scrape)**
+>
+> **타깃**은 Prometheus가 지표를 가져가는 주소 하나입니다(대부분 `http://Pod-IP:포트/metrics`). 정해진 주기(오늘은 15초)마다 그 주소에 HTTP GET을 보내 **지금의 숫자들**을 받아 저장합니다. 앱이 Prometheus에 보내는 것이 아니라 Prometheus가 **가져가는**(pull) 방식이라, 앱이 죽으면 "가져가기 실패 = DOWN"으로 바로 드러납니다. `up` 지표(1이면 성공, 0이면 실패)가 모든 타깃에 자동으로 생깁니다.
+
+## 실습 4 · Envoy 지표 더하기
+
+### 단계 1 — 원본 보기
+
+Prometheus가 무엇을 받아 가는지, 먼저 직접 봅니다.
+
+```bash
+# 다른 터미널 — 요청 몇 개 만들기
+for i in $(seq 1 30); do curl -s -o /dev/null localhost:30080/api/products; done
+
+ENVOY=$(kubectl get pod -n envoy-gateway-system -l app.kubernetes.io/component=proxy -o name | head -1)
+kubectl port-forward -n envoy-gateway-system $ENVOY 19001:19001 &
+sleep 2
+curl -s localhost:19001/stats/prometheus | grep -E '^envoy_cluster_upstream_rq_(total|xx)\{' | grep 'httproute/devmart' | head -6
+kill %1
+```
+
+- `19001` : Envoy Gateway가 Envoy의 **지표 포트**로 쓰는 번호. 경로는 `/stats/prometheus`
+
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/devmart/catalog/rule/0"} 1847
+> envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/devmart/orders/rule/0"} 312
+> envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/devmart/web/rule/0"} 96
+> envoy_cluster_upstream_rq_xx{envoy_cluster_name="httproute/devmart/catalog/rule/0",envoy_response_code_class="2"} 1839
+> envoy_cluster_upstream_rq_xx{envoy_cluster_name="httproute/devmart/catalog/rule/0",envoy_response_code_class="5"} 8
+> envoy_cluster_upstream_rq_xx{envoy_cluster_name="httproute/devmart/orders/rule/0",envoy_response_code_class="2"} 310
+> ```
+> 한 줄 = **이름{라벨들} 숫자**. Envoy는 어제 만든 **HTTPRoute마다** 따로 셉니다 — `httproute/네임스페이스/라우트이름/rule/번호`. 어제 4교시에 서비스마다 라우트를 따로 만든 덕분에, 오늘 서비스마다 숫자가 따로 나옵니다. (`rule/0`의 5xx 8건은 어제 7교시 장애 2의 흔적일 수 있습니다.)
+
+### 단계 2 — PodMonitor
+
+```bash
+cat monitoring/envoy-podmonitor.yaml | sed -n '/spec:/,$p'
+kubectl apply -f monitoring/envoy-podmonitor.yaml
+```
 
 ```yaml
-deployment:
-  replicas: 1
-config:
-  envoyGateway:
-    logging:
-      level:
-        default: info
+spec:
+  selector:
+    matchLabels:                                    # 이 라벨의 Pod를
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/managed-by: envoy-gateway
+  podMetricsEndpoints:
+    - port: metrics                                 # 이 이름의 포트에서
+      path: /stats/prometheus                       # 이 경로로 긁어라
+      interval: 15s
 ```
 
-설치 표준은 W4 공통 원칙과 같다.
+30초쯤 뒤 Prometheus 화면의 **Target health**를 새로 고칩니다.
 
-```text
-OCI chart 경로와 version 명시
-helm upgrade --install
-namespace 명시
-values file 사용
-release/pod/crd 확인
-```
+> **🟢 확인: 새 줄**
+>
+> `podMonitor/envoy-gateway-system/envoy-proxy/0` — **UP** (1/1)
 
-## Helm 설치
-Envoy Gateway Helm chart는 DockerHub OCI registry에 배포된다. `https://gateway.envoyproxy.io`는 문서 사이트이며 Helm repository가 아니므로 `helm repo add` 대상으로 쓰지 않는다.
+| | ServiceMonitor | PodMonitor |
+|---|---|---|
+| 무엇을 고르나 | **Service**를 라벨로 고르고, 그 뒤의 Pod들을 긁는다 | **Pod**를 라벨로 직접 고른다 |
+| 쓰는 곳 | 지표 포트가 Service에 열려 있을 때 (대부분) | Service 없이 Pod에만 있을 때 — 오늘의 Envoy 지표 포트 |
+
+## 지표의 세 가지 모양
+
+| 종류 | 뜻 | 예 | 그대로 보면 |
+|---|---|---|---|
+| **카운터** (counter) | 계속 **늘기만** 하는 수 (재시작하면 0부터) | `envoy_cluster_upstream_rq_total` · `kube_pod_container_status_restarts_total` | 의미 없다 — **얼마나 빨리 느나**(rate)를 본다 |
+| **게이지** (gauge) | 오르내리는 지금 값 | `container_memory_working_set_bytes` · `kube_deployment_status_replicas_available` | 그대로 의미 있다 |
+| **히스토그램** (histogram) | 값의 **분포** — "100ms 이하 몇 개, 250ms 이하 몇 개…" 칸(bucket)마다 카운터 | `envoy_cluster_upstream_rq_time_bucket{le="…"}` | 칸들로 **분위수**(p95 등)를 계산한다 |
+
+> **❓ 오해 — 평균 응답 시간이면 충분하다**
+>
+> 요청 100개 중 99개가 10ms, 1개가 5초면 평균은 약 60ms입니다. "빠르다"고 보이지만 **100명 중 1명은 5초를 기다렸습니다.** 그래서 응답 시간은 **분위수**로 봅니다 — p95(느린 쪽 5%의 경계), p99(1%). 구글 SRE 책과 Dean & Barroso의 *The Tail at Scale*(CACM 2013)이 강조한 '꼬리 지연'입니다. 서비스가 여럿이면 꼬리가 곱해져 더 길어집니다 — 3주차 2일차의 장애 전파와 같은 원리입니다.
+
+## 실습 5 · PromQL 한 단계씩
+
+Prometheus 화면 위쪽 **Query** 탭에서 한 줄씩 입력하고 **Execute** → **Graph** 탭으로 봅니다. 다른 터미널에서 요청을 계속 만들어 둡니다.
 
 ```bash
-helm upgrade --install envoy-gateway oci://docker.io/envoyproxy/gateway-helm \
-  --version v1.7.3 \
-  --namespace envoy-gateway-system \
-  --create-namespace \
-  -f week4/day2/labs/envoy-gateway/values.yaml
-
-kubectl apply -f week4/day2/labs/envoy-gateway/gatewayclass.yaml
+while true; do curl -s -o /dev/null localhost:30080/api/products; curl -s -o /dev/null localhost:30080/api/orders; sleep 0.2; done
 ```
 
-`v1.8.x` chart는 최신 Gateway API CRD bundle에 `ValidatingAdmissionPolicy`/`ValidatingAdmissionPolicyBinding`을 포함할 수 있다. Kubernetes 1.27 계열 kind cluster에서는 `admissionregistration.k8s.io/v1`의 해당 resource를 지원하지 않아 CRD 설치가 실패할 수 있으므로, 수업에서는 `v1.7.3`으로 고정한다.
+### 1 — 카운터 그대로
 
-예상 출력:
-```text
-Release "envoy-gateway" does not exist. Installing it now.
-NAME: envoy-gateway
-NAMESPACE: envoy-gateway-system
-STATUS: deployed
+```promql
+envoy_cluster_upstream_rq_total{envoy_cluster_name=~"httproute/devmart/.*"}
 ```
 
-이미 설치되어 있으면 upgrade 출력이 나온다.
+- `{…}` : 라벨로 고른다. `=~`는 정규식 일치
 
-## release와 controller 확인
-```bash
-helm list -n envoy-gateway-system
-kubectl -n envoy-gateway-system get deploy,pod,svc
-kubectl get crd | grep gateway.networking.k8s.io
-kubectl get gatewayclass
+> **🟢 확인: 보이는 것**
+>
+> 세 줄(catalog · orders · web)이 **계단처럼 계속 오르는** 그래프. 카운터 그대로는 "지금 바쁜가"를 알 수 없습니다.
+
+### 2 — 초당 증가량: rate
+
+```promql
+rate(envoy_cluster_upstream_rq_total{envoy_cluster_name=~"httproute/devmart/.*"}[1m])
 ```
 
-예상:
-```text
-NAME             NAMESPACE              STATUS
-envoy-gateway    envoy-gateway-system   deployed
+- `[1m]` : 최근 1분 동안의 값들로
+- `rate()` : 초당 평균 증가량 — **초당 요청 수**가 된다. 카운터가 재시작으로 0이 되어도 알아서 이어 준다
 
-deployment.apps/envoy-gateway   1/1
-pod/envoy-gateway-...           1/1 Running
+> **🟢 확인: 보이는 것**
+>
+> 평평한 선 — catalog와 orders가 각각 초당 약 4~5. 루프를 멈추면 1분에 걸쳐 0으로 내려갑니다. **R(Rate)**입니다.
+
+### 3 — 묶기: sum by
+
+```promql
+sum by (envoy_cluster_name) (rate(envoy_cluster_upstream_rq_total{envoy_cluster_name=~"httproute/devmart/.*"}[1m]))
 ```
 
-Gateway API CRD가 있어야 `GatewayClass`, `Gateway`, `HTTPRoute`를 만들 수 있다.
+- `sum by (라벨)` : 그 라벨이 같은 것끼리 더한다. Envoy Pod가 여러 개여도 라우트별 합계가 된다
 
-대표 CRD:
-```text
-gatewayclasses.gateway.networking.k8s.io
-gateways.gateway.networking.k8s.io
-httproutes.gateway.networking.k8s.io
+### 4 — 오류 비율 (E)
+
+```promql
+sum by (envoy_cluster_name) (rate(envoy_cluster_upstream_rq_xx{envoy_response_code_class="5", envoy_cluster_name=~"httproute/devmart/.*"}[1m]))
+/
+sum by (envoy_cluster_name) (rate(envoy_cluster_upstream_rq_total{envoy_cluster_name=~"httproute/devmart/.*"}[1m]))
 ```
 
-## GatewayClass 확인
-```bash
-kubectl get gatewayclass
+> **🟢 확인: 보이는 것**
+>
+> 지금은 **결과 없음**이거나 0입니다. 5xx가 없으면 분자 쪽 시계열이 아예 없기 때문입니다. 5교시에 장애를 넣으면 나타납니다.
+
+### 5 — 응답 시간 p95 (D)
+
+```promql
+histogram_quantile(0.95,
+  sum by (le, envoy_cluster_name) (rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~"httproute/devmart/.*"}[1m])))
 ```
 
-예상:
-```text
-NAME             CONTROLLER
-envoy-gateway    gateway.envoyproxy.io/gatewayclass-controller
+- `le` : 히스토그램 칸의 경계("이하") 라벨 — `by`에 꼭 남겨야 분위수를 계산할 수 있다
+- 결과 단위는 Envoy 기준 **밀리초**
+
+> **🟢 확인: 보이는 것**
+>
+> catalog · orders 모두 수 ms~수십 ms. orders가 조금 더 깁니다 — 주문은 안에서 catalog를 한 번 더 부르고 DB에 쓰기 때문입니다(3주차 1일차).
+
+### 6 — 자원 쪽 (USE)
+
+```promql
+sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="devmart", container!=""}[1m]))
 ```
 
-`GatewayClass`는 "이 Gateway를 어떤 구현체가 처리할 것인가"를 정한다. Ingress의 `ingressClassName`과 비슷한 위치에 있지만, Gateway API에서는 더 명시적인 리소스다.
-
-## controller log 읽기
-```bash
-kubectl -n envoy-gateway-system logs deploy/envoy-gateway --tail=80
+```promql
+kube_deployment_status_replicas_available{namespace="devmart"}
 ```
 
-확인할 단서:
-| log/상태 단서 | 의미 |
-|---|---|
-| GatewayClass accepted | controller가 class를 인식 |
-| Gateway accepted | listener 설정을 처리 |
-| HTTPRoute attached | route가 Gateway에 붙음 |
-| backend not found | Service 이름/namespace 오류 |
-| invalid backend port | Service port 오류 |
+- 첫 줄: Pod별 CPU 사용(코어). 3주차 5일차의 requests(catalog-api 50m = 0.05)와 비교해 본다
+- 둘째 줄: kube-state-metrics가 만든 **게이지** — Deployment마다 준비된 Pod 수
 
-## Envoy data plane 확인
-Gateway/HTTPRoute를 적용한 뒤 Envoy proxy Pod나 Service가 추가로 생길 수 있다.
+> **📘 예시 — 질문을 PromQL로**
+>
+> | 1교시의 질문 | PromQL |
+> |---|---|
+> | 지금 주문이 초당 몇 건? | `sum(rate(envoy_cluster_upstream_rq_total{envoy_cluster_name=~"httproute/devmart/orders/.*"}[1m]))` |
+> | 최근 15분에 재시작한 Pod는? | `increase(kube_pod_container_status_restarts_total{namespace="devmart"}[15m]) > 0` |
+> | catalog-api가 CPU requests의 몇 배를 쓰나? | `sum(rate(container_cpu_usage_seconds_total{namespace="devmart",pod=~"catalog-api.*"}[5m])) / sum(kube_pod_container_resource_requests{namespace="devmart",pod=~"catalog-api.*",resource="cpu"})` |
+>
+> "pending 주문 수"는 PromQL로 답할 수 없습니다 — 그런 지표를 아무도 내놓지 않기 때문입니다. 지표는 **누군가 내놓아야** 있습니다. 앱이 직접 `/metrics`를 열거나(계측), DB용 exporter를 붙여야 합니다. 이번 주 Try 후보입니다.
 
-```bash
-kubectl get pods -A | grep envoy
-kubectl get svc -A | grep envoy
-```
+> [!WARNING]
+> **라벨에 무엇을 넣으면 안 되나**
+>
+> 라벨 값 하나하나가 **새 시계열**이 됩니다. 라벨에 요청 ID · 사용자 ID · 주문 번호처럼 **끝없이 늘어나는 값**을 넣으면 시계열이 폭발해 Prometheus가 메모리를 다 먹습니다(카디널리티 폭발). 요청 ID는 **로그와 트레이스**의 몫이고, 메트릭 라벨은 라우트 · 서비스 · 응답 코드처럼 **가짓수가 정해진 값**만 씁니다.
 
-환경과 chart 버전에 따라 이름이 다를 수 있다. 중요한 것은 controller Pod와 실제 traffic을 받는 data plane을 구분하는 것이다.
+`port-forward`와 요청 루프는 이 교시가 끝나면 Ctrl+C로 멈춥니다.
 
-```text
-Envoy Gateway controller = API object 감시/반영
-Envoy proxy data plane = 실제 HTTP traffic 처리
-```
+> **🎓 학술 노트 — 꼬리 지연과 시계열 압축**
+>
+> - **Dean, J., & Barroso, L. A. (2013). "The Tail at Scale." CACM 56(2).** — 요청 하나가 서버 100대에 퍼져 처리되면, 각 서버가 1% 확률로 느려도 **전체 요청의 63%가 느려집니다**(1 − 0.99¹⁰⁰). 평균이 아니라 p99를 봐야 하는 수학적 이유입니다.
+> - **Pelkonen 외 (2015). "Gorilla: A Fast, Scalable, In-Memory Time Series Database." VLDB.** — 페이스북의 시계열 압축 기법(시간 간격과 값의 차이를 비트 단위로 압축)으로, 한 점을 평균 약 1.37바이트에 저장했습니다. Prometheus의 저장 방식이 이 기법을 바탕으로 해서, 15초마다 수십만 시계열을 저장해도 노트북에서 돌아갑니다.
 
-## port-forward 준비
-local/kind 환경에서는 LoadBalancer가 바로 외부 IP를 받지 못할 수 있다. 수업에서는 port-forward를 기본 확인 방법으로 둔다.
+> **📈 트렌드 2026 — 네이티브 히스토그램**
+>
+> 오늘 본 히스토그램은 칸(bucket) 경계를 **미리 정해** 칸마다 시계열 하나를 씁니다. 칸이 많으면 정확하지만 시계열이 많아지고, 적으면 부정확합니다. Prometheus의 **네이티브 히스토그램**은 칸을 **자동으로, 지수 간격으로** 잡아 하나의 시계열에 담습니다. Prometheus 3 세대에서 안정화가 진행되며 OpenTelemetry의 지수 히스토그램과도 맞물려, 앞으로 "칸을 어떻게 나눌지"를 사람이 고민할 일이 줄어들 것입니다.
 
-kind에서는 `kubectl -n week4 get gateway`의 `PROGRAMMED`가 `False`로 보여도 `describe gateway`의 이유가 `AddressNotAssigned`라면 Gateway listener/route 자체가 실패했다는 뜻은 아닐 수 있다. LoadBalancer 주소가 없기 때문에 Gateway 주소 배정만 실패한 상태이고, Envoy data plane Service로 port-forward해서 실제 traffic path를 확인한다.
+> **✅ 확인 문제**
+>
+> 1. Prometheus가 지표를 가져가는 방식은 push인가 pull인가요? 그 장점 하나는?
+> 2. Envoy 지표를 ServiceMonitor가 아니라 PodMonitor로 모은 이유는?
+> 3. 카운터를 그대로 그래프로 그리면 왜 쓸모가 적나요? 무엇을 씌우나요?
+> 4. `histogram_quantile`을 쓸 때 `sum by`에 `le`를 꼭 남기는 이유는?
+> 5. 메트릭 라벨에 요청 ID를 넣으면 안 되는 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. pull — 앱이 죽으면 '가져가기 실패(up=0)'로 바로 드러난다 / 앱은 주소만 열어 두면 된다
+> 2. Envoy의 지표 포트가 Service에 열려 있지 않고 Pod에만 있어서
+> 3. 늘기만 하는 누적값이라 '지금 얼마나 바쁜가'를 보여 주지 않는다 → `rate()`로 초당 증가량을 본다
+> 4. 분위수는 칸(le)별 분포로 계산하므로, 칸 경계 라벨이 사라지면 계산할 수 없다
+> 5. 값이 끝없이 늘어나 시계열이 폭발한다(카디널리티) — 요청 ID는 로그 · 트레이스의 몫
+>
+> </details>
 
-Gateway를 적용한 뒤 Envoy Service를 찾는다.
+## 참고 문헌
 
-```bash
-kubectl -n envoy-gateway-system get svc \
-  -l gateway.envoyproxy.io/owning-gateway-name=paperclip-gateway
-```
+- Prometheus Docs. *Metric types* · *Querying basics* · *Histograms and summaries*. prometheus.io/docs
+- Prometheus Operator. *PodMonitor* · *ServiceMonitor*. prometheus-operator.dev/docs
+- Envoy Gateway Docs. *Proxy Metrics*. gateway.envoyproxy.io/docs/tasks/observability
+- Dean, J., & Barroso, L. A. (2013). The Tail at Scale. *Communications of the ACM*, 56(2).
+- Pelkonen, T. 외 (2015). Gorilla: A Fast, Scalable, In-Memory Time Series Database. *PVLDB*, 8(12).
 
-예시:
-```bash
-ENVOY_SVC=$(kubectl -n envoy-gateway-system get svc \
-  -l gateway.envoyproxy.io/owning-gateway-name=paperclip-gateway \
-  -o jsonpath='{.items[0].metadata.name}')
+---
 
-kubectl -n envoy-gateway-system port-forward "svc/${ENVOY_SVC}" 8080:80
-```
-
-`8080`이 이미 사용 중이면 왼쪽 local port만 바꾼다. 예: `18080:80`
-
-다른 터미널에서 확인한다.
-
-```bash
-curl -H "Host: paperclip.local" http://localhost:8080/
-```
-
-아직 HTTPRoute를 만들지 않았다면 404가 나올 수 있다. 이것은 controller가 죽었다는 뜻이 아니라 route가 없다는 뜻일 수 있다.
-
-## 장애 판단
-| 증상 | 확인 |
-|---|---|
-| Helm chart를 못 찾음 | `helm repo list`, `helm repo update` |
-| `ValidatingAdmissionPolicy` CRD 오류 | Kubernetes server version과 Envoy Gateway chart version 확인, 수업 기준 `v1.7.3` 사용 |
-| controller Pod Pending | `kubectl -n envoy-gateway-system describe pod` |
-| GatewayClass 없음 | `kubectl get gatewayclass` |
-| Gateway가 Accepted 아님 | `kubectl -n week4 describe gateway paperclip-gateway` |
-| HTTPRoute가 붙지 않음 | `kubectl -n week4 describe httproute paperclip-routes` |
-| localhost 접근 실패 | Envoy Service 이름, port-forward 대상 확인 |
-| Gateway 경유 요청 timeout | NetworkPolicy가 Envoy namespace에서 backend Pod로 들어오는 traffic을 허용하는지 확인 |
-
-## Evidence Note
-```markdown
-# W4D2S3 Envoy Gateway
-- Helm release:
-- controller Pod READY:
-- GatewayClass:
-- Gateway API CRD:
-- Envoy Service/port-forward:
-- controller log에서 본 단서:
-```
-
-## 한 줄 요약
-```text
-Gateway API는 traffic 의도를 선언하고, Envoy Gateway는 그 의도를 Envoy data plane으로 반영하는 controller다.
-```
-
-
-## 학습 제어
-### 시작 3분 회상
-- 내부 Service DNS 호출과 외부 Gateway 호출의 증거 차이는 무엇인가?
-- GatewayClass, Gateway, controller, Envoy data plane의 책임은 무엇인가?
-### 오늘 반드시 가져갈 것
-- Gateway API object는 의도를 선언하고 controller/data plane이 실제 traffic 경로를 만든다.
-- 설치 성공은 release/Pod Ready와 Gateway condition을 함께 확인하는 것이다.
-### 최소 복구 경로
-- GatewayClass/controller를 확인한다 → Gateway status를 본다 → Service/EndpointSlice와 HTTP를 대조한다.
-- 성공 판정은 controller가 object를 Accepted/Programmed 상태로 만든 것이다. 첫 실패는 conditions와 controller logs에서 찾는다.
-- 다음 lesson 진입 조건은 HTTPRoute host/path 계약을 작성하는 것이다.
+⬅️ 이전: [2교시 · kube-prometheus-stack 설치](lesson-02.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · Grafana 대시보드](lesson-04.md) ➡️

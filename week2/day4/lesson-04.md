@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+
 # 4교시 · Docker 네트워크와 이름 찾기
 
 > [!NOTE]
@@ -95,7 +97,7 @@ docker inspect api-b --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}
 
 해결책은 **내가 만든 네트워크(사용자 정의 브리지 네트워크)**입니다. 여기에 연결된 컨테이너들은 Docker에 내장된 **DNS 서버**가 서로의 이름을 IP로 바꿔 줍니다. 컨테이너가 다시 떠서 IP가 바뀌어도 DNS가 새 IP를 알려 주므로, 이름만 쓰면 항상 맞는 곳을 찾아갑니다.
 
-![기본 bridge 네트워크에서는 이름 찾기가 안 되고, 사용자 정의 네트워크에서는 Docker 내장 DNS가 컨테이너 이름을 IP로 바꿔 준다](../../assets/week2/day4/w2d4-bridge-dns.png)
+![기본 bridge 네트워크에서는 이름 찾기가 안 되고, 사용자 정의 네트워크에서는 Docker 내장 DNS가 컨테이너 이름을 IP로 바꿔 준다](../../v3/assets/week2/day4/w2d4-bridge-dns.png)
 
 > **🧩 비유 — 회사 내선 전화번호부**
 >
@@ -226,3 +228,7 @@ docker network inspect devmart-net \
 - Docker Docs. *Networking overview*, *Bridge network driver — Differences between user-defined bridges and the default bridge*. docs.docker.com/engine/network
 - Mockapetris, P. (1987). RFC 1034 / RFC 1035. IETF.
 - Kubernetes Docs. *DNS for Services and Pods*. kubernetes.io/docs/concepts/services-networking/dns-pod-service
+
+---
+
+⬅️ 이전: [3교시 · 바인드 마운트](lesson-03.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · API와 DB 연결하기](lesson-05.md) ➡️

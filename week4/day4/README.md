@@ -1,72 +1,52 @@
-# Week 4 Day4: Kubernetes Security - RBAC과 Kyverno
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
 
-## Overview
-W4D4는 Kubernetes 운영에서 "누가 무엇을 할 수 있는가"와 "무엇을 배포할 수 있는가"를 분리해서 다룬다. W4D1~D3에서 workload, traffic, observability를 확인했다면, 오늘은 RBAC으로 API 권한을 제한하고 Kyverno로 admission 단계에서 위험한 manifest를 차단한다.
+# 4주차 4일차 — Service Mesh
 
-실습 cluster는 kind 기준으로 진행한다. Kyverno는 Helm으로 설치하며, RBAC은 Kubernetes 기본 object인 ServiceAccount, Role, RoleBinding을 직접 작성한다.
+📕 4주차 이북 PDF: [보기](../../downloads/pdf/week4.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week4.pdf) &nbsp;|&nbsp; 📊 4일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week4-day4.pptx)
 
-## Learning Goals
-- Kubernetes 권한 모델에서 user, group, ServiceAccount, Role, ClusterRole, RoleBinding을 구분한다.
-- `kubectl auth can-i`로 권한을 확인하고 `forbidden` 오류를 읽는다.
-- default ServiceAccount와 workload 전용 ServiceAccount의 차이를 설명한다.
-- automountServiceAccountToken이 왜 중요한지 확인한다.
-- Kyverno를 Helm으로 설치하고 admission controller/webhook Pod를 확인한다.
-- Audit 정책과 Enforce 정책의 차이를 설명한다.
-- `latest` image tag, owner label 누락, privileged container, hostPath를 정책으로 다룬다.
-- RBAC forbidden과 Kyverno admission deny를 분리해서 troubleshooting note를 작성한다.
+## 오늘의 목표
 
-## Lesson Index
-| 교시 | 주제 | 핵심 확인 |
+어제 배움일기의 마지막 질문은 "서비스 사이의 호출(order-api → catalog-api)은 **아무 검사 없이** 오갔다. 누가 누구를 부를 수 있는지, 그 통신이 암호화되는지는 어떻게 정할까?"였습니다. 1일차의 Gateway는 **밖에서 안으로** 들어오는 요청을 다뤘습니다. 오늘은 **안에서 안으로** 오가는 요청을 다룹니다 — 코드를 한 줄도 고치지 않고.
+
+- **남북(north-south)**과 **동서(east-west)** 트래픽, 그리고 서비스 메시가 하는 일을 구분합니다.
+- **sidecar 모드**와 **ambient 모드**의 구조를 비교합니다.
+- **Istio**(ambient)를 Helm으로 설치하고, DevMart를 **Git 커밋 하나로** 메시에 넣습니다.
+- 서비스 사이 통신이 **mTLS**로 바뀐 것을 확인하고, **Kiali**로 메시 지도를 봅니다.
+- **waypoint**를 두고, catalog-api 호출의 10%를 카나리로 보냅니다.
+- **장애 주입**으로 catalog-api를 일부러 늦추고 실패시켜, 어제의 대시보드로 영향을 봅니다.
+- **mTLS STRICT**와 **AuthorizationPolicy**로 "누가 누구를 부를 수 있나"를 정합니다.
+
+## 시간표
+
+| 교시 | 주제 | 실습 결과물 |
 |---|---|---|
-| 1교시 | Day3 요약 + Kubernetes 권한 모델 | subject, verb, resource, scope |
-| 2교시 | RBAC 최소 권한 실습 | ServiceAccount, Role, RoleBinding, forbidden |
-| 3교시 | app Pod와 ServiceAccount | default SA, token mount, workload identity preview |
-| 4교시 | Kyverno Helm 설치 | Kyverno admission/webhook/CRD 필수; External Secrets Operator는 선택 읽을거리 |
-| 5교시 | Kyverno policy 1 | latest tag 금지, required label, Audit/Enforce |
-| 6교시 | Kyverno policy 2 | privileged, hostPath 제한과 admission deny |
-| 7교시 | 권한/정책 장애 분석 | RBAC forbidden vs Kyverno deny |
-| 8교시 | 구름 EXP 배움일기 | security evidence와 다음 운영 질문 |
+| 1교시 | 3일차 요약 + 서비스 메시 | 남북 · 동서 구분, sidecar vs ambient |
+| 2교시 | Istio 설치와 메시 등록 | istiod · istio-cni · ztunnel, 라벨 커밋 하나 |
+| 3교시 | mTLS 확인과 Kiali | 신원이 찍힌 로그, 메시 지도 |
+| 4교시 | waypoint와 트래픽 나누기 | 메시 안 호출의 90/10 |
+| 5교시 | 장애 주입 · 타임아웃 · 재시도 | 늦어진 catalog와 주문 오류 그래프 |
+| 6교시 | mTLS STRICT와 호출 허가 | 메시 밖 · 허가 없는 손님 거절 |
+| 7교시 | 메시 운영 판단 | 비용 · 대안 · 정리 |
+| 8교시 | 배움일기 | |
 
-## Practice Files
-| 자료 | 용도 |
-|---|---|
-| `hands-on-lab.md` | 전체 실습 순서 |
-| `academic-foundations.md` | RBAC/admission/Kyverno 개념 정리 |
-| `labs/rbac/` | namespace, ServiceAccount, Role, RoleBinding, workload |
-| `labs/kyverno/values.yaml` | Kyverno Helm values |
-| `labs/kyverno/*policy*.yaml` | 수업용 Kyverno 정책 |
-| `labs/kyverno/bad-*.yaml` | 정책 위반 manifest |
-| `labs/kyverno/good-pod.yaml` | 정책 통과 manifest |
+## 교시별 자료
 
-## Verified Baseline
-검증 기준:
-```text
-kind cluster Ready
-RBAC can-i yes/no 확인 가능
-Kyverno admission controller Running
-bad-latest Pod는 admission denied
-bad-privileged-hostpath Pod는 admission denied
-good-versioned-owner Pod는 Running 또는 Completed 전 단계까지 생성
-```
+1. [3일차 요약 + 서비스 메시](lesson-01.md)
+2. [Istio 설치와 메시 등록](lesson-02.md)
+3. [mTLS 확인과 Kiali](lesson-03.md)
+4. [waypoint와 트래픽 나누기](lesson-04.md)
+5. [장애 주입 · 타임아웃 · 재시도](lesson-05.md)
+6. [mTLS STRICT와 호출 허가](lesson-06.md)
+7. [메시 운영 판단](lesson-07.md)
 
-## Official References
-| Topic | Reference |
-|---|---|
-| Kubernetes RBAC | https://kubernetes.io/docs/reference/access-authn-authz/rbac/ |
-| Service Accounts | https://kubernetes.io/docs/concepts/security/service-accounts/ |
-| Admission Controllers | https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/ |
-| Kyverno Installation | https://kyverno.io/docs/installation/ |
-| Kyverno Policies | https://kyverno.io/policies/ |
+> [!IMPORTANT]
+> **오늘 실습 전에 확인할 것**
+>
+> - Istio(ambient) + Kiali가 **약 0.6~1GB** 더 씁니다. 빠듯하면 1일차의 `podinfo` · `podinfo-canary`를 지웁니다(`helm uninstall … -n default`).
+> - 어제의 Argo CD가 자동 동기화로 DevMart를 관리하고 있어야 합니다: `argocd app get devmart | grep -E "Sync Status|Health"` → `Synced` · `Healthy`.
+> - **오늘 DevMart의 변경은 모두 배포 저장소(`devmart-deploy`)에 커밋**합니다. `kubectl apply`로 devmart에 직접 넣으면 selfHeal · prune과 엇갈립니다.
+> - 실습 파일은 강의 저장소의 `labs/week4/day4/`입니다.
 
-## 학습 제어: 회상·핵심·복구
+---
 
-### 시작 5분 회상
-W4D3의 logs/events/metrics 차이를 자료 없이 구분하고, 각 증거가 답하지 못하는 질문도 하나씩 적는다.
-
-### 오늘 반드시 가져갈 것
-1. RBAC은 API 요청의 주체·동사·resource·scope를 제한한다.
-2. Kyverno는 admission 단계에서 manifest를 허용하거나 거부한다.
-3. `forbidden`과 `admission denied`는 서로 다른 실패 계층이다.
-
-### 최소 복구 경로
-`kubectl auth can-i` → 대상 ServiceAccount/Role/Binding 확인 → manifest 정책 위반 여부 확인 → admission/controller 로그 확인 순서로 복구한다. 다음 날로 넘어가기 전 권한 실패와 정책 실패의 첫 확인 위치를 각각 말할 수 있어야 한다.
+⬅️ 이전: [7교시 · Actions → Argo CD 전체 파이프라인](../day3/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 3일차 요약 + 서비스 메시](lesson-01.md) ➡️

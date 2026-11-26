@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@opentelemetry/api": "^1.8.0",
+    "@opentelemetry/sdk-node": "^0.51.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.51.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.43.0",
+    "prom-client": "^15.1.0"
+  }
+}

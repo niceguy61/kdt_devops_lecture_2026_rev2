@@ -1,237 +1,228 @@
-# 2교시: kube-prometheus-stack 설치
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)
 
-![Week 4 Day 3 Lesson 2](./assets/lesson-02-kube-prometheus-stack-install.png)
+# 2교시 · CI와 CD 나누기 · 배포 저장소
 
-## 수업 목표
-- kube-prometheus-stack 구성요소를 설명한다.
-- Helm values file로 Prometheus/Grafana/Alertmanager를 설치한다.
-- 설치 후 release, Pod, Service, CRD를 검증한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - CI와 CD가 **각각 어디까지** 책임지는지 정합니다.
+> - 코드 저장소와 **배포 저장소를 나누는 이유**를 이해합니다.
+> - `devmart-deploy` 저장소를 만들고, 오늘까지의 매니페스트를 **한 묶음**으로 모읍니다.
+> - kustomize의 `images:`로 **이미지 태그를 한 곳에서** 바꾸는 법을 익힙니다.
 
-## 수업 순서와 범위
+## CI는 어디까지, CD는 어디부터
 
-설치 전에 먼저 관찰 질문을 분리한다.
+3주차 2일차의 CI는 테스트 → 이미지 빌드 → GHCR push까지 했습니다. 그 이미지를 클러스터에 올린 것은 **사람**(`kubectl apply`)이었습니다. 오늘은 그 빈칸을 이렇게 채웁니다.
 
-| 질문 | 오늘 처음 확인할 증거 |
+| 단계 | 누가 | 결과물 | 클러스터 열쇠 |
+|---|---|---|---|
+| 테스트 · 빌드 · push | CI (GitHub Actions) | GHCR의 이미지 `:sha-1a2b3c4` | 필요 없음 |
+| "이 이미지를 쓰자"를 적기 | CI 봇 | 배포 저장소의 **커밋 한 개** | 필요 없음 (배포 저장소 쓰기 권한만) |
+| 클러스터에 맞추기 | Argo CD | 롤링 업데이트 | 클러스터 **안에만** |
+
+> [!IMPORTANT]
+> **경계선 — CI는 Git에서 멈춘다**
+>
+> CI의 마지막 행동은 `kubectl apply`가 아니라 **`git push`**입니다. 그래서 CI는 클러스터에 접속할 정보가 전혀 없습니다. 클러스터가 몇 개든, 어디에 있든(오늘 kind, 5주차 EKS) CI는 바뀌지 않습니다.
+
+## 왜 저장소를 둘로 나누나
+
+같은 저장소의 `deploy/` 폴더에 두어도 Argo CD는 동작합니다. 그래도 Argo CD 공식 문서는 **매니페스트를 소스 코드와 다른 저장소에** 두기를 권합니다.
+
+| 이유 | 같은 저장소라면 생기는 일 |
 |---|---|
-| 지금 실행 중인가? | Helm release와 monitoring Pod 상태 |
-| 무엇을 수집하는가? | Prometheus target 하나 |
-| 어떤 화면으로 보는가? | Grafana는 후속 lesson에서 확인 |
+| **이력이 섞인다** | "로그 문구 고침"과 "운영 replicas 3→5"가 한 이력에 섞인다. 배포 이력만 보기 어렵다 |
+| **CI가 자기 자신을 다시 깨운다** | CI 봇이 태그를 커밋 → 그 커밋이 또 CI를 돌린다 → 무한 반복을 막는 장치가 필요하다 |
+| **보호 규칙과 부딪친다** | 2주차 5일차에 `main`에 "PR 필수" 규칙(ruleset)을 걸었다. CI 봇(`GITHUB_TOKEN`)은 이 규칙을 **건너뛸 수 없다** — 직접 push가 거절된다 |
+| **권한이 섞인다** | 코드를 고칠 수 있는 사람 = 운영 설정을 고칠 수 있는 사람이 된다 |
+| **설정만 바꿀 때도 CI가 돈다** | replicas 하나 바꾸려고 테스트 · 빌드를 다시 기다린다 |
 
-필수 경로는 `context/node 확인 → 최소 stack 설치 → release와 Pod Ready 확인`이다. ServiceMonitor/PodMonitor selector, retention, Alertmanager routing, resource 튜닝은 각각 필요한 후속 lesson 또는 선택 troubleshooting으로 둔다. `STATUS=deployed`, Pod `Ready`, target `UP`은 서로 다른 성공 기준이다.
+> [!WARNING]
+> **세 번째 이유는 실제로 막힌다**
+>
+> `GITHUB_TOKEN`으로 만든 push는 저장소 규칙의 우회(Bypass) 목록에 넣을 방법이 없습니다. "PR 필수"가 걸린 `main`에 CI 봇이 직접 커밋하려면 GitHub App이나 개인 토큰을 따로 만들어야 하고, 그러면 **"PR 필수"의 의미가 약해집니다.** 배포 저장소를 나누면 코드 저장소의 규칙은 그대로 두고, 배포 저장소 **하나만** 쓸 수 있는 토큰을 CI에 줄 수 있습니다(7교시).
 
-## 구성요소
-| 구성요소 | 역할 |
-|---|---|
-| Prometheus Operator | monitoring CRD reconcile |
-| Prometheus | metric scrape, 저장, query |
-| Grafana | dashboard |
-| Alertmanager | alert routing/silence |
-| node-exporter | node metric |
-| kube-state-metrics | Kubernetes object 상태 metric |
+## 실습 1 · 배포 저장소 만들기
 
-## values 확인
 ```bash
-cat week4/day3/labs/kube-prometheus-stack/values.yaml
+cd ~
+gh repo create devmart-deploy --public --clone --description "DevMart 배포 매니페스트 (GitOps)"
+cd devmart-deploy
+mkdir devmart
 ```
 
-핵심:
+> **🟢 확인: 확인**
+>
+> ```text
+> ✓ Created repository YOUR_ID/devmart-deploy on GitHub
+>   https://github.com/YOUR_ID/devmart-deploy
+> Cloning into 'devmart-deploy'...
+> warning: You appear to have cloned an empty repository.
+> ```
+> 빈 저장소라는 경고는 정상입니다. **공개(public)** 저장소로 만들어 Argo CD가 로그인 없이 읽게 합니다. 회사라면 비공개로 두고 Argo CD에 읽기 전용 배포 키(deploy key)를 등록합니다.
+
+## 실습 2 · 매니페스트 모으기
+
+지난 사흘의 결과물을 한 폴더에 모읍니다.
+
+```bash
+cp -r ~/devops-lab/k8s/day5/devmart/* devmart/                         # 3주차 5일차 — 앱 전체 (web은 1일차에 ClusterIP로 바꾼 것)
+cp ~/devops-lab/k8s/w4d1/gateway/devmart-routes.yaml devmart/           # 4주차 1일차 — 라우트
+cp ~/devops-lab/k8s/w4d2/monitoring/devmart-dashboard.yaml devmart/     # 4주차 2일차 — 대시보드
+cp ~/devops-lab/k8s/w4d2/monitoring/devmart-rules.yaml devmart/         # 4주차 2일차 — 알림 규칙
+mkdir -p ~/devops-lab/k8s/w4d3 && cp -r ~/course/labs/week4/day3/* ~/devops-lab/k8s/w4d3/
+cp ~/devops-lab/k8s/w4d3/deploy/kustomization.yaml devmart/kustomization.yaml   # 덮어쓴다
+ls devmart
+```
+
+> **🟢 확인: 확인**
+>
+> ```text
+> catalog-api.yaml  db.yaml                 devmart-routes.yaml  files               namespace.yaml  order-worker.yaml  web.yaml
+> config.yaml       devmart-dashboard.yaml  devmart-rules.yaml   kustomization.yaml  order-api.yaml  redis.yaml
+> ```
+
+새 `kustomization.yaml`에서 3주차와 달라진 곳은 두 군데입니다.
+
 ```yaml
-grafana:
-  adminPassword: "paperclip-local"
-prometheus:
-  prometheusSpec:
-    serviceMonitorSelectorNilUsesHelmValues: false
-    podMonitorSelectorNilUsesHelmValues: false
-    ruleSelectorNilUsesHelmValues: false
+resources:
+  # … 3주차 5일차의 8개 …
+  - devmart-routes.yaml          # 4주차 1일차
+  - devmart-dashboard.yaml       # 4주차 2일차
+  - devmart-rules.yaml           # 4주차 2일차
+# 7교시부터 CI가 이 아래 태그를 바꾼다 — 사람은 손대지 않는다
+images:
+  - name: ghcr.io/YOUR_ID/devmart-catalog-api
+    newTag: YOUR_SHA
+  - name: ghcr.io/YOUR_ID/devmart-order-api
+    newTag: YOUR_SHA
+  - name: ghcr.io/YOUR_ID/devmart-order-worker
+    newTag: YOUR_SHA
 ```
 
-수업용으로 custom ServiceMonitor/PodMonitor/PrometheusRule을 쉽게 읽도록 selector 제한을 풀어둔다.
+### `images:` — 태그를 한 곳에서
 
-## Helm 설치
-```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update prometheus-community
+3주차에는 이미지 태그가 Deployment 파일 세 곳에 흩어져 있었습니다. kustomize의 **images 변환기**는 `name`이 같은 이미지를 찾아 **태그만 바꿔 끼웁니다.** 파일 원본은 그대로 두고, 바꿀 곳은 이 목록 하나가 됩니다. CI 봇도 이 목록만 고치면 됩니다.
 
-helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --create-namespace \
-  -f week4/day3/labs/kube-prometheus-stack/values.yaml
-```
-
-예상 출력:
-```text
-NAME: kube-prometheus-stack
-NAMESPACE: monitoring
-STATUS: deployed
-REVISION: 1
-```
-
-kind 검증 기준:
-```bash
-kind version
-kubectl config current-context
-kubectl get nodes -o wide
-```
-
-예시:
-```text
-kind v0.x.x
-kind-paperclip-w4d3
-paperclip-w4d3-control-plane   Ready   control-plane   v1.x.x
-```
-
-과정에서는 kind만 기준으로 둔다. 다른 local Kubernetes가 남아 있으면 context, namespace, Service 이름이 섞일 수 있으므로 설치 전 current-context를 반드시 확인한다.
-Kubernetes VERSION은 kind 버전과 node image에 따라 다를 수 있다. 여기서는 version 숫자보다 `Ready` 상태와 context 이름이 더 중요하다.
-
-## 설치 확인
-```bash
-helm list -n monitoring
-kubectl -n monitoring get pod,svc
-kubectl get crd | grep monitoring.coreos.com
-```
-
-성공 기준:
-```text
-prometheus-kube-prometheus-stack-prometheus-0   2/2 Running
-kube-prometheus-stack-grafana-xxxxx            3/3 Running
-alertmanager-kube-prometheus-stack-alertmanager-0 2/2 Running
-```
-
-실제 검증 예시:
-```text
-alertmanager-kube-prometheus-stack-alertmanager-0          2/2 Running
-kube-prometheus-stack-grafana-...                          3/3 Running
-kube-prometheus-stack-kube-state-metrics-...               1/1 Running
-kube-prometheus-stack-operator-...                         1/1 Running
-kube-prometheus-stack-prometheus-node-exporter-...          1/1 Running
-prometheus-kube-prometheus-stack-prometheus-0              2/2 Running
-```
-
-CRD:
-```text
-servicemonitors.monitoring.coreos.com
-podmonitors.monitoring.coreos.com
-prometheusrules.monitoring.coreos.com
-```
-
-## Service 이름 확인
-chart는 여러 Service를 만든다.
+지금 클러스터에 떠 있는 태그로 채웁니다.
 
 ```bash
-kubectl -n monitoring get svc
+cd ~/devmart-deploy/devmart
+ID=$(gh api user -q .login | tr 'A-Z' 'a-z')                     # 이미지 주소는 소문자
+TAG=$(kubectl get deploy catalog-api -n devmart -o jsonpath='{.spec.template.spec.containers[0].image}' | cut -d: -f2)
+echo "$ID $TAG"
+sed -i "s/YOUR_ID/$ID/g; s/YOUR_SHA/$TAG/g" *.yaml    # macOS: sed -i '' …
+grep -A1 "name: ghcr" kustomization.yaml
 ```
 
-예상:
-```text
-kube-prometheus-stack-grafana       ClusterIP   80/TCP
-kube-prometheus-stack-prometheus    ClusterIP   9090/TCP
-kube-prometheus-stack-alertmanager  ClusterIP   9093/TCP
-```
+> **🟢 확인: 확인**
+>
+> ```text
+> niceguy61 sha-7c1e9a2
+>     - name: ghcr.io/niceguy61/devmart-catalog-api
+>       newTag: sha-7c1e9a2
+>     - name: ghcr.io/niceguy61/devmart-order-api
+>       newTag: sha-7c1e9a2
+>     - name: ghcr.io/niceguy61/devmart-order-worker
+>       newTag: sha-7c1e9a2
+> ```
+> 값은 사람마다 다릅니다. `YOUR_`가 하나도 남지 않아야 합니다: `grep -rn YOUR_ .` → 아무것도 안 나옴.
 
-port-forward 대상은 Service 이름을 정확히 사용한다. 이름이 다르면 `kubectl get svc -n monitoring` 출력으로 현재 cluster의 이름을 먼저 확인한다.
+> [!TIP]
+> **Deployment 파일 안의 YOUR_ID도**
+>
+> 3주차 5일차에 Deployment 파일의 `YOUR_ID:YOUR_SHA`를 이미 바꿨다면 그대로 둡니다. 아직 남아 있다면 `grep -rn YOUR_ .`이 알려 줍니다 — 같은 `sed`가 함께 바꿉니다. 어느 쪽이든 최종 태그는 `images:`가 정합니다.
 
-## Helm values와 실제 적용 비교
-```bash
-helm get values kube-prometheus-stack -n monitoring
-helm get manifest kube-prometheus-stack -n monitoring | grep -E "kind: Prometheus|kind: Grafana|kind: ServiceMonitor" -n
-```
+## 실습 3 · 렌더링해 보고, 지금 클러스터와 비교
 
-확인할 것:
-| 확인 | 이유 |
-|---|---|
-| Grafana password | 수업 로그인 기준 |
-| retention | local disk 사용량 통제 |
-| rule selector | custom PrometheusRule 읽기 |
-| serviceMonitor selector | custom ServiceMonitor 읽기 |
-
-values에 썼다고 실제로 적용됐다고 가정하지 않는다. Helm에서는 `helm get values`, Kubernetes에서는 `kubectl get`으로 확인한다.
-
-## port-forward
-Prometheus:
-```bash
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
-```
-
-Grafana:
-```bash
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
-```
-
-Grafana login:
-```text
-admin / paperclip-local
-```
-
-## 자주 보는 문제
-| 증상 | 확인 |
-|---|---|
-| Pod Pending | node resource 부족 |
-| Grafana login 실패 | values password, secret 확인 |
-| CRD 없음 | Helm install 실패 또는 chart 렌더링 문제 |
-| Prometheus target 없음 | ServiceMonitor selector/namespace/port 확인 |
-| kind cluster 생성 실패 | kind version, Docker Engine version 확인 |
-
-오래된 kind와 최신 Docker 조합에서는 cluster 생성 중 다음과 같은 오류가 날 수 있다.
-
-```text
-failed to create cluster: could not find a log line that matches "Reached target .*Multi-User System.*|detected cgroup v1"
-```
-
-이때는 설치 명령 자체가 아니라 kind binary 호환성 문제일 수 있다.
+Argo CD가 할 일을 손으로 먼저 해 봅니다.
 
 ```bash
-go install sigs.k8s.io/kind@latest
-~/go/bin/kind version
-~/go/bin/kind create cluster --name paperclip-w4d3
+cd ~/devmart-deploy
+kubectl kustomize devmart | grep -E '^kind:' | sort | uniq -c
+kubectl diff -k devmart; echo "diff 종료 코드: $?"
 ```
 
-## resource가 부족할 때
-kube-prometheus-stack은 가벼운 chart가 아니다. kind node가 작으면 Pending이나 OOM이 생길 수 있다.
+> **🟢 확인: 확인**
+>
+> ```text
+>       5 kind: ConfigMap
+>       6 kind: Deployment
+>       3 kind: HTTPRoute
+>       1 kind: Namespace
+>       1 kind: PersistentVolumeClaim
+>       1 kind: PrometheusRule
+>       5 kind: Service
+> diff 종료 코드: 0
+> ```
+> `kubectl diff`가 아무것도 출력하지 않고 0으로 끝나면 **배포 저장소 = 지금 클러스터**입니다. 무엇인가 나온다면(종료 코드 1) 지난 실습에서 손으로 바꾼 것이 남아 있다는 뜻입니다 — 지우지 말고 기억해 두세요. 5교시에 Argo CD가 같은 것을 보여 줍니다.
+
+> [!WARNING]
+> **Secret은 여기에 없다**
+>
+> `devmart-db`(3주차 5일차)와 `grafana-admin`(어제)은 **파일로 두지 않았습니다.** 배포 저장소는 공개 저장소이고, Git 이력은 지워지지 않습니다. 비밀 값을 Git으로 다루는 방법(Sealed Secrets · External Secrets · SOPS)은 7교시 끝에서 소개만 합니다. 오늘은 "Secret은 클러스터에 이미 있고, Argo CD는 손대지 않는다"로 갑니다.
+
+## 실습 4 · 첫 커밋
 
 ```bash
-kubectl -n monitoring get pod
-kubectl -n monitoring describe pod <pending-or-crash-pod>
+cd ~/devmart-deploy
+cat > README.md <<'MD'
+# devmart-deploy
+
+DevMart의 원하는 상태. Argo CD가 `devmart/`을 클러스터에 맞춘다.
+
+- 이미지 태그(`devmart/kustomization.yaml`의 `images:`)는 CI 봇이 바꾼다.
+- 그 밖의 변경은 PR로.
+- Secret은 이 저장소에 두지 않는다.
+MD
+git add .
+git commit -m "DevMart 매니페스트 첫 커밋 (3주차 5일차 + 라우트 · 대시보드 · 규칙)"
+git push -u origin main
+gh repo view --web
 ```
 
-대표 메시지:
-```text
-0/1 nodes are available: insufficient memory
-OOMKilled
-```
+> **🟢 확인: 확인**
+>
+> GitHub 화면에 `README.md`와 `devmart/` 폴더가 보입니다. 이제 **DevMart의 원하는 상태는 이 저장소의 `main`**입니다.
 
-해결 방향:
-| 상황 | 조치 |
-|---|---|
-| local memory 부족 | Docker Desktop/WSL memory 상향 |
-| Prometheus OOM | retention/limit 조정 |
-| Grafana만 필요 | chart values로 일부 component 조정 |
-| 실습 후 정리 | `helm uninstall`과 namespace 삭제 |
+> [!TIP]
+> **배포 저장소에도 규칙을**
+>
+> 오늘은 실습 속도를 위해 `main`에 직접 push합니다. 실무에서는 배포 저장소에도 "PR 필수"를 걸고, CI 봇만 우회 목록에 넣습니다(봇은 GitHub App으로 만든다). 운영 설정 변경도 리뷰를 받게 하기 위해서입니다.
 
-## Evidence Note
-```markdown
-# W4D3S2 kube-prometheus-stack
-- Helm release:
-- Prometheus Pod:
-- Grafana Pod:
-- Alertmanager Pod:
-- CRD 확인:
-- 접속 URL:
-```
+> **🎓 학술 노트 — 배포 파이프라인과 단일 출처**
+>
+> Humble과 Farley의 *Continuous Delivery*(2010)는 배포 파이프라인의 핵심 규칙으로 "**한 번 빌드한 산출물을 모든 환경에 그대로**"와 "**환경 설정을 버전 관리에**"를 꼽았습니다. 오늘의 구조에서 산출물은 `sha-` 태그가 붙은 이미지이고, 환경 설정은 배포 저장소입니다. 같은 이미지가 kind에서도, 5주차의 EKS에서도 태그만으로 지목됩니다. Forsgren 외의 *Accelerate*(2018)는 "운영 설정까지 버전 관리하는 팀"이 배포 빈도 · 복구 시간에서 뚜렷이 앞선다는 것을 설문으로 보였습니다.
 
-## 한 줄 요약
-```text
-kube-prometheus-stack은 Prometheus/Grafana만이 아니라 operator, exporter, rule, alert를 묶은 monitoring stack이다.
-```
+> **📈 트렌드 2026 — 렌더링된 매니페스트를 커밋하기**
+>
+> Argo CD 3.x에는 **Source Hydrator**가 들어왔습니다. kustomize · Helm의 '원본'을 두는 브랜치와, 그것을 **다 펼친 결과 YAML**을 두는 브랜치를 나누고, Argo CD가 펼친 결과를 커밋합니다. 리뷰어가 "이 PR이 실제로 클러스터의 무엇을 바꾸나"를 YAML 그대로 볼 수 있게 하자는 흐름입니다 — 실습 3에서 `kubectl kustomize`로 펼쳐 본 것과 같은 동기입니다.
 
+> **✅ 확인 문제**
+>
+> 1. 오늘 CI의 마지막 행동은 무엇이고, 왜 `kubectl apply`가 아닌가요?
+> 2. 배포 저장소를 나누는 이유 세 가지는?
+> 3. kustomize `images:`의 `name`은 무엇과 맞춰지나요?
+> 4. `kubectl diff -k`의 종료 코드 0과 1의 뜻은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 배포 저장소에 `git push`. CI가 클러스터 열쇠를 갖지 않게 하려고
+> 2. 이력이 섞인다, CI가 자기 자신을 다시 깨운다, 코드 저장소의 PR 필수 규칙과 부딪친다, 권한이 섞인다, 설정만 바꿀 때도 CI가 돈다 중 셋
+> 3. Deployment 안 `image:`의 태그 앞부분(저장소 주소). 같으면 태그를 바꿔 끼운다
+> 4. 0 — 차이 없음, 1 — 차이 있음 (2 이상은 오류)
+>
+> </details>
 
-## 학습 제어
-### 시작 3분 회상
-- metric/log/event의 책임 차이는 무엇인가?
-- Operator, exporter, Prometheus, Grafana, rule/alert는 어떤 상태와 증거를 만든다?
-### 오늘 반드시 가져갈 것
-- Prometheus가 수집하고 Grafana가 보여주며 rule/alert가 판정 기준을 자동화한다.
-- 설치 release/Pod Ready와 실제 target UP은 별도 확인이다.
-### 최소 복구 경로
-- release와 Pod를 확인한다 → ServiceMonitor/target을 확인한다 → Grafana query와 sample metric을 본다.
-- 성공 판정은 수집 경로가 UP인 것이다. 첫 실패는 target status와 Prometheus/operator logs에서 찾는다.
-- 다음 lesson 진입 조건은 target discovery를 설명하는 것이다.
+## 참고 문헌
+
+- Argo CD Docs. *Best Practices — Separating Config Vs. Source Code Repositories*. argo-cd.readthedocs.io
+- Kubernetes Docs. *Kustomize — images*. kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization
+- GitHub Docs. *About rulesets — Bypass list*. docs.github.com
+- Humble, J. & Farley, D. (2010). *Continuous Delivery*. Addison-Wesley.
+- Forsgren, N., Humble, J. & Kim, G. (2018). *Accelerate*. IT Revolution.
+- Argo CD Docs. *Source Hydrator*. argo-cd.readthedocs.io/en/stable/user-guide/source-hydrator
+
+---
+
+⬅️ 이전: [1교시 · 2일차 요약 + GitOps](lesson-01.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Argo CD 설치](lesson-03.md) ➡️

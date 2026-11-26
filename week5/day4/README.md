@@ -1,83 +1,56 @@
-# Week 5 Day 4: AWS Storage, Database, Secrets, Cost 운영
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
 
-## Overview
-W5D4는 AWS에서 데이터와 비용이 남는 지점을 다룬다. W5D2-D3에서 EC2, ALB, container service를 실행했다면, 오늘은 애플리케이션이 의존하는 S3 object storage, RDS relational database, Secrets Manager, backup, public access, cost tag, cleanup을 운영 관점으로 연결한다.
+# 5주차 4일차 — Terraform으로 EKS
 
-오늘의 핵심은 데이터를 저장하는 resource는 삭제와 보안 판단이 더 조심스럽다는 점이다. compute resource는 다시 만들 수 있어도, object와 database는 잘못 공개되거나 잘못 삭제되면 복구와 책임 범위가 달라진다.
+📕 5주차 이북 PDF: [보기](../../downloads/pdf/week5.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week5.pdf) &nbsp;|&nbsp; 📊 4일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week5-day4.pptx)
 
-![Storage database security cost map](./assets/lesson-01-storage-database-map.png)
+## 오늘의 목표
 
-## Learning Goals
-- S3 bucket, object, Block Public Access, bucket policy, versioning, lifecycle의 운영 의미를 설명한다.
-- RDS instance, subnet group, Security Group, backup, snapshot, deletion protection을 연결해 설명한다.
-- application credential을 코드나 배움일기에 남기지 않고 Secrets Manager/IAM 관점으로 다룬다.
-- Cost Explorer, Budget, tag, leftover resource audit을 사용해 잔여 비용을 찾는다.
-- storage/database resource를 삭제하기 전에 backup, snapshot, public access, retention 기준을 확인한다.
+어제 배움일기의 마지막 질문은 "**EKS 클러스터**를 코드로 만들면 몇 개 자원일까? 그 위에 4주차의 DevMart를 **그대로** 올릴 수 있을까?"였습니다. 오늘 둘 다 확인합니다. 3주차 3일차에 `kind create cluster` 한 줄로 만든 것을 이번에는 **AWS에 진짜로** 만들고, 4주차의 배포 저장소를 그 위에 올립니다.
 
-## Lesson Index
-| 교시 | 주제 | 핵심 확인 |
+- EKS가 **무엇을 대신 운영하고**, 무엇을 내가 만드는지 구분하고 비용을 계산합니다.
+- Terraform 모듈로 **VPC(NAT 포함) + EKS + 노드 그룹 + 애드온**을 만듭니다.
+- 사람이 클러스터에 들어가는 길(**Access Entry**)과 Pod가 AWS에 들어가는 길(**Pod Identity**)을 이해합니다.
+- **AWS Load Balancer Controller** · **EBS CSI** · **Envoy Gateway** · **Argo CD**로 '플랫폼'을 올립니다.
+- 배포 저장소에 `eks/` 폴더 하나를 더해, **같은 매니페스트**로 DevMart를 EKS에 배포합니다.
+- Kubernetes가 만든 AWS 자원(NLB · EBS)까지 포함해 **빠짐없이 지웁니다.**
+
+## 시간표
+
+| 교시 | 주제 | 실습 결과물 |
 |---|---|---|
-| 1교시 | Day3 요약 + storage/database 운영 지도 | app, S3, RDS, secret, cost 연결 |
-| 2교시 | S3 bucket/object/public access | Block Public Access, policy, object URL |
-| 3교시 | S3 versioning/lifecycle/storage class | version, lifecycle, archive, expiration, cost |
-| 4교시 | RDS 생성 전 운영 경계 | engine, instance class, subnet group, SG, public access |
-| 5교시 | RDS backup/snapshot/deletion protection | automated backup, restore, final snapshot |
-| 6교시 | Secrets Manager와 credential 운영 | secret, IAM permission, rotation, audit |
-| 7교시 | Cost Explorer/tag/잔여 비용 점검 | cost allocation tag, Budget, cleanup audit |
-| 8교시 | 구름 EXP 배움일기 | S3/RDS/Secrets/Cost evidence와 Day5 runbook 연결 |
+| 1교시 | 3일차 요약 + EKS의 구조 | 오늘의 그림 · 비용표 |
+| 2교시 | 코드 읽기와 apply | `terraform apply` 시작 (15~20분) |
+| 3교시 | 기다리는 동안 — 신원 두 방향 · kubeconfig | `kubectl get nodes` |
+| 4교시 | 플랫폼 올리기 | gp3 · LBC · Envoy Gateway(NLB) · Argo CD |
+| 5교시 | 같은 배포 저장소를 EKS에 | 인터넷 주소로 열리는 DevMart |
+| 6교시 | 클라우드에서 달라진 것 | Pod IP · NLB · EBS를 AWS 쪽에서 보기 |
+| 7교시 | 지우는 순서 | 앱 → 입구 → `terraform destroy` |
+| 8교시 | 배움일기 | |
 
-## Practice Files
-| 자료 | 용도 |
-|---|---|
-| `academic-foundations.md` | 공식 문서 기반 개념 근거와 읽을 키워드 |
-| `lesson-01.md` ~ `lesson-08.md` | 교시별 강의 자료 |
-| `assets/lesson-01-storage-database-map.png` | storage/database/security/cost 운영 지도 |
-| `assets/lesson-02-s3-access-control.png` | S3 public access와 policy 흐름 |
-| `assets/lesson-03-s3-versioning-lifecycle.png` | S3 versioning/lifecycle/cost 흐름 |
-| `assets/lesson-04-rds-network-boundary.png` | RDS network/security boundary |
-| `assets/lesson-05-rds-backup-deletion-protection.png` | RDS backup/snapshot/deletion protection |
-| `assets/lesson-06-secrets-manager-flow.png` | Secrets Manager와 RDS credential 흐름 |
-| `assets/lesson-07-cost-tags-cleanup.png` | Cost Explorer, tag, cleanup audit |
-| `assets/lesson-08-storage-db-cleanup-journal.png` | 배움일기와 cleanup journal |
+## 교시별 자료
 
-## Official References
-| Topic | Reference |
-|---|---|
-| What is Amazon S3? | https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html |
-| S3 general purpose buckets | https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html |
-| S3 security best practices | https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html |
-| S3 storage classes | https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html |
-| S3 Block Public Access | https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html |
-| S3 bucket policies | https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html |
-| S3 Versioning | https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html |
-| S3 lifecycle configuration | https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html |
-| RDS DB instance overview | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.html |
-| RDS DB subnet groups | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html |
-| RDS backups | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html |
-| RDS deletion protection | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_DeleteInstance.html |
-| AWS Secrets Manager | https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html |
-| Cost allocation tags | https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html |
-| Cost Explorer | https://docs.aws.amazon.com/cost-management/latest/userguide/ce-what-is.html |
+1. [3일차 요약 + EKS의 구조](lesson-01.md)
+2. [코드 읽기와 apply](lesson-02.md)
+3. [기다리는 동안 — 신원 두 방향 · kubeconfig](lesson-03.md)
+4. [플랫폼 올리기](lesson-04.md)
+5. [같은 배포 저장소를 EKS에](lesson-05.md)
+6. [클라우드에서 달라진 것](lesson-06.md)
+7. [지우는 순서](lesson-07.md)
 
-## Preparation Checklist
-- W5D3 container resource cleanup 또는 유지 사유 기록
-- 실습 Region: `ap-northeast-2`
-- S3, RDS, Secrets Manager, Cost Explorer 접근 권한 확인
-- RDS 실습은 비용이 발생할 수 있으므로 생성 대신 Console 시뮬레이션 경로를 허용
-- 공통 tag 준비: `Course=paperclip`, `Week=5`, `Day=4`, `Owner=<student-id>`
-- 수업 종료 전 S3 bucket/object, RDS instance/snapshot, secret, log retention, Budget 상태를 확인할 시간 확보
+> [!WARNING]
+> **오늘은 시간당 약 $0.3 — 하루 약 $2**
+>
+> EKS 컨트롤 플레인 $0.10 + NAT $0.059 + 노드 t3.medium × 2 $0.104 + NLB · 공인 IP. 크레딧에서 나갑니다. **7교시에 반드시 지웁니다.** 수업이 끝나기 전에 지우지 못하면 강사에게 알립니다.
 
-## Deliverables
-- S3 public access 점검표
-- S3 versioning/lifecycle/cost note
-- RDS network/security/backup decision note
-- Secrets Manager credential handling note
-- Cost Explorer/tag/cleanup audit note
-- Day5 통합 운영 runbook에 넣을 storage/database/security/cost 항목
+> [!IMPORTANT]
+> **오늘 실습 전에 확인할 것**
+>
+> - `aws login`, `terraform version`(1.15+), `kubectl`, `helm`, `argocd` CLI.
+> - 3일차의 state 버킷 `devmart-tfstate-<ID>`와 저장소 `devmart-infra`가 있어야 합니다.
+> - 4주차의 배포 저장소 `devmart-deploy`(Argo CD가 보던 것)와 GHCR 이미지(공개)가 그대로여야 합니다.
+> - kind 클러스터는 오늘 **꺼 두어도** 됩니다(노트북 메모리 절약). 내일 다시 씁니다.
 
-## End Of Day Checklist
-- public S3 bucket이 의도 없이 남아 있지 않은가
-- RDS instance를 만들었다면 deletion protection, final snapshot, backup retention을 확인했는가
-- secret 값이 screenshot, markdown, git repository에 노출되지 않았는가
-- Cost Explorer/Budget/tag 기준으로 남은 비용 후보를 확인했는가
-- Day5 통합 운영 실습에서 사용할 runbook 항목을 evidence로 남겼는가
+---
+
+⬅️ 이전: [7교시 · GitHub Actions에서 plan (OIDC)](../day3/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 3일차 요약 + EKS의 구조](lesson-01.md) ➡️

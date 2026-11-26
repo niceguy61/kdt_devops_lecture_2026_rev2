@@ -12,10 +12,12 @@ v3/
 │   ├── README.md            일차 개요 (front matter: title, subtitle)
 │   ├── lesson-0X.md         교시별 본문 → 이북 · GitHub
 │   └── slides.yaml          슬라이드 정의 → PPTX (발표자 노트 포함)
+├── src/appendix/            부록 A · 도구 설치 가이드
 ├── diagrams/wNdM.py         다이어그램 코드 (HTML/CSS 레이아웃 → PNG)
 ├── assets/weekN/dayM/       생성된 그림 (+ _src/ 그림 원본 HTML)
 ├── build/                   빌드 도구
-└── dist/                    결과물 (pdf/, pptx/, github/)
+└── (결과물은 저장소 최상위로) ../weekN/ · ../appendix/ · ../README.md (GitHub md)
+                             ../downloads/pdf/ · ../downloads/pptx/ (PDF · PPTX)
 ```
 
 ## 원고 작성 규칙
@@ -47,8 +49,8 @@ bash build/build.sh week1           # 1주차 전체
 
 | 결과물 | 위치 |
 |---|---|
-| PDF 이북 (188×257mm) | `dist/pdf/week1.pdf` |
-| 슬라이드 (16:9, 발표자 노트 포함) | `dist/pptx/week1-day1.pptx` |
-| GitHub용 Markdown | `dist/github/week1/day1/` |
+| PDF 이북 (188×257mm) | `../downloads/pdf/week1.pdf` |
+| 슬라이드 (16:9, 발표자 노트 포함) | `../downloads/pptx/week1-day1.pptx` |
+| GitHub용 Markdown | `../week1/day1/` (저장소 최상위) |
 
 PPTX 글꼴은 Windows·Office 기본 글꼴인 **맑은 고딕**을 씁니다. PDF는 Pretendard로 렌더링합니다.

@@ -139,7 +139,7 @@ docker compose exec db psql -U devmart -d orders -c \
 어제 5교시에 "nginx 기본 로그에는 요청 ID가 없다"고 했습니다. 오늘 고칩니다. 강의 저장소의 완성본을 비교해 봅니다.
 
 ```bash
-diff nginx/default.conf ~/course/v3/labs/week3/day2/nginx-default.conf
+diff nginx/default.conf ~/course/labs/week3/day2/nginx-default.conf
 ```
 
 !!! check "보이는 것"
@@ -155,7 +155,7 @@ diff nginx/default.conf ~/course/v3/labs/week3/day2/nginx-default.conf
     `log_format`으로 새 로그 형식 `devmart`를 정의하고, `access_log`에서 그 형식을 씁니다. `upstream`은 nginx가 **어느 서비스 컨테이너로** 보냈는지, `rt`는 **걸린 시간**입니다.
 
 ```bash
-cp ~/course/v3/labs/week3/day2/nginx-default.conf nginx/default.conf
+cp ~/course/labs/week3/day2/nginx-default.conf nginx/default.conf
 docker compose restart web
 curl -s -o /dev/null -X POST http://localhost:8080/api/orders \
   -H 'Content-Type: application/json' -d '{"product_id": 1}'
@@ -173,7 +173,7 @@ docker compose logs web --no-log-prefix --tail 1
 오늘 1~3교시에 겪은 장애 하나를 골라 보고서를 씁니다. 1주차 5일차 5교시에서 배운 **비난 없는 포스트모템** 형식입니다.
 
 ```bash
-cp ~/course/v3/labs/week3/day2/incident-report-template.md ~/devops-lab/notes/incident-week3-day2.md
+cp ~/course/labs/week3/day2/incident-report-template.md ~/devops-lab/notes/incident-week3-day2.md
 code ~/devops-lab/notes/incident-week3-day2.md
 ```
 

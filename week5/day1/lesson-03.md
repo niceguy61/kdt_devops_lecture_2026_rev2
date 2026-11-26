@@ -1,123 +1,156 @@
-# 3교시: Region/AZ와 장애 경계
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
 
-![AWS Region and Availability Zone map](./assets/lesson-03-region-az.png)
+# 3교시 · IAM — 사용자 · 그룹 · 역할 · 정책
 
-## 수업 목표
-- Region과 Availability Zone을 위치, 장애 경계, latency 관점으로 구분한다.
-- 서울 리전 `ap-northeast-2`를 실습 기본값으로 고정한다.
-- resource를 못 찾는 문제의 첫 확인 지점이 Region임을 이해한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - IAM의 네 가지 — **사용자 · 그룹 · 역할 · 정책** — 를 4주차 RBAC와 짝지어 이해합니다.
+> - 정책 JSON을 **한 줄씩 읽는** 법과, 허가 · 거절이 정해지는 순서를 익힙니다.
+> - 매일 쓸 **관리자 사용자** `devops-admin`을 그룹으로 만들고 MFA를 겁니다.
+> - 그 사용자로 다시 로그인하고, 이후로는 루트를 쓰지 않습니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
-|---|---|---|---|
-| Region | AWS resource가 생성되는 지리적/운영 경계다 | 다른 Region에서 resource를 찾으며 시간을 낭비한다 | Console Region selector |
-| Availability Zone | Region 안의 격리된 location이다 | 단일 AZ 장애와 multi-AZ 구성을 구분하지 못한다 | subnet AZ, EC2 placement |
-| Service availability | 모든 service와 feature가 모든 Region에서 같지 않을 수 있다 | 문서와 Console 화면이 달라 보인다 | service Region support |
-| Cost and latency | 가까운 Region이 latency에 유리할 수 있지만 비용과 지원 기능도 봐야 한다 | 무조건 한 Region만 고집한다 | pricing, latency, compliance |
+## 네 가지
 
-## Region
-AWS Region은 독립된 지리적 영역이다. Console 오른쪽 위 Region selector에서 현재 작업 Region을 확인한다. EC2, VPC, ALB, RDS 같은 많은 resource는 Region 단위로 생성된다.
+![루트는 금고에, 사람은 IAM 사용자로, 프로그램은 IAM 역할로 — 권한은 정책 JSON이 정한다](../../v3/assets/week5/day1/w5d1-identities.png)
 
-```text
-ap-northeast-2 = Asia Pacific (Seoul)
-```
-
-오늘 수업에서는 혼선을 줄이기 위해 기본 Region을 `ap-northeast-2`로 둔다. 다른 Region을 써야 하는 경우 evidence note에 반드시 남긴다.
-
-## Availability Zone
-Availability Zone은 Region 안의 격리된 location이다. AWS 공식 문서 기준으로 AZ는 Region 내부의 isolated location이다. 고가용성 설계에서는 여러 AZ에 resource를 분산한다.
-
-```mermaid
-flowchart TB
-  R["Region: ap-northeast-2"]
-  R --> A["AZ A: subnet-a"]
-  R --> B["AZ B: subnet-b"]
-  R --> C["AZ C: subnet-c"]
-  A --> EC2A["EC2"]
-  B --> EC2B["EC2"]
-  C --> RDS["RDS standby or subnet option"]
-```
-
-## Kubernetes와 연결
-Kubernetes에서 Pod가 어느 node에 배치되는지가 중요했듯, AWS에서는 instance와 subnet이 어느 AZ에 있는지가 중요하다.
-
-| Kubernetes | AWS |
-|---|---|
-| node | EC2 instance 또는 managed node |
-| node zone label | Availability Zone |
-| Service endpoint | ALB target 또는 service endpoint |
-| PV/PVC zonal disk | EBS volume과 AZ 제약 |
-| multi-replica | multi-AZ 배치 |
-
-## Region을 잘못 보면 생기는 증상
-| 증상 | 첫 확인 |
-|---|---|
-| 방금 만든 EC2가 안 보인다 | Console Region selector |
-| S3 bucket 이름이 중복된다고 나온다 | S3 bucket name은 전역 unique |
-| VPC가 다르게 보인다 | Region별 VPC list |
-| ALB target이 등록되지 않는다 | target과 ALB의 VPC/Region |
-| 비용은 있는데 resource를 못 찾는다 | Cost Explorer service/Region filter |
-
-
-## Region 선택 의사결정
-| 기준 | 질문 | 예시 판단 |
+| IAM | 뜻 | 4주차 Kubernetes에서 |
 |---|---|---|
-| latency | 사용자가 어디에 있는가 | 국내 교육/서비스면 서울 Region 우선 |
-| service availability | 필요한 service가 지원되는가 | 새 기능은 일부 Region만 지원 가능 |
-| cost | 같은 resource라도 가격이 다른가 | 장기 운영 전 pricing 확인 |
-| compliance | 데이터 위치 요구가 있는가 | 고객/기관 요구 확인 |
-| failure design | 어느 범위 장애를 견딜 것인가 | multi-AZ 또는 multi-Region 판단 |
+| **사용자** (User) | 사람 한 명 — 콘솔 비밀번호, (필요하면) 접속 키 | User (인증서 · OIDC) |
+| **그룹** (Group) | 사용자 묶음 — 정책을 그룹에 붙인다 | Group (`devmart-devs`) |
+| **역할** (Role) | 누군가 **잠깐 맡는** 신원 — 영구 비밀번호 · 키가 없다 | **ServiceAccount** (Pod가 맡는 신원) |
+| **정책** (Policy) | 무엇을 할 수 있나 — JSON 문서 | Role의 rules |
+| 정책을 붙이기 | 사용자 · 그룹 · 역할에 연결 | RoleBinding |
 
-## 콘솔 실험
-EC2 화면에서 서울 Region을 보고, 다른 Region으로 바꾼 뒤 instance list가 달라지는지 확인한다. 이때 resource가 삭제된 것이 아니라 조회 범위가 바뀐 것이다. 이 작은 실험은 AWS 초반에 매우 중요하다. 많은 학생이 "방금 만든 게 사라졌다"고 느끼지만 실제 원인은 Region mismatch다.
+## 정책 읽기
 
-## 장애 분석 연결
-| 장애 증상 | Region/AZ 관점 질문 |
-|---|---|
-| ALB target 등록 실패 | ALB와 target이 같은 VPC/Region인가 |
-| RDS 연결 실패 | app subnet과 DB subnet/security group이 맞는가 |
-| EBS volume attach 실패 | instance와 volume AZ가 같은가 |
-| resource가 안 보임 | Console Region이 맞는가 |
-
-## 캡처 가이드
-Region selector, subnet list의 AZ column, VPC ID가 함께 보이도록 캡처한다. account email은 제외하고, resource ID 일부와 tag는 남겨도 된다.
-
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | Region은 resource가 존재하는 큰 지리적 경계다. |
-| 실패했을 때 어느 경계부터 볼 것인가 | AZ는 한 Region 안의 장애 격리 단위다. |
-| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | global service와 regional service를 구분해야 한다. |
-
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| 서울에서 만들고 다른 Region을 본다 | Region selector와 resource ARN/URL의 region 값을 확인한다 |
-
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- 현재 Region, resource 생성 Region, AZ가 필요한 이유 중 최소 두 가지는 배움일기에 남긴다.
-
-## Evidence Note
-```markdown
-# W5D1S3 region az
-- 오늘 실습 Region:
-- 선택 이유:
-- 확인한 AZ 이름:
-- Region을 바꾸면 사라져 보일 resource:
-- 비용 확인 시 Region filter가 필요한 이유:
+```bash
+mkdir -p ~/devops-lab/aws/w5d1 && cp -r ~/course/labs/week5/day1/* ~/devops-lab/aws/w5d1/
+cat ~/devops-lab/aws/w5d1/s3-read-only-policy.json
 ```
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: Console 오른쪽 위 Region을 확인하고, EC2/VPC/S3 화면에서 resource 범위가 어떻게 보이는지 비교한다.
-- 공식 문서 키워드: `AWS Regions`, `Availability Zones`, `isolated locations`.
-- 스스로 확인할 화면: Region selector, VPC subnet list, EC2 launch placement.
-- 흔한 실패 3개: Region이 달라 resource를 못 찾음, AZ와 Region을 같은 말로 씀, S3 bucket의 global name 특성을 Region resource처럼 오해함.
-- 다음 준비 상태: "서울 Region의 여러 AZ에 subnet이 나뉜다"는 문장을 설명할 수 있어야 한다.
-
-## 한 줄 요약
-```text
-AWS에서 resource를 못 찾으면 먼저 이름보다 Region을 확인한다.
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "ListMyBuckets", "Effect": "Allow", "Action": ["s3:ListAllMyBuckets"], "Resource": "*" },
+    { "Sid": "ReadOneBucket", "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::devmart-assets-YOUR_ID", "arn:aws:s3:::devmart-assets-YOUR_ID/*"] },
+    { "Sid": "NeverDelete", "Effect": "Deny", "Action": ["s3:DeleteObject", "s3:DeleteBucket"], "Resource": "*" }
+  ]
+}
 ```
+
+| 칸 | 뜻 | 4주차 Role의 |
+|---|---|---|
+| `Version` | 정책 문법 버전 — 언제나 `2012-10-17` (날짜가 아니라 문법 이름) | — |
+| `Effect` | `Allow` 또는 `Deny` | (Allow만 있었다) |
+| `Action` | `서비스:동작` — `s3:GetObject` | verbs + resources |
+| `Resource` | 대상의 **ARN** — AWS 자원의 전체 주소 | resourceNames |
+| `Condition` | (선택) "MFA로 로그인했을 때만", "서울 리전에서만" | — |
+
+> **📖 ARN (Amazon Resource Name)**
+>
+> AWS 자원의 전체 이름입니다. `arn:aws:s3:::devmart-assets-niceguy61/*` = "S3의 devmart-assets-niceguy61 버킷 안의 모든 객체". 일반적인 모양은 `arn:aws:서비스:리전:계정번호:자원` 이고, S3처럼 전 세계에서 이름이 하나인 서비스는 리전 · 계정 칸이 비어 있습니다.
+
+### 허가 · 거절이 정해지는 순서
+
+1. 기본은 **거절**(암묵적 거절) — 4주차 RBAC와 같다.
+2. 붙은 정책 중 하나라도 **명시적 Deny**에 맞으면 → **거절**. 끝.
+3. 아니면, 하나라도 **Allow**에 맞으면 → 허가.
+4. 아무것에도 맞지 않으면 → 거절.
+
+위 정책에서 `s3:DeleteObject`는 Allow 목록에 없으니 어차피 거절이지만, **Deny 문장**이 있어서 나중에 누가 이 사용자에게 `AdministratorAccess`를 더 붙여도 **삭제만은 여전히 막힙니다.** Deny가 언제나 이기기 때문입니다. RBAC에는 없던 도구입니다.
+
+## 실습 5 · 관리자 그룹과 사용자 (루트로)
+
+지금은 루트로 로그인되어 있습니다. **루트가 할 마지막 일**입니다.
+
+검색창 `IAM` → **IAM**.
+
+**① 그룹**
+1. 왼쪽 **사용자 그룹** → **그룹 생성**
+2. 이름 `admins`
+3. 권한 정책 연결에서 `AdministratorAccess` 검색 → 체크 → **그룹 생성**
+
+**② 사용자**
+1. 왼쪽 **사용자** → **사용자 생성**
+2. 이름 `devops-admin`
+3. **AWS Management Console에 대한 사용자 액세스 권한 제공** 체크 → **IAM 사용자를 생성하고 싶음**
+4. 콘솔 암호: **사용자 지정 암호** — 길고 유일하게, **다음 로그인 시 새 암호 생성** 체크 해제
+5. 다음 → **그룹에 사용자 추가** → `admins` 체크 → 다음 → **사용자 생성**
+6. 마지막 화면의 **콘솔 로그인 URL**을 복사해 둡니다 (`https://123456789012.signin.aws.amazon.com/console` 모양)
+
+**③ 계정 별칭** (로그인 URL을 외우기 쉽게)
+1. IAM **대시보드** → 오른쪽 **AWS 계정** 칸의 **계정 별칭** → **생성** → `devops-lab-이름` (전 세계에서 유일해야 한다)
+2. 로그인 URL이 `https://devops-lab-이름.signin.aws.amazon.com/console`이 됩니다.
+
+> **🟢 확인: 확인**
+>
+> IAM → 사용자 → `devops-admin` → **그룹** 탭에 `admins`, **권한** 탭에 `AdministratorAccess (그룹: admins)`가 보입니다. 권한을 **사용자에게 직접** 붙이지 않고 그룹을 통했습니다 — 사람이 늘면 그룹에 넣기만 하면 됩니다(4주차 `devmart-devs` 그룹과 같은 이유).
+
+## 실습 6 · devops-admin으로 갈아타기
+
+1. 오른쪽 위 → **로그아웃**
+2. 위의 **계정 별칭 로그인 URL**로 접속 → 사용자 이름 `devops-admin`, 암호
+3. 로그인 후 오른쪽 위 이름 → **보안 자격 증명** → **MFA 디바이스 할당** → 실습 2와 같은 방법(이름 `devops-admin-mfa`)
+4. 로그아웃 → 다시 로그인 → MFA 확인
+
+> **🟢 확인: 확인**
+>
+> 오른쪽 위에 `devops-admin @ devops-lab-이름`이 보입니다. **이제부터 루트로는 로그인하지 않습니다.** 루트 비밀번호는 비밀번호 관리자에.
+
+> [!WARNING]
+> **AdministratorAccess도 강하다**
+>
+> `devops-admin`은 결제 설정 같은 몇 가지를 빼면 거의 모든 것을 할 수 있습니다. 실습 계정이니 괜찮지만, 회사에서는 사람에게 관리자를 상시로 주지 않고 **필요할 때만 역할을 맡는**(assume role) 방식을 씁니다 — 4주차 5일차 트렌드의 'JIT 권한'입니다.
+
+## 역할 — 키 없는 신원
+
+역할에는 비밀번호도 키도 없습니다. 대신 정책이 **둘** 붙습니다.
+
+| 정책 | 묻는 것 | 예 |
+|---|---|---|
+| **신뢰 정책** (trust policy) | **누가** 이 역할을 맡을 수 있나 | "EC2 서비스", "이 GitHub 저장소의 Actions" |
+| **권한 정책** (permission policy) | 맡은 동안 **무엇을** 할 수 있나 | "devmart-assets 버킷 읽기" |
+
+맡으면 **STS**(Security Token Service)가 **몇 분 ~ 몇 시간짜리 임시 자격 증명**을 줍니다. 내일 EC2에 역할을 붙여 키 없이 S3를 읽고(2일차), 3일차에 GitHub Actions가 역할을 맡아 Terraform을 돌리고, 4일차에 EKS의 Pod가 역할을 맡습니다(Pod Identity). 4주차 3교시의 "**비밀 키를 넣지 말고 신원을 증명해 짧은 권한을 받는다**"의 AWS판입니다.
+
+> **❓ 오해 — 서버에 접속 키를 넣으면 간단하다**
+>
+> EC2 · 컨테이너에 사용자 접속 키(`AKIA…`)를 넣는 것은 3주차 5일차의 "비밀번호를 이미지에 굽기"와 같은 실수입니다. 키는 **만료되지 않고**, 코드 · 이미지 · 로그를 따라 **새어 나가며**, GitHub에 올라간 키는 몇 분 안에 자동 수집기가 찾아 악용합니다. 프로그램에는 언제나 **역할**을 씁니다.
+
+> **🎓 학술 노트 — 정책 평가의 자동 검증**
+>
+> IAM 정책은 사람이 읽기에 단순해 보여도, 수백 개가 겹치면 "이 버킷을 **밖에서** 읽을 수 있는 경로가 있나?"에 답하기 어렵습니다. AWS는 이 질문을 **SMT 풀이기**(수학적 논리 검증기)로 푸는 도구 Zelkova를 만들었고, Backes 외의 *Semantic-based Automated Reasoning for AWS Access Policies using SMT*(FMCAD 2018)에 정리했습니다. 오늘날 IAM Access Analyzer와 S3의 "퍼블릭" 표시가 이 기술 위에서 동작합니다 — 정책을 **실행해 보지 않고 증명으로** 검사하는 사례입니다.
+
+> **📈 트렌드 2026 — 장기 키의 퇴장**
+>
+> AWS는 2025년 11월 `aws login`(4교시)으로 개인 개발자도 **접속 키 없이** CLI를 쓰게 했고, IAM 콘솔은 사용자 접속 키를 만들 때 "더 나은 대안"을 먼저 권합니다. CI는 OIDC로 역할을 맡고(3일차), Pod는 Pod Identity로 역할을 맡습니다(4일차). "**사람은 로그인, 기계는 역할, 영구 키는 없음**"이 2026년의 기본값입니다.
+
+> **✅ 확인 문제**
+>
+> 1. IAM 역할과 Kubernetes ServiceAccount가 닮은 점은?
+> 2. 정책에서 Allow와 Deny가 둘 다 맞으면 결과는?
+> 3. 권한을 사용자에게 직접이 아니라 그룹으로 준 이유는?
+> 4. 역할에 붙는 두 정책의 차이는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 사람이 아니라 프로그램(EC2 · Pod)이 맡는 신원이고, 영구 비밀이 없다
+> 2. 거절 — 명시적 Deny가 언제나 이긴다
+> 3. 사람이 늘거나 바뀌어도 그룹에 넣고 빼기만 하면 되도록 (역할 기반)
+> 4. 신뢰 정책은 누가 맡을 수 있나, 권한 정책은 맡은 동안 무엇을 할 수 있나
+>
+> </details>
+
+## 참고 문헌
+
+- AWS Docs. *IAM identities*, *Policy evaluation logic*, *IAM JSON policy elements reference*. docs.aws.amazon.com/IAM
+- AWS Docs. *Amazon Resource Names (ARNs)*. docs.aws.amazon.com
+- Backes, J. 외 (2018). *Semantic-based Automated Reasoning for AWS Access Policies using SMT*. FMCAD 2018.
+
+---
+
+⬅️ 이전: [2교시 · 계정 만들기와 루트 지키기](lesson-02.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · AWS CLI와 aws login](lesson-04.md) ➡️

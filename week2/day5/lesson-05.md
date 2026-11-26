@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+
 # 5교시 · Pull Request와 코드 리뷰
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 4교시에는 내가 브랜치를 만들고 내가 `git merge`로 합쳤습니다. **Pull Request**는 그 사이에 **"이 브랜치를 `main`에 합쳐도 될까요?"라고 묻는 단계**를 넣습니다. PR 페이지에서 동료는 바뀐 줄을 보고, 질문하고, 고칠 점을 말하고, 승인합니다. 3주차에는 여기에 **자동 테스트(CI)**가 붙어 사람과 기계가 함께 검토합니다.
 
-![GitHub Flow — 브랜치 → 커밋 → PR → 리뷰 → 수정 → 승인 → 병합 → 브랜치 삭제](../../assets/week2/day5/w2d5-pr-flow.png)
+![GitHub Flow — 브랜치 → 커밋 → PR → 리뷰 → 수정 → 승인 → 병합 → 브랜치 삭제](../../v3/assets/week2/day5/w2d5-pr-flow.png)
 
 > **🧩 비유 — 결재 서류**
 >
@@ -300,3 +302,7 @@ git log --oneline -3
 - GitHub Docs. *About rulesets*, *About code owners*. docs.github.com/repositories
 - Google. *Engineering Practices — The Standard of Code Review*. google.github.io/eng-practices
 - Sadowski, C. et al. (2018). Modern code review: A case study at Google. *ICSE-SEIP '18*.
+
+---
+
+⬅️ 이전: [4교시 · Git 브랜치](lesson-04.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 충돌 해결](lesson-06.md) ➡️

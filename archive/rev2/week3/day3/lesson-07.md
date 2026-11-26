@@ -1,0 +1,325 @@
+# 7교시: GitHub Actions 2 - Secrets, Docker Hub Push, 유사 도구
+
+![Week 3 Day 3 Lesson 7](./assets/lesson-07-actions-secrets-dockerhub-push.png)
+
+## 수업 목표
+- GitHub Actions에서 Docker Hub에 image를 push하는 흐름을 설명한다.
+- Docker Hub secrets, image tag, buildx, push 로그를 확인한다.
+- Docker Hub에서 생성된 image를 확인하고 로컬에서 pull/run한다.
+- GitHub Secrets의 장점과 단점을 설명한다.
+- Jenkins, TeamCity, AWS CodePipeline과 GitHub Actions를 비교한다.
+
+## Docker Hub 준비
+필요한 것:
+
+| 항목 | 설명 |
+|---|---|
+| Docker Hub 계정 | image repository owner |
+| Access Token | GitHub Actions에서 login할 token |
+| GitHub Secrets | token을 안전하게 저장 |
+| repository name | `w3d3-dockerhub-app` |
+| visibility | public/private 선택 |
+
+수업에서는 Docker Hub password를 workflow나 문서에 쓰지 않고 access token을 사용한다.
+
+GitHub repository secrets:
+
+| Secret | 값 |
+|---|---|
+| `DOCKERHUB_USERNAME` | Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token |
+
+Docker Hub access token은 push 권한이 있어야 한다. Docker 공식 문서 기준으로 access token 생성 시 권한을 선택하며, image push에는 최소 `Read & Write`가 필요하다. `Read-only` token으로는 login이 되는 것처럼 보여도 push 단계에서 거절될 수 있다.
+
+확인할 것:
+| 항목 | 기준 |
+|---|---|
+| token 종류 | Docker Hub account password가 아니라 access token |
+| token 권한 | `Read & Write` 이상 |
+| username | Docker Hub의 실제 Docker ID 또는 push 대상 namespace |
+| repository | `DOCKERHUB_USERNAME/w3d3-dockerhub-app`에 push 권한 있음 |
+| token 재확인 | 기존 token 값은 다시 볼 수 없으므로 헷갈리면 새 token 생성 |
+
+## GitHub Secrets 장단점
+| 장점 | 설명 |
+|---|---|
+| repo에 token을 저장하지 않음 | source code 노출 위험 감소 |
+| Actions에서 쉽게 참조 | `${{ secrets.NAME }}` |
+| log masking 지원 | 실수로 출력해도 일부 보호 |
+| environment별 분리 가능 | dev/stage/prod secret 분리 |
+
+| 단점 | 설명 |
+|---|---|
+| 값 재확인 불가 | 저장 후 UI에서 다시 볼 수 없음 |
+| 권한 관리 필요 | 누가 secret을 수정할 수 있는지 통제 필요 |
+| rotation 필요 | token 만료/교체 절차 필요 |
+| 만능 보안 아님 | workflow가 악성으로 바뀌면 secret 사용 위험 |
+
+## Workflow 핵심 구간
+```yaml
+- name: Login to Docker Hub
+  uses: docker/login-action@v3
+  with:
+    username: ${{ secrets.DOCKERHUB_USERNAME }}
+    password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+- name: Verify Docker Hub configuration
+  env:
+    DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  run: |
+    test -n "${DOCKERHUB_USERNAME}"
+    echo "Docker Hub username secret is present."
+    echo "Push requires a Docker Hub access token with Read & Write permission."
+
+- name: Set up QEMU
+  uses: docker/setup-qemu-action@v3
+
+- name: Set up Docker Buildx
+  uses: docker/setup-buildx-action@v3
+
+- name: Build and push image
+  uses: docker/build-push-action@v6
+  with:
+    context: week3/day3/labs/dockerhub-app
+    push: true
+    platforms: linux/amd64,linux/arm64
+```
+
+## Multi-platform build
+GitHub-hosted `ubuntu-latest` runner는 보통 `linux/amd64` 환경이다. 아무 설정 없이 push하면 Docker Hub에는 amd64 image만 올라갈 수 있다. Apple Silicon Mac, ARM 서버, Graviton 같은 환경까지 고려하려면 multi-platform image를 push해야 한다.
+
+수업 workflow는 다음 기준으로 나눈다.
+
+| 단계 | platform | 이유 |
+|---|---|---|
+| Build local image for DAST | runner 기본 architecture | `load: true`로 local Docker engine에 적재해 health check |
+| Build and push image | `linux/amd64,linux/arm64` | Docker Hub에 multi-arch manifest push |
+
+QEMU는 runner가 native가 아닌 architecture를 build할 수 있게 돕고, Buildx는 multi-platform build와 manifest push를 처리한다.
+
+push 후 확인:
+```bash
+docker buildx imagetools inspect DOCKERHUB_USERNAME/w3d3-dockerhub-app:0.1.0
+```
+
+확인할 것:
+```text
+Platform: linux/amd64
+Platform: linux/arm64
+```
+
+Docker Hub UI에서도 tag detail에서 OS/architecture가 여러 개 보이는지 확인한다.
+
+## 실행 방법
+방법 1: Git tag push
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+방법 2: GitHub UI에서 manual run
+
+```text
+Actions -> w3d3-dockerhub-publish -> Run workflow
+```
+
+## Actions에서 확인할 것
+| 위치 | Evidence |
+|---|---|
+| workflow run | success/failure |
+| Prepare image metadata | image name과 version |
+| Login to Docker Hub | login 성공 |
+| Build and push image | pushed digest, tag |
+| Show pull command | pull/run 명령 |
+
+## 수동 배포의 불편함
+GitHub Actions가 없으면 사람이 다음을 직접 해야 한다.
+
+```text
+테스트 실행
+Docker build
+Docker login
+Docker tag
+Docker push
+Docker Hub 확인
+서버에서 pull
+서버에서 run
+검증 curl
+```
+
+문제:
+
+| 문제 | 설명 |
+|---|---|
+| 누락 | test나 scan을 빼먹기 쉽다 |
+| 불일치 | 사람마다 명령과 tag 기준이 다르다 |
+| 증거 부족 | 누가 어떤 image를 push했는지 흐리다 |
+| secret 위험 | 로컬 shell history나 화면에 token 노출 가능 |
+| 재현 어려움 | 같은 절차를 반복하기 어렵다 |
+
+Actions는 이 절차를 YAML로 고정하고 실행 로그를 남긴다.
+
+## Docker Hub에서 확인
+Docker Hub UI:
+
+```text
+Repositories -> DOCKERHUB_USERNAME/w3d3-dockerhub-app -> Tags
+```
+
+확인:
+
+| 항목 | 기준 |
+|---|---|
+| `0.1.0` tag | version tag 생성 |
+| `latest` tag | latest도 생성 |
+| pushed time | workflow 실행 시각과 일치 |
+
+## 로컬 pull/run 검증
+Docker Hub repository가 public이면 바로 pull할 수 있다.
+
+```bash
+docker pull DOCKERHUB_USERNAME/w3d3-dockerhub-app:0.1.0
+docker rm -f w3d3-dockerhub-app 2>/dev/null || true
+docker run -d --name w3d3-dockerhub-app -p 18088:8080 DOCKERHUB_USERNAME/w3d3-dockerhub-app:0.1.0
+curl -s http://localhost:18088/health
+docker rm -f w3d3-dockerhub-app
+```
+
+주의:
+
+`DOCKERHUB_USERNAME`은 실제 계정으로 바꾼다.
+
+multi-platform image라면 같은 pull 명령을 써도 Docker가 현재 machine에 맞는 architecture를 자동으로 선택한다. Apple Silicon Mac에서는 `linux/arm64`, 일반 GitHub-hosted Ubuntu runner나 대부분의 x86 서버에서는 `linux/amd64`가 선택된다.
+
+Docker Hub repository가 private이면 pull하는 환경에서도 인증이 필요하다.
+
+```bash
+docker login -u DOCKERHUB_USERNAME
+docker pull DOCKERHUB_USERNAME/w3d3-dockerhub-app:0.1.0
+docker rm -f w3d3-dockerhub-app 2>/dev/null || true
+docker run -d --name w3d3-dockerhub-app -p 18088:8080 DOCKERHUB_USERNAME/w3d3-dockerhub-app:0.1.0
+curl -s http://localhost:18088/health
+docker rm -f w3d3-dockerhub-app
+docker logout
+```
+
+`docker login`에서 password 대신 Docker Hub access token을 입력한다. private image는 registry에 push되어 있어도 인증하지 않은 PC, 서버, Kubernetes node에서는 pull할 수 없다.
+
+## 실패 사례
+| 실패 | 원인 후보 |
+|---|---|
+| login failed | secret 이름/토큰 오류 |
+| `401 Unauthorized: access token has insufficient scopes` | Docker Hub token이 Read-only이거나 push 대상 repository/namespace 권한이 없음 |
+| denied requested access | Docker Hub repo 권한 문제 |
+| pull access denied | private repo인데 `docker login`을 하지 않음 |
+| build context not found | workflow path 오류 |
+| tag가 안 보임 | push event/tag 조건 불일치 |
+| Apple Silicon에서 pull/run 실패 | Docker Hub tag에 `linux/arm64` manifest가 없음 |
+
+## 401 insufficient scopes 분석
+다음 오류는 Docker build가 실패했다기보다 registry push 권한이 부족하다는 뜻이다.
+
+```text
+failed to fetch oauth token
+401 Unauthorized: access token has insufficient scopes
+scope=repository:.../w3d3-dockerhub-app:pull,push
+```
+
+해석:
+| 로그 조각 | 의미 |
+|---|---|
+| `auth.docker.io/token` | Docker Hub registry token 발급 단계 |
+| `pull,push` | buildx가 push 권한을 요청 |
+| `401 Unauthorized` | Docker Hub가 권한 부족으로 거절 |
+| `insufficient scopes` | token 권한 범위가 push 요구를 만족하지 않음 |
+
+해결 순서:
+| 순서 | 확인 |
+|---|---|
+| 1 | Docker Hub에서 새 access token 생성 |
+| 2 | token permission을 `Read & Write` 이상으로 설정 |
+| 3 | GitHub Secret `DOCKERHUB_TOKEN`을 새 token으로 교체 |
+| 4 | `DOCKERHUB_USERNAME`이 Docker Hub namespace와 정확히 같은지 확인 |
+| 5 | Docker Hub에 `w3d3-dockerhub-app` repository가 없으면 생성하거나, 자동 생성 권한이 있는 계정인지 확인 |
+| 6 | 조직 namespace로 push한다면 개인 token이 아니라 해당 namespace에 write 권한이 있는 계정/token인지 확인 |
+
+로컬에서 같은 token을 빠르게 확인할 수 있다.
+
+```bash
+docker login -u DOCKERHUB_USERNAME
+docker tag w3d3-dockerhub-app:0.1.0 DOCKERHUB_USERNAME/w3d3-dockerhub-app:scope-test
+docker push DOCKERHUB_USERNAME/w3d3-dockerhub-app:scope-test
+```
+
+여기서도 `insufficient scopes`가 나오면 GitHub Actions 문제가 아니라 Docker Hub token 권한 문제다.
+
+## arm64 image가 없는 경우
+Docker Hub에 tag는 있는데 Apple Silicon Mac이나 ARM 서버에서 pull/run이 이상하면 manifest를 먼저 확인한다.
+
+```bash
+docker buildx imagetools inspect DOCKERHUB_USERNAME/w3d3-dockerhub-app:0.1.0
+```
+
+amd64만 보이면 workflow push 단계에 `platforms`가 빠졌을 가능성이 크다.
+
+```yaml
+platforms: linux/amd64,linux/arm64
+```
+
+주의할 점:
+| 상황 | 설명 |
+|---|---|
+| `load: true`와 multi-platform | local Docker engine에 여러 platform을 한 번에 load하는 흐름은 수업용 DAST와 맞지 않음 |
+| DAST 단계 | runner에서 실행 가능한 단일 arch image로 health check |
+| push 단계 | registry에 multi-arch manifest push |
+| build 시간 | QEMU emulation 때문에 arm64 build가 더 느릴 수 있음 |
+| base image | base image가 arm64를 지원해야 multi-platform build 가능 |
+
+## 비슷한 도구
+| 도구 | 특징 | 적합한 경우 |
+|---|---|---|
+| GitHub Actions | GitHub repo와 통합이 쉬움 | GitHub 중심 팀 |
+| Jenkins | 오래된 표준, 플러그인 풍부 | 자체 운영/커스터마이징 필요 |
+| TeamCity | JetBrains 계열, 엔터프라이즈 CI 기능 | 상용 CI 운영 조직 |
+| AWS CodePipeline | AWS IAM/CodeBuild/ECR/ECS와 통합 | AWS 중심 배포 |
+
+도구보다 중요한 것은 pipeline의 단계다.
+
+```text
+source -> test -> security scan -> build -> push -> deploy -> verify
+```
+
+## 핵심 포인트
+CI가 image를 build했다는 것과 registry에 push되어 pull/run 가능하다는 것은 다르다. 마지막 검증은 항상 registry에서 받은 image를 실행하는 것이다.
+
+## Evidence Note
+```markdown
+# W3D3S7 Docker Hub Push
+- workflow run:
+- image name:
+- tag:
+- Docker Hub tag visible:
+- repository visibility:
+- private pull auth:
+- docker pull:
+- local run result:
+- platforms:
+- failure evidence:
+```
+
+
+## 학습 제어
+### 시작 3분 회상
+- CI gate 실패를 로컬 수정과 재실행으로 연결하는 증거는 무엇인가?
+- GitHub Secret, Docker Hub image, Kubernetes imagePull은 각각 어떤 책임 경계인가?
+### 오늘 반드시 가져갈 것
+- CI는 기준 commit을 검증하고 registry는 검증된 artifact를 보존한다.
+- secret 미출력과 pull/run 결과가 push 성공보다 중요한 운영 증거다.
+### 최소 복구 경로
+- branch/PR을 만든다 → CI 실패 step과 secret scope 증거를 남긴다 → 로컬 수정/재실행한다 → 통과 후에만 registry pull/run을 기록한다.
+- 성공 판정은 image tag, pull, health 응답이 일치하는 것이다. 첫 실패는 workflow login/push log와 registry 상태에서 찾는다.
+- 다음 lesson 진입 조건은 통과 commit과 image tag를 연결하는 것이다.
+
+### W3D3 필수 흐름
+`branch/PR → CI 실패 증거 → 로컬 수정 → 재실행 → 통과 기록`이 필수다. Docker Hub push, multi-arch, rebase/tag 비교는 필수 흐름 완료 후 선택 심화다.

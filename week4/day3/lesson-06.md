@@ -1,201 +1,247 @@
-# 6교시: Alert Preview
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)
 
-![Week 4 Day 3 Lesson 6](./assets/lesson-06-alert-preview.png)
+# 6교시 · selfHeal과 prune
 
-## 수업 목표
-- alert rule, pending, firing, resolved, silence의 의미를 구분한다.
-- threshold를 너무 낮게 잡으면 alert noise가 생긴다는 점을 이해한다.
-- PrometheusRule manifest를 preview 수준으로 적용한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **자동 동기화**를 켜고, 커밋이 사람 없이 반영되는 것을 봅니다.
+> - **selfHeal** — 손 수정이 몇 초 만에 되돌려지는 것을 봅니다.
+> - **prune** — Git에서 지운 리소스가 클러스터에서도 사라지는 것을 봅니다.
+> - 자동화가 **방해가 되는 순간**(장애 대응, HPA)에 어떻게 하는지 익힙니다.
 
-## Alert의 기본 흐름
-```text
-PromQL 조건
-  -> 일정 시간 유지(for)
-  -> pending
-  -> firing
-  -> Alertmanager routing
-  -> silence 또는 notification
-```
+## 세 단계의 자동화
 
-alert는 “metric이 있다”에서 끝나지 않고, 사람이 개입해야 할 조건을 정의하는 것이다.
-
-## PrometheusRule 적용
-```bash
-kubectl apply -f week4/day3/labs/observability-scenarios/prometheus-rule-preview.yaml
-kubectl -n week4-observe get prometheusrule
-```
-
-rule 일부:
-```yaml
-expr: increase(kube_pod_container_status_restarts_total{namespace="week4-observe"}[5m]) > 0
-for: 1m
-labels:
-  severity: warning
-```
-
-해석:
-| 필드 | 의미 |
-|---|---|
-| `expr` | alert 조건 |
-| `for` | 조건이 유지되어야 하는 시간 |
-| `severity` | routing과 우선순위 기준 |
-| `annotations` | 사람이 읽을 설명 |
-
-## UI에서 확인
-Prometheus:
-```text
-http://localhost:9090/alerts
-```
-
-상태:
-| 상태 | 의미 |
-|---|---|
-| inactive | 조건 불만족 |
-| pending | 조건 만족 중이지만 `for` 대기 |
-| firing | 조건이 유지되어 alert 발생 |
-
-API로도 확인할 수 있다.
+| 설정 | 새 커밋이 오면 | 누가 손으로 바꾸면 | Git에서 파일을 지우면 |
+|---|---|---|---|
+| (없음) — 4 · 5교시 | OutOfSync 표시만 | OutOfSync 표시만 | OutOfSync 표시만 |
+| `automated: {}` | **자동 Sync** | 표시만 (다음 커밋 때 덮인다) | 클러스터에 **남는다** |
+| `+ selfHeal: true` | 자동 Sync | **몇 초 안에 되돌린다** | 남는다 |
+| `+ prune: true` | 자동 Sync | 되돌린다 | **클러스터에서도 지운다** |
 
 ```bash
-curl -s --get 'http://localhost:9090/api/v1/query' \
-  --data-urlencode 'query=ALERTS{alertname="Week4ObservePodRestarting"}'
+cd ~/devops-lab/k8s/w4d3
+diff argocd/devmart-app.yaml argocd/devmart-app-auto.yaml
 ```
 
-실제 검증 예시:
-```text
-alertname="Week4ObservePodRestarting"
-alertstate="firing"
-namespace="week4-observe"
-pod="crashloop-demo-..."
-value="1"
-```
+> **🟢 확인: 확인**
+>
+> ```text
+> 1c1
+> < # 4교시 · 첫 Application — 손으로 Sync
+> ---
+> > # 6교시 · 자동 동기화 + 스스로 고치기 + 지운 것 정리
+> …
+> > syncPolicy:
+> >   automated:
+> >     prune: true        # Git에서 지운 리소스는 클러스터에서도 지운다
+> >     selfHeal: true     # 누가 손으로 바꾸면 Git대로 되돌린다
+> ```
 
-rule 목록에서 확인:
-```text
-Week4ObservePodRestarting firing increase(kube_pod_container_status_restarts_total{namespace="week4-observe"}[5m]) > 0
-```
+> [!IMPORTANT]
+> **prune이 기본으로 꺼져 있는 이유**
+>
+> Git에서 파일 하나를 실수로 지웠다고 운영 DB가 사라지면 안 됩니다. 그래서 Argo CD는 자동 동기화를 켜도 **지우는 일만은 따로 허락**받게 해 두었습니다. 켜기 전에 "Git에 없는 것은 클러스터에 있으면 안 된다"를 팀이 합의해야 합니다. 그 합의가 있으면 prune은 **쓰레기를 남기지 않는** 강력한 도구가 됩니다.
 
-## pending이 필요한 이유
-`for`가 없으면 순간적인 spike에도 alert가 바로 firing된다.
+## 실습 13 · 자동 동기화 켜기
 
-```yaml
-for: 1m
-```
+같은 이름(`devmart`)의 Application을 다시 apply하면 설정만 바뀝니다.
 
-의미:
-```text
-조건이 1분 동안 계속 참이어야 firing으로 전환
-```
-
-예를 들어 Pod가 배포 중 한 번 restart한 것은 정상적인 운영 이벤트일 수 있다. 하지만 짧은 시간에 반복 restart가 이어지면 사람이 봐야 할 가능성이 커진다.
-
-## Alertmanager에서 보는 것
-Alertmanager는 alert를 그대로 보내는 도구가 아니라 묶고, 라우팅하고, 잠시 조용히 만드는 도구다.
-
-| 기능 | 의미 |
-|---|---|
-| grouping | 비슷한 alert를 묶음 |
-| routing | severity/team/service에 따라 전달 |
-| inhibition | 상위 장애가 있을 때 하위 alert 억제 |
-| silence | 특정 조건 alert를 일정 시간 숨김 |
-
-오늘은 알림 채널 연동까지 하지 않고 개념과 UI만 확인한다.
-
-## Silence preview
-Alertmanager는 alert를 묶고 조용히 만드는 silence 기능을 제공한다.
-
-접속:
 ```bash
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9093
+kubectl apply -f argocd/devmart-app-auto.yaml
+argocd app get devmart | grep -E "Sync Policy|Sync Status|Health"
 ```
 
-브라우저:
-```text
-http://localhost:9093
+> **🟢 확인: 확인**
+>
+> ```text
+> application.argoproj.io/devmart configured
+> Sync Policy:        Automated (Prune)
+> Sync Status:        Synced to main (2e6a8d3)
+> Health Status:      Healthy
+> ```
+
+커밋 하나로 확인합니다. 이번에는 **Sync 명령을 치지 않습니다.**
+
+```bash
+cd ~/devmart-deploy
+sed -i 's/replicas: 3/replicas: 2/' devmart/catalog-api.yaml      # Mac: sed -i ''
+git commit -am "catalog-api 다시 2개로"
+git push
+kubectl get deploy catalog-api -n devmart -w
 ```
 
-silence는 장애를 고치는 기능이 아니다. 이미 알고 있는 작업이나 테스트로 인해 알림이 불필요할 때 일정 시간 알림을 줄이는 기능이다.
+> **🟢 확인: 확인 (최대 1분)**
+>
+> ```text
+> NAME          READY   UP-TO-DATE   AVAILABLE   AGE
+> catalog-api   3/3     3            3           8d
+> catalog-api   3/2     3            3           8d
+> catalog-api   2/2     2            2           8d
+> ```
+> `Ctrl+C`로 멈춥니다. 사람이 한 일은 **커밋과 push뿐**입니다. 웹 UI의 **HISTORY AND ROLLBACK**에 방금 커밋이 한 줄 늘었습니다.
 
-## Alert noise
-나쁜 alert는 팀의 집중력을 깎는다.
+## 실습 14 · selfHeal — 손 수정이 되돌려진다
 
-| 나쁜 alert | 문제 |
-|---|---|
-| CPU 50% 1분 | 너무 흔함 |
-| Pod restart 1회 | 배포 중 정상일 수도 있음 |
-| target down 즉시 | 일시적 재시작에도 울림 |
-
-더 나은 alert:
-| 조건 | 이유 |
-|---|---|
-| 10분 이상 지속 | 일시적 spike 제거 |
-| 사용자 영향 metric과 결합 | 실제 장애 가능성 증가 |
-| severity 구분 | 대응 우선순위 결정 |
-| runbook link 포함 | 다음 행동 명확화 |
-
-## alert 문장 작성 기준
-좋은 alert annotation은 다음을 포함한다.
-
-| 항목 | 예시 |
-|---|---|
-| 무엇이 | `week4-observe namespace Pod` |
-| 어떻게 | `container restart 증가` |
-| 얼마나 | `5분 동안 1회 이상` |
-| 다음 행동 | `logs --previous와 describe pod 확인` |
-
-나쁜 문장:
-```text
-PodRestarting
+```bash
+kubectl scale deploy/catalog-api -n devmart --replicas=5
+kubectl get deploy catalog-api -n devmart -w
 ```
 
-더 나은 문장:
-```text
-week4-observe namespace에서 최근 5분 동안 container restart가 증가했습니다. rollout, logs --previous, describe pod event를 확인하세요.
+> **🟢 확인: 확인 (몇 초)**
+>
+> ```text
+> deployment.apps/catalog-api scaled
+> NAME          READY   UP-TO-DATE   AVAILABLE   AGE
+> catalog-api   2/5     5            2           8d
+> catalog-api   2/2     2            2           8d
+> ```
+> 5개로 늘었다가 Pod가 뜨기도 전에 **2개로 되돌아갑니다.** Argo CD는 리소스의 변화를 **지켜보고(watch)** 있다가, 바뀌자마자 Git과 비교해 되돌렸습니다. 60초 주기를 기다리지 않습니다.
+
+더 과감하게 지워 봅니다.
+
+```bash
+kubectl delete deploy web -n devmart
+sleep 10
+kubectl get deploy web -n devmart
+curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/
 ```
 
-수업에서 이 alert가 좋은 이유:
-| 기준 | 설명 |
-|---|---|
-| 대상이 좁음 | `week4-observe` namespace만 본다 |
-| 재현 가능 | crashloop-demo로 즉시 조건을 만들 수 있다 |
-| 다음 행동이 있음 | `logs --previous`, `describe pod`로 이어진다 |
-| noise 토론 가능 | restart 1회 alert가 운영에서 너무 민감할 수 있음을 설명할 수 있다 |
+> **🟢 확인: 확인**
+>
+> ```text
+> deployment.apps "web" deleted
+> NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+> web    1/1     1            1           8s
+> 200
+> ```
+> AGE가 몇 초입니다 — **새로 만들어졌습니다.** 3주차 4일차에 Pod를 지우면 ReplicaSet이 다시 만들던 것과 같은 일이, 이제 **Deployment 단위**에서 일어납니다.
 
-## alert를 만들지 않아도 되는 경우
-| 상황 | 이유 |
-|---|---|
-| 실습용 장애 | 사람이 이미 알고 있음 |
-| 순간 spike | 자동 복구 가능 |
-| 영향 없는 dev namespace | noise 가능성 |
-| dashboard로 충분한 지표 | 즉시 개입 필요 없음 |
+> [!WARNING]
+> **selfHeal과 HPA가 싸운다**
+>
+> 4주차 4일차 이후 HPA(자동 늘리기)를 붙이면, HPA가 replicas를 5로 바꾸고 → selfHeal이 Git의 2로 되돌리고 → HPA가 다시 5로… 싸움이 납니다. 해결책은 둘입니다. ① Git의 Deployment에서 `replicas` 줄을 **지운다**(HPA에게 맡긴다), ② Application에 `ignoreDifferences`로 `/spec/replicas`를 **비교에서 뺀다.** 어느 필드를 **누가 소유하나**를 정하는 문제입니다(3교시 학술 노트).
 
-alert는 많을수록 좋은 것이 아니라 적절할수록 좋다.
+## 실습 15 · prune — 지운 것은 사라진다
 
-## Evidence Note
-```markdown
-# W4D3S6 Alert preview
-- PrometheusRule 이름:
-- alert expr:
-- for:
-- pending/firing 상태:
-- noise가 될 수 있는 이유:
-- silence가 필요한 상황:
+디버깅용 Pod를 Git으로 하나 넣었다가 Git에서 지워 봅니다.
+
+```bash
+cd ~/devmart-deploy
+cat > devmart/debug.yaml <<'YAML'
+# 잠깐 쓰는 디버깅 도구 — 다 쓰면 Git에서 지운다
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debug
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: debug }
+  template:
+    metadata:
+      labels: { app: debug }
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:8.17.0
+          command: ["sleep", "infinity"]
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 32Mi }
+YAML
+sed -i 's/^  - devmart-rules.yaml.*/&\n  - debug.yaml/' devmart/kustomization.yaml     # Mac: 편집기로 resources 끝에 한 줄
+grep -A1 devmart-rules devmart/kustomization.yaml
+git add . && git commit -m "디버깅용 curl 추가" && git push
+sleep 60; kubectl get deploy debug -n devmart
+kubectl exec -n devmart deploy/debug -- curl -s catalog-api:8000/api/products | head -c 80; echo
 ```
 
-## 한 줄 요약
-```text
-좋은 alert는 metric 조건이 아니라 사람이 지금 해야 할 행동과 연결되어야 한다.
+> **🟢 확인: 확인**
+>
+> ```text
+>   - devmart-rules.yaml           # 4주차 2일차
+>   - debug.yaml
+> …
+> NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+> debug   1/1     1            1           40s
+> {"items":[{"id":1,"name":"러닝화","price":59000,"stock":12},{"id":2,"nam
+> ```
+> 클러스터 안에서 Service 이름(`catalog-api`)으로 부르는 3주차 4일차의 방법 그대로입니다.
+
+이제 다 썼으니 **Git에서** 지웁니다.
+
+```bash
+git rm devmart/debug.yaml
+sed -i '/  - debug.yaml/d' devmart/kustomization.yaml          # Mac: sed -i '' …
+git commit -am "디버깅용 curl 제거"
+git push
+sleep 60; kubectl get deploy debug -n devmart
 ```
 
+> **🟢 확인: 확인**
+>
+> ```text
+> rm 'devmart/debug.yaml'
+> …
+> Error from server (NotFound): deployments.apps "debug" not found
+> ```
+> prune이 꺼져 있었다면 debug는 클러스터에 **계속 남고**, Argo CD 화면에 노란 휴지통 표시("requires pruning")만 떴을 것입니다. "잠깐 띄운 것"이 몇 달씩 남아 자원을 먹는 일이 운영에서 흔합니다.
 
-## 학습 제어
-### 시작 3분 회상
-- CrashLoop/readiness/CPU pressure의 첫 확인 위치는 어디였나?
-- PromQL 결과의 pending/firing/resolved는 어떤 운영 상태인가?
-### 오늘 반드시 가져갈 것
-- alert는 metric 조건의 상태이며 실제 장애 판정과 runbook action은 별도 책임이다.
-- noise를 줄이는 것은 silence가 아니라 적절한 threshold와 증거 연결이다.
-### 최소 복구 경로
-- rule을 읽는다 → query와 시간 범위를 확인한다 → alert 상태와 logs/events를 대조한다.
-- 성공 판정은 firing 원인과 대응 action이 기록된 것이다. 첫 실패는 query result와 target 상태에서 찾는다.
-- 다음 lesson 진입 조건은 관찰 runbook을 작성하는 것이다.
+### prune이 지우지 않는 것
+
+```bash
+kubectl get secret -n devmart
+kubectl get gateway -n devmart
+```
+
+`devmart-db` Secret과 1일차의 `devmart` Gateway는 Git에 없는데도 **남아 있습니다.** 4교시에 본 **추적 표시**가 없기 때문입니다 — Argo CD는 "내가 만든 것"만 정리합니다. 반대로 말하면, 실수로 이것들을 배포 저장소에 넣었다가 지우면 **사라집니다.**
+
+## 자동화를 잠시 끄는 법
+
+장애 중에 원인을 찾으려고 일부러 손을 대야 할 때가 있습니다(3주차 5일차의 `kubectl set env`로 로그 수준 올리기 등). selfHeal이 켜져 있으면 몇 초 만에 되돌려집니다.
+
+```bash
+argocd app set devmart --sync-policy none          # 자동 동기화 끄기 (기록을 남긴다!)
+# … 조사 …
+kubectl apply -f ~/devops-lab/k8s/w4d3/argocd/devmart-app-auto.yaml   # 다시 켜기
+```
+
+> [!TIP]
+> **런북에 적을 것**
+>
+> "자동 동기화를 껐다"는 사실 자체가 **장애 기록에 남아야** 합니다. 끈 채로 잊으면 그때부터 클러스터는 다시 push 시대로 돌아갑니다. 어제 만든 런북에 "끈 사람 · 시각 · 다시 켠 시각" 칸을 더해 둡니다. 또 자동 동기화가 켜진 Application은 `argocd app rollback`(이전 Sync로 되돌리기)이 **막혀 있습니다** — 되돌리기는 언제나 `git revert`입니다.
+
+> **🎓 학술 노트 — 자율 컴퓨팅과 MAPE-K**
+>
+> 스스로 상태를 보고 고치는 시스템은 IBM이 2001년 제안한 **자율 컴퓨팅**(autonomic computing)의 목표였습니다. Kephart와 Chess의 *The Vision of Autonomic Computing*(IEEE Computer, 2003)은 이를 **MAPE-K 루프** — 감시(Monitor) · 분석(Analyze) · 계획(Plan) · 실행(Execute), 공유 지식(Knowledge) — 로 정리했습니다. selfHeal은 지식 = Git, 감시 = watch, 분석 = diff, 실행 = Sync인 가장 단순한 MAPE-K입니다. 같은 논문은 **자기 치유가 사람의 의도와 부딪칠 때**의 위험도 경고합니다 — 위의 HPA 싸움이 그 예입니다.
+
+> **📈 트렌드 2026 — 정책으로 막는 GitOps**
+>
+> selfHeal은 "Git과 다르면 되돌린다"이지만, "Git에 **들어가면 안 되는 것**"은 막지 못합니다. 그래서 배포 저장소의 PR 단계에서 **정책 검사**(Kyverno CLI · Conftest)를 돌리고, 클러스터에서는 같은 정책을 **입장 제어**(admission)로 한 번 더 막는 이중 구조가 표준이 되었습니다. 5일차의 Kyverno에서 직접 해 봅니다.
+
+> **✅ 확인 문제**
+>
+> 1. `automated`만 켜고 selfHeal을 끄면 손 수정은 어떻게 되나요?
+> 2. prune이 기본으로 꺼져 있는 이유는?
+> 3. selfHeal과 HPA의 싸움을 푸는 두 방법은?
+> 4. Git에 없는 `devmart-db` Secret을 prune이 지우지 않는 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 클러스터에 남아 OutOfSync로 표시되다가, 다음 커밋이 Sync될 때 덮인다
+> 2. Git에서 실수로 파일을 지웠을 때 운영 리소스(데이터 포함)가 함께 사라지지 않게
+> 3. Git의 Deployment에서 replicas를 지우거나, ignoreDifferences로 /spec/replicas를 비교에서 뺀다
+> 4. Argo CD의 추적 표시가 없어 '내가 관리하는 것'이 아니기 때문
+>
+> </details>
+
+## 참고 문헌
+
+- Argo CD Docs. *Automated Sync Policy — Automatic Pruning, Automatic Self-Healing*. argo-cd.readthedocs.io
+- Argo CD Docs. *Diffing Customization — ignoreDifferences*. argo-cd.readthedocs.io
+- Kephart, J. O. & Chess, D. M. (2003). *The Vision of Autonomic Computing*. IEEE Computer 36(1).
+
+---
+
+⬅️ 이전: [5교시 · Sync와 어긋남](lesson-05.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · Actions → Argo CD 전체 파이프라인](lesson-07.md) ➡️

@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+
 # 1교시 · compose.yaml 읽기
 
 > [!NOTE]
@@ -76,7 +78,7 @@ cd ~/devops-lab/devmart
 code compose.yaml
 ```
 
-![어제의 docker run 옵션이 compose.yaml의 어느 줄이 되는지 — 서비스 · 네트워크 · 볼륨 · 환경 변수](../../assets/week2/day5/w2d5-run-to-compose.png)
+![어제의 docker run 옵션이 compose.yaml의 어느 줄이 되는지 — 서비스 · 네트워크 · 볼륨 · 환경 변수](../../v3/assets/week2/day5/w2d5-run-to-compose.png)
 
 ### 덩어리 1 — 프로젝트 이름과 DB
 
@@ -220,3 +222,7 @@ docker compose config --quiet && echo "문법 OK"
 - Compose Specification. compose-spec.io
 - YAML 1.2 Specification. yaml.org/spec
 - Burgess, M. (1995). Cfengine: a site configuration engine. *USENIX Computing Systems, 8*(3).
+
+---
+
+⬅️ 이전: [2주차 5일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · up · ps · logs · down과 헬스 체크](lesson-02.md) ➡️

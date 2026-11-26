@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+
 # 4교시 · 포트 연결
 
 > [!NOTE]
@@ -10,7 +12,7 @@
 
 ## 두 건물 사이에 통로 뚫기
 
-![포트 연결 — 내 노트북의 8080번 문을 컨테이너의 80번 문으로 이어 준다](../../assets/week2/day2/w2d2-port-mapping.png)
+![포트 연결 — 내 노트북의 8080번 문을 컨테이너의 80번 문으로 이어 준다](../../v3/assets/week2/day2/w2d2-port-mapping.png)
 
 ```text
 -p 8080:80
@@ -245,3 +247,7 @@ docker port web-local
 - Docker Docs. *Packet filtering and firewalls*. docs.docker.com/engine/network/packet-filtering-firewalls
 - Docker Docs. *docker container port*. docs.docker.com/reference/cli
 - Netfilter Project. *Netfilter/iptables*. netfilter.org
+
+---
+
+⬅️ 이전: [3교시 · nginx를 백그라운드로 실행](lesson-03.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 관찰하기 — logs · exec · inspect · stats](lesson-05.md) ➡️

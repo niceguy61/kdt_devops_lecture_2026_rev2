@@ -1,362 +1,240 @@
-# 7교시: Metrics Server 설치와 관찰
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
 
-![Week 4 Day 1 Lesson 7](./assets/lesson-07-metrics-server-observation.png)
+# 7교시 · 장애 분석
 
-## 수업 목표
-- metrics-server의 역할과 Prometheus/Grafana와의 차이를 설명한다.
-- Helm으로 metrics-server를 설치한다.
-- `kubectl top node/pod`로 CPU/memory 사용량을 확인한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 라우트를 일부러 네 가지로 망가뜨리고, **curl 응답 코드**와 **status.conditions**로 원인을 찾습니다.
+> - **404**(길이 없다)와 **500**(길 끝이 막혔다)이 어느 층의 문제인지 구분합니다.
+> - 엉뚱한 곳이 **200으로** 대답하는 장애가 있음을 압니다.
+> - **ReferenceGrant**로 다른 네임스페이스 허락을 직접 만들어 봅니다.
 
-## metrics-server의 위치
-metrics-server는 kubelet에서 CPU/memory resource metric을 수집하고 Kubernetes Metrics API로 제공한다.
+## 진단의 순서 — 문에서 Pod까지
 
-```text
-kubelet
-  -> metrics-server
-  -> metrics.k8s.io API
-  -> kubectl top / HPA
-```
+![무엇이 틀렸나에 따라 kubectl describe httproute에 보이는 상태와 curl 응답 코드가 다르다](../../v3/assets/week4/day1/w4d1-route-status.png)
 
-Prometheus처럼 장기 시계열 저장과 dashboard를 제공하는 도구가 아니다. W4D3에서 Prometheus/Grafana를 별도로 다룬다.
+3주차 5일차 6교시의 '바깥에서 안으로'에 Gateway 층이 하나 더 생겼습니다.
 
-## kube-system에 있는데 다른 namespace가 보이는 이유
-metrics-server는 보통 `kube-system` namespace에 설치된다. 그런데 명령은 이렇게 실행한다.
-
-```bash
-kubectl top pod -n week4
-```
-
-이때 `week4` namespace의 Pod가 metrics-server Pod와 직접 통신하는 것이 아니다. 사용자는 API server에 요청하고, API server는 metrics APIService를 통해 metrics-server로 연결한다.
-
-```text
-kubectl
-  -> Kubernetes API server
-  -> APIService: v1beta1.metrics.k8s.io
-  -> Service: kube-system/metrics-server
-  -> metrics-server
-  -> kubelet resource summary
-```
-
-namespace를 넘어 보이는 원리는 다음처럼 나눠야 한다.
-
-| 질문 | 원리 |
-|---|---|
-| metrics-server는 어디에 설치되는가 | `kube-system` namespace |
-| `kubectl top -n week4`는 누구에게 요청하는가 | Kubernetes API server |
-| API server는 metrics를 어디로 라우팅하는가 | `v1beta1.metrics.k8s.io` APIService |
-| metrics-server는 metric을 어디서 가져오는가 | 각 node의 kubelet |
-| namespace는 어떤 역할인가 | 조회 결과를 `week4` Pod로 필터링 |
-
-즉 "system namespace에 설치된 add-on이 application namespace를 본다"는 말은, 보통 Kubernetes API와 RBAC, APIService, selector가 허용한 범위 안에서 동작한다는 뜻이다. 네트워크가 아무렇게나 열린다는 뜻이 아니다.
-
-## metrics-server와 Prometheus를 구분한다
-학생들이 “Grafana에서 봤던 metric이랑 같은 건가요?”라고 묻기 쉽다. 목적이 다르다.
-
-| 항목 | metrics-server | Prometheus/Grafana |
+| 단계 | 묻는 것 | 명령 |
 |---|---|---|
-| 주 목적 | 현재 resource metric 제공 | 시계열 저장, query, dashboard, alert |
-| 대표 명령/화면 | `kubectl top` | PromQL, Grafana dashboard |
-| 저장 기간 | 짧음 | 설정에 따라 장기 |
-| HPA resource metric | 직접 연결 | custom/external metric 구성 가능 |
-| 수업 일차 | W4D1 | W4D3 |
+| 1 | 응답 코드는? 응답이 아예 없나? | `curl -s -o /dev/null -w '%{http_code}' …` |
+| 2 | **Gateway**가 준비됐나? | `kubectl get gateway -n devmart` → PROGRAMMED |
+| 3 | **라우트**가 붙었나? 보낼 곳을 찾았나? | `kubectl describe httproute …` → Accepted · ResolvedRefs |
+| 4 | Service 뒤에 Pod가 있나? | `kubectl get endpointslices -n …` (3주차 4일차) |
+| 5 | Pod는? 앱은? | `get pods` · `describe` · `logs` (3주차) |
 
-오늘은 “사용량을 보기 시작하는 첫 단계”다. 깊은 dashboard와 alert는 W4D3에서 다룬다.
+> [!IMPORTANT]
+> **응답 코드가 층을 알려 준다**
+>
+> | 코드 | 누가 답했나 | 뜻 |
+> |---|---|---|
+> | 응답 없음 · 연결 거부 | 아무도 | 문(Gateway)이 없다 — 포트 · Service · Envoy Pod |
+> | **404** (빈 본문) | Envoy | 문은 열렸는데 **맞는 길(라우트 · Host · 경로)이 없다** |
+> | **500** (빈 본문) | Envoy | 길은 있는데 **보낼 곳이 잘못됐다** (Service 없음 · 허락 없음) |
+> | 503 | Envoy | 보낼 곳은 맞는데 **준비된 Pod가 없다** (EndpointSlice 비었음) |
+> | 앱의 JSON 오류 (503 `database unavailable` 등) | 앱 | Gateway는 할 일을 다 했다 — 3주차의 진단으로 |
 
-## Helm 설치
-```bash
-helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
-helm repo update
+## 실습 14 · 장애 넷
 
-helm upgrade --install metrics-server metrics-server/metrics-server \
-  --namespace kube-system \
-  -f week4/day1/labs/helm-metrics-server/values.yaml
-```
-
-values file:
-```yaml
-args:
-  - --kubelet-insecure-tls
-  - --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
-```
-
-kind/local 실습에서는 kubelet certificate 검증 문제 때문에 필요할 수 있다. `--kubelet-preferred-address-types`는 metrics-server가 node에 접근할 주소 우선순위를 명시한다. 운영 환경에 그대로 가져가기보다 cluster 인증서와 node address 체계에 맞게 설정해야 한다.
-
-## values file을 먼저 읽는다
-설치 전에 values file을 직접 확인한다.
+장애마다 **망가뜨리기 → 증상 → 진단 → 되돌리기** 순서로 합니다. 각자 진단한 뒤 아래 해설을 엽니다.
 
 ```bash
-cat week4/day1/labs/helm-metrics-server/values.yaml
+cd ~/devops-lab/k8s/w4d1
 ```
 
-수업용 values:
-```yaml
-args:
-  - --kubelet-insecure-tls
-  - --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
-
-resources:
-  requests:
-    cpu: 50m
-    memory: 64Mi
-  limits:
-    cpu: 200m
-    memory: 256Mi
-```
-
-여기서 `resources`도 일부러 넣었다. add-on도 cluster 위에서 도는 workload이므로 resource 기준을 가져야 한다.
-
-## 설치 확인
-```bash
-helm list -n kube-system
-helm status metrics-server -n kube-system
-kubectl -n kube-system get deploy,pod -l app.kubernetes.io/name=metrics-server
-kubectl get apiservice v1beta1.metrics.k8s.io
-```
-
-values 파일이 실제 Deployment에 반영됐는지도 확인한다.
+### 장애 1 — 라우트가 엉뚱한 문을 가리킨다
 
 ```bash
-helm get values metrics-server -n kube-system
-kubectl -n kube-system get deploy metrics-server \
-  -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
+kubectl patch httproute web -n devmart --type=json \
+  -p '[{"op":"replace","path":"/spec/parentRefs/0/name","value":"devmrt"}]'
+sleep 3; curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/
 ```
 
-반드시 다음 값이 보여야 한다.
+<details><summary>해설 — 장애 1</summary>
 
-```text
---kubelet-insecure-tls
---kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
+**증상** — `/`가 **404**. `/api/products`는 여전히 200(다른 라우트는 멀쩡).
+
+**진단**
+```bash
+kubectl describe httproute web -n devmart | sed -n '/^Spec:/,/^Events/p' | grep -A2 -E 'Parent Refs|Parent Ref:'
 ```
+- Spec의 parentRefs는 `devmrt`인데, Status에는 **`devmrt`에 대한 기록이 없다.** 그런 Gateway가 없으니 어떤 컨트롤러도 이 라우트를 "내 것"이라 하지 않는다.
+- Status에 예전 `devmart`의 `Accepted True`가 **남아 보일 수도** 있다. 그래서 status를 읽을 때는 Conditions만 보지 말고 **어느 Parent Ref에 대한 것인지**를 꼭 확인한다.
 
-values 파일에는 값이 있는데 Deployment args에 없다면 Helm upgrade가 values 파일 없이 실행됐거나, 다른 cluster/context를 보고 있을 가능성이 크다.
+**되돌리기** — `kubectl apply -f gateway/devmart-routes.yaml`
 
-metrics-server가 어떤 ServiceAccount와 APIService를 쓰는지도 확인한다.
+**배운 것** — **status가 비어 있는 것 자체가 단서다.** 3주차 3일차에 "CRD만 있고 컨트롤러가 없으면 아무 일도 안 일어난다"고 했다. 아무도 맡지 않은 리소스는 조용하다.
+
+</details>
+
+### 장애 2 — 보낼 Service 이름이 틀렸다
 
 ```bash
-kubectl -n kube-system get sa | grep metrics-server
-kubectl get apiservice v1beta1.metrics.k8s.io -o wide
-kubectl describe apiservice v1beta1.metrics.k8s.io
+kubectl patch httproute catalog -n devmart --type=json \
+  -p '[{"op":"replace","path":"/spec/rules/0/backendRefs/0/name","value":"catalog-ap"}]'
+sleep 3; curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/api/products
 ```
 
-정상에 가까운 출력:
+<details><summary>해설 — 장애 2</summary>
+
+**증상** — `/api/products`가 **500**. 상품 목록이 안 뜬다. 주문하기도 실패할까? → 아니다. 주문은 `orders` 라우트로 가서 order-api가 **클러스터 안에서** catalog-api Service를 직접 부르므로(3주차 1일차) 멀쩡하다. 입구의 고장과 안쪽의 연결은 별개다.
+
+**진단**
+```bash
+kubectl describe httproute catalog -n devmart | grep -B2 -A3 'ResolvedRefs'
+```
 ```text
-NAME             READY   UP-TO-DATE   AVAILABLE
-metrics-server   1/1     1            1
-
-NAME                     SERVICE                      AVAILABLE
-v1beta1.metrics.k8s.io   kube-system/metrics-server   True
+    Message:  Failed to process route rule 0 backendRef 0: service devmart/catalog-ap not found.
+    Reason:   BackendNotFound
+    Status:   False
+    Type:     ResolvedRefs
 ```
+`Accepted`는 True(문에는 붙었다), `ResolvedRefs`가 False(끝이 막혔다).
 
-Pod 출력은 실제로는 다음처럼 보인다.
+**되돌리기** — `kubectl apply -f gateway/devmart-routes.yaml`
 
-```text
-NAME                                  READY   STATUS    RESTARTS   AGE
-metrics-server-6b8f8b7db7-9d4px       1/1     Running   0          75s
-```
+**배운 것** — Gateway API 명세는 "잘못된 backend로 갈 요청은 **500**을 받아야 한다"고 정해 두었다. 3주차 4일차의 Service 셀렉터 오타(`Connection refused`)와 비교하면, 같은 '이름 오타'라도 **어느 층에서 틀렸나**에 따라 증상이 다르다.
 
-`READY 1/1`이 되기 전에는 `kubectl top`이 실패할 수 있다. 설치 직후 바로 결과가 안 보이는 것은 흔한 일이다.
+</details>
 
-`APIService`가 True가 아니라면 `kubectl top`은 실패할 수 있다.
+### 장애 3 — Host 오타
 
 ```bash
-kubectl describe apiservice v1beta1.metrics.k8s.io
+kubectl patch httproute podinfo -n default --type=json \
+  -p '[{"op":"replace","path":"/spec/hostnames/0","value":"podinfo.local"}]'
+sleep 3; curl -s -H 'Host: podinfo.localhost' localhost:30080 | head -c 120; echo
 ```
 
-확인할 부분:
-| 항목 | 의미 |
-|---|---|
-| `Available` | metrics API가 사용 가능한지 |
-| `Service` | 어느 namespace/service로 연결되는지 |
-| `Message` | 실패 이유 |
+<details><summary>해설 — 장애 3</summary>
 
-## metric 확인
-metric이 바로 보이지 않으면 30~90초 기다린다.
+**증상** — 에러가 아니다. **DevMart의 HTML(200)**이 돌아온다. podinfo를 불렀는데 엉뚱한 앱이 정상인 척 대답했다.
+
+**진단**
+```bash
+kubectl get httproute -A
+kubectl describe httproute podinfo -n default | grep -A3 'Type:     Accepted'
+```
+- HOSTNAMES 칸이 `["podinfo.local"]` — `localhost`가 아니다.
+- 라우트 상태는 `Accepted True`, `ResolvedRefs True` — **라우트 자체는 아무 문제가 없다.** 단지 아무도 `podinfo.local`로 요청하지 않을 뿐이다.
+- `podinfo.localhost` 요청은 Host가 맞는 라우트가 없으니, Host를 정하지 않은 DevMart 라우트(`/` → web)가 받았다.
+
+**되돌리기** — `kubectl apply -f gateway/podinfo-split.yaml`
+
+**배운 것** — 3주차 5일차 장애 3처럼 **모든 status가 초록인데 틀린** 장애다. "무엇이 대답했나"를 내용으로 확인해야 한다(응답 코드만 보면 놓친다). 이런 일을 막으려고 실무에서는 Host를 정하지 않은 **잡동사니 라우트를 두지 않거나**, 기본 라우트를 '알 수 없는 Host입니다' 페이지로 둔다.
+
+</details>
+
+### 장애 4 — 허락 없이 다른 네임스페이스로
 
 ```bash
-kubectl top node
-kubectl top pod -n week4
+sed -n '/spec:/,$p' drills/cross-ns-route.yaml
+kubectl apply -f drills/cross-ns-route.yaml
+sleep 3; curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: mirror.localhost' localhost:30080
 ```
 
-출력 예시:
+<details><summary>해설 — 장애 4</summary>
+
+**증상** — **500**.
+
+**진단**
+```bash
+kubectl describe httproute podinfo-mirror -n devmart | grep -B2 -A3 'ResolvedRefs'
+```
 ```text
-NAME                           CPU(cores)   MEMORY(bytes)
-runtime-api-xxxxxxxxxx-xxxxx   1m           8Mi
+    Message:  Failed to process route rule 0 backendRef 0: spec.rules[0].backendRefs[0].namespace: Forbidden: …
+    Reason:   RefNotPermitted
+    Status:   False
+    Type:     ResolvedRefs
 ```
+devmart의 라우트가 **default**의 Service를 가리켰는데, default 쪽의 **허락(ReferenceGrant)**이 없다.
 
-node와 pod를 함께 본다.
+**고치기 — 허락 만들기**
+```bash
+cat drills/referencegrant.yaml
+kubectl apply -f drills/referencegrant.yaml
+sleep 3; curl -s -H 'Host: mirror.localhost' localhost:30080 | grep -o '"hostname": "[^"]*"'
+```
+```text
+  "hostname": "podinfo-7b9c8d6f5-k2x8p"
+```
+허락은 **Service가 있는 쪽(default)**에 만든다. 남의 사무실에 들어가려면 **그 회사**의 허락이 필요하다(4교시 비유).
+
+**정리** — `kubectl delete -f drills/cross-ns-route.yaml -f drills/referencegrant.yaml`
+
+**배운 것** — 6교시 podinfo 라우트는 default에 있었고 Service도 default라 허락이 필요 없었다. **라우트와 Service가 다른 칸**일 때만 ReferenceGrant가 필요하다. 이 허락이 없으면 아무 팀이나 남의 Service로 문을 열 수 있게 된다 — 4주차 5일차 보안에서 다시 본다.
+
+</details>
+
+## 정리 — 원래대로
 
 ```bash
-kubectl top node
-kubectl top pod -n week4 --containers
+kubectl apply -f gateway/devmart-routes.yaml -f gateway/podinfo-split.yaml
+kubectl get httproute -A
+for p in / /api/products /api/orders; do printf '%-15s ' $p; curl -s -o /dev/null -w '%{http_code}\n' localhost:30080$p; done
 ```
 
-node 출력 예시:
-```text
-NAME                         CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
-kind-control-plane           162m         8%     1080Mi          28%
-```
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> NAMESPACE   NAME      HOSTNAMES               AGE
+> default     podinfo   ["podinfo.localhost"]   1h
+> devmart     catalog                           1h
+> devmart     orders                            1h
+> devmart     web                               1h
+> /               200
+> /api/products   200
+> /api/orders     200
+> ```
 
-pod container 출력 예시:
-```text
-POD                            NAME   CPU(cores)   MEMORY(bytes)
-runtime-api-7c7d8f7f9f-bxk6m   api    1m           8Mi
-runtime-api-7c7d8f7f9f-vs8nd   api    1m           8Mi
-```
+> [!WARNING]
+> **오늘 만든 것은 지우지 않는다**
+>
+> Envoy Gateway · Gateway · 라우트 · podinfo 두 릴리스는 **내일 그대로** 씁니다. 내일(Observability)은 이 Gateway를 지나는 요청을 숫자와 그래프로 봅니다. 클러스터 '5분 복구' 순서(3주차 5일차 7교시)에 오늘 것을 덧붙여 적어 두세요 — `helm install eg …` → `kubectl apply -f gateway/…` 순서입니다.
 
-`--containers`를 쓰면 Pod 안 container별 사용량을 볼 수 있다. 지금 예제는 container가 하나라 차이가 작지만, sidecar가 있는 Pod에서는 매우 중요해진다.
+> **🎓 학술 노트 — 조용한 실패와 '관찰 가능한 실패'**
+>
+> 오늘 장애 넷 중 둘(1 · 3)은 **에러 메시지 없이** 틀렸습니다. Huang 외의 *Gray Failure: The Achilles' Heel of Cloud-Scale Systems*(HotOS 2017)는 클라우드 장애 중 상당수가 시스템 스스로는 "정상"이라고 보고하는데 **사용자 쪽에서만 이상이 보이는** 회색 실패(gray failure)라고 분석했습니다. 해결 방향은 "다르게 보는 관점을 늘리는 것" — 오늘처럼 status(시스템의 자기 보고)와 curl의 응답 **내용**(사용자 관점)을 함께 보는 것입니다. 내일의 Observability가 이 관점들을 체계적으로 만드는 일입니다.
 
-## 자주 보는 문제
-| 증상 | 원인 후보 | 확인 명령 |
-|---|---|---|
-| `Metrics API not available` | APIService 준비 전 또는 metrics-server 실패 | `kubectl get apiservice v1beta1.metrics.k8s.io` |
-| `kubectl top`이 비어 있음 | Pod가 없거나 namespace 오타 | `kubectl -n week4 get pods` |
-| metrics-server CrashLoop | kubelet 연결/TLS/args 문제 | `kubectl -n kube-system logs deploy/metrics-server` |
-| helm release는 있는데 Pod 없음 | chart install 실패 또는 namespace 혼동 | `helm status metrics-server -n kube-system` |
+> **📈 트렌드 2026 — 설정 검사를 배포 전에**
+>
+> 오늘 장애는 모두 `kubectl apply`는 성공했습니다. 요즘은 Gateway API 리소스도 배포 **전에** 검사합니다 — Envoy Gateway의 `egctl x translate`는 라우트를 Envoy 설정으로 미리 번역해 보여 주고, Gateway API v1.5부터는 CRD에 **검증 규칙(CEL)**이 많이 들어가 잘못된 값을 apiserver가 바로 거절합니다. 그래도 "Host 오타"처럼 **문법상 올바른 실수**는 검사기가 잡지 못합니다. 그래서 배포 뒤에 실제 요청으로 확인하는 **스모크 테스트**를 CI · CD에 둡니다(4주차 3일차).
 
-## 실제 오류 메시지 예시
-`kubectl top`에서 볼 수 있는 오류:
+> **✅ 확인 문제**
+>
+> 1. 404와 500은 각각 어떤 문제를 가리키나요?
+> 2. 라우트의 status에 아무 기록이 없다면 무엇을 의심하나요?
+> 3. 장애 3에서 에러 대신 200이 돌아온 이유는?
+> 4. ReferenceGrant는 어느 네임스페이스에 만드나요?
+> 5. 오늘 Gateway 층의 진단 순서를 세 단계로 쓰면?
+>
+> <details><summary>정답</summary>
+>
+> 1. 404 — 맞는 길(라우트 · Host · 경로)이 없다. 500 — 길은 있는데 보낼 곳이 잘못됐다(Service 없음 · 허락 없음)
+> 2. parentRefs가 가리키는 Gateway가 없거나 이름이 틀려, 어떤 컨트롤러도 이 라우트를 맡지 않았다
+> 3. 맞는 Host의 라우트가 없어, Host를 정하지 않은 DevMart 라우트(`/` → web)가 대신 받았다
+> 4. 허락하는 쪽 — 가리킴을 받는 Service가 있는 네임스페이스
+> 5. Gateway PROGRAMMED → 라우트 Accepted → 라우트 ResolvedRefs (그다음 EndpointSlice · Pod)
+>
+> </details>
 
-```text
-error: Metrics API not available
-```
+> [!NOTE]
+> **오늘의 배움일기**
+>
+> - Helm을 친구에게 `apt`나 앱 스토어에 빗대어 한 문단으로
+> - `helm rollback`과 `kubectl rollout undo`의 차이를 오늘 실제 상황으로
+> - ingress-nginx 은퇴에서 가장 인상적이었던 점 — 기술 때문인가, 사람(유지보수) 때문인가
+> - GatewayClass · Gateway · HTTPRoute를 회사의 세 사람에게 나눠 준다면 누구에게 무엇을
+> - 오늘 장애 넷 중 응답 코드만 봤다면 놓쳤을 것과 그 이유
+> - 내일 전에 궁금한 것: 오늘 50번 요청 중 카나리가 9번이었다. 하루 100만 번이라면 누가 세고, 오류가 늘었는지는 어떻게 알까?
 
-해석:
-```text
-kubectl 명령 자체 문제가 아니라 metrics.k8s.io API가 준비되지 않았다는 뜻이다.
-```
+## 참고 문헌
 
-metrics-server log에서 볼 수 있는 계열:
-```text
-unable to fully scrape metrics from node
-x509: cannot validate certificate
-failed to verify certificate: x509: cannot validate certificate for 172.19.0.2 because it doesn't contain any IP SANs
-Failed probe probe="metric-storage-ready" err="no metrics to serve"
-```
+- Gateway API. *HTTPRoute — Status* · *ReferenceGrant* · *Troubleshooting*. gateway-api.sigs.k8s.io
+- Gateway API Spec. *HTTPBackendRef — "Invalid backends receive 500"*. gateway-api.sigs.k8s.io/reference/spec
+- Envoy Gateway Docs. *egctl* · *Gateway API Support*. gateway.envoyproxy.io/docs
+- Huang, P., Guo, C., Zhou, L., Lorch, J. R., Dang, Y., Chintalapati, M., & Yao, R. (2017). Gray Failure: The Achilles' Heel of Cloud-Scale Systems. *HotOS XVI*.
 
-kind/local에서는 kubelet 인증서 검증 이슈가 흔하다. metrics-server가 kubelet의 `https://<node-ip>:10250/metrics/resource`를 긁으려는데, kubelet 인증서에 해당 IP가 SAN으로 들어있지 않으면 TLS 검증이 실패한다. 그래서 실습용 values에 `--kubelet-insecure-tls`를 넣었다. 단, 이건 운영 보안 기준이 아니라 로컬 실습 우회다.
+---
 
-`metric-storage-ready`가 `no metrics to serve`라고 나오는 것은 보통 metrics-server가 node scrape에 실패해 저장할 metric이 없다는 후속 증상이다. root cause는 앞의 x509/kubelet scrape 실패다.
-
-## x509 IP SAN 오류 즉시 복구
-다음 로그가 보이면:
-
-```text
-failed to verify certificate: x509: cannot validate certificate for 172.19.0.2 because it doesn't contain any IP SANs
-```
-
-먼저 context를 확인한다. 예전 cluster를 보고 있으면 values를 고쳐도 다른 곳에 적용된다.
-
-```bash
-kubectl config current-context
-kind get clusters
-kubectl get nodes
-```
-
-그 다음 Helm values와 실제 Deployment args를 확인한다.
-
-```bash
-helm get values metrics-server -n kube-system
-kubectl -n kube-system get deploy metrics-server \
-  -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
-```
-
-`--kubelet-insecure-tls`가 없으면 values 파일로 다시 upgrade한다.
-
-```bash
-helm upgrade --install metrics-server metrics-server/metrics-server \
-  --namespace kube-system \
-  -f week4/day1/labs/helm-metrics-server/values.yaml
-
-kubectl -n kube-system rollout restart deploy/metrics-server
-kubectl -n kube-system rollout status deploy/metrics-server
-```
-
-다시 확인한다.
-
-```bash
-kubectl -n kube-system logs deploy/metrics-server --tail=80
-kubectl get apiservice v1beta1.metrics.k8s.io
-sleep 60
-kubectl top node
-```
-
-그래도 같은 오류가 유지되면 현재 보고 있는 cluster가 수업 values로 설치한 cluster인지 다시 확인한다. node 이름이 예를 들어 `paperclip-week3-control-plane`이면 W4D1 cluster가 아니라 이전 Week3 cluster에 설치했거나 그 context를 보고 있을 수 있다.
-
-## Helm은 성공했는데 top이 안 되는 경우
-이 케이스를 꼭 분리한다.
-
-| 단계 | 성공 가능 | 아직 실패할 수 있는 것 |
-|---|---|---|
-| `helm upgrade --install` 성공 | 리소스 제출 성공 | Pod readiness 실패 |
-| `helm status` deployed | release 상태 정상 | metrics API 미등록 |
-| metrics-server Pod Running | process 실행 | kubelet scrape 실패 |
-| APIService True | API 연결 | metric 수집 대기 시간 |
-
-따라서 설치 직후 바로 `kubectl top`이 안 된다고 무조건 실패로 단정하지 않는다. 하지만 2~3분 이상 지속되면 logs와 apiservice를 본다.
-
-## 안 될 때 5단계 체크
-```bash
-helm status metrics-server -n kube-system
-kubectl -n kube-system get pod -l app.kubernetes.io/name=metrics-server
-kubectl get apiservice v1beta1.metrics.k8s.io
-kubectl -n kube-system logs deploy/metrics-server --tail=80
-helm get values metrics-server -n kube-system
-kubectl -n kube-system get deploy metrics-server -o jsonpath='{.spec.template.spec.containers[0].args}{"\n"}'
-```
-
-판단 기준:
-| 단계 | 실패하면 |
-|---|---|
-| `helm status` 실패 | release 설치 자체 문제 |
-| Pod `READY 0/1` | metrics-server container 상태 문제 |
-| APIService `False` | aggregation API 연결 문제 |
-| log에 x509 | kind/local TLS 우회 args 확인 |
-| values에 args 없음 | values file 또는 upgrade 명령 확인 |
-
-## HPA preview
-HPA는 오늘 깊게 다루지 않는다. 하지만 HPA가 CPU/memory 기준으로 scale out하려면 Metrics API가 필요하다는 연결만 잡는다.
-
-```text
-requests 선언
-  -> metrics-server metric 제공
-  -> HPA가 사용량 비율 계산
-  -> replica 조정
-```
-
-예를 들어 HPA가 CPU 70%를 기준으로 scale 하려면 Pod의 request가 있어야 사용률 계산이 가능하다.
-
-```text
-현재 CPU 사용량 / requests.cpu = utilization
-```
-
-request를 선언하지 않으면 HPA가 기대대로 동작하지 않을 수 있다. 그래서 6교시 resource와 7교시 metric은 따로 떨어진 주제가 아니다.
-
-## Evidence Note
-```markdown
-# W4D1S7 metrics-server
-- Helm release status:
-- metrics-server Pod READY:
-- APIService Available:
-- ServiceAccount/RBAC 확인:
-- kubectl top node 결과:
-- kubectl top pod -n week4 결과:
-- 안 될 때 확인한 log 또는 message:
-```
-
-## 한 줄 요약
-```text
-metrics-server는 kubectl top과 HPA의 resource metric 기반이며, Prometheus/Grafana와 목적이 다르다.
-```
-
-
-## 학습 제어
-### 시작 3분 회상
-- request/limit과 OOM/throttling의 차이는 무엇인가?
-- metrics-server가 제공하는 metrics와 Prometheus가 제공하는 metrics는 어떻게 다른가?
-### 오늘 반드시 가져갈 것
-- `kubectl top`은 현재 resource 관찰, Prometheus는 시간축·질의·알림의 증거다.
-- metric은 logs/events와 결합할 때 원인 분석이 된다.
-### 최소 복구 경로
-- metrics-server 상태를 확인한다 → Metrics API와 `top`을 실행한다 → Pod Ready/logs/events와 수치를 비교한다.
-- 성공 판정은 metric source와 운영 질문을 매칭하는 것이다. 첫 실패는 APIService 상태와 metrics-server logs에서 찾는다.
-- 다음 lesson 진입 조건은 측정 결과를 workload runbook으로 기록하는 것이다.
+⬅️ 이전: [6교시 · HTTPRoute — 경로 · Host · 가중치](lesson-06.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4주차 2일차 목차](../day2/README.md) ➡️

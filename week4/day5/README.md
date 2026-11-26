@@ -1,76 +1,52 @@
-# Week 4 Day5: GitOps와 Service Mesh Preview
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
 
-## Overview
-W4D5는 W3D4부터 이어진 Kubernetes 7일 탐험의 마지막 날이다. GitHub Actions가 image를 만들고 push하는 CI라면, Argo CD는 Git repository의 Kubernetes manifest를 cluster 상태로 맞추는 CD/GitOps 도구다. 후반부에는 Istio와 Kiali를 Helm으로 설치하고 sidecar, traffic graph, fault injection preview를 확인한다.
+# 4주차 5일차 — Kubernetes 보안
 
-오늘도 설치는 Helm으로 통일한다. Argo CD, Istio, Kiali 모두 Helm release와 values file, 검증 명령, cleanup 명령을 함께 둔다.
+📕 4주차 이북 PDF: [보기](../../downloads/pdf/week4.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week4.pdf) &nbsp;|&nbsp; 📊 5일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week4-day5.pptx)
 
-## Learning Goals
-- GitHub Actions와 Argo CD의 역할 차이를 설명한다.
-- Argo CD를 Helm으로 설치하고 UI/API 접속 기준을 확인한다.
-- Application manifest로 Git repository path를 cluster namespace에 sync한다.
-- drift, OutOfSync, manual sync, prune/self-heal의 의미를 설명한다.
-- Istio sidecar, Envoy, mesh traffic, mTLS, VirtualService 개념을 preview 수준으로 이해한다.
-- Istio/Kiali를 Helm으로 설치하고 namespace injection과 sidecar container를 확인한다.
-- Kiali graph에서 서비스 간 traffic을 확인하고 fault injection preview를 적용한다.
-- MSA 형태의 mesh sample app으로 `frontend -> bff -> catalog/order -> inventory/payment` 통신 구조를 graph로 확인한다.
-- GitOps/mesh를 운영 runbook과 연결한다.
+## 오늘의 목표
 
-## Lesson Index
-| 교시 | 주제 | 핵심 확인 |
+어제 배움일기의 마지막 질문은 "DevMart의 Pod들이 **모두 같은 신원**(sa/default)인데, 서비스마다 · 사람마다 할 수 있는 일을 어떻게 나눌까? 그리고 '이미지 태그 latest 금지' 같은 규칙은 누가 지키게 할까?"였습니다. 오늘은 **클러스터를 바꾸는 쪽**(사람 · 프로그램)과 **클러스터 안에서 오가는 쪽**(서비스) 모두에 "누가 무엇을 할 수 있나"를 정하고, 4주차 전체를 장애 훈련으로 묶습니다.
+
+- apiserver 요청이 지나는 **세 관문** — 인증 · 인가 · 입장 제어 — 을 이해합니다.
+- **RBAC**로 개발자는 읽기만, 당직자는 재시작까지 — 사람의 권한을 나눕니다.
+- **ServiceAccount**를 서비스마다 만들고(Git), 필요 없는 토큰을 빼냅니다.
+- 어제의 허가 규칙을 **서비스 신원**으로 좁히고, Pod IP 우회로를 막습니다.
+- **Kyverno**로 "latest 금지 · limits 필수 · root 금지"를 정책으로 만들고, Audit → Deny 순서로 도입합니다.
+- 4주차의 모든 층이 섞인 **종합 장애 훈련**에서 "**누가 거절했나**"를 찾습니다.
+- 4주차를 회고하고 보안 점검표를 채웁니다.
+
+## 시간표
+
+| 교시 | 주제 | 실습 결과물 |
 |---|---|---|
-| 1교시 | Day4 요약 + GitOps 개념 | CI/CD 책임 분리, Git desired state |
-| 2교시 | Argo CD 설치 | Helm release, admin password, port-forward |
-| 3교시 | Argo CD Application 생성 | repoURL/path/targetRevision, sync status |
-| 4교시 | drift와 sync | OutOfSync, manual sync, prune/self-heal |
-| 5교시 | Istio 개념 preview | sidecar, Envoy, mTLS, traffic policy |
-| 6교시 | Istio/Kiali 설치 | istio-base, istiod, gateway, Kiali |
-| 7교시 | mesh traffic 선택 preview | sidecar 2/2와 app/proxy log 필수 preview, MSA graph/Kiali/fault injection 중 하나 선택 |
-| 8교시 | 구름 EXP 배움일기 | GitOps/mesh evidence와 Kubernetes 7일 회고 |
+| 1교시 | 4일차 요약 + 세 관문 | 요청 하나의 길 |
+| 2교시 | RBAC — 사람의 권한 | 개발자 읽기 전용 · 당직자 재시작 |
+| 3교시 | ServiceAccount — 프로그램의 신원 | 서비스마다 SA, 토큰 빼기 |
+| 4교시 | 서비스 신원으로 허가 | catalog-api는 order-api만, 우회로 막기 |
+| 5교시 | Kyverno 정책 | Audit 보고서 → Deny, Argo CD가 막히는 장면 |
+| 6교시 | 4주차 종합 장애 훈련 | 장애 보고서 |
+| 7교시 | 4주차 회고 + 보안 점검표 | KPT · 점검표 |
+| 8교시 | 배움일기 | |
 
-## Practice Files
-| 자료 | 용도 |
-|---|---|
-| `hands-on-lab.md` | 전체 실습 순서 |
-| `academic-foundations.md` | GitOps와 mesh 개념 |
-| `labs/argocd/values.yaml` | Argo CD Helm values |
-| `labs/argocd/application-template.yaml` | 개인 repo용 Application template |
-| `labs/gitops-app/` | Argo CD가 sync할 sample manifest |
-| `labs/istio/*.yaml` | Istio/Kiali Helm values |
-| `labs/mesh-app/` | sidecar injection과 Kiali graph용 sample app |
-| `labs/mesh-msa-app/` | MSA 통신 구조 확인용 mesh sample app |
+## 교시별 자료
 
-## Official References
-| Topic | Reference |
-|---|---|
-| Argo CD Docs | https://argo-cd.readthedocs.io/ |
-| Argo Helm Charts | https://github.com/argoproj/argo-helm |
-| Istio Helm Install | https://istio.io/latest/docs/setup/install/helm/ |
-| Kiali Installation | https://kiali.io/docs/installation/ |
-| Istio Traffic Management | https://istio.io/latest/docs/concepts/traffic-management/ |
+1. [4일차 요약 + 세 관문](lesson-01.md)
+2. [RBAC — 사람의 권한](lesson-02.md)
+3. [ServiceAccount — 프로그램의 신원](lesson-03.md)
+4. [서비스 신원으로 허가](lesson-04.md)
+5. [Kyverno 정책](lesson-05.md)
+6. [4주차 종합 장애 훈련](lesson-06.md)
+7. [4주차 회고 + 보안 점검표](lesson-07.md)
 
-## 학습 제어: 회상·핵심·복구
+> [!IMPORTANT]
+> **오늘 실습 전에 확인할 것**
+>
+> - Kyverno가 **약 0.3~0.5GB** 더 씁니다.
+> - Argo CD 자동 동기화, Istio(STRICT · catalog-api 허가), Grafana가 모두 살아 있어야 합니다: `argocd app get devmart | grep Health`, `curl -s -o /dev/null -w '%{http_code}\n' localhost:30080/api/products`.
+> - DevMart의 변경은 계속 **배포 저장소 커밋**입니다. 플랫폼(RBAC · Kyverno 정책)은 `kubectl apply`로 넣고 `platform-changes.md`에 적습니다.
+> - 실습 파일은 강의 저장소의 `labs/week4/day5/`입니다.
 
-### 시작 5분 회상
-W4D4의 RBAC과 Kyverno를 자료 없이 비교한다. 하나는 “누가 요청할 수 있는가”, 다른 하나는 “요청 내용이 정책에 맞는가”라는 차이를 적는다.
+---
 
-### 오늘 반드시 가져갈 것
-1. GitOps의 기준은 Git desired state이며, Argo CD는 이를 cluster state와 비교한다.
-2. `Synced`와 `Healthy`는 다르다. sync 성공만으로 사용자 서비스 정상이라고 결론 내리지 않는다.
-3. Istio/Kiali는 오늘의 필수 운영 모델이 아니라 GitOps 이후의 선택 관찰 preview다.
-
-### 필수 경로와 선택 심화
-필수 경로는 `Git manifest → Argo CD Application → sync → drift → 원인 확인`이다. Istio, sidecar, mTLS, Kiali graph, fault injection은 시간이 남을 때 수행하는 선택 심화이며, GitOps 필수 경로의 증거를 남긴 뒤 시작한다.
-
-### 최소 복구 경로
-`kubectl config current-context` → Argo CD Pod/Service → Application의 sync/health → Git path/revision → 대상 namespace의 `get/describe/events` 순서로 복구한다. 다음 날로 넘어가기 전 drift와 sync failure의 원인을 각각 한 문장으로 설명할 수 있어야 한다.
-
-## 인지 부하를 줄이는 범위 경계
-
-W4D5의 필수 학습 경로는 GitOps 하나로 고정한다.
-
-```text
-Git manifest → Argo CD Application → Sync/Health 확인 → Drift 재현 → 원인별 복구
-```
-
-Istio/Kiali는 Kubernetes 운영을 확장하는 선택 심화 preview다. sidecar, mTLS, traffic graph, fault injection은 Argo CD의 sync/health evidence를 완성한 뒤 다룬다. 시간이 부족하면 mesh 설치보다 GitOps drift 진단을 완료하는 것을 우선한다.
+⬅️ 이전: [7교시 · 메시 운영 판단](../day4/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 4일차 요약 + 세 관문](lesson-01.md) ➡️

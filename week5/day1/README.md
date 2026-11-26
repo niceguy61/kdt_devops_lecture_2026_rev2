@@ -1,79 +1,51 @@
-# Week 5 Day 1: AWS 계정 안전과 운영 좌표계
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [1일차](README.md)
 
-## Overview
-오늘은 AWS 주간의 첫날이다. Kubernetes에서는 `kubectl`, Helm, manifest, controller, Service, Ingress, Secret, PV/PVC, Cloud-native observability를 다뤘다. AWS에서는 그 개념들이 실제 계정, 권한, Region, VPC, EC2, S3, 비용, 감사 로그로 연결된다.
+# 5주차 1일차 — AWS 계정과 VPC
 
-첫날의 목표는 많은 resource를 만드는 것이 아니다. 계정 사고를 막고, 앞으로 만들 resource를 같은 기준으로 관찰할 수 있는 좌표계를 만드는 것이다.
+📕 5주차 이북 PDF: [보기](../../downloads/pdf/week5.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week5.pdf) &nbsp;|&nbsp; 📊 1일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week5-day1.pptx)
 
-![AWS operating map with cloud guide](./assets/day1-aws-operating-map.png)
+## 오늘의 목표
 
-## Learning Goals
-- root user, MFA, IAM, Budget, Region 선택을 AWS 실습의 선행 안전장치로 설명한다.
-- Region과 Availability Zone을 장애 경계와 latency 관점으로 구분한다.
-- EC2, VPC, S3, RDS, ELB, ECR/ECS, CloudWatch, CloudTrail을 computing spine에 매핑한다.
-- VPC와 Security Group을 Kubernetes Service/Ingress와 비교해 설명한다.
-- EC2와 S3를 생성 전 관찰 기준, 비용 기준, 삭제 기준으로 읽는다.
+4주차 마지막 배움일기의 질문은 "클라우드의 클러스터는 **누가, 어떤 네트워크 위에, 얼마의 비용으로** 만드는가?"였습니다. 이번 주는 그 답을 직접 만듭니다 — 오늘은 **누가**(계정과 신원)와 **어떤 네트워크**(VPC), 그리고 **얼마**(비용을 지키는 장치)입니다.
 
-## Lesson Index
-| 교시 | 주제 | 핵심 확인 |
+- kind에서 AWS로 옮길 때 **무엇이 바뀌고 무엇이 그대로인지** 정리합니다.
+- AWS 계정을 만들고 **루트 사용자**를 잠그고, **예산 알림**을 겁니다.
+- **IAM** 사용자 · 그룹 · 역할 · 정책을 4주차 RBAC와 비교하며 익히고, 매일 쓸 관리자 사용자를 만듭니다.
+- **AWS CLI**에 접속 키 없이 `aws login`으로 로그인합니다.
+- **VPC** · 서브넷 · 라우팅 테이블 · 인터넷 게이트웨이 · NAT를 이해하고, 콘솔로 DevMart용 VPC를 만듭니다.
+- **보안 그룹**과 **네트워크 ACL**을 구분합니다.
+
+## 시간표
+
+| 교시 | 주제 | 실습 결과물 |
 |---|---|---|
-| 1교시 | Week4 요약 + AWS로 넘어가는 이유 | Kubernetes 운영 질문이 AWS resource로 연결되는 지점 |
-| 2교시 | AWS 계정 안전장치 | root user, MFA, IAM, Budget, access key 위험 |
-| 3교시 | Region/AZ와 장애 경계 | Region selector, AZ, latency, failure boundary |
-| 4교시 | AWS 서비스 운영 지도 | EC2/VPC/S3/RDS/ELB/ECR/ECS/CloudWatch/CloudTrail 매핑 |
-| 5교시 | VPC와 Security Group 기본 | VPC, subnet, route table, IGW, SG, Service/Ingress 비교 |
-| 6교시 | EC2 첫 관찰 | AMI, instance type, key pair, public IP, stop/terminate |
-| 7교시 | S3 첫 관찰 | bucket, object, public access block, static hosting preview |
-| 8교시 | 구름 EXP 배움일기 | 계정 안전장치, AWS 매핑, 다음 수업 전 질문 |
+| 1교시 | 4주차 요약 + 노트북에서 클라우드로 | 이번 주 비용 계산표 |
+| 2교시 | 계정 만들기와 루트 지키기 | 루트 MFA, 예산 알림 둘 |
+| 3교시 | IAM — 사용자 · 그룹 · 역할 · 정책 | `devops-admin` 사용자, 정책 읽기 |
+| 4교시 | AWS CLI와 aws login | 키 없이 로그인한 CLI |
+| 5교시 | VPC의 구성 요소 | 내 VPC 설계도 |
+| 6교시 | 콘솔로 VPC 만들기 | `devmart-vpc` (서브넷 4 · 라우팅 테이블 3) |
+| 7교시 | 보안 그룹 · NACL + 비용 점검 | 보안 그룹 하나, 남은 것 확인 |
+| 8교시 | 배움일기 | |
 
-## Practice Files
-| 자료 | 용도 |
-|---|---|
-| `academic-foundations.md` | 공식 문서 기반 개념 근거와 읽을 키워드 |
-| `lesson-01.md` ~ `lesson-08.md` | 교시별 강의 자료 |
-| `assets/day1-aws-operating-map.png` | Day1 AWS 운영 지도 대표 이미지 |
-| `assets/lesson-02-account-safety.png` | root/MFA/IAM/Budget/access key 안전장치 |
-| `assets/lesson-03-region-az.png` | Region/AZ와 장애 경계 |
-| `assets/lesson-04-service-map.png` | AWS service operating map |
-| `assets/lesson-05-vpc-security-group.png` | VPC, route, subnet, Security Group traffic |
-| `assets/lesson-06-ec2-observation.png` | EC2 생성 전 관찰 항목 |
-| `assets/lesson-07-s3-observation.png` | S3 bucket/object/public access |
-| `assets/lesson-08-evidence-cleanup-board.png` | 배움일기 evidence와 cleanup board |
+## 교시별 자료
 
-## Official References
-| Topic | Reference |
-|---|---|
-| Root user best practices | https://docs.aws.amazon.com/IAM/latest/UserGuide/root-user-best-practices.html |
-| MFA for root user | https://docs.aws.amazon.com/IAM/latest/UserGuide/enable-mfa-for-root.html |
-| Regions and Availability Zones | https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions-availability-zones.html |
-| VPC Security Groups | https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html |
-| S3 Block Public Access | https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html |
-| AWS Budgets | https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html |
-| Cost Explorer | https://docs.aws.amazon.com/cost-management/latest/userguide/ce-what-is.html |
-| CloudTrail | https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html |
-| EC2 instance lifecycle | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html |
+1. [4주차 요약 + 노트북에서 클라우드로](lesson-01.md)
+2. [계정 만들기와 루트 지키기](lesson-02.md)
+3. [IAM — 사용자 · 그룹 · 역할 · 정책](lesson-03.md)
+4. [AWS CLI와 aws login](lesson-04.md)
+5. [VPC의 구성 요소](lesson-05.md)
+6. [콘솔로 VPC 만들기](lesson-06.md)
+7. [보안 그룹 · NACL + 비용 점검](lesson-07.md)
 
-## Preparation Checklist
-- AWS Console 로그인 가능
-- root user MFA 설정 또는 설정 상태 확인 가능
-- 실습 Region을 `ap-northeast-2`로 고정
-- Billing and Cost Management 접근 가능
-- Budget 또는 비용 알림 생성 권한 확인
-- 개인 access key를 만들지 않고도 오늘 수업을 진행할 수 있음
-- 실습 중 생성한 resource에 tag를 붙일 준비
+> [!IMPORTANT]
+> **오늘 실습 전에 준비할 것**
+>
+> - **본인 명의의 신용 · 체크카드**(해외 결제 가능)와 **휴대폰**(문자 · 인증 앱). 계정 확인용으로 1달러 정도가 잠깐 승인되었다 취소될 수 있습니다.
+> - 인증 앱(Google Authenticator · Microsoft Authenticator 등) 또는 패스키를 쓸 수 있는 기기.
+> - 회사 · 학교의 공용 계정이 아니라 **나만의 새 계정**을 만듭니다. 이번 주 모든 실습은 각자의 계정에서 하고, **그날 만든 것은 그날 지웁니다.**
+> - 실습 파일은 강의 저장소의 `labs/week5/day1/`입니다.
 
-## Deliverables
-- AWS account safety checklist
-- W4 Kubernetes 개념과 AWS service 매핑 표
-- Region/AZ 선택 note
-- VPC/Security Group 관찰 note
-- EC2 생성 전 점검표
-- S3 public access 점검표
-- 구름 EXP 배움일기
+---
 
-## End Of Day Checklist
-- root user로 실습 resource를 만들지 않았는가
-- MFA와 Budget 상태를 확인했는가
-- 오늘 사용한 Region을 evidence에 남겼는가
-- EC2와 S3를 만들었다면 삭제 또는 유지 사유를 남겼는가
-- 다음 수업에서 EC2/ALB 실습을 진행할 수 있도록 key pair, SSH 방식, browser-based 접속 가능성을 확인했는가
+⬅️ 이전: [7교시 · 4주차 회고 + 보안 점검표](../../week4/day5/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 4주차 요약 + 노트북에서 클라우드로](lesson-01.md) ➡️

@@ -1,181 +1,268 @@
-# 2교시: ECR 실습
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [3일차](README.md)
 
-![ECR image push and pull flow](./assets/lesson-02-ecr-image-flow.png)
+# 2교시 · 설치와 첫 리소스
 
-## 수업 목표
-- ECR repository, image tag, push/pull 인증 흐름을 이해한다.
-- Docker image tag와 ECR URI의 관계를 설명한다.
-- credential과 access key 노출 위험을 점검한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - Terraform을 설치하고 `aws login` 자격 증명이 Terraform에 닿는지 확인합니다.
+> - S3 버킷 **하나**로 init · plan · apply · state · destroy를 한 바퀴 돕니다.
+> - plan 출력의 기호(`+` `~` `-` `-/+`)를 읽습니다.
+> - 무엇을 Git에 넣고 무엇을 넣지 않는지 정합니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
-|---|---|---|---|
-| Repository | image를 저장하는 logical 공간이다 | image 저장 위치와 실행 위치를 혼동한다 | ECR repository URI |
-| Image tag | 배포할 version 선택 기준이다 | `latest`만 쓰고 rollback 기준이 사라진다 | image tag list |
-| Authentication | Docker client가 ECR에 push하려면 인증이 필요하다 | push 실패를 Dockerfile 문제로 오해한다 | login command, IAM permission |
-| Credential hygiene | token/key 노출은 계정 사고로 이어진다 | README나 screenshot에 credential이 남는다 | command history, screenshot |
+## 실습 1 · 설치
 
-## ECR repository 만들기
-ECR repository는 Region 안에 생성된다. repository URI는 보통 다음 형태다.
+**Linux · WSL2 Ubuntu (bash)** — HashiCorp 공식 apt 저장소를 추가하고 설치합니다.
 
-```text
-<account-id>.dkr.ecr.<region>.amazonaws.com/<repository-name>
+```bash
+wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+  | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt-get update && sudo apt-get install -y terraform
 ```
 
-| 항목 | 예시 |
+**Mac (터미널 · Homebrew)** — Terraform은 라이선스(BUSL) 변경 뒤 Homebrew 기본 저장소에서 빠졌으므로 HashiCorp의 tap을 씁니다.
+
+```bash
+brew tap hashicorp/tap && brew install hashicorp/tap/terraform
+```
+
+**확인 (공통)**
+
+```bash
+terraform version
+terraform -install-autocomplete 2>/dev/null; true
+```
+
+> **🟢 확인: 확인**
+>
+> ```text
+> Terraform v1.16.○
+> on linux_amd64
+> ```
+> 1.15 이상이면 됩니다. VS Code를 쓰면 **HashiCorp Terraform** 확장을 깔아 문법 강조 · 자동 완성을 받습니다.
+
+> [!TIP]
+> **다른 설치 방법 — winget · 직접 다운로드**
+>
+> | 방법 | 어디서 | 명령 · 주소 |
+> |---|---|---|
+> | winget | Windows PowerShell | `winget install -e --id Hashicorp.Terraform` |
+> | 직접 다운로드 | 브라우저 | [developer.hashicorp.com/terraform/install](https://developer.hashicorp.com/terraform/install) — zip을 풀어 `terraform` 하나를 PATH에 |
+>
+> winget은 **Windows 쪽**에 설치하므로 PowerShell에서만 보입니다. 수업 명령은 WSL Ubuntu(bash)에서 치므로, Windows 사용자도 위의 **WSL 방법**으로 설치합니다. 전체 목록은 **부록 A · 도구 설치 가이드**.
+
+## 실습 2 · 첫 리소스
+
+```bash
+mkdir -p ~/devops-lab/aws/w5d3 && cp -r ~/course/labs/week5/day3/* ~/devops-lab/aws/w5d3/
+cd ~/devops-lab/aws/w5d3/terraform/01-first
+ID=$(gh api user -q .login | tr 'A-Z' 'a-z')
+sed -i "s/YOUR_ID/$ID/" main.tf          # Mac: sed -i ''
+cat main.tf
+```
+
+```hcl
+terraform {
+  required_version = ">= 1.15"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"   # 레지스트리 주소
+      version = "~> 6.0"          # 6.x 중 최신 (7.0은 받지 않는다)
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-northeast-2"
+}
+
+resource "aws_s3_bucket" "first" {    # resource "종류" "코드 안의 이름"
+  bucket = "devmart-tf-first-niceguy61"
+  tags = { Project = "devmart", ManagedBy = "terraform" }
+}
+```
+
+| 블록 | 뜻 |
 |---|---|
-| Account ID | `123456789012` |
-| Region | `ap-northeast-2` |
-| Repository | `paperclip-w5d3-app` |
-| Image tag | `v1`, `v2`, `rollback-ok` |
-
-## Push 흐름
-AWS 공식 문서의 ECR push 흐름은 보통 다음 단계다.
-
-```text
-configure AWS CLI default profile
-authenticate Docker client
-build image
-tag image with ECR URI
-push image
-verify image tag in ECR
-```
-
-CLI를 쓰는 경우 계정 권한과 AWS CLI 설정이 필요하다. 수업 환경에서 CLI 설정이 어렵다면 Console에서 repository와 push command 예시를 읽고, image tag 구조를 이해하는 시뮬레이션 경로로 진행한다.
-
-## AWS CLI default profile 설정
-ECR login은 AWS CLI가 현재 어떤 계정과 Region을 사용하는지에 의존한다. 수업에서는 일단 `default` profile을 사용한다. 이미 다른 실습 계정이 `default`에 들어 있다면 덮어쓰기 전에 현재 identity를 먼저 확인한다.
+| `terraform` | Terraform 자체 설정 — 버전, 쓸 프로바이더 |
+| `provider "aws"` | AWS와 말하는 플러그인의 설정 — 리전 (자격 증명은 `aws login`에서 자동) |
+| `resource "aws_s3_bucket" "first"` | 만들 것 하나. `aws_s3_bucket.first`가 **코드 안의 주소** |
 
 ```bash
-aws sts get-caller-identity
-aws configure
+terraform init
 ```
 
-`aws configure`에는 다음 값을 입력한다.
-
-```text
-AWS Access Key ID [None]: <lab access key id>
-AWS Secret Access Key [None]: <lab secret access key>
-Default region name [None]: ap-northeast-2
-Default output format [None]: json
-```
-
-설정 뒤에는 default profile이 의도한 계정과 Region을 보는지 확인한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> Initializing provider plugins...
+> - Finding hashicorp/aws versions matching "~> 6.0"...
+> - Installing hashicorp/aws v6.○○.○...
+> - Installed hashicorp/aws v6.○○.○ (signed by HashiCorp)
+> Terraform has created a lock file .terraform.lock.hcl …
+> Terraform has been successfully initialized!
+> ```
+> `.terraform/`(내려받은 플러그인)과 `.terraform.lock.hcl`(고른 버전의 지문)이 생겼습니다. 잠금 파일은 Git에 **넣습니다** — 2주차의 `requirements.txt`처럼 모두가 같은 버전을 쓰게.
 
 ```bash
-aws configure list
-aws sts get-caller-identity
+terraform plan
 ```
 
-secret access key는 한 번 입력한 뒤 다시 화면에 노출하지 않는다. `~/.aws/credentials`, `~/.aws/config`, 터미널 캡처, 배움일기에는 secret 값을 남기지 않는다.
+> **🟢 확인: 확인**
+>
+> ```text
+> Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+>   + create
+>
+> Terraform will perform the following actions:
+>
+>   # aws_s3_bucket.first will be created
+>   + resource "aws_s3_bucket" "first" {
+>       + arn                         = (known after apply)
+>       + bucket                      = "devmart-tf-first-niceguy61"
+>       + id                          = (known after apply)
+>       + region                      = "ap-northeast-2"
+>       + tags                        = {
+>           + "ManagedBy" = "terraform"
+>           + "Project"   = "devmart"
+>         }
+>       …
+>     }
+>
+> Plan: 1 to add, 0 to change, 0 to destroy.
+> ```
+> `(known after apply)` — ARN · ID처럼 **만들어 봐야 아는 값**입니다.
 
-## ECR Docker login
-ECR에 `docker push`를 하기 전에는 Docker client가 해당 AWS 계정의 ECR registry에 로그인해야 한다. 수업 명령은 WSL, macOS, Linux의 Bash 기준으로 진행한다. `aws ecr get-login-password`로 짧은 수명의 token을 받아 `docker login`에 전달한다.
+> **🛠️ 막혔다면: No valid credential sources found**
+>
+> 프로바이더가 `aws login` 자격 증명을 읽지 못하는 경우입니다. ① `aws sts get-caller-identity`로 로그인이 살아 있는지 보고, ② 그래도 안 되면 1일차 4교시의 방법으로 임시 자격 증명을 환경 변수에 넣습니다: `eval "$(aws configure export-credentials --format env)"`. 이 셸에서만, 한 시간쯤 유효합니다.
 
 ```bash
-AWS_REGION=ap-northeast-2
-AWS_ACCOUNT_ID=123456789012
-
-aws ecr get-login-password --region "$AWS_REGION" \
-  | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+terraform apply          # plan을 다시 보여 주고 묻는다 → yes
+terraform state list
+terraform state show aws_s3_bucket.first | head -12
+aws s3 ls | grep devmart-tf-first
+terraform apply          # 한 번 더
 ```
 
-성공하면 Docker가 `Login Succeeded`를 출력한다. 이 출력 자체는 evidence로 남길 수 있지만, access key, secret access key, token 값은 캡처하거나 README에 붙이지 않는다.
+> **🟢 확인: 확인**
+>
+> ```text
+> aws_s3_bucket.first: Creating...
+> aws_s3_bucket.first: Creation complete after 2s [id=devmart-tf-first-niceguy61]
+> Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+> aws_s3_bucket.first
+> # aws_s3_bucket.first:
+> resource "aws_s3_bucket" "first" {
+>     arn    = "arn:aws:s3:::devmart-tf-first-niceguy61"
+>     bucket = "devmart-tf-first-niceguy61"
+>     …
+> 2026-12-01 10:12:41 devmart-tf-first-niceguy61
+> …
+> No changes. Your infrastructure matches the configuration.
+> ```
+> 두 번째 apply는 **아무것도 하지 않습니다** — 멱등입니다(1교시 표).
 
-로그인 뒤에는 local image를 ECR repository URI로 tag하고 push한다.
+## 실습 3 · 바꾸고 지우기
+
+`main.tf`의 tags에 `Day = "w5d3"`를 한 줄 더하고 plan합니다.
 
 ```bash
-docker tag paperclip-w5d3-app:v1 "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/paperclip-w5d3-app:v1"
-docker push "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/paperclip-w5d3-app:v1"
+sed -i 's/ManagedBy = "terraform"/ManagedBy = "terraform", Day = "w5d3"/' main.tf
+terraform plan | grep -E "^\s+[~+-]|Plan:"
 ```
 
-## Tag 전략
-`latest`는 편하지만 운영 evidence에는 약하다. 오늘은 최소한 `v1`, `v2`처럼 변경 전후를 구분할 수 있는 tag를 남긴다.
+> **🟢 확인: 확인**
+>
+> ```text
+>   ~ update in-place
+>   ~ resource "aws_s3_bucket" "first" {
+>       ~ tags                        = {
+>           + "Day"       = "w5d3"
+>   Plan: 0 to add, 1 to change, 0 to destroy.
+> ```
 
-| tag | 운영 의미 |
-|---|---|
-| `latest` | 편하지만 정확한 version 추적이 약함 |
-| `v1`, `v2` | 수업 변경 비교에 적합 |
-| commit SHA | CI/CD와 연결하기 좋음 |
-| digest | 가장 엄격한 image 식별 |
+이번에는 **이름**을 바꿔 봅니다(apply하지 않는다).
 
-## Credential 주의
-ECR push command에는 인증 token을 얻는 흐름이 포함될 수 있다. 출력, screenshot, README, 배움일기에 credential 값을 그대로 남기지 않는다.
+```bash
+sed -i 's/devmart-tf-first-/devmart-tf-1st-/' main.tf
+terraform plan | grep -E "must be replaced|forces replacement|Plan:"
+sed -i 's/devmart-tf-1st-/devmart-tf-first-/' main.tf
+```
 
+> **🟢 확인: 확인**
+>
+> ```text
+> -/+ resource "aws_s3_bucket" "first" {
+>       ~ bucket = "devmart-tf-first-niceguy61" -> "devmart-tf-1st-niceguy61" # forces replacement
+> Plan: 1 to add, 0 to change, 1 to destroy.
+> ```
 
-## push command를 외우지 않는 법
-ECR push command는 길어 보이지만 구조는 단순하다. Docker client가 ECR에 인증하고, local image를 ECR repository URI로 tag한 뒤, registry로 push한다. 어디서 실패했는지 보려면 이 세 단계를 나누어야 한다.
-
-| 단계 | 실패 증상 | 첫 확인 |
+| 기호 | 뜻 | 위험도 |
 |---|---|---|
-| auth | login denied, token error | AWS CLI auth, IAM permission, Region |
-| build | Dockerfile error | local Docker build log |
-| tag | repository not found 또는 wrong URI | ECR URI/account/Region |
-| push | denied 또는 network error | permission, repository, Docker daemon |
+| `+` | 새로 만든다 | 낮음 |
+| `~` | 그 자리에서 고친다 | 중간 |
+| `-` | 지운다 | 높음 |
+| `-/+` | **지우고 다시 만든다** (바꿀 수 없는 속성이 바뀜) | **높음** — 데이터가 사라질 수 있다 |
 
-## image tag 운영 기준
-수업에서는 `v1`, `v2`만으로도 충분하다. 중요한 것은 변경 전후를 구분하고 rollback 기준을 남기는 것이다. `latest`는 빠르지만 어떤 image가 실행 중인지 나중에 증명하기 어렵다. 가능하면 `v1`, `v2`, 날짜, commit SHA 같은 추적 가능한 tag를 사용한다.
+> [!WARNING]
+> **plan에서 -/+ 를 보면 멈춘다**
+>
+> S3 버킷 이름 · DB 엔진 · EKS 클러스터 이름처럼 **바꿀 수 없는 속성**을 고치면 Terraform은 지우고 새로 만듭니다. 버킷 안의 파일 · DB의 데이터는 함께 사라집니다. plan 리뷰에서 가장 먼저 찾을 것이 `-/+`와 `destroy` 개수입니다 — 2일차 7교시의 의존 순서와 함께, 사람이 plan을 읽는 이유입니다.
 
-## ECR 비용/보존 주의
-ECR image도 저장 비용이 생길 수 있다. 실습 repository를 계속 유지한다면 retention 정책이나 삭제 예정일을 남긴다. image scan, lifecycle policy는 오늘 깊게 다루지 않지만 운영에서는 오래된 image 정리에 필요하다.
-
-## 캡처 가이드
-Repository URI와 Images tab의 tag 목록을 캡처한다. push command 화면을 캡처할 때 credential/token이 포함되지 않게 한다.
-
-## 구조로 보기
-```mermaid
-flowchart LR
-  Config["AWS CLI default profile"] --> Auth["ECR docker login"]
-  Local["Local image"] --> Tag["Tag with ECR URI"]
-  Auth --> Tag
-  Tag --> Push["docker push"]
-  Push --> Repo["ECR repository"]
-  Repo --> Image["Image tag / digest"]
-  Image --> Service["ECS or App Runner pull"]
+```bash
+terraform apply -auto-approve      # 태그만 바뀐다
+terraform destroy                  # 묻는다 → yes
+terraform state list               # 아무것도 없다
 ```
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
+## Git에 넣는 것 · 넣지 않는 것
+
+```bash
+cat ~/devops-lab/aws/w5d3/terraform/.gitignore
+```
+
+| 넣는다 | 넣지 않는다 |
 |---|---|
-| 이 항목에서 가장 먼저 결정할 것은 무엇인가 | build, tag, auth, push를 단계별로 읽는다. |
-| 실패했을 때 어느 경계부터 볼 것인가 | repository URI와 image tag가 배포 추적의 기준이다. |
-| 수업 뒤 혼자 재현할 때 필요한 최소 정보는 무엇인가 | token과 credential은 evidence에 남기지 않는다. |
+| `*.tf` — 코드 | `.terraform/` — 내려받은 플러그인 (수백 MB) |
+| `.terraform.lock.hcl` — 버전 고정 | `*.tfstate` — **장부, 비밀 값이 평문으로 들어갈 수 있다** (5교시) |
+| `*.tfvars.example` — 변수 예시 | `*.tfvars` — 실제 값 (개인 · 비밀) |
 
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| `default` profile이 다른 계정을 가리킨다 | `aws sts get-caller-identity`로 Account와 ARN을 먼저 확인한다 |
-| `docker push` 전에 ECR login을 하지 않았다 | `aws ecr get-login-password`와 `docker login`을 같은 Region/account로 실행했는지 확인한다 |
-| latest tag만 쓰고 이력을 잃는다 | 실습 tag 규칙을 정해 tag 목록을 확인한다 |
+> **❓ 오해 — state 파일은 Git으로 공유하면 된다**
+>
+> state를 Git에 넣으면 ① 비밀 값(DB 비밀번호 등)이 이력에 영원히 남고, ② 두 사람이 동시에 apply하면 서로의 state를 **덮어써** 장부가 깨집니다. state는 **잠금이 되는 원격 저장소**에 둡니다 — 5교시.
 
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- repository URI, image tag, push 단계 중 최소 두 가지는 배움일기에 남긴다.
+> **🎓 학술 노트 — 의미 있는 버전**
+>
+> `~> 6.0`은 **유의적 버전**(SemVer 2.0.0, Preston-Werner 2013)의 약속 — 주 버전(6)이 같으면 호환된다 — 에 기대는 표현입니다. 하지만 Raemaekers 외의 *Semantic versioning and impact of breaking changes in the Maven repository*(JSS, 2017)는 부 버전 업데이트의 상당수가 실제로는 호환성을 깼다는 것을 보였습니다. 그래서 범위(`~>`)와 함께 **잠금 파일**로 실제 버전을 고정하고, 올리는 것은 PR로 합니다 — 2주차의 이미지 태그 고정과 같은 원리입니다.
 
-## Evidence Note
-```markdown
-# W5D3S2 ECR
-- Repository name:
-- Repository URI:
-- Region:
-- AWS profile: default
-- AWS identity 확인:
-- Image tag:
-- Push 여부: actual / simulated
-- 인증 방식:
-- credential 노출 여부 확인:
-```
+> **📈 트렌드 2026 — 프로바이더 v6**
+>
+> AWS 프로바이더 v6(2025년 6월)는 프로바이더 하나로 **여러 리전**의 자원을 다루는 `region` 인자를 자원마다 쓸 수 있게 했고(plan 출력의 `region` 칸), 오래된 인자들을 정리했습니다. 인터넷의 예제 코드 상당수가 v4 · v5 문법이라, 복사해 쓸 때 `terraform validate`와 plan으로 먼저 확인하는 습관이 필요합니다.
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: ECR repository를 만들고 URI와 image tag 구조를 기록한다. CLI가 가능하면 push까지 진행한다.
-- 공식 문서 키워드: `ECR private repository`, `docker push`, `authenticate Docker client`, `image tag`.
-- 스스로 확인할 화면: ECR repositories, Images tab, push commands.
-- 흔한 실패 3개: Region이 달라 repository를 못 찾음, Docker login 인증이 안 됨, image tag를 ECR URI로 다시 tag하지 않음.
-- 다음 준비 상태: ECS/App Runner가 실행할 image URI를 말할 수 있어야 한다.
+> **✅ 확인 문제**
+>
+> 1. `init`이 만드는 두 가지와 각각 Git에 넣는지는?
+> 2. 두 번째 apply가 아무것도 하지 않은 이유는?
+> 3. plan의 `-/+`는 무슨 뜻이고 왜 위험한가요?
+> 4. state를 Git에 넣으면 안 되는 이유 둘은?
+>
+> <details><summary>정답</summary>
+>
+> 1. `.terraform/`(플러그인, 넣지 않는다)와 `.terraform.lock.hcl`(버전 고정, 넣는다)
+> 2. 코드 · state · 실제가 같아서 할 일이 없기 때문 (멱등)
+> 3. 바꿀 수 없는 속성이 바뀌어 지우고 다시 만든다는 뜻 — 안의 데이터가 사라질 수 있다
+> 4. 비밀 값이 평문으로 이력에 남는다, 동시에 apply하면 서로 덮어써 장부가 깨진다
+>
+> </details>
 
-## 한 줄 요약
-```text
-ECR은 container image의 저장소이고, 배포 성공은 ECR push 이후 실행 서비스 health까지 확인해야 한다.
-```
+## 참고 문헌
+
+- HashiCorp. *Install Terraform*, *terraform init · plan · apply · destroy*. developer.hashicorp.com/terraform
+- HashiCorp. *AWS Provider v6 upgrade guide*. registry.terraform.io/providers/hashicorp/aws
+- Preston-Werner, T. (2013). *Semantic Versioning 2.0.0*. semver.org
+
+---
+
+⬅️ 이전: [1교시 · 2일차 요약 + 코드로 인프라](lesson-01.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · HCL — 변수 · 참조 · for_each](lesson-03.md) ➡️

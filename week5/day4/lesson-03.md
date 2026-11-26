@@ -1,118 +1,146 @@
-# 3교시: S3 versioning/lifecycle/storage class
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
 
-![S3 versioning lifecycle cost flow](./assets/lesson-03-s3-versioning-lifecycle.png)
+# 3교시 · 기다리는 동안 — 신원 두 방향 · kubeconfig
 
-이 visual은 같은 object key에도 여러 version과 lifecycle 상태가 생길 수 있음을 보여준다. 삭제와 비용 판단은 current object만 보면 부족하다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 사람이 EKS에 들어가는 길 — **IAM → Access Entry → Kubernetes 권한** — 을 이해합니다.
+> - Pod가 AWS에 들어가는 길 — **ServiceAccount → Pod Identity → IAM 역할** — 을 이해합니다.
+> - apply가 끝나면 kubeconfig를 만들고 노드 · 애드온을 확인합니다.
 
-## 수업 목표
-- S3 Versioning이 삭제와 복구 의미를 어떻게 바꾸는지 설명한다.
-- Lifecycle rule이 storage class 전환과 만료를 자동화하는 이유를 이해한다.
-- 오래된 object와 version이 비용을 만들 수 있음을 확인한다.
+## 두 방향의 신원
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
+![사람은 IAM 사용자 → Access Entry → 클러스터 관리자 정책, Pod는 ServiceAccount → Pod Identity → IAM 역할](../../v3/assets/week5/day4/w5d4-identity.png)
+
+| 방향 | 누가 → 어디로 | 장치 | 3 · 4 · 5주차에서 |
 |---|---|---|---|
-| Versioning | 같은 key의 여러 version을 보존한다 | 삭제했다고 생각한 데이터가 남거나 복구 기준을 모른다 | Versions toggle |
-| Delete marker | versioning 상태의 삭제는 marker를 만들 수 있다 | 삭제 상태를 잘못 해석한다 | object versions |
-| Lifecycle | 전환과 만료를 자동화한다 | 오래된 데이터가 계속 비용을 만든다 | Lifecycle rules |
-| Storage class | 접근 빈도와 비용 특성이 다르다 | 자주 읽는 데이터를 archive로 보내 장애를 만든다 | object storage class |
+| **IAM → Kubernetes** | 나(devops-admin) → apiserver | **Access Entry** + 접근 정책 | 4주차 5일차 RBAC의 '누가'가 IAM 신원이 된다 |
+| **Kubernetes → IAM** | Pod(ServiceAccount) → AWS API | **Pod Identity** 연결 | 2일차 EC2 인스턴스 프로파일의 Pod판 |
 
-## 핵심 개념
-S3 비용은 bucket이 있다는 사실만으로 끝나지 않는다. object 크기, 요청 수, storage class, version 보존, lifecycle rule에 따라 달라진다. Versioning은 실수로 덮어쓴 파일을 복구할 수 있게 해주지만, 이전 version이 계속 남아 비용을 만들 수 있다. Lifecycle rule은 오래된 데이터를 더 저렴한 storage class로 전환하거나 만료시키는 자동화 장치지만, 업무상 다시 읽어야 하는 데이터를 너무 빨리 archive로 보내면 복구 시간과 비용이 생긴다.
+### 사람 → 클러스터
 
-## AWS 문서 근거로 짚기
-AWS 문서는 object마다 storage class가 연결되며, 기본 storage class는 S3 Standard라고 설명한다. storage class는 "싸 보이는 것"을 고르는 항목이 아니라 사용 사례, 성능 요구, 접근 빈도, 가용성 요구를 기준으로 고르는 운영 결정이다.
+`kubectl`은 kubeconfig에 적힌 대로 `aws eks get-token`을 실행해 **IAM 신원으로 서명한 토큰**을 받고, apiserver는 그 토큰을 STS로 확인해 "이 요청은 `user/devops-admin`"이라고 압니다(1단계 인증). 그다음 **Access Entry**에서 그 IAM 신원에 붙은 **접근 정책**(예: `AmazonEKSClusterAdminPolicy`) 또는 Kubernetes 그룹을 찾아 RBAC로 판단합니다(2단계 인가). 4주차 5일차의 세 관문이 그대로입니다 — 인증만 IAM이 맡습니다.
 
-강의에서는 storage class를 네 가지 질문으로 나누어 읽는다. 자주 읽고 지연 시간이 중요하면 S3 Standard 계열을 우선 검토한다. 접근 패턴을 아직 모르면 S3 Intelligent-Tiering을 비용 최적화 후보로 본다. 가끔 읽는 데이터는 Standard-IA 또는 One Zone-IA처럼 infrequent access 계열을 검토하되 가용성 조건을 함께 본다. 장기 보관과 아카이브 목적이면 S3 Glacier 계열을 검토하되 복구 시간과 요청 비용을 evidence에 남긴다.
+`enable_cluster_creator_admin_permissions = true`는 "apply한 사람에게 관리자 Access Entry를 만들어라"입니다. 동료를 추가하려면 `access_entries`에 그 사람의 IAM ARN과 정책(읽기 전용이면 `AmazonEKSViewPolicy`)을 더합니다 — 코드 리뷰를 거쳐.
 
-AWS S3 개요 문서는 S3 Express One Zone처럼 낮은 지연 시간이 필요한 특수 storage class도 소개한다. 다만 이 수업에서는 먼저 Standard, Intelligent-Tiering, IA, Glacier 계열의 판단 기준을 익히고, Express One Zone은 latency-sensitive workload를 만났을 때 공식 문서로 다시 확인할 확장 주제로 둔다.
+> [!WARNING]
+> **예전 방식: aws-auth ConfigMap**
+>
+> 2023년까지는 `kube-system/aws-auth` ConfigMap에 IAM ↔ Kubernetes 매핑을 적었습니다. 한 줄 오타로 **모두가 잠기는** 사고가 잦아서, AWS는 API로 관리하는 Access Entry를 만들었고 지금은 이것이 기본입니다. 인터넷의 오래된 글에서 aws-auth를 보면 지난 방식입니다.
 
-## 구조로 보기
-```mermaid
-flowchart LR
-  Obj1["report.csv v1"] --> Obj2["report.csv v2"]
-  Obj2 --> Marker["delete marker"]
-  Obj1 --> Life["Lifecycle rule"]
-  Life --> IA["Infrequent Access"]
-  IA --> Archive["Archive"]
-  Archive --> Expire["Expiration"]
+### Pod → AWS
+
+4교시에 설치할 Load Balancer Controller는 **AWS API로 NLB를 만들어야** 합니다. 그 권한은:
+
+```hcl
+module "lbc_pod_identity" {
+  source = "terraform-aws-modules/eks-pod-identity/aws"
+  name   = "devmart-lbc"
+  attach_aws_lb_controller_policy = true          # LBC에 필요한 IAM 정책 묶음
+  associations = {
+    lbc = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "kube-system"
+      service_account = "aws-load-balancer-controller"   # 이 SA의 Pod만
+    }
+  }
+}
 ```
 
-Mermaid 흐름은 Console 화면을 외우기 위한 그림이 아니다. 어떤 resource가 어느 경계에서 접근, 비용, 복구, 감사 책임을 갖는지 확인하기 위한 지도다. 그림의 각 node는 evidence note에 남길 수 있는 실제 Console 화면이나 설정값으로 연결되어야 한다.
+**Pod Identity 연결**(association)이 "devmart 클러스터의 `kube-system/aws-load-balancer-controller` SA로 뜬 Pod는 `devmart-lbc` 역할을 맡는다"를 정합니다. 노드마다 도는 Pod Identity Agent가 그 Pod에 역할의 **임시 자격 증명**을 줍니다. 같은 노드의 **다른 Pod는 이 권한이 없습니다** — 2일차처럼 노드(EC2)에 역할을 붙였다면 노드의 모든 Pod가 NLB를 만들 수 있었을 것입니다.
 
-## 공식 문서 확인 지점
-| 확인할 문서 키워드 | 읽을 때 볼 질문 |
-|---|---|
-| AWS User Guide | 이 기능이 해결하려는 운영 문제는 무엇인가 |
-| Permissions 또는 Security | 누가 접근할 수 있고 어떤 기본 차단이 있는가 |
-| Pricing 또는 Cost 관련 항목 | 켜져 있는 동안, 저장된 동안, 요청이 발생할 때 비용이 생기는가 |
-| Delete, restore, retention | 삭제 후 무엇이 남고 무엇을 복구할 수 있는가 |
+> [!IMPORTANT]
+> **왜 노드 역할에 권한을 주지 않나**
+>
+> 노드 역할은 **그 노드의 모든 Pod**가 함께 씁니다(메타데이터 주소로). web(nginx)이 뚫리면 NLB를 지우고 EBS를 떼는 권한까지 함께 뚫립니다. Pod Identity는 권한을 **ServiceAccount 단위**로 좁힙니다 — 4주차 5일차 3교시에 "서비스마다 SA"를 만든 이유가 클라우드 권한에서 다시 나옵니다.
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| versioning을 켤 것인가 | 복구가 필요한 데이터이면 켜되, lifecycle과 비용 기준도 함께 정한다 |
-| 언제 전환할 것인가 | 접근 빈도와 복구 시간 요구사항을 기준으로 storage class를 선택한다 |
-| 언제 만료할 것인가 | 교육 실습 object는 짧은 만료 기준을 둘 수 있다 |
+## 실습 4 · kubeconfig와 첫 확인
 
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| versioning을 켜면 비용 영향이 없다고 생각한다 | object versions와 lifecycle rule을 함께 확인한다 |
+apply가 끝났으면:
 
-## 화면 캡처 가이드
-- Region, resource name, 상태값, tag, policy 상태처럼 재현 가능한 값이 보이게 캡처한다.
-- account email, secret value, access key, token, password는 캡처하지 않는다.
-- 실패 화면은 error message만 자르지 말고 어떤 service와 설정 화면에서 나온 결과인지 알 수 있게 남긴다.
-- 삭제 또는 정리 evidence는 삭제 버튼 화면보다 삭제 후 검색 결과가 더 중요하다.
-
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- versioning 상태, lifecycle rule 조건, object version 또는 storage class 중 최소 두 가지는 배움일기에 남긴다.
-
-## 실습/시뮬레이션 절차
-1. S3 bucket의 Properties에서 Versioning 상태를 확인한다.
-2. Management tab에서 Lifecycle rule 생성 화면을 열고 scope, transition, expiration 항목을 읽는다.
-3. object version view에서 current version과 previous version이 어떻게 보이는지 확인한다.
-4. storage class 전환이 비용을 줄일 수 있는 조건과 복구 지연을 만들 수 있는 조건을 구분한다.
-5. 실습 bucket이라면 lifecycle expiration을 짧게 둘 수 있는지 비용 기준으로 판단한다.
-
-## 복구와 정리 기준
-| 설정 | 도움이 되는 상황 | 주의할 점 |
-|---|---|---|
-| Versioning enabled | 실수로 덮어쓴 object 복구 | 이전 version이 비용을 만든다 |
-| Lifecycle transition | 오래된 object 비용 절감 | archive 복구 시간이 필요할 수 있다 |
-| Expiration | 실습/임시 파일 자동 정리 | 필요한 데이터가 사라질 수 있다 |
-| Delete marker | 삭제 상태 표현 | 실제 version은 남아 있을 수 있다 |
-
-## 공식 문서로 검증할 질문
-- object의 기본 storage class는 무엇이며 언제 바꾸는가?
-- 접근 패턴을 모를 때 S3 Intelligent-Tiering을 검토할 수 있는가?
-- Versioning을 suspend하면 기존 version은 어떻게 되는가?
-- Lifecycle transition과 expiration은 어떤 단위로 적용되는가?
-- archive storage class에서 다시 읽을 때 어떤 지연과 비용이 생길 수 있는가?
-
-## Evidence Note
-```markdown
-# W5D4S3 S3 version lifecycle
-- Region:
-- Resource name:
-- 확인한 설정:
-- 실패 또는 주의할 증상:
-- 비용/보안 영향:
-- cleanup 또는 유지 사유:
+```bash
+cd ~/devmart-infra/terraform/eks
+terraform output -raw kubeconfig_command | bash
+kubectl config current-context
+kubectl get nodes -o wide
+kubectl get pods -A
+aws eks list-access-entries --cluster-name devmart --output text
+aws eks list-pod-identity-associations --cluster-name devmart --query 'associations[].[namespace,serviceAccount]' --output text
 ```
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: test object를 기준으로 versioning 상태와 lifecycle rule 화면을 읽고 비용 영향을 적는다.
-- 공식 문서 키워드: `S3 Versioning`, `delete marker`, `lifecycle transition`, `expiration`, `storage class`
-- 스스로 확인할 화면: Bucket Properties, Management tab, object versions view
-- 흔한 실패 3개: versioning을 켜놓고 오래된 version을 방치함, archive 전환 후 즉시 읽을 수 있다고 생각함, lifecycle rule scope를 전체 bucket으로 잘못 설정함
-- 다음 준비 상태: S3 비용과 복구 기준을 versioning/lifecycle/storage class로 설명할 수 있어야 한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> Added new context arn:aws:eks:ap-northeast-2:123456789012:cluster/devmart to /home/me/.kube/config
+> arn:aws:eks:ap-northeast-2:123456789012:cluster/devmart
+> NAME                                              STATUS   ROLES    AGE   VERSION               INTERNAL-IP    EXTERNAL-IP   OS-IMAGE
+> ip-10-0-131-52.ap-northeast-2.compute.internal    Ready    <none>   4m    v1.36.○-eks-○○○○○○○   10.0.131.52    <none>        Amazon Linux 2023…
+> ip-10-0-150-17.ap-northeast-2.compute.internal    Ready    <none>   4m    v1.36.○-eks-○○○○○○○   10.0.150.17    <none>        Amazon Linux 2023…
+> NAMESPACE     NAME                                  READY   STATUS    RESTARTS   AGE
+> kube-system   aws-node-4qk2m                        2/2     Running   0          4m
+> kube-system   coredns-…                             1/1     Running   0          6m
+> kube-system   ebs-csi-controller-…                  6/6     Running   0          3m
+> kube-system   ebs-csi-node-…                        3/3     Running   0          3m
+> kube-system   eks-pod-identity-agent-…              1/1     Running   0          4m
+> kube-system   kube-proxy-…                          1/1     Running   0          4m
+> kube-system   metrics-server-…                      1/1     Running   0          3m
+> …
+> arn:aws:iam::123456789012:user/devops-admin
+> arn:aws:iam::123456789012:role/devmart-ng-…   (노드 그룹)
+> kube-system  aws-load-balancer-controller
+> kube-system  ebs-csi-controller-sa
+> ```
+> - 노드 **둘**뿐입니다 — 컨트롤 플레인은 목록에 없습니다(1교시).
+> - 노드 IP가 **10.0.128.0/20 · 10.0.144.0/20** — private 서브넷, AZ 둘. `EXTERNAL-IP`가 없습니다(인터넷에서 직접 닿지 않는다).
+> - `aws-node`가 VPC CNI입니다.
+> - Access Entry에 **나**와 **노드 그룹 역할**(노드가 클러스터에 붙는 신원)이 있습니다.
 
-## 한 줄 요약
-```text
-S3 versioning은 복구 가능성을 높이지만, lifecycle 없이 방치하면 오래된 version도 비용이 된다.
+```bash
+kubectl config get-contexts
 ```
+
+kind 컨텍스트(`kind-devmart`)와 EKS 컨텍스트가 **둘 다** 있습니다. `kubectl`이 어느 클러스터를 향하는지 항상 확인합니다 — 내일 둘을 오갑니다.
+
+> [!TIP]
+> **컨텍스트 이름을 짧게**
+>
+> `kubectl config rename-context arn:aws:eks:ap-northeast-2:123456789012:cluster/devmart eks-devmart` 하면 `kubectl --context eks-devmart`처럼 쓸 수 있습니다. 프롬프트에 현재 컨텍스트를 띄우는 도구(kube-ps1 등)도 실수를 줄입니다.
+
+> **❓ 오해 — 클러스터를 만든 사람이면 언제나 들어갈 수 있다**
+>
+> 예전 EKS는 '만든 IAM 신원'에게 숨겨진 관리자 권한을 줬고, 그 사람이 퇴사하면 아무도 못 들어가는 사고가 있었습니다. 지금은 Access Entry로 **보이게** 관리하며, 오늘처럼 Terraform 코드에 적어 두면 누가 관리자인지 **리뷰 가능한 기록**이 됩니다.
+
+> **🎓 학술 노트 — 워크로드 신원의 범위**
+>
+> 권한을 "기계(노드) 단위"가 아니라 "**워크로드**(Pod · 서비스) 단위"로 주는 것은 4주차 4일차의 SPIFFE와 같은 생각입니다. NIST SP 800-207(제로 트러스트)은 접근 결정의 주체를 "네트워크 위치"가 아니라 "**자원을 요청하는 주체**"로 두라고 합니다. Pod Identity는 클라우드 API 접근에서 그 주체를 Pod로 좁힌 구현입니다.
+
+> **📈 트렌드 2026 — IRSA에서 Pod Identity로**
+>
+> EKS의 Pod → IAM 연결은 2019년의 **IRSA**(OIDC 기반, 역할의 신뢰 정책에 클러스터 OIDC를 적는다)에서 2023년의 **Pod Identity**(클러스터 밖의 설정 없이 EKS API로 연결)로 옮겨 가고 있습니다. terraform-aws-modules v21도 Karpenter 등에서 IRSA 대신 Pod Identity를 기본으로 바꿨습니다. IRSA는 여전히 동작하고 EKS 밖(자체 클러스터)에서도 쓸 수 있다는 장점이 있습니다.
+
+> **✅ 확인 문제**
+>
+> 1. kubectl이 EKS에 인증하는 과정을 단계로?
+> 2. Access Entry와 aws-auth ConfigMap의 차이는?
+> 3. LBC 권한을 노드 역할이 아니라 Pod Identity로 준 이유는?
+> 4. `kubectl get nodes`에 컨트롤 플레인이 없는 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. aws eks get-token이 IAM 신원으로 서명한 토큰 → apiserver가 STS로 확인(인증) → Access Entry의 정책 · 그룹으로 RBAC 판단(인가)
+> 2. Access Entry는 EKS API로 관리하는 항목(코드 · 리뷰 가능, 오타로 잠기지 않음), aws-auth는 ConfigMap 한 줄 오타로 모두가 잠길 수 있던 예전 방식
+> 3. 노드 역할은 그 노드의 모든 Pod가 함께 써서, 다른 Pod가 뚫리면 LB 권한까지 뚫리기 때문 — SA 단위로 좁힌다
+> 4. AWS가 운영하는 엔드포인트라 내 계정의 노드가 아니기 때문
+>
+> </details>
+
+## 참고 문헌
+
+- AWS Docs. *Grant IAM users access to Kubernetes with EKS access entries*. docs.aws.amazon.com/eks
+- AWS Docs. *Learn how EKS Pod Identity grants pods access to AWS services*. docs.aws.amazon.com/eks
+- terraform-aws-modules. *eks-pod-identity*. registry.terraform.io/modules/terraform-aws-modules/eks-pod-identity/aws
+
+---
+
+⬅️ 이전: [2교시 · 코드 읽기와 apply](lesson-02.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · 플랫폼 올리기](lesson-04.md) ➡️

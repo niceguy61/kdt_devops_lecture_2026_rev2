@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+
 # 1교시 · 이미지와 컨테이너
 
 > [!NOTE]
@@ -19,7 +21,7 @@ bash tools/check-env.sh
 
 ## 이미지와 컨테이너
 
-![이미지와 컨테이너 — 하나의 이미지로 여러 컨테이너를 찍어 낸다](../../assets/week2/day2/w2d2-image-container.png)
+![이미지와 컨테이너 — 하나의 이미지로 여러 컨테이너를 찍어 낸다](../../v3/assets/week2/day2/w2d2-image-container.png)
 
 | | 이미지 (Image) | 컨테이너 (Container) |
 |---|---|---|
@@ -170,3 +172,7 @@ docker ps -a
 - Fowler, M. (2012). *SnowflakeServer*. martinfowler.com
 - Morris, K. (2020). *Infrastructure as Code* (2nd ed.). O'Reilly.
 - Docker. *Docker Official Images*. docs.docker.com/docker-hub/image-library/trusted-content
+
+---
+
+⬅️ 이전: [2주차 2일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 컨테이너 안에 들어가 보기](lesson-02.md) ➡️

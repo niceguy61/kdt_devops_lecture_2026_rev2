@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Week 1 Sample Ops App</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <p class="eyebrow">Week 1 Sample App</p>
+        <h1>로컬 서버 실행과 오류 관찰 실습</h1>
+        <p>이 샘플앱은 개발 실습이 아니라 실행 조건, 성공 확인, 실패 관찰, runbook 작성을 연습하기 위한 공통 자료입니다.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="status-title">
+        <h2 id="status-title">서비스 상태</h2>
+        <div id="status" class="status pending">데이터를 불러오는 중입니다.</div>
+        <ul id="service-list" class="service-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>확인할 항목</h2>
+        <ol>
+          <li>브라우저에서 이 화면이 열리는가</li>
+          <li><code>curl -I http://localhost:8000</code>가 200 상태 코드를 보여주는가</li>
+          <li>서버 터미널에 <code>GET /</code> 로그가 남는가</li>
+          <li>브라우저 console에 오류가 없는가</li>
+        </ol>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

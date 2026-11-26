@@ -1,79 +1,50 @@
-# 1주차 5일차: Docker를 기다리게 만드는 로컬 실행 환경 시나리오
+[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [5일차](README.md)
 
-## Day Goal
-Day5는 Docker 명령어를 먼저 가르치는 날이 아니다. 학생들이 이미 겪었거나 곧 겪게 될 로컬 실행 환경의 불편함을 구체적인 시나리오로 정리하고, Week2 Docker 수업이 왜 필요한지 자연스럽게 연결하는 날이다.
+# 1주차 5일차 — DevOps 문화와 협업
 
-핵심 질문은 다음과 같다.
+📕 1주차 이북 PDF: [보기](../../downloads/pdf/week1.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week1.pdf) &nbsp;|&nbsp; 📊 5일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week1-day5.pptx)
 
-```text
-코드는 있는데 실행 환경이 맞지 않으면 왜 앱이 켜지지 않을까?
-그리고 그 환경을 매번 손으로 맞추는 방식은 어디서부터 힘들어질까?
-```
+## 오늘의 목표
 
-## 운영 방향
-- 1주차 학생들에게 과한 학생 주도 산출물을 요구하지 않는다.
-- Docker의 중요성을 추상적으로 설득하지 않고, 설치/버전/port/설정/삭제/재현 문제를 먼저 체감시킨다.
-- 각 교시는 하나의 생활형 개발 시나리오로 시작한다.
-- Day5 1교시 분량을 Day4 마지막 시간에 선행 진행했다면, 실제 Day5는 2교시를 `2-1`, `2-2`로 나누어 운영한다.
-- 각 교시는 시나리오별 인포그래픽을 사용한다.
-- 8교시는 Docker 연결과 비공식 미니 공유를 함께 운영한다.
-- Week2에서 실제 Docker 명령어를 배울 때 오늘의 시나리오를 다시 호출한다.
+1주차의 마지막 날입니다. 지금까지는 기술을 봤습니다. 클라우드, 컴퓨터와 운영체제, 네트워크, 애플리케이션 구조. 오늘은 그 기술을 다루는 **사람과 팀**을 봅니다. DevOps는 도구 이름이 아니라 **일하는 방식**에서 시작했고, 현업에서 신입 DevOps 엔지니어가 가장 먼저 부딪히는 벽도 기술보다는 **소통**인 경우가 많습니다. 개발자, 기획자, QA, 보안 담당자와 같은 언어로 이야기하는 법을 배웁니다.
 
-## Lesson Index
-| 교시 | 주제 | 핵심 질문 | 시각 자료 |
-|---|---|---|---|
-| 선행 | 애플리케이션 실행 환경은 코드만이 아니다 | 앱을 돌리려면 코드 외에 무엇이 필요한가? | `lesson-01-runtime-environment.png` |
-| 2-1교시 | DB 직접 설치해 보기 | DB를 설치하면 OS에 무엇이 남는가? | `lesson-02-1-db-local-install.png` |
-| 2-2교시 | DB 버전 충돌 관찰하기 | 같은 종류의 프로그램을 버전 다르게 설치하면 무엇이 꼬이는가? | `lesson-02-2-db-version-conflict.png` |
-| 3교시 | 포트 번호와 localhost 충돌 | 모두가 3306, 8080을 쓰려 하면 어떻게 되는가? | `lesson-03-port-conflict.png` |
-| 4교시 | 환경변수와 설정 파일 지옥 | 코드는 같은데 설정이 다르면 왜 결과가 달라지는가? | `lesson-04-env-config-drift.png` |
-| 5교시 | 삭제해도 남는 것들 | 프로그램을 지워도 왜 흔적과 데이터가 남는가? | `lesson-05-uninstall-leftovers.png` |
-| 6교시 | 빠르게 같은 환경을 만들고 싶다면 | 새 컴퓨터에서도 같은 실행 환경을 만들려면 무엇을 기록해야 하는가? | `lesson-06-reproducible-environment.png` |
-| 7교시 | Docker가 등장하는 자리 | Docker는 앞의 불편함 중 무엇을 줄여 주는가? | `lesson-07-docker-appears.png` |
-| 8교시 | 로컬 환경 문제 공유 보드 | 내가 겪은 로컬 환경 문제와 Week2 질문은 무엇인가? | `lesson-08-local-env-share-board.png` |
+그리고 오후에는 강사 시연으로 **로컬 실행 환경을 손으로 맞추는 고통**을 직접 보고, 다음 주 Docker를 위한 설치 체크리스트를 정리합니다.
 
-## 오늘 반드시 가져갈 개념
-| 개념 | 학생이 말할 수 있어야 하는 문장 |
+- DevOps가 왜 생겼는지, 무엇을 바꾸려 하는지 설명할 수 있습니다.
+- 소프트웨어가 만들어지는 흐름과 CI/CD의 의미를 압니다.
+- Git과 GitHub의 기본 개념(커밋, 브랜치, Pull Request)을 압니다.
+- 다른 부서에 요청하고 답할 때 쓰는 구조를 익힙니다.
+- 장애 상황에서 어떻게 소통하고, 어떻게 비난 없는 회고를 하는지 압니다.
+- README, 런북, ADR 같은 문서가 왜 필요한지 압니다.
+- 2주차 실습을 위한 설치 준비를 마칩니다.
+
+## 시간표
+
+| 교시 | 주제 |
 |---|---|
-| Runtime | 코드를 실행하려면 Node.js, Python, Java 같은 실행기가 필요하다. |
-| Dependency | 라이브러리와 외부 프로그램 버전이 맞지 않으면 같은 코드도 실패할 수 있다. |
-| Port | 같은 컴퓨터에서 같은 port를 두 프로그램이 동시에 쓸 수 없다. |
-| Configuration | 환경변수와 설정 파일은 코드의 동작을 바꾸는 실행 조건이다. |
-| Data path | DB와 cache는 프로그램 외부에 데이터 위치를 가진다. |
-| Cleanup | 삭제할 때 실행 파일, service, config, data, cache, log를 구분해야 한다. |
-| Reproducibility | 같은 환경을 빠르게 다시 만들 수 있어야 협업과 운영이 가능하다. |
-| Docker preview | Docker는 실행 조건을 포장하고 격리하고 재현하기 위한 도구다. |
+| 1교시 | 어제 10분 요약 + DevOps는 왜 생겼나 |
+| 2교시 | 소프트웨어가 만들어지는 흐름 — SDLC와 CI/CD |
+| 3교시 | Git과 GitHub 맛보기 (강사 시연) |
+| 4교시 | 타 부서와 협업하기 |
+| 5교시 | 장애 커뮤니케이션과 포스트모템 |
+| 6교시 | 문서로 일하기 |
+| 7교시 | 손으로 맞추는 실행 환경 (강사 시연) + 2주차 준비 |
+| 8교시 | 1주차 배움일기와 회고 |
 
-## 학생 메모 템플릿
-```text
-내 로컬 환경에서 꼬일 수 있는 상황
+## 오늘의 키워드
 
-1. 설치해야 하는 프로그램:
-2. 버전이 다르면 생길 문제:
-3. port가 겹치면 생길 문제:
-4. 설정이 바뀌면 생길 문제:
-5. 삭제 후에도 남을 수 있는 것:
-6. 새 컴퓨터에서 다시 맞춰야 할 것:
-7. Docker가 줄여 줄 것 같은 부분:
-8. Docker가 대신 해결하지 못할 것 같은 부분:
-```
+`DevOps` `CALMS` `Westrum 조직 문화` `SDLC` `애자일` `CI` `CD` `파이프라인` `Git` `커밋` `브랜치` `Pull Request` `코드 리뷰` `Team Topologies` `심리적 안전감` `인시던트` `포스트모템` `비난 없는 회고` `README` `런북` `ADR` `WSL2`
 
-## Week2 연결
-Week2에서는 오늘의 시나리오를 Docker 언어로 바꾼다.
+## 교시별 자료
 
-| Day5 시나리오 | Week2 Docker 표현 |
-|---|---|
-| 프로그램과 버전 설치 | image pull/build, image tag |
-| 실행 중인 프로그램 구분 | container run/stop |
-| port 충돌 | port binding |
-| 데이터 폴더 | volume |
-| 환경변수 | `-e`, `.env`, compose env |
-| 여러 프로그램 동시 실행 | Docker Compose |
-| 삭제와 정리 | container/image/volume cleanup |
+1. [DevOps는 왜 생겼나](lesson-01.md)
+2. [소프트웨어가 만들어지는 흐름](lesson-02.md)
+3. [Git과 GitHub 맛보기](lesson-03.md)
+4. [타 부서와 협업하기](lesson-04.md)
+5. [장애 커뮤니케이션과 포스트모템](lesson-05.md)
+6. [문서로 일하기](lesson-06.md)
+7. [손으로 맞추는 실행 환경과 2주차 준비](lesson-07.md)
 
-## 강사용 주의점
-- "Docker가 중요하다"보다 "이 불편함을 줄이려고 Docker를 쓴다"를 먼저 말한다.
-- 직접 설치 실습은 PostgreSQL 하나로 제한한다. MySQL, Redis, vector DB 같은 예시는 개념 설명용으로만 사용한다.
-- 설치 성공보다 service, port, data path, config를 관찰하는 데 수업 목표를 둔다.
-- 학생이 낯선 용어를 어려워하면 "앱이 켜지기 위한 주변 조건"으로 다시 풀어 설명한다.
-- 8교시 공유는 부담 없는 질문 정리 시간으로 운영하고, Week2 Docker 목차와 연결한다.
+---
+
+⬅️ 이전: [7교시 · 모놀리식과 MSA, 그리고 왜 Docker인가](../day4/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · DevOps는 왜 생겼나](lesson-01.md) ➡️

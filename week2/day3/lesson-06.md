@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+
 # 6교시 · 태그와 Docker Hub
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 3~5교시에 만든 `devmart/catalog-api:1.0.1`은 **내 노트북 안에만** 있습니다. 동료, CI 서버, Kubernetes, AWS가 이 이미지를 쓰려면 모두가 접근할 수 있는 **창고(레지스트리)**에 올려야 합니다. 1주차 5일차 2교시 파이프라인의 **⑤ 이미지 저장** 단계입니다.
 
-![레지스트리를 거쳐 어디서든 같은 이미지를 받는다 — build, tag, push, pull](../../assets/week2/day3/w2d3-registry-flow.png)
+![레지스트리를 거쳐 어디서든 같은 이미지를 받는다 — build, tag, push, pull](../../v3/assets/week2/day3/w2d3-registry-flow.png)
 
 ## 태그는 이름표일 뿐
 
@@ -212,3 +214,7 @@ docker rm -f friend
 - OCI. *Distribution Specification*. github.com/opencontainers/distribution-spec
 - Preston-Werner, T. *Semantic Versioning 2.0.0*. semver.org
 - Zerouali, A. et al. (2019). On the relation between outdated Docker containers, severity vulnerabilities, and bugs. *IEEE SANER 2019*.
+
+---
+
+⬅️ 이전: [5교시 · 빌드 캐시와 명령 순서](lesson-05.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 멀티 스테이지와 이미지 크기·보안](lesson-07.md) ➡️

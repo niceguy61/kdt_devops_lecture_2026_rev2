@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+
 # 1교시 · 1주차 요약과 작업 환경 준비
 
 > [!NOTE]
@@ -22,7 +24,7 @@
 
 이 과정에는 5주 동안 함께 여행하는 앱이 하나 있습니다. 작은 쇼핑몰 **DevMart**입니다. 1주차 4일차의 "상품 페이지 하나를 분해하면" 그림을 실제로 돌아가는 코드로 만든 것입니다.
 
-![2주차의 흐름 — 작업대를 만들고, 컨테이너를 익히고, DevMart를 포장해 함께 띄운다](../../assets/week2/day1/w2d1-week-flow.png)
+![2주차의 흐름 — 작업대를 만들고, 컨테이너를 익히고, DevMart를 포장해 함께 띄운다](../../v3/assets/week2/day1/w2d1-week-flow.png)
 
 | 일차 | 주제 | DevMart의 상태 |
 |---|---|---|
@@ -36,7 +38,7 @@
 
 ## 작업 환경 지도
 
-![오늘 만들 작업 환경 — Windows는 WSL2 안의 Ubuntu에서, Mac은 터미널에서 같은 명령을 쓴다](../../assets/week2/day1/w2d1-workbench.png)
+![오늘 만들 작업 환경 — Windows는 WSL2 안의 Ubuntu에서, Mac은 터미널에서 같은 명령을 쓴다](../../v3/assets/week2/day1/w2d1-workbench.png)
 
 | 사용하는 컴퓨터 | 명령을 입력하는 곳 | 파일을 두는 곳 | Docker |
 |---|---|---|---|
@@ -48,6 +50,20 @@
 > **왜 Windows에서 굳이 Linux를 쓰나요?**
 >
 > 서버의 대부분은 Linux입니다(1주차 2일차). 컨테이너도 Linux 커널 기능입니다. Windows의 명령 프롬프트나 PowerShell로도 Docker를 쓸 수는 있지만, 명령어와 경로 표기가 달라 교재와 현업 문서를 그대로 따라 하기 어렵습니다. **WSL2(Windows Subsystem for Linux 2)**는 Windows 안에 진짜 Linux 커널을 띄워 주므로, Windows 노트북에서도 Mac·Linux 사용자와 **같은 명령**을 쓸 수 있습니다.
+
+## 명령은 어느 창에? — PowerShell과 bash
+
+이 교재의 명령은 **두 종류의 창**에서 칩니다. 코드 블록 오른쪽 위에 어느 창인지 적혀 있습니다.
+
+| 코드 블록 표시 | 여는 창 | 프롬프트 모양 | 언제 |
+|---|---|---|---|
+| **PowerShell · Windows** | Windows **터미널**(PowerShell) | `PS C:\Users\me>` | WSL 설치, winget으로 Windows 앱 설치 — **Windows 사용자만, 몇 번뿐** |
+| **bash · WSL Ubuntu · macOS** | Windows는 **Ubuntu** 터미널, Mac은 **터미널** 앱 | `me@PC:~$` · `me@Mac ~ %` | **나머지 전부** — 5주 동안 거의 모든 명령 |
+
+> [!WARNING]
+> **치기 전에 프롬프트를 한 번 본다**
+>
+> `PS`로 시작하면 PowerShell, `$`(Mac은 `%`)로 끝나면 bash입니다. PowerShell에 `export A=1`을 치면 "인식되지 않습니다", WSL에 `winget`을 치면 `command not found`가 나옵니다. 도구를 **Homebrew · winget · 직접 다운로드** 등 다른 방법으로 깔고 싶다면 **부록 A · 도구 설치 가이드**에 OS별로 모아 두었습니다.
 
 ## 실습 1 · Windows — WSL2와 Ubuntu 설치
 
@@ -138,6 +154,20 @@ sudo apt update && sudo apt upgrade -y
 - `apt upgrade -y` : 설치된 프로그램을 최신으로 올립니다 (`-y`는 "예"를 미리 답함)
 - `&&` : 앞 명령이 **성공했을 때만** 뒤 명령을 실행 (1주차의 종료 코드 0!)
 
+### 단계 8 — 기본 도구 설치
+
+5주 동안 계속 쓰는 작은 도구들을 미리 깝니다.
+
+```bash
+sudo apt install -y curl wget unzip jq ca-certificates gnupg lsb-release
+python3 --version
+```
+
+- `curl` · `wget` : 인터넷에서 파일 받기 (3주차부터 도구 설치에 계속 씀)
+- `unzip` : zip 풀기 (5주차 AWS CLI) · `jq` : JSON 보기 좋게 고르기
+- `ca-certificates` · `gnupg` · `lsb-release` : 공식 저장소를 안전하게 추가할 때 필요 (5주차 Terraform)
+- `python3` : Ubuntu 24.04에 이미 들어 있습니다. `Python 3.12.x`가 나오면 됩니다
+
 > **🛠️ 막혔다면: WSL 설치 중 자주 만나는 문제**
 >
 > | 증상 | 원인 | 해결 |
@@ -189,6 +219,15 @@ brew --version
 > Homebrew 4.x.x
 > ```
 
+### 단계 4 — 기본 도구 설치
+
+```bash
+brew install jq
+python3 --version
+```
+
+`curl` · `unzip`은 macOS에 이미 있습니다. `python3`를 처음 실행하면 **명령줄 개발자 도구**를 설치하겠냐는 창이 뜰 수 있습니다 — **설치**를 누릅니다(Homebrew 설치 때 이미 깔렸다면 버전만 나옵니다).
+
 > **🎓 학술 노트 — 생산적 실패 (Productive Failure)**
 >
 > 싱가포르 국립교육원의 마누 카푸르(Manu Kapur)는 2008년부터의 연구에서, 학생들이 정답을 바로 배우기 전에 **먼저 스스로 시도하다 실패하는 경험**을 거치면, 처음부터 정답 풀이를 배운 학생들보다 개념을 더 깊이 이해하고 새로운 문제에 더 잘 적용한다는 결과를 반복해서 보고했습니다. 그는 이것을 **생산적 실패(productive failure)**라고 불렀습니다. 핵심은 실패 자체가 아니라, 실패한 뒤 **왜 실패했는지 정리하는 단계**가 반드시 따라온다는 점입니다.
@@ -235,3 +274,7 @@ brew --version
 - Homebrew. *Installation*. brew.sh
 - Kapur, M. (2008). Productive failure. *Cognition and Instruction*, 26(3).
 - Microsoft (2025). *The Windows Subsystem for Linux is now open source*. Windows Developer Blog.
+
+---
+
+⬅️ 이전: [2주차 1일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 터미널과 VS Code](lesson-02.md) ➡️

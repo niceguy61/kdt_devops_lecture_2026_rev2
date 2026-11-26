@@ -1,198 +1,147 @@
-# 7교시: 권한과 정책 장애 분석
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
 
-![Week 4 Day 4 Lesson 7](./assets/lesson-07-security-troubleshooting.png)
+# 7교시 · 메시 운영 판단
 
-## 수업 목표
-- RBAC forbidden과 Kyverno admission deny를 구분한다.
-- 배포 실패 메시지에서 첫 확인 명령을 고른다.
-- 보안 정책이 배포를 막았을 때 개발팀에 전달할 evidence를 정리한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 오늘 더한 메시가 **얼마나 비싼지** 직접 잽니다.
+> - 메시가 **필요 없는 경우**와 대안을 정리합니다.
+> - 메시의 **업그레이드**가 왜 어려운지, 어떻게 하는지 압니다.
+> - 실험용 손님을 정리하고, 내일까지 남길 것을 정합니다.
 
-## 장애를 두 갈래로 나누기
-보안 관련 실패는 크게 두 가지다.
+## 실습 19 · 비용 재기
 
-```text
-권한 없음
-  -> RBAC forbidden
+2일차의 Prometheus로 잽니다(<http://localhost:9090>).
 
-권한은 있지만 object가 정책 위반
-  -> admission deny
+```promql
+sum by (namespace) (container_memory_working_set_bytes{namespace=~"istio-system|devmart|argocd|monitoring", container!=""}) / 1024 / 1024
 ```
 
-이 둘을 섞으면 해결이 늦어진다. 권한 문제는 Role/RoleBinding을 봐야 하고, 정책 문제는 policy와 manifest를 봐야 한다.
-
-## 오류 메시지 예시
-RBAC:
-```text
-Error from server (Forbidden): pods is forbidden:
-User "system:serviceaccount:week4-security:readonly-viewer"
-cannot delete resource "pods" in API group "" in the namespace "week4-security"
+```promql
+sum by (pod) (container_memory_working_set_bytes{namespace=~"istio-system|devmart", pod=~"istiod.*|ztunnel.*|istio-cni.*|waypoint.*|kiali.*", container!=""}) / 1024 / 1024
 ```
 
-Kyverno:
-```text
-admission webhook "validate.kyverno.svc-fail" denied the request:
-resource Pod/week4-security/bad-latest was blocked due to the following policies
-disallow-latest-enforce
-```
+> **🟢 확인: 확인 (값은 환경마다 다르다)**
+>
+> ```text
+> {namespace="monitoring"}    1180
+> {namespace="argocd"}         410
+> {namespace="istio-system"}   330
+> {namespace="devmart"}        620
+> …
+> {pod="istiod-…"}            110
+> {pod="ztunnel-…"}            14   (× 3)
+> {pod="istio-cni-node-…"}     40   (× 3)
+> {pod="waypoint-…"}           35
+> {pod="kiali-…"}              60
+> ```
+> 배움일기에 적을 숫자입니다. 같은 일을 sidecar 모드로 했다면 devmart의 Pod 9개마다 Envoy(Pod당 수십 MB)가 붙었을 것입니다.
 
-정상 Pod가 막히는 경우도 있다. policy 작성 실수로 `volumes` 전체를 금지하면 `good-pod`처럼 hostPath가 없는 Pod도 막힐 수 있다. 이때는 manifest가 아니라 policy pattern과 anchor 위치를 확인한다.
+| 비용 | 오늘 본 것 | 운영에서 |
+|---|---|---|
+| **자원** | 메모리 수백 MB | 노드 수 · Pod 수에 비례 — sidecar는 Pod 수, ambient는 노드 수 |
+| **지연** | waypoint를 거치는 한 번 더 | 호출당 1ms 안팎 — 호출이 깊게 이어지면 쌓인다 |
+| **복잡도** | 503의 원인이 하나 늘었다 (6교시) | 장애 조사 때 "앱인가 메시인가"를 먼저 가려야 한다 |
+| **업그레이드** | 버전 경고 (2교시) | 클러스터 업그레이드 순서가 메시에 묶인다 |
 
-## 첫 확인 명령
-| 증상 | 첫 명령 |
+## 메시가 필요한가 — 판단표
+
+| 이런 상황이면 | 메시 대신 |
 |---|---|
-| Forbidden | `kubectl auth can-i ... --as=...` |
-| admission denied | `kubectl get clusterpolicy` |
-| policy report 위반 | `kubectl get policyreport -A` |
-| webhook timeout | `kubectl -n kyverno get pod` |
-| CRD 없음 | `kubectl get crd | grep kyverno` |
-| 정상 manifest도 deny | policy pattern/anchor 위치 확인 |
+| 서비스가 몇 개뿐이고 한 팀이 다 안다 | 앱의 타임아웃 · 재시도 + 2일차의 관찰로 충분 |
+| 암호화만 필요하다 | 앱 TLS, 또는 ambient의 **L4만**(ztunnel, waypoint 없이) |
+| 남북 트래픽(입구)만 다룬다 | 1일차의 Gateway면 된다 |
+| 네트워크 차단이 목적이다 | NetworkPolicy (내일) — 더 단순하고 싸다 |
+| 서비스가 많고, 팀이 여럿이고, 규제로 **서비스 사이 암호화 · 접근 기록**이 요구된다 | **메시가 맞다** |
 
-## RBAC runbook
-```markdown
-## Symptom
-- command:
-- forbidden message:
+> **❓ 오해 — 마이크로서비스면 메시가 필수다**
+>
+> 많은 회사가 메시 없이 마이크로서비스를 운영합니다. 메시는 **서비스 수 × 팀 수 × 보안 요구**가 커져서 "앱마다 같은 것을 구현하는 비용"이 "메시를 운영하는 비용"보다 커질 때 이득입니다. 오늘처럼 ambient의 L4(mTLS)부터 켜고, L7은 필요한 네임스페이스에만 waypoint를 두는 **단계적 도입**이 위험을 줄입니다.
 
-## Subject
-- user/group/serviceaccount:
-- namespace:
+## 다른 메시들
 
-## Permission
-- verb:
-- resource:
-- apiGroup:
-- scope:
+| | Istio | Linkerd | Cilium |
+|---|---|---|---|
+| 데이터 평면 | Envoy(waypoint) + ztunnel(Rust) | 자체 Rust 프록시(사이드카) | **eBPF**(커널) + Envoy |
+| 강점 | 기능이 가장 넓다, Gateway API · ambient | 가볍고 단순하다 | 네트워크(CNI)와 메시를 한 도구로 |
+| 오늘과 같은 것 | — | mTLS · 재시도 · 지표 | mTLS · L7 정책 · Gateway API |
 
-## Evidence
-- `kubectl auth can-i ...`
-- Role:
-- RoleBinding:
+어느 것을 고르든 **오늘의 개념 — 신원 · mTLS · 허가 · 나누기 · 장애 주입 — 은 같습니다.** 그리고 라우팅 규칙은 Gateway API(HTTPRoute)로 쓰면 제품을 바꿔도 남습니다.
 
-## Action
-- 권한 추가 필요 여부:
-- 최소 권한으로 가능한가:
-```
+## 업그레이드 — revision과 카나리
 
-## Kyverno runbook
-```markdown
-## Symptom
-- command:
-- admission deny message:
+메시는 **모든 서비스 사이 통신의 길목**이라, 업그레이드가 잘못되면 전체가 끊깁니다. 그래서 Istio는 istiod를 **두 버전 동시에** 띄우는 방법(revision)을 씁니다.
 
-## Policy
-- policy:
-- rule:
-- action: Audit/Enforce
-- message:
+1. 새 버전 istiod를 `revision=1-32`로 **옆에** 설치한다 (옛 것은 그대로).
+2. 네임스페이스 하나만 새 revision으로 옮긴다 → 대시보드로 지켜본다.
+3. 괜찮으면 나머지를 옮기고, 옛 istiod를 지운다.
 
-## Manifest
-- resource:
-- namespace:
-- violated field:
+3주차의 롤링 업데이트, 1일차의 카나리와 같은 생각을 **메시 자신**에게 적용한 것입니다. ztunnel(DaemonSet)은 노드 단위로 바뀌므로, 노드를 하나씩 비우며(drain) 올리는 방법도 함께 씁니다.
 
-## Action
-- manifest 수정:
-- policy 예외 필요 여부:
-- Audit 전환 필요 여부:
-```
+## 실습 20 · 정리
 
-## 실습 장애 1: readonly가 삭제 시도
 ```bash
-kubectl --as=system:serviceaccount:week4-security:readonly-viewer \
-  -n week4-security delete pod -l app=security-api
+kubectl delete pod plain -n default
+kubectl delete namespace outsider
+kubectl delete pod client -n devmart
 ```
 
-분석:
-| 항목 | 값 |
+| 남긴다 (내일 · 5주차 대비) | 이유 |
 |---|---|
-| 단계 | authorization |
-| 오류 | Forbidden |
-| 조치 | delete 권한이 필요한지 검토 |
-| 주의 | 무조건 권한을 늘리지 않음 |
+| Istio(istiod · cni · ztunnel) · Kiali | 내일 보안 실습에서 신원을 쓴다 |
+| devmart의 ambient 등록 · waypoint | 배포 저장소에 커밋되어 있다 |
+| mTLS STRICT · catalog-api 허가 규칙 | 내일 ServiceAccount로 좁힌다 |
+| catalog 타임아웃 · 재시도 | 평소의 회복 설정 |
+| envoy-gateway-system 메시 등록 | STRICT를 유지하려면 필요 — `platform-changes.md`에 적었다 |
 
-## 실습 장애 2: latest tag Pod 생성
-```bash
-kubectl apply -f week4/day4/labs/kyverno/bad-pod-latest.yaml
-```
+> [!WARNING]
+> **'5분 복구'에 더할 것**
+>
+> 클러스터를 다시 만들 때 순서가 하나 늘었습니다: Secret → kps · Argo CD · **Istio 네 차트** `helm install` → `envoy-gateway-system` 라벨 → `kubectl apply -f devmart-app-auto.yaml`. Istio가 Argo CD보다 **먼저** 있어야 devmart의 waypoint · 정책 리소스가 바로 적용됩니다(CRD가 없으면 Sync가 실패한다).
 
-분석:
-| 항목 | 값 |
-|---|---|
-| 단계 | admission |
-| 오류 | Kyverno deny |
-| 정책 | disallow-latest-enforce |
-| 조치 | versioned tag로 수정 |
+> **🎓 학술 노트 — 미들웨어의 순환**
+>
+> 서비스 사이 통신의 공통 기능(재시도 · 보안 · 관찰)을 어디에 둘지는 오래된 질문입니다. 2000년대의 **ESB**(Enterprise Service Bus)는 그것을 중앙 버스에 두었다가 병목과 단일 장애점이 되었고, 마이크로서비스는 그 반동으로 "똑똑한 끝점, 멍청한 파이프"(Fowler & Lewis, 2014)를 외쳤습니다. 그러자 끝점마다 같은 코드(Netflix Hystrix · Ribbon 같은 라이브러리)가 쌓였고, 서비스 메시는 그것을 다시 **인프라로 끌어내린** 것입니다. Morgan(Buoyant, 2017)의 *What's a service mesh?*가 이 이름을 처음 널리 쓴 글입니다. 오늘의 ambient는 그 인프라를 다시 **노드 단위로** 모은 것 — 같은 질문에 대한 시대별 답입니다.
 
-## 실습 장애 3: privileged/hostPath
-```bash
-kubectl apply -f week4/day4/labs/kyverno/bad-pod-privileged-hostpath.yaml
-```
+> **📈 트렌드 2026 — 메시 위의 AI 트래픽**
+>
+> LLM 호출과 AI 에이전트의 도구 호출(MCP)이 서비스 사이 트래픽의 새 종류가 되면서, 메시가 **토큰 수 기반 제한 · 모델별 라우팅 · 프롬프트 기록**까지 맡으려 합니다. Istio 1.31의 agentgateway waypoint, Gateway API Inference Extension이 그 예입니다. 오늘 배운 "코드 밖에서 통신 규칙을 정한다"는 생각이 AI 트래픽에도 그대로 적용되고 있습니다.
 
-분석:
-| 항목 | 값 |
-|---|---|
-| 단계 | admission |
-| 오류 | Kyverno deny |
-| 정책 | disallow-privileged-hostpath-enforce |
-| 조치 | privileged와 hostPath 제거 |
+> **✅ 확인 문제**
+>
+> 1. 메시의 비용 네 가지는?
+> 2. 메시 대신 NetworkPolicy가 더 나은 경우는?
+> 3. Istio를 revision으로 업그레이드하는 순서는?
+> 4. 클러스터 복구 때 Istio를 Argo CD Application보다 먼저 설치해야 하는 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 자원(메모리), 지연, 복잡도(장애 원인이 늘어남), 업그레이드 부담
+> 2. 목적이 네트워크 차단뿐일 때 — 더 단순하고 싸다
+> 3. 새 revision의 istiod를 옆에 설치 → 네임스페이스 하나 옮겨 지켜봄 → 나머지 옮김 → 옛 istiod 제거
+> 4. waypoint · AuthorizationPolicy 같은 Istio CRD가 없으면 Argo CD의 Sync가 실패하기 때문
+>
+> </details>
 
-## 운영에서 좋은 대응
-| 나쁜 대응 | 좋은 대응 |
-|---|---|
-| "권한 풀어주세요" | 필요한 verb/resource/scope를 제시 |
-| "정책 때문에 안 됨" | policy/rule/message와 수정 field 전달 |
-| "일단 예외 주세요" | 왜 예외가 필요한지, 기간과 범위 기록 |
-| cluster-admin 부여 | 최소 권한 Role 설계 |
+> [!NOTE]
+> **오늘의 배움일기**
+>
+> - 남북과 동서를 DevMart의 예로 한 문장씩, 각각 무엇이 다루나
+> - ztunnel 로그에서 본 신원(SPIFFE ID)을 그대로 옮겨 적고, 각 부분의 뜻
+> - 3초 지연을 넣었을 때 products와 orders가 다르게 반응한 이유
+> - STRICT를 켰을 때의 사고 — 무엇을 먼저 셌어야 했나?
+> - 오늘 잰 메시 비용(메모리)과, DevMart에 메시가 정말 필요한지 내 판단
+> - 내일 전에 궁금한 것: 오늘 허가 규칙은 "네임스페이스 단위"였다. DevMart의 Pod들이 **모두 같은 신원(sa/default)**인데, 서비스마다 · 사람마다 할 수 있는 일을 어떻게 나눌까? 그리고 "이미지 태그 latest 금지" 같은 규칙은 누가 지키게 할까?
 
-## 개발팀 전달 예시
-```markdown
-배포가 RBAC이 아니라 Kyverno admission 정책에서 거절되었습니다.
+## 참고 문헌
 
-- namespace: week4-security
-- resource: Pod/bad-latest
-- policy: disallow-latest-enforce
-- rule: require-explicit-image-tag
-- message: Do not use image tag latest
-- 수정: nginx:latest 대신 nginx:1.27-alpine처럼 애플리케이션 버전과 맞는 tag 사용
-```
+- Istio Docs. *Canary Upgrades (revisions)*, *Ambient — Upgrade*. istio.io
+- Linkerd Docs. *Architecture*. linkerd.io · Cilium Docs. *Service Mesh*. docs.cilium.io
+- Fowler, M. & Lewis, J. (2014). *Microservices*. martinfowler.com
+- Morgan, W. (2017). *What's a service mesh? And why do I need one?* Buoyant blog.
+- Gateway API. *Inference Extension*. gateway-api-inference-extension.sigs.k8s.io
 
-## W4D3 observability와 연결
-보안 정책 실패도 관찰 대상이다.
+---
 
-| W4D3 도구 | W4D4 연결 |
-|---|---|
-| Event | admission deny event 확인 |
-| Prometheus | policy violation metric preview |
-| Grafana | Kyverno dashboard 가능 |
-| Alert | 반복 violation alert 가능 |
-| Runbook | 권한/정책 장애 분리 |
-
-오늘은 dashboard까지 깊게 가지 않지만, W4D3에서 만든 observability 사고방식을 그대로 적용한다.
-
-## Evidence Note
-```markdown
-# W4D4S7 Security troubleshooting
-- RBAC forbidden example:
-- Kyverno deny example:
-- 첫 확인 명령:
-- 개발팀 전달 문장:
-- 최소 권한 판단:
-```
-
-## 한 줄 요약
-```text
-Forbidden은 권한 문제이고, admission denied는 object 내용이 정책을 위반했다는 신호다.
-```
-
-
-## 학습 제어
-### 시작 3분 회상
-- privileged policy 위반과 RBAC Forbidden은 어느 계층에서 실패하는가?
-- 권한·정책 장애의 첫 확인 위치는 무엇인가?
-### 오늘 반드시 가져갈 것
-- Forbidden은 authorization 증거, admission denied는 policy validation 증거다.
-- 장애 대응은 주체·요청·policy message를 함께 기록해야 한다.
-### 최소 복구 경로
-- response를 분류한다 → `can-i`와 RoleBinding을 본다 → policy/report/events를 확인한다.
-- 성공 판정은 두 실패 유형의 복구 경로를 분리하는 것이다. 첫 실패는 API response와 event에서 찾는다.
-- 다음 lesson 진입 조건은 GitOps sync에서 권한·policy 실패를 연결하는 것이다.
+⬅️ 이전: [6교시 · mTLS STRICT와 호출 허가](lesson-06.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [4주차 5일차 목차](../day5/README.md) ➡️

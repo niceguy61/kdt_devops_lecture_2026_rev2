@@ -1,231 +1,236 @@
-# 5교시: 장애와 Metric 연결
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [3일차](README.md)
 
-![Week 4 Day 3 Lesson 5](./assets/lesson-05-failure-metric-correlation.png)
+# 5교시 · Sync와 어긋남
 
-## 수업 목표
-- CrashLoop, readiness 실패, CPU 압박을 metric과 연결한다.
-- metric만 보고 결론 내리지 않고 logs/events와 함께 확인한다.
-- 장애 시나리오를 PromQL과 dashboard evidence로 남긴다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **Git이 바뀐 경우**: 커밋 → OutOfSync → diff → Sync의 흐름을 따라갑니다.
+> - **클러스터가 바뀐 경우**: 손 수정이 어떻게 어긋남으로 보이는지 봅니다.
+> - **Git이 틀린 경우**: Synced인데 Degraded가 되는 상황을 만들고 `git revert`로 되돌립니다.
+> - 어긋남을 만났을 때 **어느 쪽이 맞는지** 정하는 기준을 세웁니다.
 
-## 장애 시나리오 배포
-```bash
-kubectl apply -f week4/day3/labs/observability-scenarios/namespace.yaml
-kubectl apply -f week4/day3/labs/observability-scenarios/crashloop-demo.yaml
-kubectl apply -f week4/day3/labs/observability-scenarios/cpu-pressure-demo.yaml
-kubectl apply -f week4/day3/labs/observability-scenarios/readiness-bad-demo.yaml
-```
+어긋남은 세 방향에서 옵니다. 하나씩 만들어 봅니다. 웹 UI의 devmart 화면을 옆에 띄워 둡니다.
 
-kubectl 확인:
-```bash
-kubectl -n week4-observe get pod
-```
+| | 바뀐 곳 | Sync | Health | 실습 |
+|---|---|---|---|---|
+| A | Git (새 커밋) | OutOfSync | Healthy | 10 |
+| B | 클러스터 (손 수정) | OutOfSync | Healthy | 11 |
+| C | Git (틀린 커밋) | Synced | Progressing → Degraded | 12 |
 
-예상:
-```text
-crashloop-demo-xxxxx       0/1   CrashLoopBackOff
-cpu-pressure-demo-xxxxx    1/1   Running
-readiness-bad-demo-xxxxx   0/1   Running
-```
+## 실습 10 · Git이 바뀐 경우
 
-실제 검증에서는 rollout 중 다음처럼 보일 수 있다.
-
-```text
-cpu-pressure-demo-...      1/1   Running
-crashloop-demo-...         0/1   CrashLoopBackOff
-readiness-bad-demo-...     1/1   Running
-readiness-bad-demo-...     0/1   Running
-```
-
-`readiness-bad-demo`가 두 개 보이는 것은 새 Pod가 Ready가 되지 못해 rollout이 멈췄고, 기존 Ready Pod가 service 안정성을 위해 남아 있기 때문이다.
-
-## CrashLoop과 restart metric
-```promql
-kube_pod_container_status_restarts_total{namespace="week4-observe"}
-```
-
-최근 5분 증가량:
-```promql
-increase(kube_pod_container_status_restarts_total{namespace="week4-observe"}[5m])
-```
-
-kubectl 원인:
-```bash
-kubectl -n week4-observe logs deploy/crashloop-demo --previous
-kubectl -n week4-observe describe pod -l app=crashloop-demo
-```
-
-출력 예시:
-```text
-intentional restart for observability
-```
-
-event 예시:
-```text
-Back-off restarting failed container
-```
-
-restart metric은 “재시작이 늘었다”를 보여주고, log/event는 “왜 재시작했는가”를 보여준다.
-
-## readiness 실패
-readiness 실패는 restart가 늘지 않을 수 있다.
+catalog-api를 2개에서 3개로 늘립니다. **파일을 고치고, 커밋하고, push**합니다.
 
 ```bash
-kubectl -n week4-observe describe pod -l app=readiness-bad-demo
+cd ~/devmart-deploy
+grep -n "replicas" devmart/catalog-api.yaml
+sed -i 's/replicas: 2/replicas: 3/' devmart/catalog-api.yaml      # Mac: sed -i ''
+git diff
+git commit -am "catalog-api 3개로 (부하 대비)"
+git push
 ```
 
-예상 event:
-```text
-Readiness probe failed: HTTP probe failed with statuscode: 404
-```
-
-metric으로는 ready replica 또는 condition 계열을 본다.
-
-```promql
-kube_pod_status_ready{namespace="week4-observe", condition="true"}
-```
-
-해석:
-| 증상 | restart metric | ready metric |
-|---|---|---|
-| CrashLoop | 증가 | 대개 ready 아님 |
-| readiness 실패 | 증가 안 할 수 있음 | ready false |
-| 정상 rollout 대기 | 증가 없음 | 일시적으로 ready 감소 |
-
-따라서 restart만 보면 readiness 장애를 놓칠 수 있다.
-
-검증된 PromQL 예시:
-```promql
-kube_pod_status_ready{namespace="week4-observe", condition="true"}
-```
-
-결과 해석:
-```text
-crashloop-demo       0
-cpu-pressure-demo    1
-readiness old pod    1
-readiness new pod    0
-```
-
-운영에서는 “Pod가 1개라도 Ready니까 정상”이라고 보지 않는다. rollout status와 ReplicaSet을 함께 봐야 한다.
+이제 Argo CD가 알아챌 때까지 기다립니다 — 최대 60초(3교시의 `timeout.reconciliation`). 기다리지 않으려면 **새로 고침**을 요청합니다.
 
 ```bash
-kubectl -n week4-observe rollout status deploy/readiness-bad-demo
-kubectl -n week4-observe get rs,pod -l app=readiness-bad-demo
+argocd app get devmart --refresh | head -12
+argocd app diff devmart
 ```
 
-## CPU 압박
-```promql
-sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="week4-observe", container!="", image!=""}[2m]))
-```
+> **🟢 확인: 확인**
+>
+> ```text
+> Sync Status:        OutOfSync from main (9c3e1d7)
+> Health Status:      Healthy
+> …
+> ===== apps/Deployment devmart/catalog-api ======
+> 163c163
+> <   replicas: 2
+> ---
+> >   replicas: 3
+> ```
+> `<`가 지금 클러스터, `>`가 Git입니다. `from main (9c3e1d7)`의 해시는 방금 push한 커밋입니다 — `git log --oneline -1`과 같아야 합니다.
 
-limit 대비 사용량은 dashboard에서 함께 본다. CPU limit은 OOM처럼 바로 죽기보다 latency와 throttling으로 드러날 수 있다.
-
-## metric과 원인 연결표
-| metric 변화 | 원인 후보 | 함께 볼 것 |
-|---|---|---|
-| restart 증가 | CrashLoop, OOMKilled | logs previous, describe |
-| ready 감소 | readiness 실패, rollout 실패 | endpoints, events |
-| CPU 증가 | loop, 부하, throttling | app latency, top pod |
-| memory 증가 | leak, cache, batch | OOMKilled, working set |
-| target down | scrape 실패 | target error, ServiceMonitor |
-
-## 장애를 한 화면에 연결하기
-좋은 장애 분석은 세 줄로 연결된다.
-
-```markdown
-1. 증상: /api 503 증가
-2. metric: ready replica 감소, ingress 5xx 증가
-3. 원인 evidence: readiness probe 404 event
-```
-
-또는:
-
-```markdown
-1. 증상: 응답 지연
-2. metric: api Pod CPU rate 증가
-3. 원인 evidence: cpu-pressure-demo loop, resource limit 낮음
-```
-
-metric 이름만 나열하면 개발팀이 움직이기 어렵다. 사용자 증상과 Kubernetes evidence를 함께 전달해야 한다.
-
-## 시나리오별 관찰 순서
-CrashLoop:
-```text
-Grafana restart panel
-  -> PromQL increase(restarts[5m])
-  -> kubectl get pod
-  -> logs --previous
-  -> describe pod events
-```
-
-Readiness 실패:
-```text
-Grafana ready replica 감소
-  -> kube_pod_status_ready
-  -> kubectl get endpoints
-  -> describe pod readiness event
-  -> Ingress 503 여부 확인
-```
-
-CPU 압박:
-```text
-Grafana CPU usage
-  -> PromQL rate(container_cpu_usage_seconds_total)
-  -> kubectl top pod
-  -> resource requests/limits
-  -> latency/readiness 영향 확인
-```
-
-## 장애 재현 후 정리
-실습 장애는 계속 남겨두면 다음 수업에 방해된다.
+**아직 클러스터는 2개입니다.** syncPolicy가 없으니 Argo CD는 차이를 **보여 주기만** 합니다.
 
 ```bash
-kubectl delete namespace week4-observe
+kubectl get deploy catalog-api -n devmart
+argocd app sync devmart
+kubectl get deploy catalog-api -n devmart
 ```
 
-하지만 삭제 전에는 반드시 evidence를 남긴다.
+> **🟢 확인: 확인**
+>
+> ```text
+> NAME          READY   UP-TO-DATE   AVAILABLE   AGE
+> catalog-api   2/2     2            2           8d
+> …
+> Phase:              Succeeded
+> …
+> NAME          READY   UP-TO-DATE   AVAILABLE   AGE
+> catalog-api   3/3     3            3           8d
+> ```
 
-| evidence | 예시 |
+> [!IMPORTANT]
+> **운영 변경의 새 길**
+>
+> 3주차에는 `kubectl scale`이었습니다. 이제는 **커밋 → (리뷰) → Sync**입니다. 느려 보이지만, 이 변경에는 **누가 · 언제 · 왜**("부하 대비")가 남습니다. `git log devmart/catalog-api.yaml`이 곧 catalog-api의 운영 이력입니다.
+
+## 실습 11 · 클러스터가 바뀐 경우
+
+3주차 5일차의 장애 훈련 3번을 다시 꺼냅니다 — 누군가 급하게 큐 이름을 바꿨습니다.
+
+```bash
+kubectl set env deploy/order-worker -n devmart QUEUE_NAME=order
+kubectl rollout status deploy/order-worker -n devmart
+argocd app get devmart --refresh | head -12
+argocd app diff devmart
+```
+
+> **🟢 확인: 확인**
+>
+> ```text
+> deployment "order-worker" successfully rolled out
+> Sync Status:        OutOfSync from main (9c3e1d7)
+> Health Status:      Healthy
+> …
+> ===== apps/Deployment devmart/order-worker ======
+> …
+> <         - name: QUEUE_NAME
+> <           value: order
+> ```
+> `<` 쪽에만 있습니다 — **클러스터에만 있고 Git에는 없는 값**입니다.
+
+> [!WARNING]
+> **Healthy인데 고장 났다**
+>
+> order-worker는 떠 있고 준비도 되었으니 Argo CD는 **Healthy**라고 합니다. 하지만 엉뚱한 큐를 보고 있어서 주문이 처리되지 않습니다(3주차 5일차). Argo CD의 Health는 "**Kubernetes가 보기에** 잘 떠 있나"까지입니다. "**손님이 보기에** 잘 되나"는 어제의 대시보드와 알림이 답합니다 — 두 도구는 서로를 대신하지 않습니다.
+
+이제 **어느 쪽이 맞나**를 정해야 합니다.
+
+| 판단 | 행동 |
 |---|---|
-| kubectl | `get pod`, `describe pod`, `logs --previous` |
-| PromQL | restart increase, CPU rate |
-| Grafana | Pod dashboard screenshot |
-| 판단 | metric과 event가 어떻게 연결되는지 |
+| Git이 맞다 (손 수정이 실수) | **Sync** — 클러스터를 Git대로 되돌린다 |
+| 클러스터가 맞다 (급한 수정이 옳았다) | 같은 내용을 **Git에 PR**로 올린다 → 합쳐지면 다시 Synced |
+| 모르겠다 | 손 수정한 사람에게 묻는다 — Git에는 기록이 없으니 사람이 기억해야 한다. 그래서 손 수정이 위험하다 |
 
-## 오해하기 쉬운 지점
-| 오해 | 정리 |
-|---|---|
-| CPU가 높으면 장애다 | 지속 시간과 사용자 영향 필요 |
-| restart가 있으면 무조건 문제다 | rollout 중 일시 restart일 수도 있음 |
-| readiness 실패는 log에 항상 보인다 | event에 먼저 보일 때가 많음 |
-| metric이 없으면 정상이다 | target discovery 실패일 수 있음 |
+이번에는 손 수정이 실수입니다. 웹 UI에서 **APP DIFF**를 눌러 같은 차이를 화면으로도 본 뒤, Sync합니다.
 
-## Evidence Note
-```markdown
-# W4D3S5 failure correlation
-- 재현한 장애:
-- kubectl 증상:
-- PromQL:
-- Grafana dashboard:
-- logs/events 원인:
-- 개발팀에 전달할 문장:
-- 정리/cleanup 여부:
+```bash
+argocd app sync devmart
+kubectl get deploy order-worker -n devmart -o jsonpath='{.spec.template.spec.containers[0].env[*].name}'; echo
 ```
 
-## 한 줄 요약
-```text
-metric은 장애의 시간과 범위를 보여주고, logs/events는 원인을 좁히는 증거다.
+> **🟢 확인: 확인**
+>
+> `QUEUE_NAME`이 목록에 **없습니다.** 3주차에는 `fix.sh`가 하던 일(`set env QUEUE_NAME-`)을 Argo CD가 했습니다 — 무엇을 지워야 하는지를 **Git과 비교해서** 스스로 알아냈습니다.
+
+## 실습 12 · Git이 틀린 경우
+
+이번에는 Git에 **존재하지 않는 이미지 태그**를 넣습니다. catalog-api 한 줄만 바꿉니다.
+
+```bash
+cd ~/devmart-deploy
+sed -i '/devmart-catalog-api/{n;s/newTag: .*/newTag: sha-0000000/;}' devmart/kustomization.yaml   # Mac: sed -i '' …
+git diff
+git commit -am "catalog-api 새 버전 (일부러 틀린 태그)"
+git push
+argocd app sync devmart --async
+sleep 30
+argocd app get devmart | head -12
+kubectl get pods -n devmart -l app=catalog-api
 ```
 
+> **🟢 확인: 확인**
+>
+> ```text
+> -    newTag: sha-7c1e9a2
+> +    newTag: sha-0000000
+> …
+> Sync Status:        Synced to main (b81f0e4)
+> Health Status:      Progressing
+> …
+> NAME                           READY   STATUS             RESTARTS   AGE
+> catalog-api-5d8c7b9f6-2xkq4    1/1     Running            0          3h
+> catalog-api-5d8c7b9f6-8wm3p    1/1     Running            0          3h
+> catalog-api-5d8c7b9f6-r7t2n    1/1     Running            0          40m
+> catalog-api-7f9b6c4d8-p5v9x    0/1     ImagePullBackOff   0          30s
+> ```
+> - **Synced** — Git대로 했습니다. Argo CD는 Git을 의심하지 않습니다.
+> - **Progressing** — 새 Pod가 준비되지 않아 롤아웃이 끝나지 않았습니다. Deployment의 `progressDeadlineSeconds`(기본 600초)가 지나면 **Degraded**로 바뀝니다.
+> - 옛 Pod 3개는 **그대로 손님을 받습니다** — 3주차 4일차의 롤링 업데이트가 새 Pod가 준비될 때까지 옛 것을 남겨 두기 때문입니다. `curl localhost:30080/api/products` → `200`.
 
-## 학습 제어
-### 시작 3분 회상
-- dashboard 패턴을 원인으로 단정하면 안 되는 이유는 무엇인가?
-- CrashLoop, readiness failure, CPU pressure는 metric/log/event에서 어떻게 구분되는가?
-### 오늘 반드시 가져갈 것
-- 같은 증상도 logs/events/metrics의 교차 증거로 원인을 좁힌다.
-- CPU 압박과 application crash는 서로 다른 복구 책임이다.
-### 최소 복구 경로
-- 증상을 기록한다 → Pod conditions/events/logs를 본다 → CPU/memory/time-series를 대조한다.
-- 성공 판정은 원인·증상·증거가 일치하는 것이다. 첫 실패는 최초 event/log 또는 metric 급변에서 찾는다.
-- 다음 lesson 진입 조건은 alert 상태와 runbook action을 연결하는 것이다.
+### 되돌리기 — git revert
+
+배포가 커밋이니, 되돌리기도 커밋입니다.
+
+```bash
+git log --oneline -3
+git revert --no-edit HEAD
+git push
+argocd app sync devmart
+argocd app get devmart | head -12
+kubectl get pods -n devmart -l app=catalog-api
+```
+
+> **🟢 확인: 확인**
+>
+> ```text
+> b81f0e4 (HEAD -> main, origin/main) catalog-api 새 버전 (일부러 틀린 태그)
+> 9c3e1d7 catalog-api 3개로 (부하 대비)
+> 4f2a9c1 DevMart 매니페스트 첫 커밋 (…)
+> [main 2e6a8d3] Revert "catalog-api 새 버전 (일부러 틀린 태그)"
+> …
+> Sync Status:        Synced to main (2e6a8d3)
+> Health Status:      Healthy
+> …
+> catalog-api-5d8c7b9f6-2xkq4    1/1     Running   0          3h
+> catalog-api-5d8c7b9f6-8wm3p    1/1     Running   0          3h
+> catalog-api-5d8c7b9f6-r7t2n    1/1     Running   0          42m
+> ```
+> 망가진 Pod는 사라지고 옛 Pod가 그대로 남았습니다. 이력에는 **틀린 배포와 그것을 되돌린 사실이 둘 다** 남습니다.
+
+> [!IMPORTANT]
+> **왜 reset이 아니라 revert인가**
+>
+> `git reset --hard HEAD~1` 후 강제 push(`--force`)를 해도 클러스터는 돌아옵니다. 하지만 **이력이 지워집니다** — 장애 보고서(3주차 5일차)에 "몇 시에 무엇이 배포됐다"를 쓸 근거가 사라지고, 같은 커밋을 받아 둔 동료의 저장소와 어긋납니다. GitOps 원칙 2(**불변**)를 지키는 되돌리기는 revert입니다.
+
+> **❓ 오해 — Argo CD가 망가진 배포를 막아 준다**
+>
+> Argo CD는 Git을 **충실히** 따를 뿐입니다. 틀린 태그를 막는 것은 그 앞 단계의 일입니다 — CI가 **실제로 올린 태그만** 커밋하게 하고(7교시), 배포 저장소에도 PR 리뷰를 두는 것. 새 버전을 조금씩 내보내다 이상하면 **자동으로 멈추는** 것은 Argo Rollouts 같은 도구의 몫입니다(아래 트렌드).
+
+> **🎓 학술 노트 — 구성 표류의 비용**
+>
+> 운영 사고의 원인을 조사한 연구들은 꾸준히 **설정 변경**을 큰 몫으로 꼽습니다. Oppenheimer 외의 *Why do Internet services fail, and what can be done about it?*(USITS 2003)는 대형 인터넷 서비스 장애에서 **운영자의 설정 실수**가 가장 큰 원인이었음을 보였고, Yin 외의 *An Empirical Study on Configuration Errors*(SOSP 2011)는 설정 오류의 상당수가 "**잘못된 값**"보다 "**환경 간 불일치**"에서 온다고 보고했습니다. 어긋남을 계속 보여 주는 도구는 이 불일치를 **사고가 되기 전에** 드러냅니다.
+
+> **📈 트렌드 2026 — 점진적 배포와 자동 중단**
+>
+> Argo 프로젝트의 **Argo Rollouts**는 Deployment 대신 Rollout 리소스를 써서 카나리(1일차의 80/20)를 **단계별로 자동 진행**하고, 각 단계에서 **Prometheus 쿼리**(어제의 오류율)를 확인해 기준을 넘으면 스스로 되돌립니다. "배포는 Git으로, 안전장치는 지표로"가 결합된 형태입니다. Flux 쪽에서는 Flagger가 같은 일을 합니다.
+
+> **✅ 확인 문제**
+>
+> 1. `argocd app diff`에서 `<`와 `>`는 각각 무엇인가요?
+> 2. 손 수정이 옳았다면 어떻게 해야 하나요?
+> 3. 틀린 태그를 배포했는데 서비스가 끊기지 않은 이유는?
+> 4. 되돌리기에 `git reset --hard`와 강제 push를 쓰지 않는 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. `<` — 지금 클러스터, `>` — Git (원하는 상태)
+> 2. 같은 내용을 Git에 PR로 올려 원하는 상태를 고친다
+> 3. 롤링 업데이트가 새 Pod가 준비될 때까지 옛 Pod를 남겨 두었기 때문
+> 4. 이력이 지워져 장애 기록의 근거가 사라지고, 다른 사람의 저장소와 어긋나기 때문 (불변 원칙)
+>
+> </details>
+
+## 참고 문헌
+
+- Argo CD Docs. *Diffing*, *Sync Options*, *Automated Sync Policy*. argo-cd.readthedocs.io
+- Oppenheimer, D., Ganapathi, A. & Patterson, D. (2003). *Why do Internet services fail, and what can be done about it?* USITS '03.
+- Yin, Z. 외 (2011). *An Empirical Study on Configuration Errors in Commercial and Open Source Systems*. SOSP '11.
+- Argo Rollouts Docs. *Analysis & Progressive Delivery*. argoproj.github.io/argo-rollouts
+
+---
+
+⬅️ 이전: [4교시 · Application과 Sync](lesson-04.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · selfHeal과 prune](lesson-06.md) ➡️

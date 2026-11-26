@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+
 # 3교시 · 바인드 마운트
 
 > [!NOTE]
@@ -20,7 +22,7 @@
 
 Docker는 왼쪽이 **경로처럼 생겼는지**로 둘을 구분합니다. `"$PWD/web"`, `~/devops-lab/backup`처럼 쓰면 바인드 마운트입니다.
 
-![이름 있는 볼륨 · 바인드 마운트 · tmpfs — 데이터가 어디에 저장되고 누가 관리하는가](../../assets/week2/day4/w2d4-mount-types.png)
+![이름 있는 볼륨 · 바인드 마운트 · tmpfs — 데이터가 어디에 저장되고 누가 관리하는가](../../v3/assets/week2/day4/w2d4-mount-types.png)
 
 > **🧩 비유 — 창문**
 >
@@ -240,3 +242,7 @@ docker exec web sh -c 'echo hacked > /usr/share/nginx/html/index.html'
 - Docker Docs. *Use Compose Watch*. docs.docker.com/compose/how-tos/file-watch
 - Microsoft Learn. *Working across Windows and Linux file systems (WSL)*. learn.microsoft.com/windows/wsl/filesystems
 - Biederman, E. W. (2006). Multiple instances of the global Linux namespaces. *Linux Symposium*.
+
+---
+
+⬅️ 이전: [2교시 · 이름 있는 볼륨](lesson-02.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · Docker 네트워크와 이름 찾기](lesson-04.md) ➡️

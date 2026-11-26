@@ -1,128 +1,116 @@
-# 2교시: AWS Operations Evidence Dashboard
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [5일차](README.md)
 
-![Operations evidence dashboard](./assets/lesson-02-operations-evidence-dashboard.png)
+# 2교시 · 아침의 재현
 
-이 시간은 예쁜 그래프를 만드는 시간이 아니다. AWS Console에서 health, logs, metrics, CloudTrail, cost 화면을 열고 운영 질문별로 어떤 evidence를 봐야 하는지 dashboard 표로 연결한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 어제 손으로 한 일을 **스크립트 하나**(`up.sh`)로 다시 합니다.
+> - 단계마다 걸린 시간을 재고, 어디가 느린지 봅니다.
+> - "코드로 만든 인프라는 **매일 다시 만들 수 있다**"를 직접 확인합니다.
 
-## 수업 목표
-- CloudWatch Logs, CloudWatch Metrics/Alarms, CloudTrail Event history, Cost Explorer를 운영 질문에 연결한다.
-- 정상/장애/변경/비용 질문마다 첫 확인 화면을 다르게 고른다.
-- Week 5 최종 패킷에 넣을 evidence index를 만든다.
+## up.sh 읽기
 
-## 오늘 만들 산출물
-| 산출물 | 형태 | 반드시 들어갈 값 |
+```bash
+cat ~/devops-lab/aws/w5d5/up.sh
+```
+
+| 단계 | 하는 일 | 어제의 어디 |
 |---|---|---|
-| Operations evidence dashboard | markdown 표 또는 스프레드시트 | 질문, AWS 화면, 확인 값, 판단, 다음 행동 |
-| Evidence index | 표 | log/metric/event/cost evidence와 연결된 resource |
-| Screenshot shortlist | 목록 | 최종 패킷에 넣을 캡처와 제외할 캡처 |
+| 1 | `terraform apply` + kubeconfig | 4일차 2 · 3교시 |
+| 2 | `platform/install.sh` — gp3 · LBC · Envoy Gateway · Argo CD | 4일차 4교시 |
+| 3 | Secret · Application | 4일차 5교시 |
+| 4 | NLB 주소가 생기고 `/api/products`가 200이 될 때까지 기다림 | 4일차 5교시 |
 
-실습 템플릿은 `labs/operations-evidence-dashboard/README.md`를 사용한다.
+스크립트에 새로운 것은 없습니다. **어제 한 일의 순서를 적어 둔 것**입니다 — 런북(4주차 2일차)이 실행 가능해진 모양입니다.
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | AWS에서 확인할 화면 |
-|---|---|---|---|
-| Service health | 지금 resource가 정상인지 본다 | 로그부터 뒤져서 시간을 잃는다 | ALB target health, ECS/App Runner service, EC2 status |
-| Logs | 무슨 일이 있었는지 event/text로 확인한다 | 숫자 그래프만 보고 원인을 단정한다 | CloudWatch Log groups |
-| Metrics | 상태 변화와 규모를 수치로 본다 | 장애 추세와 범위를 놓친다 | CloudWatch Metrics, ALB/ECS/EC2 metrics |
-| CloudTrail | 누가 어떤 AWS API 변경을 했는지 본다 | 최근 변경 원인을 못 찾는다 | CloudTrail Event history |
-| Cost | 비용 발생 후보를 service 기준으로 본다 | cleanup 대상을 추측한다 | Cost Explorer, Billing dashboard |
+## 실습 1 · 처음부터
 
-## 핵심 개념
-운영 dashboard는 모든 화면을 한 번에 붙이는 장식이 아니다. 질문에 맞는 evidence를 빠르게 찾는 지도다. 응답이 느리면 health, metric, log를 보고, 갑자기 설정이 바뀌었으면 CloudTrail을 보며, 비용이 늘었으면 Cost Explorer와 resource inventory를 본다.
-
-## Evidence Dashboard 구조
-```mermaid
-flowchart TD
-  Question["Operations question"] --> Health["Service health"]
-  Question --> Logs["CloudWatch Logs"]
-  Question --> Metrics["CloudWatch Metrics"]
-  Question --> Trail["CloudTrail Event history"]
-  Question --> Cost["Cost Explorer"]
-  Health --> Decision["Decision / next action"]
-  Logs --> Decision
-  Metrics --> Decision
-  Trail --> Decision
-  Cost --> Decision
+```bash
+aws sts get-caller-identity --query Arn --output text
+~/devops-lab/aws/w5d5/up.sh
 ```
 
-## 질문별 첫 확인 화면
-| 운영 질문 | 첫 화면 | 두 번째 화면 | 판단 |
-|---|---|---|---|
-| endpoint가 안 열린다 | ALB target health 또는 EC2 status | SG inbound, CloudWatch Logs | network/runtime 분리 |
-| 응답이 느리다 | CloudWatch Metrics | Logs, target health | resource pressure/error 확인 |
-| 방금 누가 설정을 바꿨나 | CloudTrail Event history | service detail 화면 | 변경 시각과 증상 시각 비교 |
-| 비용이 남는 것 같다 | Cost Explorer | EC2/EBS/ELB/RDS/S3 inventory | 삭제/중지/유지 결정 |
-| S3 object가 안 열린다 | S3 object URL result | S3 Permissions, CloudTrail | policy/BPA/key 문제 분리 |
-| 배포 후 실패했다 | ECS/App Runner events 또는 target health | CloudWatch Logs, CloudTrail | image/env/permission/change 확인 |
+기다리는 동안(약 25~30분) 3교시를 위해 kind 클러스터를 확인해 둡니다.
 
-## 구현 경로 A: CloudWatch evidence
-| AWS Console 위치 | 확인할 값 | dashboard에 남길 문장 |
+```bash
+kubectl --context kind-devmart get application -n argocd
+kubectl --context kind-devmart get pods -n devmart | head -4
+```
+
+> **🟢 확인: 확인 — up.sh**
+>
+> ```text
+> [0분 0초] 1. 클러스터 (Terraform)
+> [16분 41초] 2. 플랫폼 (StorageClass · LBC · Envoy Gateway · Argo CD)
+> [23분 12초] 3. Secret과 Application
+> secret/devmart-db created
+> application.argoproj.io/devmart created
+> [23분 15초] 4. 손님이 들어올 수 있을 때까지
+> [27분 48초] 완료 — http://k8s-envoygat-envoydev-….elb.ap-northeast-2.amazonaws.com/
+> ```
+> 어제 질문의 답 — **약 30분**. 사람이 한 일은 명령 **한 줄**입니다.
+
+> **🟢 확인: 확인 — kind**
+>
+> ```text
+> NAME      SYNC STATUS   HEALTH STATUS
+> devmart   Synced        Healthy
+> ```
+
+| 단계 | 내 시간 | 가장 오래 걸린 것 |
 |---|---|---|
-| CloudWatch -> Log groups | log group name, latest event time, error line | 어떤 resource의 어떤 event를 봤는가 |
-| CloudWatch -> Metrics | namespace, metric name, period | 어떤 수치가 정상/비정상 판단에 쓰였는가 |
-| CloudWatch -> Alarms | alarm name, state, threshold | 알림이 행동 가능한 조건인가 |
-| ALB Target groups -> Health | target status, reason | health check가 성공/실패했는가 |
+| 1. 클러스터 | __분 | EKS 컨트롤 플레인 (~10분) |
+| 2. 플랫폼 | __분 | Argo CD · LBC 준비 |
+| 3~4. 앱 | __분 | NLB 활성화 · db 볼륨 |
+| 합계 | __분 | |
 
-## 구현 경로 B: CloudTrail evidence
-CloudTrail은 application log가 아니라 AWS API 변경 이력이다.
+> [!IMPORTANT]
+> **어제와 오늘이 같은가**
+>
+> 어제 손으로 만든 결과와 오늘 스크립트의 결과가 **같은지**는 무엇으로 아나요? ① `terraform plan`이 `No changes`, ② Argo CD가 `Synced · Healthy`, ③ 손님 쪽 `curl`이 200. 세 층(인프라 · 앱 · 손님)이 각자의 '원하는 상태와 같다'를 보여 줍니다.
+>
+> ```bash
+> terraform -chdir=$HOME/devmart-infra/terraform/eks plan -detailed-exitcode >/dev/null; echo "plan 종료 코드: $? (0 = 변경 없음)"
+> kubectl --context eks-devmart get application devmart -n argocd -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'
+> ```
 
-| 보고 싶은 일 | Event name 예시 |
-|---|---|
-| SG rule 변경 | `AuthorizeSecurityGroupIngress`, `RevokeSecurityGroupIngress` |
-| IAM 권한 변경 | `AttachUserPolicy`, `DetachUserPolicy`, `CreateAccessKey` |
-| S3 policy 변경 | `PutBucketPolicy`, `PutPublicAccessBlock` |
-| resource 생성/삭제 | `RunInstances`, `CreateLoadBalancer`, `DeleteLoadBalancer` |
-| Console 로그인 | `ConsoleLogin` |
+> [!TIP]
+> **더 빠르게 하려면**
+>
+> 시간의 절반 이상이 EKS 컨트롤 플레인입니다. 실무에서 클러스터는 **오래 살리고**(업그레이드하며 몇 년), 그 위의 환경을 빠르게 만들었다 지웁니다(네임스페이스 · vCluster). 실습에서 매일 클러스터째 지우는 것은 **비용** 때문이고, 그 덕분에 '처음부터 다시 만들기'를 매일 시험하게 되었습니다.
 
-기록은 `eventTime`, `eventName`, `user`, `resource`, `판단`만 남긴다.
+> **❓ 오해 — 스크립트가 있으면 IaC다**
+>
+> `up.sh`는 **명령의 순서**(명령형)이지만, 그 안의 각 단계가 **선언적**(Terraform · Helm · Argo CD)이라 몇 번을 돌려도 같은 결과가 됩니다(멱등). 3일차 1교시의 "CLI 스크립트"와 다른 점입니다. 스크립트를 두 번 돌려 보면 확인할 수 있습니다 — 두 번째는 대부분 '변경 없음'으로 지나갑니다.
 
-## 구현 경로 C: Cost evidence
-Cost Explorer는 지연될 수 있으므로 화면 값과 service inventory를 함께 사용한다.
+> **🎓 학술 노트 — 복구 시간의 측정**
+>
+> DORA의 네 지표(4주차 3일차) 중 **복구 시간**(time to restore)은 "장애에서 서비스를 되살리는 데 걸린 시간"입니다. 오늘 잰 30분은 '클러스터를 통째로 잃었을 때의 복구 시간'의 하한입니다(데이터 복구는 빠져 있다). Google SRE의 *Site Reliability Workbook* 9장은 재해 복구 계획을 **정기적으로 실제로 돌려 보지 않으면** 필요할 때 동작하지 않는다고 강조합니다 — 이번 주에 매일 지우고 다시 만든 것이 그 연습이었습니다.
 
-| 화면 | 확인할 값 |
-|---|---|
-| Cost Explorer | 기간, group by Service, 보이는 비용 service |
-| Budgets | threshold, alert 상태 |
-| service inventory | EC2/EBS/ELB/RDS/S3/CloudWatch 잔여 resource |
+> **📈 트렌드 2026 — 재현 가능한 환경의 표준**
+>
+> 개발 컨테이너(devcontainer) · Nix · 하루살이 환경이 흔해지면서 "**README의 명령 몇 줄로 누구나 같은 환경**"이 오픈소스와 회사 모두의 기대치가 되었습니다. 6교시에 포트폴리오 README에 `up.sh`를 적는 이유입니다 — 보는 사람이 직접 재현할 수 있는 것이 가장 강한 증거입니다.
 
-## 실습 절차
-1. `labs/operations-evidence-dashboard/README.md`의 dashboard 표를 복사한다.
-2. Week 5에서 만든 대표 resource 하나를 고른다. 예: EC2+ALB, ECS/App Runner, S3.
-3. health 화면을 먼저 확인하고 정상 기준을 적는다.
-4. CloudWatch Logs 또는 Metrics에서 해당 resource와 연결되는 evidence를 찾는다.
-5. CloudTrail Event history에서 오늘 변경 이벤트 1개를 찾는다.
-6. Cost Explorer 또는 service inventory에서 비용 후보를 찾는다.
-7. 각 evidence에 `이 값으로 어떤 판단을 했는지`를 한 줄로 적는다.
-8. 최종 패킷에 넣을 screenshot과 버릴 screenshot을 구분한다.
+> **✅ 확인 문제**
+>
+> 1. up.sh의 네 단계와 각각 어제의 몇 교시였나요?
+> 2. "어제와 오늘이 같다"를 확인하는 세 층의 방법은?
+> 3. 실무에서 클러스터를 매일 지우지 않는 이유와, 실습에서 매일 지운 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. Terraform(2 · 3교시), 플랫폼(4교시), Secret · Application(5교시), 손님 확인(5교시)
+> 2. terraform plan 변경 없음, Argo CD Synced · Healthy, curl 200
+> 3. 실무: 컨트롤 플레인 생성이 오래 걸리고 클러스터는 오래 살려 업그레이드한다. 실습: 비용 — 덕분에 재현을 매일 시험했다
+>
+> </details>
 
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| dashboard를 그래프 모음으로 만든다 | 질문 -> evidence -> 판단 구조로 다시 쓴다 |
-| CloudTrail을 app error log로 찾는다 | CloudTrail eventName과 eventSource |
-| metric 지연을 장애로 오해한다 | metric period와 latest datapoint time |
-| Cost Explorer 0원을 cleanup 완료로 착각한다 | service별 resource inventory |
+## 참고 문헌
 
-## Evidence 점검
-- health, log 또는 metric, CloudTrail, cost evidence가 각각 하나 이상 있다.
-- 각 evidence마다 resource name, Region, 확인 값, 판단이 있다.
-- screenshot에는 secret/account email/access key가 보이지 않는다.
-- 다음 S3~S8에서 재사용할 evidence가 표시되어 있다.
+- Beyer, B. 외 (2018). *The Site Reliability Workbook*, Ch. 9 "Incident Response" · disaster recovery testing. O'Reilly.
+- DORA. *DORA's software delivery metrics*. dora.dev
 
-## Evidence Note
-```markdown
-# W5D5S2 operations evidence dashboard
-- Account/Region:
-- 대표 resource:
-- Health evidence:
-- Log/metric evidence:
-- CloudTrail evidence:
-- Cost evidence:
-- 이 dashboard가 답하는 운영 질문:
-- 다음 행동:
-```
+---
 
-## 한 줄 요약
-```text
-운영 evidence dashboard는 화면 모음이 아니라 질문별로 health, logs, metrics, CloudTrail, cost를 연결한 판단 지도다.
-```
+⬅️ 이전: [1교시 · 4일차 요약 + 5주 지도](lesson-01.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 커밋 하나, 클러스터 둘](lesson-03.md) ➡️

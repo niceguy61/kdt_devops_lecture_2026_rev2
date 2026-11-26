@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+
 # 3교시 · Compose로 하는 일상 작업
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 개발하면서 가장 자주 하는 질문은 "고쳤는데 왜 안 바뀌지?"입니다. 답은 **고친 것이 어디에 들어 있느냐**에 달려 있습니다.
 
-![무엇을 고쳤나에 따라 다른 반영 방법 — 바인드 마운트는 새로 고침, 설정은 up, 코드는 up --build](../../assets/week2/day5/w2d5-change-flow.png)
+![무엇을 고쳤나에 따라 다른 반영 방법 — 바인드 마운트는 새로 고침, 설정은 up, 코드는 up --build](../../v3/assets/week2/day5/w2d5-change-flow.png)
 
 | 고친 것 | 들어 있는 곳 | 반영하려면 | Compose가 하는 일 |
 |---|---|---|---|
@@ -226,3 +228,7 @@ git push
 - Docker Docs. *Use Compose Watch*. docs.docker.com/compose/how-tos/file-watch
 - nginx Docs. *ngx_http_upstream_module — resolve, resolver*. nginx.org/en/docs/http/ngx_http_upstream_module.html
 - Brisco, T. (1995). *DNS Support for Load Balancing* (RFC 1794). IETF.
+
+---
+
+⬅️ 이전: [2교시 · up · ps · logs · down과 헬스 체크](lesson-02.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · Git 브랜치](lesson-04.md) ➡️

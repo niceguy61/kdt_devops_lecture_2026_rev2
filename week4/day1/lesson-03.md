@@ -1,231 +1,168 @@
-# 3교시: Helm 공통 설치 루프
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
 
-![Week 4 Day 1 Lesson 3](./assets/lesson-03-helm-install-loop.png)
+# 3교시 · Ingress의 역사와 ingress-nginx 은퇴
 
-## 수업 목표
-- Week4에서 반복 사용할 Helm 설치 루프를 익힌다.
-- chart repo, release, namespace, values file, 검증, 제거를 한 묶음으로 본다.
-- metrics-server 설치 전에 Helm 명령이 어떤 증거를 남기는지 확인한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 클러스터 바깥의 손님을 안으로 들이는 방법이 어떻게 바뀌어 왔는지 봅니다.
+> - **Ingress**가 무엇을 풀었고, 왜 **어노테이션 지옥**에 빠졌는지 이해합니다.
+> - **ingress-nginx 은퇴**가 정확히 무엇이 끝났다는 뜻인지, 무엇이 아닌지 구분합니다.
+> - 내 클러스터에 Ingress 관련 리소스가 있는지 확인하는 법을 압니다.
 
-## 공통 설치 루프
-Week4 add-on은 아래 루프를 반복한다.
+## 입구의 역사
 
-```text
-1. chart repo 등록
-2. chart repo update
-3. values file 확인
-4. helm upgrade --install
-5. helm list/status/history 확인
-6. kubectl로 실제 리소스 확인
-7. 필요하면 rollback 또는 uninstall
-```
+![Service의 NodePort · LoadBalancer에서 Ingress, Gateway API v1.0을 거쳐 ingress-nginx 은퇴와 Gateway API v1.6까지](../../v3/assets/week4/day1/w4d1-ingress-history.png)
 
-이 루프는 W4D1 metrics-server에서 끝나지 않는다. W4D2 ingress-nginx, W4D3 kube-prometheus-stack, W4D4 Kyverno, W4D5 Argo CD/Istio/Kiali까지 같은 패턴으로 반복한다.
+### 1단계 — Service로 직접 열기
 
-| Day | add-on | 오늘 루프와 연결 |
-|---|---|---|
-| W4D1 | metrics-server | resource metric과 `kubectl top` |
-| W4D2 | ingress-nginx | 외부 traffic 진입점 |
-| W4D3 | kube-prometheus-stack | 관찰 stack |
-| W4D4 | Kyverno | admission policy |
-| W4D5 | Argo CD, Istio, Kiali | GitOps와 mesh preview |
+3주차 4일차에 배운 두 가지입니다.
 
-그래서 오늘 Helm 루프를 허술하게 넘기면 뒤의 4일이 전부 흔들린다.
-
-## repo add/update
-```bash
-helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
-helm repo update
-helm search repo metrics-server
-```
-
-`helm repo add`는 chart 저장소를 등록하고, `helm repo update`는 index를 갱신한다. chart가 보이지 않으면 설치 명령보다 repository 등록 상태를 먼저 본다.
-
-확인 출력 예시:
-```text
-NAME                            CHART VERSION   APP VERSION
-metrics-server/metrics-server   3.x.x           0.x.x
-```
-
-여기서 chart version과 app version은 다를 수 있다. chart version은 Helm 패키지의 버전이고, app version은 설치되는 애플리케이션의 버전이다.
-
-| 버전 | 의미 |
+| 방식 | 문제 |
 |---|---|
-| Chart Version | chart template/values 구조의 버전 |
-| App Version | 실제 metrics-server app의 버전 |
+| **NodePort** | 포트 번호가 30000~32767이라 `:30080`을 붙여야 한다. 노드 IP가 바뀌면? |
+| **LoadBalancer** | 클라우드가 로드 밸런서를 **Service 하나에 하나씩** 만든다. 서비스가 20개면 로드 밸런서 20개 — 그만큼 돈이 든다(5주차) |
 
-## dry-run과 template
-실제 cluster에 적용하기 전에 어떤 YAML이 만들어지는지 볼 수 있다.
+그리고 둘 다 **L4**(IP · 포트)에서 동작해서, "`/api/orders`는 이쪽, `/`는 저쪽"처럼 **HTTP 경로나 도메인으로 나누지 못합니다.** DevMart가 nginx를 API 게이트웨이로 둔 이유가 이것입니다(3주차 1일차).
 
-```bash
-helm template metrics-server metrics-server/metrics-server \
-  --namespace kube-system \
-  -f week4/day1/labs/helm-metrics-server/values.yaml
+### 2단계 — Ingress (2015 베타 → 2020 정식)
+
+Kubernetes는 "HTTP 요청을 **호스트 · 경로**로 나눠 Service로 보내라"는 규칙을 표준 리소스로 만들었습니다. 그것이 **Ingress**입니다. 규칙을 적은 Ingress와, 그 규칙대로 실제로 요청을 나누는 프로그램 **Ingress 컨트롤러**가 짝을 이룹니다(3주차 3일차 컨트롤러 패턴).
+
+```yaml
+# 읽기만 — DevMart를 Ingress로 적는다면
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devmart
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "5"        # ← 어노테이션
+    nginx.ingress.kubernetes.io/limit-rps: "20"                # ← 어노테이션
+    nginx.ingress.kubernetes.io/canary: "true"                 # ← 어노테이션
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: devmart.example.com
+      http:
+        paths:
+          - path: /api/orders
+            pathType: Prefix
+            backend: { service: { name: order-api, port: { number: 8000 } } }
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: web, port: { number: 80 } } }
 ```
 
-`helm template`은 API Server에 적용하지 않는다. 설치 전에 “어떤 리소스가 만들어질지”를 눈으로 보는 용도다.
+`spec:` 부분이 표준입니다. **호스트와 경로로 나누기, TLS 인증서** — 표준은 거의 이것이 전부였습니다. 그런데 실제 서비스에는 타임아웃(3주차 2일차!), 요청 수 제한, 카나리 배포, 헤더 바꾸기, 인증… 이 필요합니다. 표준에 없으니 컨트롤러마다 **어노테이션**으로 기능을 붙였습니다.
 
-렌더링 결과에서 최소한 아래를 찾는다.
+> **❓ 오해 — Ingress YAML은 어느 컨트롤러에서나 똑같이 동작한다**
+>
+> `spec:` 부분만 그렇습니다. 위 예의 어노테이션 세 줄은 **ingress-nginx만** 알아듣습니다. 다른 컨트롤러(Traefik, HAProxy, 클라우드 로드 밸런서 컨트롤러…)로 바꾸면 조용히 **무시**됩니다 — 타임아웃도 요청 수 제한도 사라진 채로 '정상'처럼 돕니다. 어노테이션은 문자열이라 오타가 나도 아무도 알려 주지 않습니다. 이렇게 기능이 표준 밖 어노테이션에 쌓인 상태를 흔히 **어노테이션 지옥**이라고 부릅니다.
 
-```bash
-helm template metrics-server metrics-server/metrics-server \
-  --namespace kube-system \
-  -f week4/day1/labs/helm-metrics-server/values.yaml \
-  | grep -E "kind: Deployment|kind: APIService|--kubelet-insecure-tls"
-```
+### 3단계 — ingress-nginx의 은퇴
 
-예상 출력:
-```text
-kind: Deployment
-            - --kubelet-insecure-tls
-kind: APIService
-```
+수많은 Ingress 컨트롤러 중 가장 널리 쓰인 것이 Kubernetes 프로젝트가 직접 관리하던 **ingress-nginx**(GitHub `kubernetes/ingress-nginx`)였습니다.
 
-이 확인은 매우 중요하다. values file에 썼다고 실제 manifest에 반영됐다고 가정하지 않는다. template 결과로 확인한다.
+| 시점 | 일 |
+|---|---|
+| 오랫동안 | 클라우드 네이티브 환경의 약 절반이 의존. 그러나 실제 관리자는 **한두 명의 자원봉사자** |
+| 2025년 3월 | 컨트롤러에서 원격 코드 실행까지 가능한 심각한 취약점 묶음(일명 *IngressNightmare*)이 공개되어 대규모 긴급 패치 |
+| 2025년 11월 | Kubernetes SIG Network와 보안 대응 위원회가 **은퇴 예고** |
+| 2026년 1월 | 운영 · 보안 위원회 공동 성명 — "그대로 남으면 공격에 노출된다. 바로 대체할 수 있는 것은 없다" |
+| **2026년 3월** | 유지보수 종료. 이후 **새 릴리스 · 버그 수정 · 보안 패치 없음** |
 
-## 설치
-```bash
-helm upgrade --install metrics-server metrics-server/metrics-server \
-  --namespace kube-system \
-  -f week4/day1/labs/helm-metrics-server/values.yaml
-```
+> [!IMPORTANT]
+> **무엇이 끝났고, 무엇이 끝나지 않았나**
+>
+> | 끝난 것 | 끝나지 않은 것 |
+> |---|---|
+> | 커뮤니티 **ingress-nginx 컨트롤러** (`kubernetes/ingress-nginx`)의 유지보수 | **NGINX** 웹 서버 자체 (2주차에 쓴 그 nginx) |
+> | | F5가 만드는 별개의 **NGINX Ingress Controller** (이름이 비슷한 다른 프로젝트) |
+> | | Kubernetes의 **Ingress API** 자체 — 리소스는 계속 있고, 다른 컨트롤러로 쓸 수 있다 |
+> | | 이미 설치된 ingress-nginx — **계속 돌아간다.** 그래서 더 위험하다 |
+>
+> 마지막 줄이 핵심입니다. 은퇴한 소프트웨어는 멈추지 않습니다. **조용히 돌아가면서 새 취약점이 생겨도 고쳐지지 않는 상태**가 됩니다. 1주차 2일차에 배운 '지원 종료(EOL)된 OS'와 같은 위험입니다.
 
-예상 출력:
-```text
-Release "metrics-server" does not exist. Installing it now.
-NAME: metrics-server
-LAST DEPLOYED: Fri Jun 26 10:30:00 2026
-NAMESPACE: kube-system
-STATUS: deployed
-REVISION: 1
-```
+> **📘 예시 — 내 클러스터에 ingress-nginx가 있나**
+>
+> ```bash
+> kubectl get pods -A -l app.kubernetes.io/name=ingress-nginx
+> kubectl get ingressclass
+> kubectl get ingress -A
+> ```
+> 오늘 우리 kind 클러스터에서는 셋 다 `No resources found`입니다(설치한 적이 없으니). 회사 클러스터라면 이 세 줄이 **은퇴 영향 조사의 첫 명령**입니다. Ingress 리소스가 있다면 어노테이션을 모아 "무엇을 옮겨야 하나" 목록을 만듭니다.
 
-이미 설치되어 있으면 문장이 달라질 수 있다.
+### 4단계 — Gateway API
 
-```text
-Release "metrics-server" has been upgraded. Happy Helming!
-STATUS: deployed
-REVISION: 2
-```
+Ingress의 한계를 처음부터 다시 설계한 것이 **Gateway API**입니다. 2023년 10월 v1.0으로 정식이 되었고, 2026년 6월 v1.6에서는 HTTP뿐 아니라 TCP · UDP 라우팅까지 표준(Standard)이 되었습니다.
 
-두 출력의 차이는 중요하다. 첫 번째는 신규 설치이고, 두 번째는 기존 release를 upgrade한 것이다.
-
-설치 후 바로 성공이라고 말하지 않는다. release와 실제 Pod 상태를 따로 확인한다.
-
-```bash
-helm list -n kube-system
-helm status metrics-server -n kube-system
-kubectl -n kube-system get deploy,pod -l app.kubernetes.io/name=metrics-server
-```
-
-`helm status`가 성공이어도 Pod가 Ready가 아닐 수 있다. Helm은 Kubernetes API에 리소스를 제출하고 release를 관리하지만, 애플리케이션이 정상 동작하는지까지 항상 보장하지 않는다.
-
-확인해야 할 레이어:
-| 레이어 | 명령 | 의미 |
+| | Ingress | Gateway API |
 |---|---|---|
-| Helm release | `helm status` | chart가 release로 설치됐는가 |
-| Kubernetes object | `kubectl get deploy,pod` | object가 만들어졌는가 |
-| Pod readiness | `kubectl get pod` | container가 준비됐는가 |
-| API aggregation | `kubectl get apiservice` | Metrics API가 붙었는가 |
-| 사용자 명령 | `kubectl top` | 실제 metric 조회가 되는가 |
+| 리소스 | Ingress 하나에 모두 | **GatewayClass · Gateway · HTTPRoute …** 역할별로 (4교시) |
+| 타임아웃 · 재시도 · 가중치 · 헤더 · 리다이렉트 | 컨트롤러별 **어노테이션** | **표준 필드** (구현이 지원하면 같은 YAML로) |
+| 프로토콜 | HTTP(S) | HTTP · gRPC · TLS · TCP · UDP |
+| 다른 네임스페이스 | 애매함 | **명시적 허락**(allowedRoutes, ReferenceGrant) |
+| 상태 보고 | 거의 없음 | 리소스마다 `status.conditions` — "받아들였나, 연결됐나" (7교시) |
+| 미래 | 기능 추가 **동결** | 계속 발전 (실험 채널 → 표준 채널) |
 
-## values 확인
-```bash
-helm get values metrics-server -n kube-system
-helm get manifest metrics-server -n kube-system | less
-```
+> **🧩 비유 — 건물 안내판**
+>
+> Ingress는 **건물 입구에 붙은 안내판 하나**입니다. "3층 — 영업부, 5층 — 개발부"까지는 표준 양식이 있지만, "점심시간엔 5층 출입 금지" 같은 규칙은 경비 회사마다 다른 **포스트잇**(어노테이션)으로 붙였습니다. 경비 회사를 바꾸면 포스트잇은 아무도 안 읽습니다. Gateway API는 **건물 관리 규정 자체를 다시 쓴 것**입니다 — 건물주(GatewayClass), 관리소(Gateway), 입주 회사(HTTPRoute)가 각자 자기 몫을 정해진 양식으로 적습니다.
 
-강의에서 중요한 것은 “내가 어떤 설정으로 설치했는지 다시 설명할 수 있는가”다. values file이 repo에 있어야 같은 설정을 다시 만들 수 있다.
+## 실습 5 · 입구 방식 비교표
 
-`helm get values`와 repo의 values file을 비교한다.
+> **🧪 실습: 실습 목표**
+>
+> 지금까지 DevMart의 입구를 세 가지 방식으로 열어 봤습니다. 오늘 오후의 Gateway까지 넣어 비교표를 만듭니다. 마지막 열은 6교시가 끝난 뒤에 채웁니다.
 
-```bash
-cat week4/day1/labs/helm-metrics-server/values.yaml
-helm get values metrics-server -n kube-system
-```
+| | NodePort 직접 (3주차 4일차 catalog-api) | nginx Pod + NodePort (3주차 5일차) | Ingress (만약 썼다면) | Gateway API (오늘) |
+|---|---|---|---|---|
+| 경로로 나누기 | | | | |
+| 설정을 바꾸려면 | | | | |
+| 다른 구현으로 바꾸려면 | | | | |
+| 장애 상태를 어디서 보나 | | | | |
 
-두 결과가 다르면 누군가 명령줄 `--set`으로 설정을 추가했거나, 다른 파일로 upgrade했을 가능성이 있다. 이것은 운영 인수인계에서 자주 문제를 만든다.
+> **🟢 확인: 예시 답 (일부)**
+>
+> - nginx Pod: 경로로 나누기 **가능** — 하지만 설정이 `default.conf`라는 **nginx만의 문법**이고, ConfigMap을 고친 뒤 nginx를 다시 시작해야 한다(3주차 5일차 2교시).
+> - Ingress: 경로로 나누기 **표준** — 타임아웃 같은 것은 **어노테이션**.
+> - Gateway API: 경로 · 타임아웃 · 가중치 모두 **표준 필드**, 상태는 **status.conditions**.
 
-## rollback과 uninstall
-```bash
-helm history metrics-server -n kube-system
-helm rollback metrics-server 1 -n kube-system
-helm uninstall metrics-server -n kube-system
-```
+> **🎓 학술 노트 — 오픈소스의 지속 가능성과 '공유지의 비극'**
+>
+> ingress-nginx는 수많은 회사의 운영 환경을 떠받쳤지만, 그 무게를 진 것은 소수의 자원봉사자였습니다. Nadia Eghbal의 *Roads and Bridges: The Unseen Labor Behind Our Digital Infrastructure*(Ford Foundation, 2016)와 *Working in Public*(2020)은 이런 **디지털 공공 기반 시설**이 사용량에 비해 유지보수 투자를 받지 못하는 구조를 분석했습니다. 2014년 OpenSSL의 Heartbleed, 2021년 Log4Shell, 2024년 xz 백도어가 같은 패턴입니다. 2026년의 ingress-nginx 은퇴는 그 구조가 보안 위험으로 드러났을 때 커뮤니티가 **"계속 위험하게 유지하는 것보다 공개적으로 은퇴시키는 것이 안전하다"**고 판단한 사례입니다. 우리가 쓰는 오픈소스의 **유지보수 상태**(최근 릴리스, 관리자 수, 보안 대응)를 확인하는 것도 인프라 엔지니어의 일입니다.
 
-rollback은 release revision을 기준으로 되돌린다. uninstall은 Helm release가 관리하는 리소스를 제거한다. 단, chart에 따라 PVC나 CRD는 남을 수 있으므로 각 chart의 정리 정책을 확인해야 한다.
+> **📈 트렌드 2026 — 옮기는 해**
+>
+> 2026년은 많은 팀에게 'Ingress에서 옮기는 해'가 되었습니다. 대체지는 크게 둘입니다 — **Gateway API로 옮기기**(Envoy Gateway, Cilium, Istio, NGINX Gateway Fabric, kgateway, Traefik 등 구현이 다양하다), 또는 **다른 Ingress 컨트롤러로 바꾸고 Gateway API는 나중에**. Ingress 리소스를 Gateway API 리소스로 바꿔 주는 공식 도구 **ingress2gateway**도 있지만, 어노테이션의 뜻까지 옮겨 주지는 못해 사람이 확인해야 합니다. 한 CNCF 회원사 사례 글은 2025년 말 기준 자기 회사 배포의 약 60%가 ingress-nginx에 기대고 있었다고 밝혔습니다.
 
-history 출력 예시:
-```text
-REVISION  UPDATED                  STATUS      CHART                   APP VERSION  DESCRIPTION
-1         Fri Jun 26 10:20:31      superseded  metrics-server-3.x.x    0.x.x        Install complete
-2         Fri Jun 26 10:31:02      deployed    metrics-server-3.x.x    0.x.x        Upgrade complete
-```
+> **✅ 확인 문제**
+>
+> 1. NodePort · LoadBalancer만으로 부족했던 이유 두 가지는?
+> 2. Ingress에서 '어노테이션 지옥'이 생긴 원인은?
+> 3. 2026년 3월에 끝난 것과 끝나지 않은 것을 하나씩 드세요.
+> 4. 은퇴한 ingress-nginx가 '계속 돌아간다'는 것이 왜 더 위험한가요?
+> 5. Gateway API가 Ingress보다 나은 점을 세 가지 드세요.
+>
+> <details><summary>정답</summary>
+>
+> 1. HTTP 경로 · 호스트로 나누지 못한다(L4), LoadBalancer는 Service마다 하나씩 생겨 비싸다
+> 2. 표준(spec)이 호스트 · 경로 · TLS 정도로 작아서, 나머지 기능을 컨트롤러마다 다른 어노테이션으로 붙였기 때문
+> 3. 끝난 것 — 커뮤니티 ingress-nginx 컨트롤러의 유지보수 · 보안 패치. 끝나지 않은 것 — NGINX 웹 서버, F5 NGINX Ingress Controller, Ingress API 자체 중 하나
+> 4. 멈추지 않으니 영향받는 줄 모르고 계속 쓰게 되는데, 새 취약점이 생겨도 고쳐지지 않는다
+> 5. 역할별 리소스, 표준 필드(타임아웃 · 가중치 등), 여러 프로토콜, 명시적인 네임스페이스 허락, status로 상태 보고 중 셋
+>
+> </details>
 
-이 출력에서 현재 적용된 revision은 `STATUS=deployed`인 행이다. rollback을 하면 새 revision이 하나 더 생기며 이전 manifest 상태를 다시 적용한다.
+## 참고 문헌
 
-## 실패 상황별 판단
-| 상황 | 먼저 볼 것 | 이유 |
-|---|---|---|
-| chart를 찾지 못함 | `helm repo list`, `helm search repo` | repository/index 문제 |
-| release가 이미 있음 | `helm history`, `helm get values` | 기존 설치와 충돌 가능 |
-| Pod가 Pending | `kubectl describe pod` | scheduling/resource 문제 |
-| Pod가 CrashLoop | `kubectl logs` | app 실행 문제 |
-| APIService가 False | `kubectl describe apiservice` | metrics API 연결 문제 |
-| uninstall 후에도 리소스가 남음 | CRD/PVC/cluster-scoped resource | chart 정리 정책 확인 |
+- Kubernetes Blog (2025-11-11). *Ingress NGINX Retirement: What You Need to Know*. kubernetes.io/blog
+- Kubernetes Blog (2026-01-29). *Ingress NGINX: Statement from the Kubernetes Steering and Security Response Committees*. kubernetes.io/blog
+- Kubernetes Docs. *Ingress* · *Ingress Controllers*. kubernetes.io/docs/concepts/services-networking
+- Gateway API. *Introduction* · *Migrating from Ingress*. gateway-api.sigs.k8s.io
+- CNCF Blog (2026-04). *Ingress NGINX retirement: experience from end users*. cncf.io/blog
+- Eghbal, N. (2016). *Roads and Bridges: The Unseen Labor Behind Our Digital Infrastructure*. Ford Foundation.
 
-## 실수 패턴
-| 실수 | 증상 | 해결 |
-|---|---|---|
-| repo update 생략 | chart를 찾지 못함 | `helm repo update` |
-| namespace 혼동 | release가 안 보임 | `helm list -A` |
-| release name 중복 | 다른 설정이 덮임 | release naming 기준 정리 |
-| values file 미보관 | 재현 불가 | repo에 values 저장 |
-| uninstall만 믿음 | 일부 리소스 잔존 | `kubectl get all,cm,secret,crd -A` 확인 |
+---
 
-## 오늘 실행 순서
-1. `helm repo add/update`를 실행한다.
-2. `helm search repo`로 chart가 보이는지 확인한다.
-3. values file을 열어 `--kubelet-insecure-tls`의 의미를 확인한다.
-4. `helm template`로 실제 manifest에 반영됐는지 확인한다.
-5. `helm upgrade --install`로 설치한다.
-6. `helm status`와 `kubectl get pod`를 비교한다.
-7. `helm get values`로 설치 설정을 다시 읽는다.
-8. `helm history`로 revision을 확인한다.
-
-## 성공 기준
-| 기준 | 명령 | 성공으로 볼 수 있는 출력 |
-|---|---|---|
-| release 생성 | `helm list -n kube-system` | `metrics-server`, `deployed` |
-| Pod 준비 | `kubectl -n kube-system get pod -l app.kubernetes.io/name=metrics-server` | `READY 1/1` |
-| API 등록 | `kubectl get apiservice v1beta1.metrics.k8s.io` | `AVAILABLE True` |
-| 사용자 조회 | `kubectl top node` | node CPU/memory 출력 |
-
-## Evidence Note
-```markdown
-# W4D1S3 Helm install loop
-- chart repo:
-- release name:
-- namespace:
-- values file:
-- template에서 확인한 리소스:
-- status와 pod ready 결과:
-```
-
-## 한 줄 요약
-```text
-Helm 설치는 install 명령 하나가 아니라 repo, values, release, kubectl 검증까지 이어지는 반복 루프다.
-```
-
-
-## 학습 제어
-### 시작 3분 회상
-- Helm release 성공과 Pod Ready는 어떻게 다른가?
-- repo→values→install/upgrade→release/kubectl 검증 순서의 책임은 무엇인가?
-### 오늘 반드시 가져갈 것
-- Helm은 desired configuration을 release 이력으로 반영하고 kubectl은 current evidence를 확인한다.
-- upgrade는 변경 전후 diff와 health를 함께 봐야 한다.
-### 최소 복구 경로
-- repo와 values를 고정한다 → install/upgrade한다 → release status와 Pod Ready/logs/events를 확인한다.
-- 성공 판정은 release와 current state가 맞는 것이다. 첫 실패는 Helm history와 events에서 찾는다.
-- 다음 lesson 진입 조건은 runtime configuration 경계를 설명하는 것이다.
+⬅️ 이전: [2교시 · Helm 설치 루프](lesson-02.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · Gateway API 구조](lesson-04.md) ➡️

@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+
 # 4교시 · GitHub 계정과 인증
 
 > [!NOTE]
@@ -52,14 +54,14 @@ GitHub은 코드를 올리는 사용자에게 2단계 인증을 요구합니다.
 
 ### 단계 1 — 설치
 
-**Windows(WSL Ubuntu) / Linux:**
+**Windows — WSL Ubuntu 터미널 (bash) · Linux**
 
 ```bash
 sudo apt install -y gh
 gh --version
 ```
 
-**Mac:**
+**Mac — 터미널 (Homebrew)**
 
 ```bash
 brew install gh
@@ -71,7 +73,17 @@ gh --version
 > ```text
 > gh version 2.45.0 (…)
 > ```
-> 숫자는 달라도 됩니다.
+> 숫자는 달라도 됩니다. Ubuntu 저장소의 gh는 조금 오래됐지만 수업에는 충분합니다. 최신판은 GitHub 공식 apt 저장소로 깝니다(부록 A).
+
+> [!TIP]
+> **다른 설치 방법 — winget · 직접 다운로드**
+>
+> | 방법 | 어디서 | 명령 · 주소 |
+> |---|---|---|
+> | winget | Windows PowerShell | `winget install -e --id GitHub.cli` |
+> | 직접 다운로드 | 브라우저 | [cli.github.com](https://cli.github.com) · [릴리스](https://github.com/cli/cli/releases) |
+>
+> winget은 **Windows 쪽**에 설치하므로 PowerShell에서만 보입니다. 수업 명령은 WSL Ubuntu(bash)에서 치므로, Windows 사용자도 위의 **WSL 방법**으로 설치합니다. 전체 목록은 **부록 A · 도구 설치 가이드**.
 
 ### 단계 2 — 로그인 시작
 
@@ -191,3 +203,7 @@ git config --global --list | grep credential
 - GitHub CLI Manual. *gh auth login*. cli.github.com/manual
 - Morris, R., & Thompson, K. (1979). Password security: A case history. *CACM*, 22(11).
 - FIDO Alliance. *Passkeys*. fidoalliance.org/passkeys
+
+---
+
+⬅️ 이전: [3교시 · Git 설치와 설정](lesson-03.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 첫 저장소 — commit과 push](lesson-05.md) ➡️

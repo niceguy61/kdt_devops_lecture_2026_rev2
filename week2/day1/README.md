@@ -1,4 +1,8 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+
 # 2주차 1일차 — 개발 환경 세팅과 Git 첫걸음
+
+📕 2주차 이북 PDF: [보기](../../downloads/pdf/week2.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week2.pdf) &nbsp;|&nbsp; 📊 1일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week2-day1.pptx)
 
 ## 오늘의 목표
 
@@ -44,3 +48,7 @@
 5. [첫 저장소 — commit과 push](lesson-05.md)
 6. [Docker Desktop 설치](lesson-06.md)
 7. [설치 점검과 문제 해결](lesson-07.md)
+
+---
+
+⬅️ 이전: [7교시 · 손으로 맞추는 실행 환경 (강사 시연) + 2주차 준비](../../week1/day5/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 1주차 요약과 작업 환경 준비](lesson-01.md) ➡️

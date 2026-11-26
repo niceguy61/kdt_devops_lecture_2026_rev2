@@ -1,221 +1,155 @@
-# 5교시: 실패 분석 라이프사이클 - reproduce, observe, hypothesize, fix, recheck, prevent
+[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [3일차](README.md)
 
-## 수업 목표
-- 실패 분석을 6단계로 기록한다.
-- symptom과 root cause candidate를 구분한다.
-- 없는 파일 요청으로 404를 만들고 RCA를 작성한다.
+# 5교시 · HTTP와 HTTPS
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 기록 |
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - HTTP 요청과 응답의 구조를 읽습니다.
+> - 메서드(GET, POST, PUT, DELETE)와 상태 코드(2xx~5xx)의 의미를 압니다.
+> - HTTPS가 무엇을 보호하는지, 인증서가 왜 필요한지 이해합니다.
+> - REST API의 기본 생각을 맛봅니다.
+
+## HTTP — 웹의 대화 규칙
+
+**HTTP(HyperText Transfer Protocol)**는 웹 브라우저와 서버가 대화하는 규칙입니다. 대화는 항상 **클라이언트가 요청(request)**하고 **서버가 응답(response)**하는 한 쌍으로 이루어집니다. 오늘날에는 웹 페이지뿐 아니라 **앱과 서버, 서버와 서버** 사이의 통신(API)도 대부분 HTTP를 씁니다. 3주차 MSA의 서비스들도 서로 HTTP로 이야기합니다.
+
+## 요청과 응답 들여다보기
+
+![HTTP 요청과 응답의 구조 — 요청 줄, 헤더, 본문 / 상태 줄, 헤더, 본문](../../v3/assets/week1/day3/w1d3-http-anatomy.png)
+
+### 요청 (Request)
+
+```http
+GET /products?category=shoes HTTP/1.1     ← 요청 줄: 메서드, 경로, 버전
+Host: shop.example.com                    ← 헤더: 부가 정보
+User-Agent: Mozilla/5.0
+Accept: application/json
+Authorization: Bearer eyJhbGciOi...       ← 로그인 토큰 (비밀값!)
+                                          ← 빈 줄
+                                          ← 본문 (GET은 보통 없음)
+```
+
+### 응답 (Response)
+
+```http
+HTTP/1.1 200 OK                           ← 상태 줄: 버전, 상태 코드, 설명
+Content-Type: application/json            ← 헤더
+Content-Length: 128
+Cache-Control: max-age=60
+                                          ← 빈 줄
+[{"id": 1, "name": "운동화", "price": 59000}]   ← 본문
+```
+
+## 메서드 — 무엇을 하고 싶은가
+
+| 메서드 | 뜻 | 예시 | 성질 |
 |---|---|---|---|
-| 재현 | 같은 실패를 다시 만들 수 있어야 비교가 가능하다. | 고쳤는지 확인할 기준이 없다. | 실패 URL과 명령 |
-| 증상과 원인 후보 | 보이는 현상과 가능한 원인을 분리한다. | 404, 서버 종료, 포트 충돌을 섞어 말한다. | 상태 코드, 로그, 원인 후보 |
-| 재확인 | 수정 후 같은 방식으로 다시 확인한다. | "고쳤다"는 말만 남고 검증이 없다. | fixed check command/상태 코드 |
-| 예방 | 같은 실패를 줄이는 문서나 체크를 남긴다. | 같은 실수가 반복된다. | README 수정, 주의 문장 |
+| **GET** | 조회 | 상품 목록 보기 | 서버 상태를 바꾸지 않는다 |
+| **POST** | 생성 | 주문하기, 회원가입 | 여러 번 보내면 여러 개 생길 수 있다 |
+| **PUT** | 전체 교체 | 프로필 전체 수정 | 여러 번 보내도 결과가 같다 |
+| **PATCH** | 일부 수정 | 닉네임만 수정 | |
+| **DELETE** | 삭제 | 장바구니 상품 삭제 | 여러 번 보내도 결과가 같다 |
 
-### 챌린저 복구 기준
-- 404는 서버가 죽었다는 뜻이 아니다. 요청은 받았지만 해당 경로의 파일을 찾지 못한 것이다.
-- `connection refused`는 먼저 서버 프로세스와 포트를 본다.
-- RCA는 큰 장애 보고서가 아니라 작은 실패를 다시 줄이는 연습 기록이다.
+> [!IMPORTANT]
+> **여러 번 보내도 안전한가? — 멱등성**
+>
+> 같은 요청을 여러 번 보내도 결과가 한 번 보낸 것과 같은 성질을 **멱등성(idempotency)**이라고 합니다. GET, PUT, DELETE는 멱등이고, POST는 보통 멱등이 아닙니다. 네트워크가 불안해서 응답을 못 받았을 때 **재시도해도 되는지**가 여기에 달려 있습니다. "주문하기" 버튼을 두 번 눌러 **주문이 두 번 들어가는** 사고가 바로 멱등하지 않은 POST를 재시도해서 생깁니다. 3주차 MSA 장애 실습에서 "중복 요청" 문제로 직접 다룹니다.
 
-## 50분 흐름
-| Time | Activity |
-|---|---|
-| 0-5분 | README 재현성 checklist 확인 |
-| 5-15분 | RCA와 symptom/cause 차이 설명 |
-| 15-30분 | 404 실패 재현과 log 관찰 |
-| 30-40분 | fix/recheck/prevent 기록 |
-| 40-50분 | 관찰 가능성 signal로 연결 |
+## 상태 코드 — 서버의 대답 한 줄 요약
 
-## 0-5분 README 재현성 checklist 확인
+| 범위 | 뜻 | 대표 코드 | 먼저 볼 곳 |
+|---|---|---|---|
+| **2xx** 성공 | 요청이 잘 처리됨 | `200 OK`, `201 Created`, `204 No Content` | — |
+| **3xx** 리다이렉트 | 다른 곳으로 가세요 | `301` 영구 이동, `302` 임시 이동, `304` 바뀐 것 없음(캐시 사용) | URL, HTTP→HTTPS 이동 |
+| **4xx** 클라이언트 잘못 | 요청이 이상함 | `400` 잘못된 요청, `401` 로그인 필요, `403` 권한 없음, `404` 없음, `429` 요청 너무 많음 | **요청을 보낸 쪽** |
+| **5xx** 서버 잘못 | 서버가 처리하다 실패 | `500` 서버 내부 오류, `502` 뒤쪽 서버 응답 이상, `503` 일시적으로 못 받음, `504` 뒤쪽 서버 시간 초과 | **서버와 그 뒤** |
 
-- 진행: README 재현성 checklist 확인
+> **📘 502와 504는 '중간자'가 보내는 신호**
+>
+> `502 Bad Gateway`와 `504 Gateway Timeout`은 보통 **로드밸런서나 리버스 프록시**(7교시)가 보냅니다. "나는 살아 있는데, 내 뒤에 있는 앱 서버가 이상한 응답을 줬다(502) / 응답을 안 줬다(504)"라는 뜻입니다. 그래서 502·504를 보면 로드밸런서가 아니라 **그 뒤의 앱 서버**를 먼저 봐야 합니다. 4주차 Gateway API 장애 분석과 5주차 ALB 실습에서 계속 만나는 코드입니다.
 
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+## HTTPS — 같은 대화를 봉투에 넣어서
 
+HTTP는 내용이 **그대로 보이는 엽서**와 같습니다. 같은 와이파이를 쓰는 누군가가 비밀번호와 로그인 토큰을 엿볼 수 있습니다. **HTTPS**는 HTTP 대화를 **TLS(Transport Layer Security)**로 암호화한 것입니다.
 
+![HTTPS가 보호하는 세 가지 — 기밀성, 무결성, 서버 인증](../../v3/assets/week1/day3/w1d3-tls.png)
 
-### 상세 설명
-RCA는 누군가를 탓하는 문서가 아니라 같은 실패를 줄이기 위한 학습 기록이다. 첫 단계는 실패를 재현하는 것이다. 재현할 수 없으면 관찰도 비교도 어렵다. 다음으로 log, 상태 코드, command output을 관찰하고, 원인 후보를 세운다. fix를 적용한 뒤 같은 check로 다시 확인하고, 마지막에는 재발 방지 방법을 남긴다.
-
-오늘은 없는 파일을 요청해 404를 만든다. 404는 서버가 죽었다는 뜻이 아니라 server가 요청을 받았지만 해당 경로의 resource를 찾지 못했다는 뜻이다. 이 차이를 이해하면 connection refused, 404, 500을 섞어 말하지 않게 된다.
-
-
-
-### Visual 1: RCA lifecycle
-![RCA 기본 흐름](./assets/lesson-05-rca-flow.png)
-
-이 이미지는 RCA를 책임 추궁이 아니라 관찰 가능한 증거로 문제를 좁히는 절차로 다룬다. 특히 `Timeline`과 `Recheck`를 분리해 “수정했다”와 “수정이 확인됐다”를 구분한다.
-
-```mermaid
-flowchart LR
-    Reproduce[1 Reproduce] --> Observe[2 Observe]
-    Observe --> Hypothesize[3 Hypothesize]
-    Hypothesize --> Fix[4 Fix]
-    Fix --> Recheck[5 Recheck]
-    Recheck --> Prevent[6 Prevent]
-    Prevent --> Reproduce
-```
-
-RCA는 한 번 쓰고 끝나는 보고서가 아니라 같은 실패를 줄이는 반복 구조다. 오늘은 작은 404로 이 흐름을 연습한다.
-
-## 5-15분 RCA와 symptom/cause 차이 설명
-
-- 진행: RCA와 symptom/cause 차이 설명
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### Visual 2: 상태 코드별 첫 판단
-| Symptom | 프로세스 상태 추정 | 먼저 볼 확인 기록 |
+| HTTPS가 지키는 것 | 뜻 | 없으면 생기는 일 |
 |---|---|---|
-| connection refused | 서버 프로세스가 없거나 포트가 다름 | 서버 터미널, 포트 |
-| 404 | 프로세스는 응답함, 경로/resource 문제 가능 | URL 경로, `ls` 결과, request log |
-| 500 | 프로세스는 응답함, 내부 처리 실패 가능 | error log, recent change |
-| 브라우저 blank | HTML 내용 또는 wrong file 가능 | `curl`, `cat index.html` |
+| **기밀성** | 내용을 남이 읽을 수 없다 | 카페 와이파이에서 비밀번호 유출 |
+| **무결성** | 중간에 내용을 바꿀 수 없다 | 다운로드 파일에 악성코드 끼워 넣기 |
+| **인증** | 지금 대화하는 서버가 진짜 그 회사다 | 가짜 은행 사이트로 유도 |
 
-상태 코드는 정답이 아니라 출발점이다. "어디가 고장났을 가능성이 높은가"를 좁히는 확인 기록으로 사용한다.
+### 인증서 — 서버의 신분증
 
-## 15-30분 404 실패 재현과 log 관찰
+세 번째 "인증"을 위해 서버는 **TLS 인증서**를 보여 줍니다. 인증서는 신뢰할 수 있는 **인증기관(CA, Certificate Authority)**이 "이 서버는 정말 `shop.example.com`의 주인이 맞다"라고 서명해 준 디지털 신분증입니다. 브라우저에는 신뢰하는 CA 목록이 미리 들어 있어서, 서명을 확인하고 자물쇠 아이콘을 보여 줍니다.
 
-- 진행: 404 실패 재현과 log 관찰
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### RCA 템플릿
-| Step | Record |
-|---|---|
-| Reproduce | |
-| Observe | |
-| Hypothesize | |
-| Fix | |
-| Recheck | |
-| Prevent | |
-
-
-
-### 명령 절차
-서버가 실행 중인 상태에서 새 terminal을 연다.
-
-```bash
-curl -I http://localhost:8000/no-such-file.html
-```
-
-수정 방법은 새 기능 구현이 아니라 올바른 existing 경로로 확인하는 것이다.
-
-```bash
-curl -I http://localhost:8000/index.html
-```
-
-### 의도적 오류 로그 수집 절차
-이번 시간에는 실수로 난 오류를 기다리지 않고, 일부러 작고 안전한 오류를 만든다. 없는 파일 요청은 시스템을 망가뜨리지 않으면서도 상태 코드와 서버 로그를 남기므로 RCA 연습에 적합하다.
-
-1. 서버 터미널이 켜져 있는지 확인한다.
-2. 새 터미널에서 실패 요청을 보낸다.
-3. 서버 터미널에서 같은 시간대의 request log를 찾는다.
-4. 실패 상태 코드와 요청 경로만 발췌한다.
-5. 정상 URL로 다시 확인한다.
-
-예상되는 실패 확인 기록은 다음과 같다. 실제 로그 형식은 Python 버전과 OS에 따라 조금 다를 수 있으므로, 문장 그대로 맞추는 것이 아니라 요청 경로와 상태 코드를 찾는다.
-
-```text
-request: GET /no-such-file.html
-status: 404
-interpretation: server process is alive, requested file path does not exist
-```
-
-서버 로그에 `GET /no-such-file.html`이 보이고 `curl -I` 결과가 404라면, 이 실패는 프로세스 종료 문제가 아니라 경로/resource 문제로 분류한다. 이 분류가 중요하다. 원인 후보가 다르면 다음 확인 명령도 달라진다.
-
-| 실패 증상 | 잘못된 결론 | 더 나은 첫 판단 |
+| 인증서 문제 | 브라우저 경고 | 흔한 원인 |
 |---|---|---|
-| 404 | 서버가 죽었다. | 서버는 응답했다. URL 경로와 파일 존재 여부를 본다. |
-| connection refused | 파일이 없다. | 서버 프로세스 또는 포트가 먼저 의심된다. |
-| 수정 후 예전 본문 | curl이 틀렸다. | 저장한 파일, 실행 경로, cache를 본다. |
+| 만료됨 | "연결이 비공개로 설정되어 있지 않습니다" | **갱신을 잊음** — 현업 장애의 단골 원인 |
+| 이름 불일치 | 인증서 이름과 주소가 다름 | `www` 없는 주소용 인증서를 따로 안 만듦 |
+| 자체 서명 | 신뢰할 수 없는 발급자 | 테스트용 인증서를 운영에 씀 |
 
-### 수정 후 재확인 기록
-RCA에서 fix는 큰 코드를 새로 만드는 일이 아니다. 이번 실습의 fix는 요청 경로를 존재하는 파일로 바꾸거나, README에 올바른 URL을 명시하는 것이다. 중요한 것은 fix 다음에 같은 관찰 기준으로 다시 확인하는 것이다.
+> **🎓 학술 노트 — 웹의 탄생과 REST (1989, 2000)**
+>
+> 1989년 3월, 유럽입자물리연구소(CERN)의 팀 버너스리(Tim Berners-Lee)는 연구자들이 문서를 쉽게 공유하기 위한 「정보 관리: 제안(Information Management: A Proposal)」을 상사에게 제출했습니다. 상사의 메모는 "모호하지만 흥미롭다(Vague but exciting)"였습니다. 그는 1990~1991년에 **HTTP, HTML, URL**과 첫 웹 서버·브라우저를 만들었고, 1993년 CERN은 웹 기술을 **누구나 무료로 쓸 수 있게** 공개했습니다. 이 결정이 웹을 전 세계 표준으로 만들었습니다. 버너스리는 2016년 튜링상을 받았습니다.
+>
+> 2000년 HTTP 표준 작성자 중 한 명인 로이 필딩(Roy Fielding)은 UC 어바인 박사 논문에서 웹이 왜 이렇게 크게 확장될 수 있었는지를 분석하고 그 설계 원칙을 **REST(Representational State Transfer)**라고 이름 붙였습니다. 핵심은 **모든 것을 자원(URL)으로 표현**하고, 정해진 몇 가지 **메서드(GET, POST…)**로 다루며, 서버가 클라이언트의 상태를 기억하지 않는(**stateless**) 것입니다. 오늘날 대부분의 웹 API가 이 원칙을 따르는 "REST API"입니다. 특히 **stateless** 원칙은 4일차에 배울 "서버를 여러 대로 늘리기(scale out)"를 가능하게 하는 핵심 조건입니다.
+>
+> - Berners-Lee, T. (1989). *Information Management: A Proposal*. CERN.
+> - Fielding, R. T. (2000). *Architectural Styles and the Design of Network-based Software Architectures*. PhD Dissertation, UC Irvine.
 
-```bash
-curl -I http://localhost:8000/index.html
-curl http://localhost:8000/index.html
-```
+> **📈 트렌드 — 인증서 수명이 47일로 줄어든다**
+>
+> 인증서 유효 기간은 보안을 위해 계속 짧아지고 있습니다. 브라우저 회사와 인증기관들의 협의체인 **CA/Browser Forum**은 2025년 4월, 애플이 제안한 안을 반대 없이 통과시켜 공개 TLS 인증서의 최대 수명을 단계적으로 줄이기로 했습니다.
+>
+> | 적용 시점 | 최대 유효 기간 |
+> |---|---|
+> | 2026년 3월 15일 이전 | 398일 |
+> | 2026년 3월 15일부터 | **200일** |
+> | 2027년 3월 15일부터 | **100일** |
+> | 2029년 3월 15일부터 | **47일** |
+>
+> 1년에 한 번 사람이 손으로 갱신하던 방식으로는 47일 주기를 감당할 수 없습니다. 결국 **인증서 발급과 갱신의 완전 자동화**가 필수가 됩니다. 무료 인증서를 자동으로 발급하는 **Let's Encrypt**와 ACME 프로토콜, Kubernetes에서 인증서를 자동 관리하는 **cert-manager**(4주차 소개), AWS의 **ACM**(5주차)이 바로 이 문제를 푸는 도구입니다. "사람이 기억해서 하는 일은 언젠가 잊힌다 → 자동화한다"는 DevOps의 원칙이 그대로 드러나는 사례입니다.
 
-재확인 기록에는 200 상태 코드와 예상 본문 일부가 함께 있어야 한다. 상태 코드만 200이어도 본문이 예전 내용이면 수정 확인은 끝난 것이 아니다.
+![TLS 인증서 최대 유효 기간의 변화 (CA/Browser Forum, 2025년 결정)](../../v3/assets/week1/day3/w1d3-cert-lifetime.png)
 
-## 30-40분 fix/recheck/prevent 기록
+## 정리
 
-- 진행: fix/recheck/prevent 기록
+- HTTP는 **요청과 응답**의 대화이고, 요청은 메서드·경로·헤더·본문, 응답은 상태 코드·헤더·본문으로 이루어집니다.
+- GET은 조회, POST는 생성. **멱등성**이 재시도 안전성을 결정합니다.
+- 4xx는 요청 쪽 문제, 5xx는 서버 쪽 문제. **502·504는 로드밸런서 뒤의 앱**을 의심합니다.
+- HTTPS는 **기밀성·무결성·인증**을 지키고, 인증서는 서버의 신분증입니다.
+- 인증서 수명이 2029년 47일로 줄어들어 **갱신 자동화**가 필수가 됩니다.
 
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
+> **✅ 확인 문제**
+>
+> 1. 상품 목록을 조회할 때와 새 주문을 만들 때 쓰는 메서드는 각각?
+> 2. 같은 요청을 여러 번 보내도 결과가 같은 성질을 무엇이라고 하나요?
+> 3. 로그인하지 않고 마이페이지에 접근했을 때 서버가 돌려주는 상태 코드는?
+> 4. 로드밸런서에서 `504 Gateway Timeout`이 나왔습니다. 무엇을 먼저 확인해야 하나요?
+> 5. 2029년부터 공개 TLS 인증서의 최대 유효 기간은 며칠이 되나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. GET, POST
+> 2. 멱등성(idempotency)
+> 3. 401 Unauthorized
+> 4. 로드밸런서 뒤의 앱 서버가 제시간에 응답하는지 (앱 서버 상태, 처리 시간)
+> 5. 47일
+>
+> </details>
 
+## 참고 문헌
 
+- Berners-Lee, T. (1989). *Information Management: A Proposal*. CERN.
+- Fielding, R. T. (2000). *Architectural Styles and the Design of Network-based Software Architectures*. UC Irvine.
+- Fielding, R., Nottingham, M., & Reschke, J. (2022). *RFC 9110: HTTP Semantics*. IETF.
+- Rescorla, E. (2018). *RFC 8446: The Transport Layer Security (TLS) Protocol Version 1.3*.
+- CA/Browser Forum (2025). *Ballot SC-081v3: Introduce Schedule of Reducing Validity and Data Reuse Periods*.
+- DigiCert (2025). *TLS Certificate Lifetimes Will Officially Reduce to 47 Days*.
 
-### 확인 질문
-- 이번 실패의 symptom은 무엇인가?
-- root cause candidate는 프로세스, 포트, file 경로 중 어디에 가까운가?
-- recheck에 같은 명령을 다시 써야 하는 이유는 무엇인가?
-- 오류 로그에서 전체 복사 대신 어떤 부분만 발췌해야 안전한가?
+---
 
-
-
-### 다음 주차 매핑
-Docker에서는 wrong file 경로가 image build context 문제로 나타날 수 있고, Kubernetes에서는 wrong 경로가 readiness 실패로 보일 수 있다. AWS 배포에서는 ALB target health와 application 상태 코드를 분리해서 봐야 한다.
-
-
-
-### 예상 결과
-- 없는 파일은 보통 404 상태 코드를 반환한다.
-- 서버 terminal에는 `/no-such-file.html` 요청 log가 남는다.
-- `/index.html` 요청은 200 상태 코드를 반환해야 한다.
-
-
-
-### 흔한 오해
-| 오해 | 교정 |
-|---|---|
-| 404는 서버 프로세스가 죽은 것이다. | server가 응답했으므로 프로세스는 살아 있다. 경로/resource 문제다. |
-| RCA는 큰 장애 때만 쓴다. | 작은 실패에서 연습해야 큰 장애 때 구조적으로 기록할 수 있다. |
-| fix만 하면 기록은 필요 없다. | prevent가 없으면 같은 실수가 반복된다. |
-
-## 40-50분 관찰 가능성 signal로 연결
-
-- 진행: 관찰 가능성 signal로 연결
-
-- 완료 조건: 아래 자료를 사용해 이 시간 블록의 산출물을 만든다.
-
-
-
-### 실습 확인 기록
-| 확인 항목 | 값 |
-|---|---|
-| failing URL | |
-| failing 상태 코드 | |
-| server log excerpt | |
-| fixed check URL | |
-| fixed 상태 코드 | |
-| fixed body 확인 | |
-| prevention note | |
-
-
-
-### 학술 근거와 DevOps insight
-SRE와 incident management에서는 증상, 영향, 원인, 조치, 재발 방지를 분리해 기록한다. 작은 404 분석도 같은 구조를 사용한다. 현업에서 좋은 RCA는 정답 맞히기가 아니라 확인 기록을 근거로 원인 후보를 좁히는 과정이다.
-
-
-
-### 평가 기준
-| 기준 | 2점 확인 기록 |
-|---|---|
-| 50분 참여 | 시간 흐름에 맞춰 설명, 활동, 산출물 작성에 참여했다. |
-| 증거 산출 | 수업에서 요구한 note, command, table, blocker 중 해당 산출물을 구체적으로 남겼다. |
-| 전이 연결 | 오늘 개념이 Week2~5 기술 또는 자기 산출물과 어떻게 연결되는지 한 문장 이상 설명했다. |
-
-
-
-### 공식/학술 근거 링크
-- Google SRE Book: Postmortem Culture, https://sre.google/sre-book/postmortem-culture/ - RCA를 blame이 아니라 학습 가능한 확인 기록으로 남기는 기준이다.
-- RFC 9110: HTTP Semantics, https://datatracker.ietf.org/doc/html/rfc9110 - 404와 같은 상태 코드를 원인 후보 분리에 사용하는 공식 기준이다.
-- Google SRE Book: Introduction, https://sre.google/sre-book/introduction/ - monitoring, emergency response, change management를 운영 책임으로 보는 근거다.
+⬅️ 이전: [4교시 · DNS](lesson-04.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 서비스로 가는 길 — 요청의 여정](lesson-06.md) ➡️

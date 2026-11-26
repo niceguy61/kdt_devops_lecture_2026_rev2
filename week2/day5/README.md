@@ -1,4 +1,8 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+
 # 2주차 5일차 — Docker Compose와 GitHub 협업
+
+📕 2주차 이북 PDF: [보기](../../downloads/pdf/week2.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week2.pdf) &nbsp;|&nbsp; 📊 5일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week2-day5.pptx)
 
 ## 오늘의 목표
 
@@ -43,3 +47,6 @@
 > - `docker compose version`이 나와야 합니다. Docker Desktop과 2주차 1일차의 Linux 설치에는 이미 들어 있습니다.
 > - 4교시부터는 **짝 실습**입니다. 짝의 GitHub 아이디를 미리 알아 두세요.
 
+---
+
+⬅️ 이전: [7교시 · 세 컨테이너 손으로 조립하기](../day4/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · compose.yaml 읽기](lesson-01.md) ➡️

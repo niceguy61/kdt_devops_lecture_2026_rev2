@@ -1,216 +1,215 @@
-# 6교시: 서비스 간 통신 확인
+[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [1일차](README.md)
 
-![Week 3 Day 1 Lesson 6](./assets/lesson-06-compose-full-run.png)
+# 6교시 · 동기와 비동기 — 큐와 처리기
 
-## 수업 목표
-- frontend -> api, api -> db, worker -> api 흐름을 각각 다른 증거로 확인한다.
-- request id가 여러 service 로그를 이어주는 이유를 설명한다.
-- host 기준 확인과 container 내부 기준 확인을 구분한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - **동기 호출**과 **비동기(큐) 처리**의 차이를 그림과 실험으로 이해합니다.
+> - 처리 시간을 늘려 큐에 일이 **쌓이는 것**을 봅니다.
+> - 처리기(`order-worker`)를 **3개로 늘려** 쌓인 일을 빨리 비웁니다.
+> - 각 방식이 언제 맞는지 정리합니다.
 
-## 준비
-```bash
-cd week3/day1/labs/msa-demo
-docker compose up --build -d
-docker compose ps
-```
+## 두 가지 대화 방식
 
-## 흐름 1: frontend -> api
-host에서 frontend를 통해 API를 호출한다.
+DevMart의 주문 흐름에는 두 가지 대화 방식이 섞여 있습니다.
 
-```bash
-curl -s -H 'x-request-id: w3d1-front-001' http://localhost:18083/api/status
-```
+![동기 호출은 답을 받을 때까지 기다리고, 비동기 처리는 큐에 일을 맡기고 바로 돌아간다](../../v3/assets/week3/day1/w3d1-sync-async.png)
 
-확인할 것:
-
-| JSON key | 의미 |
-|---|---|
-| `service` | 실제 응답한 service는 api |
-| `request_id` | frontend가 전달한 request id |
-| `frontend_to_api` | frontend 경유 요청 성공 표시 |
-| `database_reachable` | API가 DB까지 연결 가능한지 |
-
-로그 확인:
-
-```bash
-docker compose logs --tail=80 api | grep w3d1-front-001 || true
-```
-
-`grep`에 `|| true`를 붙인 이유는 해당 request id가 없을 때도 실습 흐름을 계속하기 위해서다. 하지만 실제 장애 분석에서 무조건 붙이면 실패를 숨길 수 있다.
-
-## 흐름 2: api -> db
-API health endpoint를 직접 호출한다.
-
-```bash
-curl -i http://localhost:18084/health
-```
-
-정상 예:
-
-```text
-HTTP/1.0 200 OK
-```
-
-본문에는 다음 값이 있어야 한다.
-
-```json
-{
-  "ready": true,
-  "db_host": "db",
-  "db_port": 5432,
-  "error": null
-}
-```
-
-여기서 `db_host`가 `localhost`가 아니라 `db`라는 점을 강조한다. API container 입장에서 `localhost`는 API 자기 자신이다.
-
-## 흐름 3: worker -> api
-worker는 host port가 없으므로 curl로 직접 호출하지 않는다. log로 확인한다.
-
-```bash
-docker compose logs --tail=80 worker
-```
-
-정상 worker log 형태:
-
-```json
-{
-  "service": "worker",
-  "request_id": "worker-...",
-  "api_url": "http://api:8080/api/status",
-  "status": 200
-}
-```
-
-worker가 `http://localhost:8080`을 쓰면 실패한다. worker container 내부의 localhost는 worker 자신이기 때문이다.
-
-## host 기준과 container 기준
-| 관점 | 주소 예시 | 사용하는 상황 |
+| | 동기(synchronous) | 비동기(asynchronous) |
 |---|---|---|
-| host -> frontend | `http://localhost:18083` | browser/curl로 사용자 경로 확인 |
-| host -> api debug | `http://localhost:18084` | 강의에서 API health 직접 확인 |
-| host -> catalog-api | `http://localhost:18120` | 상품 API 직접 확인 |
-| host -> order-api | `http://localhost:18121` | 주문 API 직접 확인 |
-| frontend -> api | `http://api:8080` | nginx reverse proxy 내부 통신 |
-| api -> db | `db:5432` | API container 내부 DB 연결 |
-| worker -> api | `http://api:8080/api/status` | background service 통신 |
-| order-api -> redis | `redis:6379` | 주문 이벤트 queue 입력 |
-| order-worker -> redis/db | `redis:6379`, `db:5432` | 주문 이벤트 처리와 상태 변경 |
+| DevMart의 예 | `order-api` → `catalog-api` (가격 묻기) | `order-api` → 큐 → `order-worker` (주문 처리) |
+| 방식 | 묻고, **답이 올 때까지 기다린다** | 일을 **맡기고 바로 돌아간다** |
+| 상대가 느리면 | 나도 느려진다 | 나는 영향 없다. 일이 큐에 쌓일 뿐 |
+| 상대가 죽으면 | 나도 실패한다 (503) | 일이 큐에서 기다린다. 상대가 돌아오면 처리 |
+| 답이 바로 필요한가 | 예 — 가격을 알아야 금액을 계산 | 아니요 — 처리 결과는 나중에 봐도 된다 |
+| HTTP 응답 | 200 OK (결과 포함) | **202 Accepted** (접수만 됨) |
 
-## 확장 흐름: catalog/order 서비스
-기존 `frontend`, `api`, `worker`, `db` 흐름은 그대로 둔다. 여기에 더 실제 서비스에 가까운 API를 같은 Compose stack에 추가해서 service가 늘어났을 때 통신 증거가 어떻게 달라지는지 본다.
+> **🧩 비유 — 전화와 주문서 함**
+>
+> **동기 호출은 전화**입니다. "에코백 얼마예요?" 하고 상대가 답할 때까지 수화기를 들고 기다립니다. 상대가 통화 중이면 나도 아무것도 못 합니다. **비동기 처리는 주방의 주문서 함**입니다. 홀 직원은 주문서를 함에 넣고 바로 다음 손님을 받습니다. 요리사는 함에서 주문서를 하나씩 꺼내 요리합니다. 손님이 몰리면 주문서가 **쌓이지만**, 홀은 계속 돌아가고, 요리사를 더 부르면 쌓인 주문서가 빨리 줄어듭니다.
 
-추가 service:
+## 실습 5 · 큐에 일이 쌓이는 것 보기
 
-| Service | 역할 | host 확인 | 내부 dependency |
-|---|---|---|---|
-| `catalog-api` | 상품 목록 API | `localhost:18120` | `db` |
-| `order-api` | 주문 생성/조회 API | `localhost:18121` | `db`, `redis` |
-| `redis` | 주문 이벤트 queue | host 공개 없음 | `order-api`, `order-worker` |
-| `order-worker` | queue에서 주문 이벤트 처리 | host 공개 없음 | `redis`, `db` |
+> **🧪 실습: 실습 목표**
+>
+> 처리기가 주문 하나에 5초씩 걸리게 바꾸고, 주문 6개를 한꺼번에 넣어 큐가 쌓이는 모습을 봅니다.
 
-확장 요청 흐름:
+### 단계 1 — 처리 시간을 5초로
 
-```text
-host -> catalog-api -> db
-host -> order-api -> db
-order-api -> redis queue
-order-worker -> redis queue -> db
+`compose.yaml`의 `order-worker` → `environment`에서 한 줄을 바꿉니다.
+
+```yaml
+      WORK_SECONDS: "5"
 ```
-
-상품 조회:
 
 ```bash
-curl -s -H 'x-request-id: w3d1-catalog-001' \
-  http://localhost:18120/api/catalog/products
-docker compose logs --tail=60 catalog-api | grep w3d1-catalog-001 || true
+docker compose up -d order-worker
 ```
 
-주문 생성:
+2주차 5일차 3교시에서 배운 대로, 환경 변수만 바꿨으니 `--build` 없이 `up -d`면 그 서비스만 다시 만들어집니다.
+
+### 단계 2 — 주문 6개를 한꺼번에
 
 ```bash
-curl -s -X POST -H 'x-request-id: w3d1-order-001' \
-  http://localhost:18121/api/orders
-docker compose exec redis redis-cli LLEN order-events
-docker compose exec redis redis-cli LRANGE order-events 0 -1
-docker compose logs --tail=80 order-api | grep w3d1-order-001 || true
-docker compose logs --tail=80 order-worker | grep w3d1-order-001 || true
+for i in 1 2 3 4 5 6; do
+  curl -s -o /dev/null -w "주문 $i → %{http_code} (%{time_total}초)\n" \
+    -X POST http://localhost:8080/api/orders \
+    -H 'Content-Type: application/json' -d '{"product_id": 4}'
+done
 ```
 
-`order-worker`는 교육용으로 `ORDER_WORKER_POLL_SECONDS=2`초마다 queue를 확인하고, message를 발견하면 `ORDER_WORKER_MESSAGE_VISIBILITY_SECONDS=10`초 동안 일부러 queue에 남겨둔 뒤 소비한다. 그래서 주문을 넣은 직후에는 Redis list에 message가 잠깐 남아 있어야 한다.
+- `for i in 1 2 3 4 5 6; do … done` : 안쪽 명령을 여섯 번 반복
+- `-w "… %{http_code} (%{time_total}초)"` : 상태 코드와 걸린 시간만 보여 준다
 
-| 명령 | 의미 |
-|---|---|
-| `LLEN order-events` | 현재 queue에 남아 있는 message 개수 |
-| `LRANGE order-events 0 -1` | queue에 남은 message payload 확인 |
-| `logs order-worker` | worker가 message를 꺼내 처리했는지 확인 |
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> 주문 1 → 202 (0.031초)
+> 주문 2 → 202 (0.024초)
+> 주문 3 → 202 (0.022초)
+> 주문 4 → 202 (0.023초)
+> 주문 5 → 202 (0.021초)
+> 주문 6 → 202 (0.022초)
+> ```
+> 처리에 5초씩 걸리는데도 **응답은 0.02초**입니다. `order-api`는 큐에 넣고 바로 돌아가기 때문입니다.
 
-`LRANGE` 결과 예시:
-
-```json
-{"order_id":12,"request_id":"w3d1-order-001"}
-```
-
-약 10초가 지나면 worker가 message를 꺼내므로 `LLEN`은 다시 `0`이 된다. 이 변화가 `queue에 들어감 -> worker가 소비함 -> DB 상태 변경` 흐름의 핵심 evidence다.
-
-주문 상태 확인:
+### 단계 3 — 쌓인 일 보기
 
 ```bash
-curl -s http://localhost:18121/api/orders
+docker compose exec redis redis-cli LLEN orders
 ```
 
-queue가 처리되었는지 다시 확인:
+- `redis-cli` : Redis에 명령을 보내는 도구 (컨테이너 안에 들어 있다)
+- `LLEN orders` : `orders`라는 목록(큐)의 **길이**
+
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> (integer) 5
+> ```
+> 6개 중 1개는 처리기가 이미 꺼내 처리 중이고, **5개가 줄 서 있습니다.** 브라우저의 주문 표에서도 pending이 하나씩 completed로 바뀌는 데 5초씩 걸립니다. 다 비우려면 약 30초가 걸립니다.
+
+## 실습 6 · 처리기를 3개로
 
 ```bash
-docker compose exec redis redis-cli LLEN order-events
+for i in 1 2 3 4 5 6; do
+  curl -s -o /dev/null -X POST http://localhost:8080/api/orders \
+    -H 'Content-Type: application/json' -d '{"product_id": 4}'
+done
+docker compose up -d --scale order-worker=3
+docker compose ps order-worker
 ```
 
-DB audit log 확인:
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> NAME                         SERVICE        STATUS
+> devmart-msa-order-worker-1   order-worker   Up 2 minutes
+> devmart-msa-order-worker-2   order-worker   Up 3 seconds
+> devmart-msa-order-worker-3   order-worker   Up 3 seconds
+> ```
+
+10초쯤 기다린 뒤 누가 처리했는지 봅니다.
 
 ```bash
-docker compose exec db psql -U paperclip -d paperclip \
-  -c "select service_name, request_id, event, created_at from audit_logs order by id desc limit 5;"
+docker compose exec redis redis-cli LLEN orders
+docker compose exec db psql -U devmart -d orders \
+  -c "SELECT id, status, processed_by FROM orders ORDER BY id DESC LIMIT 6;"
 ```
 
-여기서 중요한 점은 `order-api`가 사용자 요청을 받지만, 실제 주문 처리는 `order-worker` 로그와 DB 상태 변경까지 봐야 완료된다는 것이다. W3D2의 장애 전파 수업에서는 `redis` 또는 `order-worker`를 멈춰서 “API 응답과 실제 처리 완료는 다를 수 있다”를 확인할 수 있다.
+> **🟢 확인: 이렇게 나오면 성공**
+>
+> ```text
+> (integer) 0
+>  id |  status   | processed_by
+> ----+-----------+--------------
+>  20 | completed | a17ede6a43f2
+>  19 | completed | d190f9334617
+>  18 | completed | ae83c2f545d3
+>  17 | completed | a17ede6a43f2
+>  16 | completed | d190f9334617
+>  15 | completed | ae83c2f545d3
+> ```
+> `processed_by`에 **세 가지** 컨테이너 이름이 보입니다. 세 처리기가 같은 큐에서 일을 **나눠 가졌습니다.** 같은 메시지를 둘이 동시에 처리하지 않는 것은 Redis의 `BRPOP`이 메시지 하나를 **한 명에게만** 꺼내 주기 때문입니다. 30초 걸리던 일이 약 10초로 줄었습니다.
 
-## 통신 실패를 일부러 만들기 전 질문
-장애를 넣기 전에 먼저 정상 경로를 말할 수 있어야 한다.
+2주차 5일차 3교시에서는 `catalog-api`를 3개로 늘리려면 nginx를 다시 시작해야 했습니다. 처리기는 그럴 필요가 없습니다. **처리기가 큐에 일을 가지러 오는(pull)** 구조라, 늘어난 처리기가 스스로 큐에 붙기 때문입니다.
 
-```text
-사용자 요청은 localhost:18083으로 들어온다.
-frontend container는 api:8080으로 요청을 넘긴다.
-api는 db:5432로 PostgreSQL 연결을 확인한다.
-worker는 api:8080/api/status를 주기적으로 호출한다.
-order-api는 redis:6379에 주문 이벤트를 넣는다.
-order-worker는 redis queue에서 이벤트를 꺼내 db:5432에 처리 결과를 남긴다.
+### 단계 4 — 원래대로
+
+```bash
+docker compose up -d --scale order-worker=1
 ```
 
-이 네 문장을 말하지 못하면 장애 분석은 운에 맡기는 일이 된다.
+`compose.yaml`의 `WORK_SECONDS`도 `"1"`로 되돌리고 `docker compose up -d order-worker`를 합니다.
 
-## Evidence Note
-```markdown
-# W3D1S6 Communication Evidence
-- frontend -> api curl:
-- api -> db health:
-- worker -> api log:
-- catalog-api -> db curl/log:
-- order-api -> redis -> order-worker -> db evidence:
-- host address vs service name difference:
-```
+> [!WARNING]
+> **처리 중에 처리기를 줄이면?**
+>
+> 처리기를 3 → 1로 줄일 때, 마침 처리 중이던 주문이 있다면 어떻게 될까요? Docker는 컨테이너를 멈출 때 먼저 "정리하고 끝내라"는 신호를 보내고 **10초**를 기다립니다(2주차 2일차 6교시의 SIGTERM). 오늘 처리 시간은 5초라 대부분 마무리되지만, 처리 시간이 더 길다면 **꺼낸 메시지가 처리되지 않은 채 사라질 수 있습니다.** 큐에서 이미 꺼냈기 때문입니다. 이것이 2일차에 다룰 "메시지 유실"입니다.
 
-## 핵심 포인트
-MSA의 통신 확인은 `curl 한 번 성공`이 아니다. 사용자 경로, service 내부 경로, background 경로를 나눠서 각각의 증거를 잡는 것이다.
+## 언제 무엇을 쓰나
 
+| 상황 | 방식 | 이유 |
+|---|---|---|
+| 답이 있어야 다음 일을 할 수 있다 (가격 조회, 로그인 확인) | 동기 | 기다릴 수밖에 없다. 대신 **타임아웃**을 짧게 (`CATALOG_TIMEOUT=2`) |
+| 오래 걸리는 일 (결제 승인, 이메일, 이미지 변환) | 비동기 | 사용자를 기다리게 하지 않는다 |
+| 순간적으로 몰리는 일 (세일 시작, 티켓 오픈) | 비동기 | 큐가 **완충 장치**가 된다. 처리기는 자기 속도로 |
+| 받는 쪽이 자주 멈춘다 | 비동기 | 큐가 기다려 준다 |
+| 결과를 즉시 보여 줘야 한다 | 동기 (또는 비동기 + 상태 조회) | DevMart 화면은 2초마다 상태를 다시 묻는다 |
 
-## 학습 제어
-### 시작 3분 회상
-- 전체 stack baseline에서 Running/health/HTTP/logs는 각각 무엇을 증명했는가?
-- host port와 container port를 혼동하면 어느 연결이 실패하는가?
-### 오늘 반드시 가져갈 것
-- 서비스 간 통신은 호출자·목적지·포트·증거를 한 세트로 봐야 한다.
-- request ID와 logs는 장애 전파를 시간순으로 연결하는 증거다.
-### 최소 복구 경로
-- frontend→api, api→db, worker→api를 순서대로 호출한다 → 각 logs에서 request ID를 찾는다 → host/container 주소를 대조한다.
-- 성공 판정은 세 경로의 성공과 로그 상관관계를 설명하는 것이다. 첫 실패는 호출자 logs와 목적지 inspect에서 찾는다.
-- 다음 lesson 진입 조건은 경로별 첫 실패 위치를 구분하는 것이다.
+> **❓ 오해 — '비동기로 하면 장애가 사라진다'**
+>
+> 비동기는 장애를 **없애지 않고 미룹니다.** 처리기가 계속 죽어 있으면 큐는 끝없이 길어지고, 사용자는 "주문은 됐다는데 처리가 안 돼요"라고 연락해 옵니다. 그래서 비동기 시스템에서는 **큐 길이**가 가장 중요한 감시 지표가 됩니다. 2일차에 큐 적체 장애를 일부러 만들고, 4주차 모니터링에서 큐 길이 경보를 겁니다.
+
+> **🎓 학술 노트 — 리틀의 법칙 (Little, 1961)**
+>
+> 큐에 쌓인 일의 양을 설명하는 아주 단순하고 강력한 공식이 있습니다. MIT의 존 리틀(John D. C. Little)이 1961년 *Operations Research*에 증명한 **리틀의 법칙**입니다.
+>
+> > **L = λ × W**
+> > 시스템 안의 평균 일 개수(L) = 평균 도착률(λ) × 평균 머무는 시간(W)
+>
+> 오늘 실험에 대입해 봅시다. 처리기 하나가 주문 하나에 5초가 걸리면, 1초에 0.2개를 처리할 수 있습니다. 주문이 1초에 1개씩 꾸준히 들어온다면 처리 능력(0.2개/초)보다 도착률(1개/초)이 커서 **큐는 끝없이 길어집니다.** 처리기를 5개로 늘려야 처리 능력이 1개/초가 되어 균형이 맞습니다. 리틀의 법칙은 도착 분포나 처리 순서와 상관없이 성립하기 때문에, 은행 창구부터 웹 서버, Kubernetes의 자동 확장 계산까지 두루 쓰입니다. 4주차에 처리기 수를 큐 길이에 맞춰 자동으로 늘리는 도구(KEDA)를 만나면 이 공식이 그 바탕입니다.
+>
+> - Little, J. D. C. (1961). A proof for the queuing formula: L = λW. *Operations Research, 9*(3), 383–387.
+
+> **📈 트렌드 — 메시지 큐에서 이벤트 스트림으로**
+>
+> 오늘의 Redis 목록은 가장 단순한 큐입니다. 꺼내면 사라지고, 한 메시지는 한 처리기만 받습니다. 실제 서비스에서는 목적에 따라 다른 도구를 씁니다. **RabbitMQ**나 **Amazon SQS**는 처리 확인(ack)과 재시도를 갖춘 메시지 큐이고, **Apache Kafka**는 메시지를 지우지 않고 **기록(로그)으로 쌓아 두어** 여러 서비스가 각자 처음부터 다시 읽을 수 있게 하는 이벤트 스트림입니다. 1주차 4일차 5교시에서 본 Kafka 4.0의 ZooKeeper 제거도 이 흐름 위에 있습니다. "주문이 생겼다"는 사실을 이벤트로 흘려보내고 결제 · 재고 · 알림 서비스가 각자 받아 가는 **이벤트 기반 아키텍처**가 MSA와 짝을 이루어 널리 쓰입니다. 5주차 AWS에서 SQS를 잠깐 만납니다.
+
+## 정리
+
+- **동기** = 답이 올 때까지 기다린다 (가격 조회). 상대가 느리면 나도 느리다 → 짧은 타임아웃.
+- **비동기** = 큐에 맡기고 바로 돌아간다 (주문 처리). **202 Accepted**.
+- 처리가 느리면 큐가 **쌓인다** (`LLEN`). 처리기를 늘리면 **나눠서** 비운다 (`--scale`).
+- 처리기는 큐에서 일을 **가져가는** 구조라 늘려도 다른 설정을 바꿀 필요가 없다.
+- 비동기는 장애를 미룰 뿐이다. **큐 길이**를 감시해야 한다.
+
+> **✅ 확인 문제**
+>
+> 1. 처리에 5초 걸리는데 주문 응답이 0.02초인 이유는?
+> 2. `redis-cli LLEN orders`가 5라는 것은 무슨 뜻인가요?
+> 3. 처리기를 3개로 늘렸을 때 같은 주문을 둘이 처리하지 않는 이유는?
+> 4. `catalog-api`를 늘릴 때와 달리 `order-worker`를 늘릴 때 nginx를 다시 시작하지 않아도 되는 이유는?
+> 5. 주문이 1초에 2개씩 들어오고 처리기 하나가 주문 하나에 1초 걸린다면, 큐가 쌓이지 않으려면 처리기가 최소 몇 개 필요한가요?
+>
+> <details><summary>정답</summary>
+>
+> 1. order-api는 큐에 넣고 바로 202로 답하고, 처리는 order-worker가 나중에 하기 때문
+> 2. 처리를 기다리는 주문 메시지가 5개 줄 서 있다
+> 3. BRPOP이 메시지 하나를 한 처리기에게만 꺼내 주기 때문
+> 4. 처리기가 큐에 일을 가지러 오는(pull) 구조라, 누가 처리기에게 보내 줄 필요가 없다
+> 5. 2개 (도착률 2개/초 = 처리 능력 1개/초 × 2)
+>
+> </details>
+
+## 참고 문헌
+
+- Little, J. D. C. (1961). A proof for the queuing formula: L = λW. *Operations Research, 9*(3).
+- Hohpe, G., & Woolf, B. (2003). *Enterprise Integration Patterns*. Addison-Wesley.
+- Redis Docs. *BRPOP*, *LLEN*. redis.io/docs/latest/commands
+- MDN Web Docs. *202 Accepted*. developer.mozilla.org
+
+---
+
+⬅️ 이전: [5교시 · 요청 ID로 통신 추적하기](lesson-05.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 장애 시나리오 1 — 연결이 끊겼다](lesson-07.md) ➡️

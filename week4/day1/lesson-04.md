@@ -1,285 +1,197 @@
-# 4교시: ConfigMap과 Secret
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [1일차](README.md)
 
-![Week 4 Day 1 Lesson 4](./assets/lesson-04-configmap-secret-runtime-config.png)
+# 4교시 · Gateway API 구조
 
-## 수업 목표
-- image 밖 runtime config가 왜 필요한지 설명한다.
-- `.env`, ConfigMap, Secret의 관계를 연결한다.
-- Secret이 base64일 뿐 암호화 자체가 아니라는 점을 분명히 한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - Gateway API의 **역할별 리소스** — GatewayClass · Gateway · HTTPRoute — 와 각각의 주인을 구분합니다.
+> - 라우트가 Gateway에 **붙는** 방법(parentRefs · allowedRoutes)과 다른 네임스페이스로 **보내는** 방법(ReferenceGrant)을 이해합니다.
+> - 요청 하나가 **어느 규칙에 걸리는지** 정하는 우선순위를 읽습니다.
+> - **CRD**가 무엇인지, 왜 Gateway API는 Kubernetes에 '기본으로' 들어 있지 않은지 확인합니다.
 
-## Docker의 `.env` 감각에서 Kubernetes로
-Docker Compose에서는 `.env.dev`, `.env.staging`, `.env.prod`처럼 환경별 파일을 나누는 방식이 자주 쓰인다.
+## 세 사람, 세 리소스
 
-```text
-.env.dev      -> 개발 API endpoint, debug log
-.env.staging  -> staging DB, staging token
-.env.prod     -> 운영 endpoint, 운영 secret
-```
+![인프라 제공자는 GatewayClass, 클러스터 운영자는 Gateway, 앱 개발자는 HTTPRoute를 쓰고, 라우트는 parentRefs로 Gateway에 붙는다](../../v3/assets/week4/day1/w4d1-gateway-roles.png)
 
-Kubernetes에서도 환경 분리는 계속 필요하다. 다만 운영 secret을 파일 그대로 Git에 올리는 방식은 위험하다. Kubernetes에서는 설정을 ConfigMap/Secret object로 주입하고, 이후 Terraform, External Secrets, cloud secret manager로 확장한다.
+| 리소스 | 주인 | 정하는 것 | 범위 |
+|---|---|---|---|
+| **GatewayClass** | 인프라 제공자 (플랫폼 팀 · 클라우드) | "이 종류의 문은 **어느 구현**이 만든다" — `controllerName` | 클러스터 전체 |
+| **Gateway** | 클러스터 운영자 | 문 하나 — **어느 포트 · 프로토콜**, 어느 네임스페이스의 라우트가 **붙어도 되나** | 네임스페이스 |
+| **HTTPRoute** | 앱 개발자 | 어느 **Host · 경로 · 헤더**의 요청을 어느 **Service**로, 얼마의 **비율**로 | 네임스페이스 |
 
-## 왜 image 안에 설정을 넣으면 안 되는가
-아래처럼 환경별 endpoint나 token을 image build 시점에 박아 넣으면 편해 보일 수 있다.
+> [!IMPORTANT]
+> **왜 나눴나**
+>
+> Ingress 하나에는 "어떤 로드 밸런서를 쓸지(인프라)", "어느 포트 · 인증서(운영)", "어느 경로를 어디로(앱)"가 **한 파일에** 섞여 있었습니다. 그래서 앱 개발자가 경로 하나 고치려면 인증서까지 만질 권한이 필요했습니다. Gateway API는 이를 세 리소스로 나눠 **각자 자기 것만** 고치게 합니다. 4주차 5일차 RBAC에서 "앱 팀은 HTTPRoute만 쓸 수 있다"를 실제로 만듭니다.
 
-```Dockerfile
-ENV APP_ENV=prod
-ENV API_ENDPOINT=https://api.example.com
-ENV API_TOKEN=...
-```
+## 매니페스트 읽기
 
-하지만 이 방식은 운영에서 문제가 된다.
+오늘 오후에 쓸 파일들을 미리 읽습니다.
 
-| 문제 | 설명 |
-|---|---|
-| image 재사용 불가 | dev/staging/prod마다 image가 달라짐 |
-| secret 노출 | image layer/history에 민감정보가 남을 수 있음 |
-| 변경 속도 저하 | 설정 하나 바꿔도 build/push/rollout 필요 |
-| 감사 어려움 | 어떤 환경값으로 실행됐는지 추적이 애매함 |
-
-운영 기준은 “동일 image를 환경별 runtime config로 다르게 실행한다”에 가깝다.
-
-## ConfigMap 적용
 ```bash
-export NS=week4
-export LAB=week4/day1/labs/workload-basics
-
-kubectl apply -f "$LAB/namespace.yaml"
-kubectl apply -f "$LAB/configmap.yaml"
-kubectl -n "$NS" get configmap api-config -o yaml
+cd ~/devops-lab/k8s/w4d1
+cat gateway/gatewayclass.yaml gateway/gateway.yaml
 ```
 
-예상 출력 일부:
 ```yaml
-apiVersion: v1
-kind: ConfigMap
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
 metadata:
-  name: api-config
-  namespace: week4
-data:
-  APP_ENV: dev
-  LOG_LEVEL: debug
-  RESPONSE_MESSAGE: hello from kubernetes runtime config
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller   # 이 컨트롤러가 맡는다
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: devmart
+  namespace: devmart
+spec:
+  gatewayClassName: eg                 # 위의 GatewayClass
+  infrastructure:
+    parametersRef: { group: gateway.envoyproxy.io, kind: EnvoyProxy, name: devmart-proxy }   # 5교시
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All                    # 모든 네임스페이스의 라우트가 붙을 수 있다
 ```
-
-ConfigMap 예시:
-```yaml
-data:
-  APP_ENV: "dev"
-  LOG_LEVEL: "debug"
-  RESPONSE_MESSAGE: "hello from kubernetes runtime config"
-```
-
-ConfigMap은 app code가 아니라 운영 설정이다. 예를 들면 다음 값이 적합하다.
-
-| 값 | ConfigMap 적합 여부 | 이유 |
-|---|---|---|
-| `LOG_LEVEL=debug` | 적합 | 민감하지 않은 동작 설정 |
-| `FEATURE_GREETING=enabled` | 적합 | feature flag 성격 |
-| `API_BASE_URL=http://backend` | 대체로 적합 | 내부 endpoint |
-| `DB_PASSWORD=...` | 부적합 | Secret 대상 |
-| `JWT_PRIVATE_KEY=...` | 부적합 | Secret 또는 외부 secret manager |
-
-## Secret 적용
-```bash
-kubectl apply -f "$LAB/secret.yaml"
-kubectl -n "$NS" describe secret api-secret
-```
-
-예상 출력:
-```text
-Name:         api-secret
-Namespace:    week4
-Type:         Opaque
-
-Data
-====
-DEMO_API_TOKEN:  26 bytes
-```
-
-`describe secret`는 값 자체를 보여주지 않고 key와 byte 수를 보여준다. 이 출력만 보고 값이 암호화되어 안전하다고 착각하면 안 된다.
-
-`stringData`로 작성하면 Kubernetes가 저장 시점에 data 형태로 변환한다. 수업용으로는 편하지만 실제 secret 값을 repo에 남기면 안 된다.
-
-Secret YAML에서 `stringData`와 `data`의 차이는 학생들이 헷갈리기 쉽다.
-
-| 필드 | 작성 방식 | 예시 |
-|---|---|---|
-| `stringData` | 사람이 읽는 plain string 입력 | `DEMO_API_TOKEN: local-demo-token` |
-| `data` | base64 인코딩된 값 입력 | `DEMO_API_TOKEN: bG9jYWw...` |
-
-둘 다 저장된 Secret이 “암호화되어 안전하다”는 뜻은 아니다. base64는 누구나 되돌릴 수 있다.
 
 ```bash
-echo 'bG9jYWw=' | base64 -d
+sed -n '1,16p' gateway/devmart-routes.yaml
 ```
-
-이 예시는 base64가 암호가 아니라 표현 방식이라는 것을 보여주기 위한 것이다. 실제 secret 값으로 시연하지 않는다.
-
-## Pod에 주입하기
-Deployment에서는 `envFrom`으로 ConfigMap과 Secret을 주입한다.
 
 ```yaml
-envFrom:
-  - configMapRef:
-      name: api-config
-  - secretRef:
-      name: api-secret
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: orders
+  namespace: devmart
+spec:
+  parentRefs:
+    - name: devmart                    # 이 Gateway에 붙는다
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /api/orders }
+      backendRefs:
+        - name: order-api              # 이 Service의
+          port: 8000                   # 이 포트로
 ```
 
-Pod 상세에서 확인한다.
+3주차 5일차 nginx 설정의 `location /api/orders { proxy_pass http://order-api:8000; }` 한 줄이 **표준 리소스 하나**가 되었습니다.
+
+## 붙기와 보내기 — 두 개의 허락
+
+Gateway API는 **네임스페이스 경계**를 진지하게 다룹니다. 남의 네임스페이스에 함부로 연결되지 않도록, 두 군데에서 **허락**을 받습니다.
+
+| 방향 | 누가 허락 | 리소스 · 칸 | 오늘 |
+|---|---|---|---|
+| 라우트 → Gateway에 **붙기** | Gateway 주인 | Gateway의 `listeners[].allowedRoutes.namespaces` — `Same`(기본) · `All` · `Selector` | `All` — default 네임스페이스의 podinfo 라우트도 붙게 |
+| 라우트 → 다른 네임스페이스 Service로 **보내기** | Service 쪽 네임스페이스 주인 | **ReferenceGrant** — "devmart의 HTTPRoute가 우리 Service를 가리켜도 된다" | 7교시에 일부러 없이 해 본다 |
+
+> **🧩 비유 — 건물 출입과 사무실 출입**
+>
+> 건물(Gateway)에 들어오려면 **건물 관리소**의 허락이 필요하고(allowedRoutes), 남의 회사 사무실(다른 네임스페이스의 Service)에 들어가려면 **그 회사**의 허락이 필요합니다(ReferenceGrant). 관리소가 허락했다고 남의 사무실까지 들어갈 수 있는 것은 아닙니다.
+
+## 요청 하나는 어느 규칙에 걸리나
+
+여러 라우트의 규칙이 한 Gateway에 모이면, 요청 하나에 여러 규칙이 맞을 수 있습니다. 예를 들어 `/api/orders`는 `/api/orders` 규칙에도, `/api/` 규칙에도, `/` 규칙에도 맞습니다. Gateway API는 우선순위를 표준으로 정해 두었습니다(줄인 것).
+
+1. **Host가 더 구체적인 것** — `podinfo.localhost` > `*.localhost` > (Host 지정 없음)
+2. **경로가 정확히 일치(Exact)** > 앞부분 일치(PathPrefix)
+3. PathPrefix끼리는 **더 긴 것**
+4. 메서드 · 헤더 · 쿼리 조건이 **더 많은 것**
+5. 그래도 같으면 **먼저 만들어진 것**, 그다음 이름 순
+
+그래서 nginx 설정처럼 `location`의 **순서**를 신경 쓸 필요가 없습니다. `/api/orders/12`는 가장 긴 `/api/orders` 규칙으로 갑니다.
+
+> **📘 예시 — 어디로 갈까 (오늘의 라우트 기준)**
+>
+> | 요청 | 가는 곳 | 이유 |
+> |---|---|---|
+> | `GET /api/orders` | order-api | `/api/orders`가 가장 긴 앞부분 일치 |
+> | `GET /api/products/3` | catalog-api | `/api/`가 `/`보다 길다 |
+> | `GET /index.html` | web | `/`만 맞는다 |
+> | `GET /` + `Host: podinfo.localhost` | podinfo | Host가 지정된 라우트가 더 구체적 |
+> | `GET /api/orders` + `Host: podinfo.localhost` | **podinfo** | Host 우선 — podinfo 라우트에 `/` 규칙만 있어도 그쪽 |
+>
+> 마지막 줄이 함정입니다. Host가 먼저 갈립니다. 6교시에 직접 확인합니다.
+
+## 실습 6 · CRD — Kubernetes가 모르는 리소스
+
+Gateway API는 Kubernetes에 **기본으로 들어 있지 않습니다.** 확인합니다.
 
 ```bash
-POD=$(kubectl -n "$NS" get pod -l app=runtime-api -o jsonpath='{.items[0].metadata.name}')
-kubectl -n "$NS" describe pod "$POD"
+kubectl api-resources | grep -i gateway
+kubectl apply -f gateway/gatewayclass.yaml
 ```
 
-확인할 출력:
-```text
-Environment Variables from:
-  api-config  ConfigMap  Optional: false
-  api-secret  Secret     Optional: false
-```
+> **🟢 확인: 보이는 것**
+>
+> ```text
+> (아무것도 없다)
+> error: resource mapping not found for name: "eg" namespace: "" from "gateway/gatewayclass.yaml": no matches for kind "GatewayClass" in version "gateway.networking.k8s.io/v1"
+> ensure CRDs are installed first
+> ```
+> apiserver가 `GatewayClass`라는 **종류 자체를 모릅니다.** 3주차 3일차 7교시 `api-resources`에서 본 목록에 없기 때문입니다.
 
-이 출력은 Pod가 ConfigMap과 Secret을 참조했다는 증거다. 다만 Secret 값 자체를 화면에 출력하지 않는다. 수업에서도 secret value를 확인하기 위해 `env`를 찍는 습관은 만들지 않는다.
+> **📖 용어 — CRD (CustomResourceDefinition)**
+>
+> Kubernetes에 **새 리소스 종류를 추가하는** 리소스입니다. "이제부터 `GatewayClass`라는 종류가 있고, 칸은 이렇게 생겼다"를 apiserver에 알려 줍니다. CRD를 설치하면 `kubectl get gatewayclass`가 되고, etcd에 저장되고, `kubectl explain`도 됩니다. 하지만 **CRD만으로는 아무 일도 일어나지 않습니다.** 그 리소스를 지켜보다 실제로 일하는 **컨트롤러**(오늘은 Envoy Gateway)가 함께 있어야 합니다 — 3주차 3일차 4교시의 reconcile이 새 종류에 대해서도 그대로 일어납니다. 4주차에 설치하는 도구 대부분이 **CRD + 컨트롤러** 묶음입니다(Prometheus · Argo CD · Istio · Kyverno).
 
-실제 앱 응답으로도 확인한다.
+> **❓ 오해 — Gateway API는 Kubernetes 버전을 올리면 생긴다**
+>
+> Gateway API는 Kubernetes 본체와 **따로** 릴리스됩니다(SIG Network의 별도 프로젝트). 그래서 Kubernetes v1.37이라고 Gateway API v1.6이 들어 있는 것이 아니라, **CRD를 설치한 버전**이 그 클러스터의 Gateway API 버전입니다. 오늘은 Envoy Gateway 차트가 자기가 지원하는 버전(v1.6.1)의 CRD를 함께 설치합니다. 한 클러스터에 CRD는 **하나만** 있을 수 있어서, 여러 구현을 섞어 쓸 때 버전 충돌이 생기기도 합니다(1교시 학술 노트의 '클러스터 전체가 하나만 가지는 것').
 
-```bash
-kubectl -n "$NS" run curlbox --rm -it --restart=Never \
-  --image=curlimages/curl:8.10.1 \
-  -- curl -s http://runtime-api
-```
+## 표준 채널과 실험 채널
 
-기대값:
-```text
-hello from kubernetes runtime config
-```
+Gateway API의 기능은 성숙도에 따라 두 **채널**로 나뉩니다.
 
-이 값은 container image 안에 고정된 값이 아니라 ConfigMap의 `RESPONSE_MESSAGE`에서 온 값이다.
-
-## 설정이 빠졌을 때의 실패
-ConfigMap이나 Secret 이름이 틀리면 Pod는 시작하지 못할 수 있다.
-
-예상 event:
-```text
-Error: configmap "api-config-missing" not found
-Error: secret "api-secret-missing" not found
-```
-
-이때는 app log를 보기 전에 `kubectl describe pod`의 events를 먼저 본다.
-
-```bash
-kubectl -n "$NS" describe pod <pod-name>
-```
-
-판단 기준:
-| 증상 | 먼저 볼 곳 |
-|---|---|
-| Pod가 `CreateContainerConfigError` | ConfigMap/Secret 이름과 key |
-| Pod는 뜨는데 값이 이상함 | ConfigMap data와 rollout 여부 |
-| secret 값을 바꿨는데 반영 안 됨 | 기존 Pod 재시작 여부 |
-
-## Secret 주의사항
-| 오해 | 실제 |
-|---|---|
-| Secret이면 안전하다 | 기본값은 base64 인코딩이며 암호화가 아니다 |
-| Git에 넣어도 된다 | 실제 secret 값은 Git에 넣지 않는다 |
-| Pod env로 넣으면 항상 안전하다 | Pod describe 권한, process env 노출을 고려해야 한다 |
-| 한 번 넣으면 끝이다 | rotation, 만료, 접근 권한이 필요하다 |
-
-## secret을 env로 넣을 때의 현실적인 주의
-env 주입은 쉽지만 모든 상황에서 최선은 아니다.
-
-| 방식 | 장점 | 주의 |
+| 채널 | 뜻 | 예 (v1.6 기준) |
 |---|---|---|
-| env | app 수정이 적고 간단함 | process env, crash dump, debug 출력 주의 |
-| volume mount | file 기반 key/cert에 적합 | app이 파일 reload를 지원해야 함 |
-| external secret | cloud secret manager와 연결 | add-on과 권한 설계 필요 |
+| **Standard** | 안정. 하위 호환 약속 | GatewayClass · Gateway · HTTPRoute · GRPCRoute · ReferenceGrant · TLSRoute · ListenerSet · TCPRoute · UDPRoute |
+| **Experimental** | 바뀔 수 있음. 이름에 `X` 접두사가 붙기도 한다 | XBackend 등 |
 
-오늘은 입문이므로 env/envFrom으로 시작한다. 하지만 현업에서는 운영 secret 값을 Git repository의 Kubernetes Secret YAML에 직접 넣지 않는 패턴이 흔하다. 이때 자주 등장하는 도구가 External Secrets Operator다.
+그리고 구현마다 **어디까지 지원하는지**가 다릅니다. Gateway API 프로젝트는 **적합성 시험**(conformance test)을 두고, 구현마다 통과한 기능을 공개합니다. "Gateway API를 지원한다"는 말은 "**어느 버전의 어느 기능**을 지원한다"로 읽어야 합니다.
 
-## External Secrets Operator preview
-External Secrets Operator는 외부 secret store의 값을 Kubernetes Secret으로 동기화하는 operator다.
+> **🎓 학술 노트 — 역할 기반 설계와 '관심사의 분리'**
+>
+> Dijkstra는 1974년 *On the role of scientific thought*에서 한 번에 한 측면에만 집중하는 **관심사의 분리**(separation of concerns)를 좋은 사고의 핵심으로 꼽았습니다. Gateway API는 이를 **사람의 역할** 단위로 적용했습니다 — 인프라 · 운영 · 앱이 각자 자기 리소스만 다룹니다. 이는 Conway의 법칙(1968, "시스템의 구조는 그것을 만든 조직의 소통 구조를 닮는다")을 의도적으로 이용한 설계이기도 합니다. Ingress가 '한 사람이 다 아는' 작은 팀을 가정했다면, Gateway API는 1주차 5일차의 **플랫폼 팀 + 여러 앱 팀** 구조를 가정합니다.
 
-```text
-AWS Secrets Manager 또는 SSM Parameter Store
-  -> External Secrets Operator
-  -> Kubernetes Secret
-  -> Pod env 또는 volume mount
-```
+> **📈 트렌드 2026 — 메시와 입구가 같은 API로**
+>
+> Gateway API는 클러스터 **입구**(남북 트래픽)뿐 아니라, 서비스끼리 오가는 **내부 트래픽**(동서 트래픽)에도 쓰입니다. HTTPRoute의 `parentRefs`에 Gateway 대신 **Service**를 적으면 "이 Service로 가는 요청을 이렇게 나눠라"가 되는데, 이를 **GAMMA**라고 부릅니다. Istio · Linkerd · Cilium이 이를 지원해, 4주차 4일차 서비스 메시에서도 오늘 배운 HTTPRoute를 그대로 씁니다. 같은 API를 한 번 배우면 입구와 메시를 모두 다루는 방향으로 수렴하고 있습니다.
 
-Docker에서는 `.env.prod` 파일을 배포 서버에 두거나 CI secret으로 주입하는 식으로 처리했다. Kubernetes에서는 secret 값의 출처와 동기화 주체를 더 명확히 나눈다.
+> **✅ 확인 문제**
+>
+> 1. 앱 개발자가 주로 쓰는 리소스는? 포트와 프로토콜은 어느 리소스에서 정하나요?
+> 2. default 네임스페이스의 HTTPRoute가 devmart 네임스페이스의 Gateway에 붙으려면 무엇이 필요한가요?
+> 3. devmart의 HTTPRoute가 default의 Service로 보내려면 무엇이 필요한가요?
+> 4. `/api/orders/7` 요청은 `/api/`, `/api/orders`, `/` 규칙 중 어디로 가나요? 왜?
+> 5. CRD만 설치하고 컨트롤러를 설치하지 않으면 어떻게 되나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. HTTPRoute. 포트 · 프로토콜은 Gateway의 listeners
+> 2. Gateway 리스너의 `allowedRoutes.namespaces`가 `All`(또는 default를 고르는 `Selector`)이어야 하고, 라우트의 `parentRefs`에 `namespace: devmart`를 적는다
+> 3. default 네임스페이스에 ReferenceGrant — "devmart의 HTTPRoute가 우리 Service를 가리켜도 된다"
+> 4. `/api/orders` — PathPrefix끼리는 더 긴 것이 이긴다
+> 5. 리소스는 만들어지고 저장되지만, 그것을 보고 일하는 주체가 없어 **아무 일도 일어나지 않는다** (status도 비어 있다)
+>
+> </details>
 
-| 방식 | Docker/Compose 감각 | Kubernetes 확장 |
-|---|---|---|
-| `.env` 파일 | container 실행 시 env 주입 | ConfigMap/Secret, 환경별 manifest |
-| CI secret | workflow에서 build/deploy 시 주입 | GitHub Secret, cloud secret store |
-| 운영 secret store | 직접 스크립트로 조회 | External Secrets Operator |
-| cloud IAM | 배포 서버 권한 | ServiceAccount + workload identity |
+## 참고 문헌
 
-AWS에서는 External Secrets Operator가 Secrets Manager와 SSM Parameter Store를 provider로 사용할 수 있다. 수업에서는 W4D4에서 권한 모델을 보고, W5 AWS에서 Secrets Manager/Parameter Store 선택 기준으로 다시 연결한다.
+- Gateway API. *API Overview* · *Security Model* · *HTTPRoute — Matching precedence*. gateway-api.sigs.k8s.io
+- Gateway API. *Versioning — Release channels* · *Conformance*. gateway-api.sigs.k8s.io/concepts
+- Kubernetes Blog (2026-08-03). *Gateway API v1.6: TCPRoute and UDPRoute Graduate to Standard*. kubernetes.io/blog
+- Kubernetes Docs. *Custom Resources*. kubernetes.io/docs/concepts/extend-kubernetes/api-extension
+- Dijkstra, E. W. (1974/1982). On the role of scientific thought. In *Selected Writings on Computing: A Personal Perspective*. Springer.
+- Conway, M. E. (1968). How Do Committees Invent? *Datamation*, 14(4).
 
-| 외부 저장소 | 성격 |
-|---|---|
-| AWS Secrets Manager | rotation, secret lifecycle, DB credential 관리에 적합 |
-| AWS SSM Parameter Store | 설정/parameter 저장, 비용과 단순성 측면에서 선택 가능 |
+---
 
-중요한 점은 "External Secrets Operator를 쓰면 secret 고민이 끝난다"가 아니다. operator가 외부 secret을 읽을 권한, Kubernetes Secret을 만들 권한, Pod가 그 Secret을 읽는 권한을 모두 설계해야 한다.
-
-오늘은 개념 preview이고 실제 설치는 W4D4에서 RBAC/ServiceAccount 흐름과 함께 다룬다.
-
-## 설정 변경 후 Pod가 자동으로 바뀌는가
-ConfigMap을 수정했다고 기존 Pod의 env가 자동으로 바뀌지는 않는다. env는 container 시작 시점에 주입된다.
-
-```bash
-kubectl -n "$NS" edit configmap api-config
-kubectl -n "$NS" rollout restart deploy/runtime-api
-kubectl -n "$NS" rollout status deploy/runtime-api
-```
-
-이 흐름은 운영에서 자주 쓰인다. 설정 변경 자체와 workload restart/rollout은 별개라는 것을 설명한다.
-
-rollout 후에는 새 ReplicaSet과 Pod가 만들어졌는지 확인한다.
-
-```bash
-kubectl -n "$NS" rollout status deploy/runtime-api
-kubectl -n "$NS" get rs,pod -l app=runtime-api
-```
-
-예상 흐름:
-```text
-deployment "runtime-api" successfully rolled out
-```
-
-ConfigMap 수정은 “설정 object 변경”이고, rollout restart는 “새 설정으로 Pod를 다시 시작하는 작업”이다. 이 둘을 분리해서 설명해야 한다.
-
-## 운영 기준
-ConfigMap과 Secret을 쓰는 이유는 깔끔한 YAML을 만들기 위해서가 아니다. image를 다시 빌드하지 않고 환경별 값을 바꾸고, 민감정보의 저장과 접근 범위를 분리하기 위해서다.
-
-## Evidence Note
-```markdown
-# W4D1S4 ConfigMap/Secret
-- ConfigMap에 넣은 값:
-- Secret에 넣으면 안 되는 방식:
-- Pod describe에서 envFrom 확인:
-- 앱 응답으로 확인한 runtime config:
-- 설정 변경 후 필요한 rollout 작업:
-```
-
-## 한 줄 요약
-```text
-ConfigMap과 Secret은 image를 환경에 종속시키지 않기 위한 runtime config 경계다.
-```
-
-
-## 학습 제어
-### 시작 3분 회상
-- Helm values와 Kubernetes current state를 어떤 증거로 비교했나?
-- ConfigMap과 Secret은 설정·민감정보 책임이 어떻게 다른가?
-### 오늘 반드시 가져갈 것
-- ConfigMap은 일반 runtime 설정, Secret은 접근·노출 통제가 필요한 민감정보다.
-- Pod 환경 반영은 object 존재와 실제 container 환경을 따로 검증한다.
-### 최소 복구 경로
-- key/value와 민감도 경계를 정한다 → object를 확인한다 → Pod rollout 후 logs/events와 주입 결과를 검증한다.
-- 성공 판정은 값의 존재·비노출·반영 evidence다. 첫 실패는 object describe와 Pod events에서 찾는다.
-- 다음 lesson 진입 조건은 probe가 traffic과 restart를 어떻게 바꾸는지 설명하는 것이다.
+⬅️ 이전: [3교시 · Ingress의 역사와 ingress-nginx 은퇴](lesson-03.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · Envoy Gateway 설치와 Gateway](lesson-05.md) ➡️

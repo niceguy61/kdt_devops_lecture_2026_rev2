@@ -1,163 +1,145 @@
-# 2교시: GitHub 계정, Git, Python3, VS Code 확인
+[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [2일차](README.md)
 
-## 수업 목표
-- GitHub 계정, Git 설치, Python3 설치, VS Code 터미널 상태를 확인한다.
-- 계정/인증 정보와 공개 가능한 확인 기록을 구분한다.
-- 설치 확인을 "버전 출력"과 "터미널에서 실행 가능"으로 판단한다.
+# 2교시 · 운영체제가 하는 일
 
-## 50분 흐름
-| 시간 | 활동 |
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 운영체제(OS)와 커널이 무엇인지 설명합니다.
+> - 프로그램이 하드웨어를 쓰려면 왜 **시스템 콜**을 거쳐야 하는지 이해합니다.
+> - 서버와 클라우드에서 왜 거의 Linux를 쓰는지 설명합니다.
+> - Unix와 Linux의 역사, 그리고 "Unix 철학"을 맛봅니다.
+
+## 운영체제 — 하드웨어와 프로그램 사이의 관리자
+
+1교시에서 본 CPU, 메모리, 디스크, 네트워크 카드는 그 자체로는 아무것도 하지 않습니다. 수많은 프로그램이 이 부품들을 **안전하고 공평하게 나눠 쓰도록** 관리하는 소프트웨어가 필요합니다. 그것이 **운영체제(Operating System, OS)**입니다.
+
+> **🧩 비유 — 건물 관리소**
+>
+> 여러 회사가 입주한 빌딩을 떠올려 보세요. 각 회사(프로그램)는 전기, 엘리베이터, 회의실(하드웨어)을 써야 합니다. 회사들이 전기 배선을 마음대로 건드리면 건물 전체가 위험해집니다. 그래서 **관리소(운영체제)**가 있고, 회사들은 관리소에 **신청서(시스템 콜)**를 내서 자원을 씁니다. 관리소는 공평하게 나눠 주고, 한 회사가 다른 회사 사무실에 들어가지 못하게 막습니다.
+
+## 커널과 사용자 영역
+
+![운영체제의 층 — 사용자 프로그램, 시스템 콜, 커널, 하드웨어](../../v3/assets/week1/day2/w1d2-os-layers.png)
+
+운영체제의 핵심을 **커널(kernel)**이라고 합니다. 커널은 하드웨어를 직접 다룰 수 있는 유일한 소프트웨어입니다.
+
+| 층 | 무엇이 있나 | 권한 |
+|---|---|---|
+| 사용자 영역 (user space) | 웹 브라우저, nginx, Python 프로그램, 셸 | 하드웨어 직접 접근 불가 |
+| 시스템 콜 (system call) | `open`, `read`, `write`, `fork`, `socket` 같은 요청 창구 | 사용자 → 커널로 넘어가는 공식 통로 |
+| 커널 영역 (kernel space) | 프로세스 관리, 메모리 관리, 파일시스템, 네트워크, 장치 드라이버 | 하드웨어 직접 접근 가능 |
+| 하드웨어 | CPU, 메모리, 디스크, NIC | — |
+
+예를 들어 Python 프로그램이 파일 하나를 읽을 때 실제로는 이런 일이 일어납니다.
+
+1. 프로그램이 `open()` 시스템 콜로 "이 파일 열어 주세요"라고 커널에 요청합니다.
+2. 커널은 **권한**을 확인합니다. 이 사용자가 이 파일을 읽어도 되는가?
+3. 커널이 파일시스템과 디스크 드라이버를 통해 데이터를 읽어 메모리에 올립니다.
+4. `read()` 시스템 콜의 결과로 프로그램에 데이터를 넘겨줍니다.
+
+> [!IMPORTANT]
+> **왜 이렇게 번거롭게 할까?**
+>
+> 모든 프로그램이 하드웨어를 직접 만질 수 있다면, 버그 하나가 컴퓨터 전체를 멈추게 하거나 다른 프로그램의 데이터를 훔쳐볼 수 있습니다. CPU에는 **사용자 모드**와 **커널 모드**라는 하드웨어 수준의 권한 구분이 있어서, 일반 프로그램은 커널을 거치지 않고는 위험한 일을 할 수 없습니다. 이 **격리** 개념은 오늘 6~7교시의 가상화와 컨테이너, 그리고 4주차 보안에서 계속 반복됩니다.
+
+## 운영체제의 다섯 가지 일
+
+| 일 | 설명 | 이 과정에서 다시 만나는 곳 |
+|---|---|---|
+| 프로세스 관리 | 어떤 프로그램을 언제 CPU에서 돌릴지 정한다 | 3교시, Kubernetes 스케줄링 |
+| 메모리 관리 | 프로그램마다 메모리를 나눠 주고 서로 침범하지 못하게 한다 | 컨테이너 메모리 제한, OOMKilled |
+| 파일시스템 | 디스크의 데이터를 파일과 폴더로 정리한다 | 4교시, Docker 볼륨 |
+| 네트워크 | 데이터를 패킷으로 나눠 주고받는다 | 3일차, Docker 네트워크 |
+| 보안·권한 | 누가 무엇을 할 수 있는지 통제한다 | 파일 권한, IAM, RBAC |
+
+## 왜 서버는 Linux인가
+
+여러분이 쓰는 노트북은 Windows나 macOS일 가능성이 높습니다. 그런데 서버와 클라우드 세계는 거의 **Linux**입니다.
+
+| 이유 | 설명 |
 |---|---|
-| 0-5분 | 작업 폴더 경로 점검 |
-| 5-15분 | Git, GitHub, Python3, VS Code의 역할 구분 |
-| 15-30분 | 설치, 버전 확인, VS Code 터미널 확인 |
-| 30-40분 | 계정 보안, MFA, 토큰 비공개 기준 정리 |
-| 40-50분 | 막힘 기록 분류와 다음 실습 준비 |
+| 무료·오픈소스 | 서버 수천 대에 설치해도 라이선스 비용이 없고, 소스 코드를 직접 볼 수 있다 |
+| 가볍고 안정적 | 화면(GUI) 없이 꼭 필요한 것만 설치해 오래 켜 둘 수 있다 |
+| 자동화에 최적 | 모든 작업을 명령어와 스크립트로 할 수 있어 수천 대를 똑같이 관리하기 쉽다 |
+| 컨테이너의 기반 | Docker와 Kubernetes가 쓰는 핵심 기능(네임스페이스, cgroups)이 Linux 커널 기능이다 |
+| 생태계 | 클라우드 이미지, 문서, 커뮤니티가 Linux 중심이다 |
 
-## 0-5분 작업 폴더 경로 점검
+> **📈 트렌드 — 세계 최고 슈퍼컴퓨터 500대가 모두 Linux**
+>
+> 전 세계 슈퍼컴퓨터 순위를 매기는 TOP500 목록에서는 2017년 11월부터 **500대 전부가 Linux**를 쓰고 있습니다. 클라우드도 마찬가지로, AWS·구글·마이크로소프트 클라우드에서 돌아가는 가상 머신과 컨테이너의 대다수가 Linux입니다. 마이크로소프트조차 Windows 안에서 진짜 Linux 커널을 돌리는 **WSL2(Windows Subsystem for Linux 2)**를 만들었고, 이 과정의 2주차 실습도 Windows 사용자는 WSL2 위에서 진행합니다.
 
+### Linux 배포판
 
-### 상세 설명
-Git은 내 컴퓨터에서 변경 이력을 관리하는 도구이고, GitHub는 repository를 원격에서 공유하고 협업하는 서비스다. Python3는 Day3에서 로컬 정적 서버를 실행할 때 사용할 실행 도구이고, VS Code는 코드를 편집하고 터미널을 함께 사용할 수 있는 작업 환경이다. 네 도구는 같은 것이 아니다. GitHub 계정이 있어도 Git이 설치되어 있지 않을 수 있고, Python3가 없으면 `python3 -m http.server` 실습에서 막힌다. Git이나 Python3가 설치되어 있어도 VS Code 터미널에서 명령을 찾지 못할 수 있다.
+Linux는 엄밀히 말하면 **커널의 이름**입니다. 커널에 각종 도구, 패키지 관리자, 설정을 묶어서 바로 쓸 수 있게 만든 것을 **배포판(distribution)**이라고 합니다.
 
-설치 확인은 "설치한 것 같다"가 아니라 명령 출력으로 판단한다. `git --version`이 나오면 현재 shell에서 Git 실행 파일을 찾았다는 뜻이고, `python3 --version`이 나오면 현재 shell에서 Python3 실행 파일을 찾았다는 뜻이다. 반대로 command not found가 나오면 설치가 안 되었거나 PATH에 등록되지 않은 상태다.
-
-
-### 시각 자료 1: 네 도구의 역할 구분
-![GitHub, Git, VS Code 역할 구분](./assets/lesson-02-git-vscode-roles.png)
-
-이 이미지는 GitHub, Git, VS Code를 설치 목록이 아니라 협업 시스템의 서로 다른 책임으로 구분하게 한다. 여기에 Python3는 Day3 로컬 서버 실행 도구로 추가 확인한다. 학생에게 먼저 `clone`, `commit`, `push` 화살표를 읽게 한 뒤, 각 명령이 어느 경계를 넘는지 확인한다.
-
-```mermaid
-flowchart LR
-    A[GitHub 계정<br/>원격 repository] <-- push/clone --> B[Git CLI<br/>변경 이력 관리]
-    B --> C[VS Code 터미널<br/>명령 실행 환경]
-    C --> D[`git --version` 확인 기록]
-    C --> E[`python3 --version` 확인 기록]
-```
-
-## 5-15분 Git, GitHub, Python3, VS Code의 역할 구분
-
-
-### 공식 참고
-- GitHub account: https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github
-- Git install: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
-- Python downloads: https://www.python.org/downloads/
-- Homebrew Python formula: https://formulae.brew.sh/formula/python@3.13
-- VS Code docs: https://code.visualstudio.com/docs
-- macOS/Linux 설치 가이드: [필수 소프트웨어 설치 가이드](../../docs/software-installation-guide.md)
-
-처음 설치하는 학생은 공식 문서를 모두 읽으려 하기보다 설치 가이드의 순서대로 `git --version`, VS Code 터미널의 `pwd`, `python3 --version`, `curl --version`을 먼저 확인한다. 실패하면 "어떤 도구가 안 되는지"를 분리해서 기록한다.
-
-### Python3 설치 기준
-Day3 로컬 정적 서버 실습은 `python3 -m http.server 8000` 명령을 사용한다. 따라서 W1D2S2에서 `python3 --version`이 성공해야 한다. 설치가 되어 있지 않으면 운영체제별로 아래 중 하나를 사용한다.
-
-| 환경 | 설치 방법 | 설치 후 확인 |
+| 배포판 | 특징 | 어디서 만나나 |
 |---|---|---|
-| macOS + Homebrew | `brew install python3` | `python3 --version` |
-| macOS without Homebrew | python.org에서 macOS installer 다운로드 | `python3 --version` |
-| Ubuntu/WSL | `sudo apt update` 후 `sudo apt install -y python3 python3-pip` | `python3 --version` |
-| Windows | python.org installer에서 "Add python.exe to PATH" 체크 후 설치 | `py --version` 또는 `python --version` |
+| Ubuntu | 가장 대중적, 자료가 많음 | WSL2 기본, 실습 서버 |
+| Debian | 안정성 중시, 많은 배포판의 뿌리 | 많은 Docker 이미지의 기반 |
+| Amazon Linux | AWS가 직접 관리, AWS 도구 기본 포함 | 5주차 EC2 |
+| Red Hat Enterprise Linux (RHEL) 계열 | 기업 지원, 금융·공공에서 많이 씀 | 국내 대기업·공공기관 |
+| Alpine | 매우 작음(수 MB) | 가벼운 Docker 이미지 |
 
-macOS에서 `brew: command not found`가 나오면 Python 문제가 아니라 Homebrew가 없는 상태다. 이 경우 Homebrew 설치부터 진행하거나 python.org installer를 사용한다. Windows에서 `python3`가 실패하더라도 `py --version` 또는 `python --version`이 성공하면 Python 설치 자체는 된 것이다. 수업 기록에는 어떤 명령이 성공했는지 그대로 남긴다.
+> **🎓 학술 노트 — Unix의 탄생과 Unix 철학**
+>
+> 1969년 미국 벨 연구소의 켄 톰프슨(Ken Thompson)과 데니스 리치(Dennis Ritchie)는 **Unix**를 만들었습니다. 리치는 Unix를 다시 쓰기 위해 **C 언어**까지 만들었고, 덕분에 Unix는 다른 하드웨어로 옮기기 쉬운 최초의 운영체제 중 하나가 됐습니다. 두 사람은 1974년 *Communications of the ACM*에 「The UNIX Time-Sharing System」 논문을 발표했고, 1983년 튜링상을 받았습니다.
+>
+> 1991년 핀란드 대학생 리누스 토르발스(Linus Torvalds)는 Unix와 비슷하게 동작하는 커널을 취미로 만들어 공개했습니다. 이것이 **Linux**입니다. 리처드 스톨먼(Richard Stallman)의 **GNU 프로젝트**가 만든 도구들과 합쳐져 완전한 운영체제가 되었습니다.
+>
+> Unix를 만든 사람들은 **"Unix 철학"**이라 불리는 설계 원칙을 남겼습니다. 더그 매클로이(Doug McIlroy)가 정리한 핵심은 이렇습니다.
+>
+> 1. 한 가지 일을 잘하는 프로그램을 만들어라.
+> 2. 프로그램들이 함께 일하도록 만들어라.
+> 3. 텍스트를 주고받게 만들어라. 텍스트는 모든 프로그램이 이해하는 공통 언어다.
+>
+> 5교시에 볼 `ps aux | grep nginx` 같은 명령 조합(파이프)이 바로 이 철학의 결과입니다. 그리고 이 철학은 50년이 지나 **마이크로서비스(MSA)**라는 이름으로 다시 등장합니다. "작은 서비스가 한 가지 일을 잘하고, API로 협력한다." 3주차에 이 연결을 다시 확인합니다.
+>
+> - Ritchie, D. M., & Thompson, K. (1974). The UNIX time-sharing system. *Communications of the ACM*, 17(7), 365–375.
+> - McIlroy, M. D., Pinson, E. N., & Tague, B. A. (1978). UNIX Time-Sharing System: Foreword. *Bell System Technical Journal*, 57(6).
 
+## 커널 모드 진입은 비싸다
 
-### 시각 자료 2: 설치 확인 화면 가이드
-| 화면/출력 | 확인할 뜻 | README에 남길 것 |
-|---|---|---|
-| GitHub 로그인 화면 | 계정 접근 가능 | 계정명은 공개 가능하지만 토큰은 기록하지 않는다. |
-| `git --version` | 현재 터미널에서 Git 실행 가능 | 버전 문자열 |
-| `python3 --version` | 현재 터미널에서 Python3 실행 가능 | 버전 문자열 또는 대체 확인 명령 |
-| VS Code 터미널의 `pwd` | 편집기 안 터미널 사용 가능 | 작업 경로 또는 막힘 기록 |
+시스템 콜은 사용자 모드에서 커널 모드로 넘어갔다 돌아오는 과정이라 일반 함수 호출보다 시간이 더 걸립니다. 그래서 성능이 중요한 프로그램은 시스템 콜 횟수를 줄이려고 노력합니다. 예를 들어 파일을 한 글자씩 1,000번 쓰는 것보다 1,000글자를 한 번에 쓰는 것이 훨씬 빠릅니다. 이것을 **버퍼링(buffering)**이라고 합니다.
 
-## 15-30분 설치, 버전 확인, VS Code 터미널 확인
+> **📈 트렌드 — eBPF: 커널을 안전하게 확장하기**
+>
+> 최근 클라우드 네이티브 세계에서 가장 주목받는 리눅스 기술 중 하나가 **eBPF**입니다. 커널 소스를 고치거나 재부팅하지 않고도, 검증된 작은 프로그램을 커널 안에서 안전하게 실행해 네트워크 패킷이나 시스템 콜을 관찰하고 제어할 수 있게 해 줍니다. 4주차에 소개할 **Cilium**(네트워크)과 **Hubble**(관찰 도구)이 eBPF를 기반으로 합니다. "커널은 건드리기 무서운 곳"이었던 시대에서 "커널을 프로그래밍하는 시대"로 바뀌고 있습니다.
 
+## 정리
 
-### 시각 자료 3: 실패 장면 분류
-| 실패 장면 | 먼저 의심할 원인 | 학생용 기록 문장 |
-|---|---|---|
-| `git: command not found` | Git 미설치 또는 PATH 문제 | "Git 명령을 shell이 찾지 못함" |
-| `python3: command not found` | Python3 미설치 또는 PATH 문제 | "Python3 명령을 shell이 찾지 못함" |
-| `brew: command not found` | Homebrew 미설치 | "Homebrew가 없어 python.org installer 또는 Homebrew 설치 필요" |
-| `code --version` 실패 | VS Code CLI 미등록 | "GUI 터미널에서 대체 확인함" |
-| 인증 팝업 반복 | credential/토큰/권한 문제 | "비밀값은 기록하지 않고 증상만 기록함" |
+- 운영체제는 하드웨어를 여러 프로그램이 **안전하고 공평하게** 나눠 쓰도록 관리합니다.
+- 핵심인 **커널**만 하드웨어를 직접 다루며, 프로그램은 **시스템 콜**로 요청합니다.
+- 서버와 클라우드는 무료·자동화·컨테이너 친화성 때문에 대부분 **Linux**를 씁니다.
+- Unix 철학("한 가지 일을 잘하고, 함께 일하게")은 오늘날 MSA 설계와 이어집니다.
 
+> **✅ 확인 문제**
+>
+> 1. 하드웨어를 직접 다룰 수 있는 운영체제의 핵심 부분을 무엇이라고 하나요?
+> 2. 일반 프로그램이 파일을 읽으려면 커널에 무엇을 통해 요청하나요?
+> 3. Docker와 Kubernetes가 Linux를 기반으로 하는 이유 하나를 말해 보세요.
+> 4. Unix 철학의 세 가지 원칙 중 하나를 말해 보세요.
+> 5. 커널을 재부팅 없이 안전하게 확장해 네트워크를 관찰하는 기술의 이름은?
+>
+> <details><summary>정답</summary>
+>
+> 1. 커널(kernel)
+> 2. 시스템 콜(system call)
+> 3. 컨테이너의 핵심 기능인 네임스페이스와 cgroups가 Linux 커널 기능이기 때문
+> 4. 한 가지 일을 잘하라 / 함께 일하게 하라 / 텍스트로 주고받게 하라
+> 5. eBPF
+>
+> </details>
 
-### 명령 절차
-```bash
-git --version
-python3 --version
-pwd
-code --version
-```
+## 참고 문헌
 
-`code --version`이 실패하면 VS Code GUI에서 `Terminal > New Terminal`을 열고 다음을 실행한다.
+- Ritchie, D. M., & Thompson, K. (1974). The UNIX time-sharing system. *Communications of the ACM*, 17(7).
+- McIlroy, M. D. et al. (1978). UNIX Time-Sharing System: Foreword. *Bell System Technical Journal*, 57(6).
+- Silberschatz, A., Galvin, P. B., & Gagne, G. (2018). *Operating System Concepts* (10th ed.). Wiley.
+- Arpaci-Dusseau, R. H., & Arpaci-Dusseau, A. C. (2018). *Operating Systems: Three Easy Pieces*. (무료 온라인 교재, ostep.org)
+- TOP500. *Operating System Family statistics*. top500.org
+- eBPF Foundation. *What is eBPF?* ebpf.io
 
-```bash
-pwd
-git --version
-python3 --version
-```
+---
 
-### 챌린저 판단 기준
-| 상황 | 진행 가능 여부 | 다음 행동 |
-|---|---|---|
-| `git --version`, `python3 --version`, VS Code 터미널의 `pwd` 성공 | 진행 가능 | repository 실습으로 이동 |
-| `code --version`만 실패 | 진행 가능 | VS Code GUI 터미널을 사용하고 막힘 기록에 기록 |
-| `git --version` 실패 | 설치 확인 필요 | 설치 가이드의 Git 절차 수행 |
-| `python3 --version` 실패 | 설치 확인 필요 | macOS는 `brew install python3` 또는 python.org installer, Ubuntu/WSL은 `apt`, Windows는 python.org installer 확인 |
-| GitHub 로그인은 되지만 push 실패 | 인증 확인 필요 | 토큰 값 없이 에러 메시지만 기록 |
-
-
-### 확인 질문
-- Git과 GitHub의 차이를 한 문장으로 설명할 수 있는가?
-- Git 설치 확인 기록은 무엇인가?
-- Python3 설치 확인 기록은 무엇인가?
-- VS Code가 준비되지 않았을 때 막힘 기록을 어떻게 기록해야 하는가?
-
-## 30-40분 계정 보안, MFA, 토큰 비공개 기준 정리
-
-
-### 다음 주차 매핑
-Docker, Kubernetes, AWS CLI, Terraform도 모두 같은 방식으로 확인한다. `tool --version`, 현재 경로, 인증 상태, 비밀값 비공개 기준은 이후 모든 주차의 공통 준비 절차다.
-
-
-### 예상 결과
-- `git --version`은 `git version 2.x.x` 형태의 문자열을 출력한다.
-- `python3 --version`은 `Python 3.x.x` 형태의 문자열을 출력한다.
-- `pwd`는 현재 작업 경로를 출력한다.
-- `code --version`은 VS Code CLI가 PATH에 있을 때만 성공한다. 실패해도 VS Code 내부 터미널에서 `pwd`와 `git --version`이 되면 수업 진행은 가능하다.
-
-
-### 흔한 오해
-| 오해 | 교정 |
-|---|---|
-| GitHub에 로그인했으니 Git도 설치된 것이다. | GitHub는 웹 서비스이고 Git은 로컬 CLI 도구다. |
-| Python은 나중에 설치해도 된다. | Day3 로컬 서버 실습에서 바로 필요하므로 Day2에서 확인해야 한다. |
-| `brew install python3`가 실패하면 Python 설치가 불가능하다. | Homebrew가 없거나 막힌 상황일 수 있다. python.org installer 같은 대체 경로를 기록한다. |
-| `code --version` 실패는 VS Code 미설치와 같다. | CLI 등록만 안 된 상태일 수 있다. GUI 터미널에서 확인한다. |
-| 토큰을 README에 붙이면 인증 문제가 해결된다. | 토큰은 비밀값이다. 공개 repository에 절대 남기지 않는다. |
-
-## 40-50분 막힘 기록 분류와 다음 실습 준비
-
-
-### 실습 확인 기록
-| 단계 | 명령 또는 확인 | 확인 기록 |
-|---|---|---|
-| Git 확인 | `git --version` | |
-| Python3 확인 | `python3 --version` 또는 OS별 대체 확인 명령 | |
-| 현재 위치 | `pwd` | |
-| VS Code 터미널 | `pwd` 또는 막힘 기록 | |
-| 계정 보안 | MFA/토큰 비공개 확인 | |
-
-
-### 학술 근거와 DevOps 관점
-NIST NICE류 실무 역량은 도구 설치 자체보다 시스템 상태 식별을 강조한다. 현업에서는 "제 노트북에서는 됩니다"라는 말이 충분하지 않다. 어떤 shell에서 어떤 버전이 실행되는지 기록해야 팀원이 같은 문제를 재현할 수 있다.
-
-
-### 평가 기준
-| 기준 | 2점 확인 기록 |
-|---|---|
-| 50분 참여 | 시간 흐름에 맞춰 설명, 활동, 산출물 작성에 참여했다. |
-| 증거 산출 | 수업에서 요구한 기록, 명령, 표, 막힘 기록 중 해당 산출물을 구체적으로 남겼다. |
-| 전이 연결 | 오늘 개념이 Week2~5 기술 또는 자기 산출물과 어떻게 연결되는지 한 문장 이상 설명했다. |
+⬅️ 이전: [1교시 · 컴퓨터는 무엇으로 이루어져 있나](lesson-01.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 프로그램·프로세스·스레드](lesson-03.md) ➡️

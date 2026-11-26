@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+
 # 7교시 · 2주차 회고와 정리
 
 > [!NOTE]
@@ -11,7 +13,7 @@
 
 ## 2주차에 만든 것
 
-![2주차 한 장 요약 — 개발 환경에서 시작해 이미지, 볼륨·네트워크, Compose, 협업까지](../../assets/week2/day5/w2d5-week2-map.png)
+![2주차 한 장 요약 — 개발 환경에서 시작해 이미지, 볼륨·네트워크, Compose, 협업까지](../../v3/assets/week2/day5/w2d5-week2-map.png)
 
 | 일차 | 주제 | 남은 것 |
 |---|---|---|
@@ -214,3 +216,7 @@ docker system df
 - Kerth, N. L. (2001). *Project Retrospectives*. Dorset House.
 - Derby, E., & Larsen, D. (2006). *Agile Retrospectives*. Pragmatic Bookshelf.
 - DORA. *DORA's software delivery performance metrics*. dora.dev/guides/dora-metrics
+
+---
+
+⬅️ 이전: [6교시 · 충돌 해결](lesson-06.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [3주차 1일차 목차](../../week3/day1/README.md) ➡️

@@ -1,188 +1,123 @@
-# 1교시: Day4 요약 + GitOps 개념
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [5일차](README.md)
 
-![Week 4 Day 5 Lesson 1](./assets/lesson-01-gitops-baseline.png)
+# 1교시 · 4일차 요약 + 세 관문
 
-## 수업 목표
-- W4D4 RBAC/Kyverno와 W4D5 GitOps의 연결을 설명한다.
-- GitHub Actions와 Argo CD의 역할 차이를 구분한다.
-- Git repository를 Kubernetes desired state의 기준으로 보는 관점을 이해한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 어제의 메시 정책이 살아 있는지 손으로 확인합니다.
+> - 4주차에 쌓은 층을 **보안의 눈**으로 다시 봅니다.
+> - apiserver 요청이 지나는 **인증 · 인가 · 입장 제어**를 이해합니다.
+> - 지금 내가 클러스터에서 **무엇이든 할 수 있는 이유**를 확인합니다.
 
-## Day4에서 이어지는 질문
-W4D4에서는 누가 무엇을 할 수 있고, 어떤 manifest가 배포 가능한지 봤다.
+## 4일차 요약 — 손으로 다시 확인
 
-| W4D4 질문 | W4D5 질문 |
+```bash
+kubectl get peerauthentication,authorizationpolicy -n devmart
+kubectl apply -f ~/devops-lab/k8s/w4d4/test/outsider.yaml
+kubectl wait -n outsider --for=condition=Ready pod/client
+kubectl exec -n outsider client -- curl -s -m 3 -o /dev/null -w '%{http_code}\n' catalog-api.devmart:8000/api/info
+```
+
+> **🟢 확인: 이렇게 나오면 준비 완료**
+>
+> ```text
+> NAME                                         MODE     AGE
+> peerauthentication.security.istio.io/strict   STRICT   1d
+> NAME                                                     ACTION   AGE
+> authorizationpolicy.security.istio.io/catalog-api-allow   ALLOW    1d
+> …
+> 403
+> ```
+> outsider는 4교시까지 다시 씁니다.
+
+| 4일차 | 오늘 이어지는 곳 |
 |---|---|
-| 누가 Pod를 삭제할 수 있는가 | Argo CD는 어떤 권한으로 배포하는가 |
-| Kyverno가 manifest를 막는가 | Argo CD sync도 policy에 막히는가 |
-| forbidden과 admission deny를 구분하는가 | sync failure 원인을 어디서 보는가 |
-| token mount가 필요한가 | GitOps controller는 어떤 identity를 쓰는가 |
+| 신원 = 네임스페이스 + **ServiceAccount** | 서비스마다 SA를 나눠 신원을 다르게 (3교시) |
+| 허가를 네임스페이스 단위로 | **서비스 단위**로 좁힌다 (4교시) |
+| Pod IP 우회로가 남았다 | ztunnel의 L4 규칙으로 막는다 (4교시) |
+| 정책을 Git으로 | 클러스터 **입장 규칙**도 정책으로 (5교시) |
 
-보안 정책은 GitOps와 충돌하는 것이 아니라 GitOps 배포 품질을 높이는 gate가 된다.
+## 4주차를 보안의 눈으로
 
-## CI와 CD
-W3D3에서 GitHub Actions는 CI gate로 다뤘다.
+| 층 | 4주차에 만든 것 | 지켜 주는 것 | 아직 빈 곳 |
+|---|---|---|---|
+| 입구 | Gateway (1일차) | 외부 요청이 들어오는 길을 하나로 | TLS · 인증 없음 |
+| 배포 | 배포 저장소 + Argo CD (3일차) | CI에 클러스터 열쇠가 없다, 변경 기록 | **사람은 아직 kubectl로 무엇이든** |
+| 서비스 사이 | Istio mTLS · 허가 (4일차) | 평문 차단, 다른 네임스페이스 차단 | **모두 같은 신원**, Pod IP 우회 |
+| 클러스터 입장 | (없음) | | **latest · root · limits 없는 것도 들어온다** |
 
-```text
-source code
-  -> test
-  -> SAST/DAST
-  -> Docker build
-  -> Docker Hub push
+오늘은 굵은 글씨의 세 곳을 채웁니다.
+
+## 실습 1 · 나는 누구인가
+
+```bash
+kubectl auth whoami
+kubectl auth can-i '*' '*' --all-namespaces
+kubectl config view --minify -o jsonpath='{.users[0].user.client-certificate-data}' | base64 -d | openssl x509 -noout -subject
 ```
 
-W4D5의 Argo CD는 Git에 있는 Kubernetes manifest를 cluster에 반영한다.
+> **🟢 확인: 확인**
+>
+> ```text
+> ATTRIBUTE                                           VALUE
+> Username                                            kubernetes-admin
+> Groups                                              [kubeadm:cluster-admins system:authenticated]
+> yes
+> subject=O = kubeadm:cluster-admins, CN = kubernetes-admin
+> ```
+> kind가 만들어 준 kubeconfig는 **인증서**로 나를 `kubernetes-admin`이라고 증명하고, 그 사용자는 `kubeadm:cluster-admins` 그룹이라 **모든 것**을 할 수 있습니다(`yes`). 3주차부터 지금까지 무엇이든 되었던 이유입니다. 인증서의 `CN`이 사용자 이름, `O`가 그룹이 됩니다.
 
-```text
-Git manifest
-  -> Argo CD
-  -> Kubernetes API
-  -> cluster state
-```
+## 세 관문
 
-| 구분 | GitHub Actions | Argo CD |
-|---|---|---|
-| 주 역할 | build/test/push | deploy/sync |
-| 기준 | workflow run | Git desired state |
-| 산출물 | image, log, artifact | Application sync status |
-| 실패 위치 | test/build/push step | sync/diff/health |
-| secret | registry token | repo credential, cluster access |
+![요청은 인증(누구인가) → 인가 RBAC(할 수 있나) → 입장 제어(규칙에 맞나)를 지나 etcd에 저장되고, 관문마다 거절 메시지가 다르다](../../v3/assets/week4/day5/w4d5-api-gates.png)
 
-## GitOps란
-GitOps는 Git을 운영 상태의 기준으로 삼는다. 운영자가 cluster에서 직접 수정한 값은 Git과 다르면 drift가 된다.
+| 관문 | 묻는 것 | Kubernetes에서 | 거절하면 |
+|---|---|---|---|
+| ① 인증 (authentication) | **누구인가?** | 클라이언트 인증서, ServiceAccount 토큰, OIDC(회사 계정) | `401 Unauthorized` |
+| ② 인가 (authorization) | **이것을 할 수 있나?** | **RBAC** — Role · RoleBinding | `403 Forbidden` |
+| ③ 입장 제어 (admission) | **내용이 규칙에 맞나?** | Pod Security Admission, ValidatingAdmissionPolicy, **Kyverno** | `denied the request` |
 
-```text
-Git: replicas 1
-Cluster: replicas 2
-Argo CD: OutOfSync
-```
+> [!IMPORTANT]
+> **Kubernetes에는 '사용자' 리소스가 없다**
+>
+> `kubectl get users`는 없습니다. 사람은 **클러스터 밖**(인증서를 발급한 CA, 회사의 계정 시스템)에서 오고, Kubernetes는 요청에 붙은 증명에서 이름과 그룹만 읽습니다. 반대로 **ServiceAccount는 Kubernetes 안의 리소스**입니다 — Pod 안의 프로그램을 위한 신원이기 때문입니다(3교시).
 
-중요한 것은 "누가 cluster를 직접 바꿨는가"보다 "Git 기준과 cluster 기준이 왜 달라졌는가"를 설명하는 것이다.
+> **🧩 비유 — 회사 건물**
+>
+> ① 출입증을 찍는다(인증) → ② 그 출입증으로 이 층에 갈 수 있나(인가) → ③ 들고 온 짐이 반입 규칙에 맞나 — 위험물 · 허가 없는 장비(입장 제어). RBAC는 **짐을 열어 보지 않습니다.** "deployments를 만들 수 있는 사람"은 latest 태그든 root든 아무 Deployment나 만들 수 있습니다. 그래서 ③이 따로 필요합니다.
 
-## desired state와 current state
-Kubernetes 자체도 desired/current state를 비교한다. Argo CD는 그 위에서 Git desired state와 cluster state를 비교한다.
+> **🎓 학술 노트 — 접근 제어 모델의 계보**
+>
+> RBAC(역할 기반 접근 제어)는 Ferraiolo와 Kuhn의 *Role-Based Access Controls*(NIST, 1992)에서 정식화되고 Sandhu 외(IEEE Computer, 1996)의 RBAC96 모델로 체계화되어, 2004년 ANSI 표준(INCITS 359)이 되었습니다. 핵심은 권한을 사람에게 **직접** 주지 않고 **역할**에 주고, 사람은 역할을 갖게 하는 것입니다 — 사람이 바뀌어도 역할 정의는 그대로입니다. 더 세밀한 조건(시간 · 장소 · 속성)이 필요하면 **ABAC**(NIST SP 800-162, 2014)로 가는데, Kubernetes의 입장 제어 정책(CEL)이 그 역할을 일부 나눠 맡습니다.
 
-| 계층 | 비교 |
-|---|---|
-| Kubernetes controller | object spec vs 실제 Pod 상태 |
-| Argo CD | Git manifest vs cluster object |
-| 운영자 | 기대 사용자 상태 vs 실제 사용자 경험 |
+> **📈 트렌드 2026 — 쿠버네티스 안의 정책 언어 CEL**
+>
+> Kubernetes는 1.30에서 **ValidatingAdmissionPolicy**(웹훅 없이 apiserver 안에서 CEL로 검사)를 GA로, 1.36 무렵 **MutatingAdmissionPolicy**까지 안정화했습니다. Kyverno도 1.17(2026년 2월)에 CEL 기반 정책(ValidatingPolicy)을 v1으로 올리고 옛 ClusterPolicy를 폐기 예정으로 바꿨습니다. "정책은 CEL로"가 공통 언어가 되어 가고 있습니다 — 5교시에서 직접 씁니다.
 
-이 계층을 섞으면 문제 분석이 느려진다.
+> **✅ 확인 문제**
+>
+> 1. 세 관문의 이름과 각각 묻는 것은?
+> 2. 지금 내 kubectl이 무엇이든 할 수 있는 이유는?
+> 3. RBAC로 'latest 태그 금지'를 할 수 없는 이유는?
+> 4. Kubernetes에 User 리소스가 없는데 사람은 어떻게 구분되나요?
+>
+> <details><summary>정답</summary>
+>
+> 1. 인증(누구인가) · 인가(할 수 있나, RBAC) · 입장 제어(내용이 규칙에 맞나)
+> 2. kind의 kubeconfig 인증서가 kubeadm:cluster-admins 그룹이라 cluster-admin 권한을 받기 때문
+> 3. RBAC는 누가 · 어떤 리소스에 · 어떤 동사를 하는지만 보고 내용(이미지 태그)은 보지 않는다
+> 4. 요청에 붙은 증명(인증서의 CN · O, OIDC 토큰의 클레임)에서 이름과 그룹을 읽는다
+>
+> </details>
 
-## Namespace를 넘어 동작하는 add-on 이해
-Helm으로 설치한 add-on은 보통 자기 namespace에 설치된다.
+## 참고 문헌
 
-| add-on | 설치 namespace 예시 | 다른 영역을 보는 이유 |
-|---|---|---|
-| metrics-server | `kube-system` | node/kubelet metric과 metrics API 제공 |
-| kube-prometheus-stack | `monitoring` | ServiceMonitor/RBAC으로 여러 namespace metric 수집 |
-| Kyverno | `kyverno` | admission webhook으로 API server 요청 검사 |
-| Argo CD | `argocd` | Application controller가 RBAC으로 target namespace에 sync |
-| Istio | `istio-system` | istiod가 sidecar 설정을 배포하고 mesh 상태 관리 |
+- Kubernetes Docs. *Controlling Access to the Kubernetes API*, *Authenticating*. kubernetes.io/docs
+- Ferraiolo, D. & Kuhn, R. (1992). *Role-Based Access Controls*. 15th NIST-NCSC National Computer Security Conference.
+- Sandhu, R. 외 (1996). *Role-Based Access Control Models*. IEEE Computer 29(2).
+- Kyverno (2026-02-02). *Announcing Kyverno 1.17*. kyverno.io/blog
 
-중요한 원리는 두 가지다.
+---
 
-| 원리 | 설명 |
-|---|---|
-| Service 통신 | namespace가 달라도 Service DNS로 통신할 수 있다 |
-| API 권한 | 다른 namespace 리소스를 보려면 ServiceAccount와 RBAC 권한이 필요하다 |
-
-예를 들어 `argocd` namespace의 Argo CD controller가 `week4-gitops` namespace에 Deployment를 만든다. 이건 namespace 벽을 몰래 넘는 것이 아니라, controller가 Kubernetes API server에 요청하고 RBAC이 허용했기 때문에 가능한 것이다.
-
-```text
-argocd-application-controller Pod
-  -> ServiceAccount token
-  -> https://kubernetes.default.svc
-  -> API server RBAC check
-  -> week4-gitops namespace resources
-```
-
-반대로 app Pod끼리 HTTP로 통신할 때는 Kubernetes API 권한이 아니라 Service/DNS/network 경로를 본다.
-
-```text
-frontend.week4-a
-  -> http://backend.week4-b.svc.cluster.local
-```
-
-따라서 "다른 namespace와 통신된다"는 말은 상황별로 나눠야 한다.
-
-| 질문 | 확인할 것 |
-|---|---|
-| HTTP 호출이 되는가 | Service DNS, port, endpoint, NetworkPolicy |
-| 리소스 조회/생성이 되는가 | ServiceAccount, Role/ClusterRole, Binding |
-| metric이 보이는가 | scraper 권한, ServiceMonitor, metrics API |
-| admission이 막는가 | webhook, policy, namespace selector |
-
-## GitOps가 필요한 이유
-| 문제 | GitOps 효과 |
-|---|---|
-| 누가 kubectl apply 했는지 모름 | Git commit/PR로 변경 추적 |
-| cluster 직접 수정 반복 | Git 기준 sync로 drift 확인 |
-| 배포 절차가 사람마다 다름 | Application sync로 표준화 |
-| rollback 기준 흐림 | Git revert 또는 이전 revision sync |
-| 보안 정책 실패 추적 어려움 | sync failure evidence로 남음 |
-
-GitOps는 마법 자동 배포가 아니라, 변경의 기준을 Git으로 고정하는 운영 방식이다.
-
-## GitOps와 Kyverno
-W4D4의 policy는 W4D5에서 더 의미가 커진다.
-
-```text
-Git manifest
-  -> Argo CD sync
-  -> Kubernetes API
-  -> Kyverno admission
-  -> allow/deny
-```
-
-Kyverno가 deny하면 Argo CD는 sync 실패를 보여준다. 이때 Argo CD 문제가 아니라 policy violation일 수 있다.
-
-## 오늘의 성공 기준
-| 범위 | 성공 기준 |
-|---|---|
-| Argo CD | Helm 설치, UI 접속, Application 확인 |
-| GitOps app | Git path 기반 sync 또는 template 이해 |
-| Drift | cluster 직접 변경 후 OutOfSync 설명 |
-| Istio | Helm 설치, sidecar injection 확인 |
-| Kiali | graph UI 접속, traffic edge 확인 |
-| Runbook | sync failure와 mesh traffic 문제 구분 |
-
-## 오해하기 쉬운 지점
-| 오해 | 정리 |
-|---|---|
-| GitHub Actions가 있으면 Argo CD가 필요 없다 | CI와 CD 책임이 다름 |
-| Argo CD가 image를 build한다 | 보통 image build는 CI에서 수행 |
-| sync 성공이면 서비스 정상이다 | health와 user traffic 확인 필요 |
-| mesh를 쓰면 앱 문제가 사라진다 | traffic 관찰/제어 계층일 뿐 |
-
-## Evidence Note
-```markdown
-# W4D5S1 GitOps baseline
-- CI 책임:
-- CD/GitOps 책임:
-- Git desired state 예시:
-- drift 예시:
-- W4D4 policy와 연결:
-- namespace 간 통신/API 접근 차이:
-```
-
-## 한 줄 요약
-```text
-GitOps는 Kubernetes 배포의 기준을 사람의 터미널이 아니라 Git repository로 옮기는 운영 방식이다.
-```
-
-
-## 학습 제어
-### 시작 3분 회상
-- RBAC Forbidden과 admission denied는 어떤 책임 계층의 실패였나?
-- Git desired state→Application→sync/health→drift→복구 흐름에서 각 증거는 무엇인가?
-### 오늘 반드시 가져갈 것
-- Git은 배포 desired state, Argo CD는 sync controller, Kubernetes health는 current runtime evidence다.
-- Synced와 Healthy는 같은 상태가 아니며 drift는 복구 기준을 요구한다.
-### 최소 복구 경로
-- Git revision/path를 확인한다 → Application sync/health를 본다 → cluster object와 drift를 비교한다 → Git 기준으로 복구한다.
-- 성공 판정은 desired/current/health evidence가 맞는 것이다. 첫 실패는 Application conditions와 sync log에서 찾는다.
-- 다음 lesson 진입 조건은 Argo CD 설치와 controller 권한을 설명하는 것이다.
-
-### W4D5 필수/선택 경계
-`Git desired state → Application → sync/health → drift → 복구`가 필수 경로다. Istio/Kiali/sidecar/mTLS/fault injection은 이 경로 완료 후 선택 심화 preview다.
+⬅️ 이전: [4주차 5일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · RBAC — 사람의 권한](lesson-02.md) ➡️

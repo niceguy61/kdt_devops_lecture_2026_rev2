@@ -1,109 +1,177 @@
-# 4교시: RDS 생성 전 운영 경계
+[🏠 과정 목차](../../README.md) › [5주차](../README.md) › [4일차](README.md)
 
-![RDS network boundary](./assets/lesson-04-rds-network-boundary.png)
+# 4교시 · 플랫폼 올리기
 
-이 visual에서는 RDS가 단독 서버가 아니라 VPC/subnet/SG 경계 안에 놓인다는 점을 본다. DB 접속 실패는 password보다 network boundary 문제일 수도 있다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - 기본 **StorageClass**를 EBS gp3로 정합니다.
+> - **AWS Load Balancer Controller**를 설치합니다(Pod Identity로 권한).
+> - 4주차의 **Envoy Gateway**를 같은 버전으로 올리되, 입구를 **NLB**로 바꿉니다.
+> - **Argo CD**를 같은 values로 올립니다.
 
-## 수업 목표
-- RDS instance가 VPC, subnet group, Security Group 안에서 동작한다는 점을 이해한다.
-- public access와 database port 공개의 위험을 구분한다.
-- RDS 생성 전 비용과 삭제 기준을 먼저 확인한다.
+## 플랫폼 목록
 
-## 오늘 반드시 가져갈 것
-| 필수 개념 | 왜 필수인가 | 놓치면 생기는 문제 | 확인 지점 |
+| 순서 | 무엇 | 4주차 kind에서 | EKS에서 달라진 것 |
 |---|---|---|---|
-| DB instance | managed relational database의 실행 단위다 | EC2처럼 접속해 마음대로 고칠 수 있다고 생각한다 | RDS Databases |
-| DB subnet group | RDS가 배치될 subnet 묶음이다 | 네트워크 경계를 설명하지 못한다 | Subnet group |
-| Security Group | DB port 접근을 제한한다 | DB가 public internet에 노출된다 | inbound rule |
-| Public access | endpoint 공개 여부와 SG 허용은 함께 봐야 한다 | public endpoint를 열어도 접속 제어가 없다고 오해한다 | Connectivity settings |
+| 1 | StorageClass | `standard`(local-path) | **gp3**(EBS CSI) |
+| 2 | Load Balancer Controller | (없음) | Service(LoadBalancer) → **NLB** |
+| 3 | Envoy Gateway + Gateway | NodePort 30080 | **LoadBalancer** + 주석 셋 |
+| 4 | Argo CD | 같은 values | 같다 |
+| (안 올림) | kube-prometheus-stack · Istio · Kyverno | 있었다 | 노드 2대(4GB)에는 무겁다 — 5교시에 배포 저장소에서 뺀다 |
 
-## 핵심 개념
-RDS는 database engine을 직접 설치하지 않아도 되게 해주는 managed service다. 하지만 managed라는 말이 보안 책임이 사라진다는 뜻은 아니다. 어떤 VPC와 subnet group에 둘지, public access를 허용할지, 어떤 Security Group에서 DB port를 열지, backup과 deletion protection을 어떻게 둘지 결정해야 한다. 실습 계정에서는 실제 생성 대신 Console 생성 화면을 읽는 시뮬레이션 경로를 사용할 수 있다.
-
-## 구조로 보기
-```mermaid
-flowchart LR
-  AppSG["App Security Group"] --> DBPort["DB port 3306/5432"]
-  DBPort --> RDSSG["RDS Security Group"]
-  RDSSG --> RDS["RDS DB instance"]
-  RDS --> Subnet["DB subnet group"]
-  Subnet --> AZ1["AZ A"]
-  Subnet --> AZ2["AZ C"]
+```bash
+cd ~/devops-lab/aws/w5d4/platform
+cat install.sh
 ```
 
-Mermaid 흐름은 Console 화면을 외우기 위한 그림이 아니다. 어떤 resource가 어느 경계에서 접근, 비용, 복구, 감사 책임을 갖는지 확인하기 위한 지도다. 그림의 각 node는 evidence note에 남길 수 있는 실제 Console 화면이나 설정값으로 연결되어야 한다.
+스크립트를 한 단계씩 읽고, 실행은 한 번에 합니다.
 
-## 공식 문서 확인 지점
-| 확인할 문서 키워드 | 읽을 때 볼 질문 |
-|---|---|
-| AWS User Guide | 이 기능이 해결하려는 운영 문제는 무엇인가 |
-| Permissions 또는 Security | 누가 접근할 수 있고 어떤 기본 차단이 있는가 |
-| Pricing 또는 Cost 관련 항목 | 켜져 있는 동안, 저장된 동안, 요청이 발생할 때 비용이 생기는가 |
-| Delete, restore, retention | 삭제 후 무엇이 남고 무엇을 복구할 수 있는가 |
+## 1 · gp3 StorageClass
 
-## 운영 판단 연습
-| 판단 질문 | 확인 기준 |
-|---|---|
-| 실제 생성할 것인가 | 비용과 삭제 시간을 확보하지 못하면 생성 화면 분석으로 대체한다 |
-| public access를 켤 것인가 | 교육 목적이 아니라면 private 접근을 기본으로 생각한다 |
-| 누가 DB port에 접근할 것인가 | app SG 또는 특정 관리 경로만 허용한다 |
-
-## 흔한 실패와 첫 확인 위치
-| 흔한 실패 | 첫 확인 위치 |
-|---|---|
-| RDS endpoint가 있으니 어디서나 접속된다고 생각한다 | public access, subnet route, SG inbound, credential을 순서대로 본다 |
-
-## 화면 캡처 가이드
-- Region, resource name, 상태값, tag, policy 상태처럼 재현 가능한 값이 보이게 캡처한다.
-- account email, secret value, access key, token, password는 캡처하지 않는다.
-- 실패 화면은 error message만 자르지 말고 어떤 service와 설정 화면에서 나온 결과인지 알 수 있게 남긴다.
-- 삭제 또는 정리 evidence는 삭제 버튼 화면보다 삭제 후 검색 결과가 더 중요하다.
-
-## Evidence 점검
-- 화면에는 민감 정보 대신 resource 이름, Region, 상태값, rule, tag처럼 재현 가능한 값이 보여야 한다.
-- 기록에는 "성공했다"보다 어떤 값이 어떤 상태였는지가 남아야 한다.
-- 실패를 기록할 때는 증상, 확인한 화면, 수정한 값, 재확인 결과를 한 세트로 남긴다.
-- engine과 instance class, public access 설정, RDS SG inbound rule 중 최소 두 가지는 배움일기에 남긴다.
-
-## 실습/시뮬레이션 절차
-1. RDS Create database 화면에서 engine과 template 선택이 비용에 미치는 영향을 확인한다.
-2. DB instance class, storage, Multi-AZ 옵션을 보고 실습에 필요한 최소 범위를 고른다.
-3. Connectivity 영역에서 VPC, DB subnet group, public access, Security Group을 확인한다.
-4. Security Group inbound rule에서 DB port가 누구에게 열리는지 기록한다.
-5. 실제 생성하지 않는 경우에도 선택값과 선택하지 않은 이유를 evidence note에 남긴다.
-
-## 복구와 정리 기준
-| 항목 | 운영 기준 | 실습 기준 |
-|---|---|---|
-| Engine | app 요구사항과 운영 경험 | MySQL/PostgreSQL 중 하나로 시뮬레이션 |
-| Instance class | 성능과 비용 균형 | 가장 작은 실습 가능 크기 |
-| Public access | private 접근 우선 | 공개가 필요하면 사유 기록 |
-| Security Group | app SG에서만 DB port 허용 | `0.0.0.0/0` DB port 금지 |
-
-## 공식 문서로 검증할 질문
-- RDS가 VPC 안에서 subnet group을 요구하는 이유는 무엇인가?
-- publicly accessible 옵션은 Security Group과 어떤 관계가 있는가?
-- free tier 또는 trial 조건은 현재 계정과 Region에 실제로 적용되는가?
-
-## Evidence Note
-```markdown
-# W5D4S4 RDS boundary
-- Region:
-- Resource name:
-- 확인한 설정:
-- 실패 또는 주의할 증상:
-- 비용/보안 영향:
-- cleanup 또는 유지 사유:
+```yaml
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer   # Pod가 놓일 AZ가 정해진 뒤에 볼륨을 만든다
+reclaimPolicy: Delete                     # PVC를 지우면 EBS도 지운다
+parameters: { type: gp3, encrypted: "true" }
 ```
 
-## 혼자 다시 따라오기
-- 최소 재현 경로: RDS 생성 마법사에서 engine, template, instance class, connectivity, public access, SG 화면을 읽고 선택 이유를 적는다.
-- 공식 문서 키워드: `RDS DB instance`, `DB subnet group`, `publicly accessible`, `VPC security group`
-- 스스로 확인할 화면: RDS Create database, Connectivity section, Security group inbound rules
-- 흔한 실패 3개: free tier만 보고 instance class를 선택함, DB port를 public으로 엶, subnet group 의미를 놓침
-- 다음 준비 상태: RDS 생성 전 network/security/cost 결정을 표로 설명할 수 있어야 한다.
+`WaitForFirstConsumer`가 중요합니다. EBS 볼륨은 **AZ 하나에 묶이므로**, Pod가 어느 AZ의 노드로 갈지 정해지기 전에 볼륨을 먼저 만들면 Pod가 다른 AZ로 갔을 때 붙일 수 없습니다(6교시 · 내일).
 
-## 한 줄 요약
-```text
-RDS는 database보다 먼저 VPC, subnet group, Security Group, public access 경계를 읽어야 한다.
+## 2 · AWS Load Balancer Controller
+
+```bash
+helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system \
+  --set clusterName=devmart --set region=ap-northeast-2 --set vpcId=$VPC_ID \
+  --set serviceAccount.name=aws-load-balancer-controller
 ```
+
+ServiceAccount 이름이 3교시 Pod Identity 연결의 이름과 **정확히 같아야** 권한을 받습니다.
+
+## 3 · Envoy Gateway — NodePort에서 NLB로
+
+```bash
+diff ~/devops-lab/k8s/w4d1/gateway/envoyproxy.yaml envoyproxy-eks.yaml
+```
+
+```yaml
+      envoyService:
+        type: LoadBalancer
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: external          # LBC가 맡는다
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing # public 서브넷에
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip     # Pod IP로 바로
+```
+
+바뀐 것은 **이 파일 하나**입니다. GatewayClass · Gateway · 차트 버전(v1.10.0)은 4주차 1일차 그대로입니다.
+
+| 주석 | 뜻 |
+|---|---|
+| `type: external` | 이 Service의 로드 밸런서는 LBC가 만든다 (EKS 기본 컨트롤러가 아니라) |
+| `scheme: internet-facing` | 2일차 ALB처럼 인터넷 경계 — 2교시에 태그한 **public 서브넷**에 |
+| `nlb-target-type: ip` | NLB가 노드를 거치지 않고 **Envoy Pod IP로 바로** — VPC CNI 덕분에 Pod가 VPC IP를 가진다 |
+
+## 4 · Argo CD
+
+4주차 3일차의 `argocd-values.yaml` 그대로입니다. 차트 버전은 그날 적어 둔 `VERSIONS.txt`의 값을 씁니다.
+
+## 실습 5 · 한 번에
+
+```bash
+export ARGOCD_CHART_VERSION=$(grep argo-cd ~/devops-lab/k8s/w4d3/VERSIONS.txt | tail -1 | awk '{print $NF}')
+echo $ARGOCD_CHART_VERSION
+./install.sh
+```
+
+> **🟢 확인: 확인 (5~8분)**
+>
+> ```text
+> == 1. 기본 StorageClass gp3
+> storageclass.storage.k8s.io/gp3 created
+> == 2. AWS Load Balancer Controller
+> Release "aws-load-balancer-controller" does not exist. Installing it now.
+> …
+> == 3. Envoy Gateway (4주차 1일차와 같은 차트 · 버전)
+> …
+> gatewayclass.gateway.networking.k8s.io/eg created
+> namespace/devmart created
+> envoyproxy.gateway.envoyproxy.io/devmart-proxy created
+> gateway.gateway.networking.k8s.io/devmart created
+> == 4. Argo CD (4주차 3일차와 같은 values)
+> …
+> == 완료 — 다음: Secret devmart-db, Application
+> ```
+
+```bash
+kubectl get storageclass
+kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+kubectl get gateway -n devmart
+kubectl get svc -n envoy-gateway-system -l gateway.envoyproxy.io/owning-gateway-name=devmart
+```
+
+> **🟢 확인: 확인**
+>
+> ```text
+> NAME            PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      …
+> gp2             kubernetes.io/aws-ebs   Delete          WaitForFirstConsumer   …
+> gp3 (default)   ebs.csi.aws.com         Delete          WaitForFirstConsumer   …
+> aws-load-balancer-controller-7d9c8b6f5-k2m8p   1/1   Running
+> aws-load-balancer-controller-7d9c8b6f5-x4q7w   1/1   Running
+> NAME      CLASS   ADDRESS                                                                    PROGRAMMED   AGE
+> devmart   eg      k8s-envoygat-envoydev-0a1b2c3d4e-0f1e2d3c4b5a6978.elb.ap-northeast-2.amazonaws.com   True   2m
+> NAME                       TYPE           CLUSTER-IP      EXTERNAL-IP                                         PORT(S)
+> envoy-devmart-devmart-…    LoadBalancer   172.20.88.14    k8s-envoygat-envoydev-….elb.ap-northeast-2.amazonaws.com   80:31847/TCP
+> ```
+> Gateway의 ADDRESS가 **NLB의 DNS 이름**입니다. 4주차에는 이 칸이 비어 있었습니다(NodePort) — 이제 진짜 인터넷 주소가 생겼습니다. NLB가 '활성'이 되기까지 2~3분 걸립니다.
+
+```bash
+NLB=$(kubectl get gateway devmart -n devmart -o jsonpath='{.status.addresses[0].value}')
+sleep 120; curl -s -o /dev/null -w '%{http_code}\n' http://$NLB/
+```
+
+> **🟢 확인: 확인**
+>
+> `404` — **Envoy가 답했습니다.** 아직 HTTPRoute(앱)가 없어서 갈 곳이 없을 뿐입니다. 4주차 1일차에 Gateway만 만들었을 때와 같은 상태입니다.
+
+> [!WARNING]
+> **이 NLB는 Terraform 장부에 없다**
+>
+> NLB는 **LBC가** 만들었으므로 `terraform state list`에 나오지 않습니다. 이것을 지우지 않고 `terraform destroy`하면, NLB가 public 서브넷을 붙잡고 있어 VPC 삭제가 **실패**하거나 NLB만 남아 계속 과금됩니다. 7교시에 **Kubernetes 쪽부터** 지우는 이유입니다.
+
+> **❓ 오해 — Kubernetes Service 'LoadBalancer'면 어디서나 똑같다**
+>
+> `type: LoadBalancer`는 "**이 클러스터의 클라우드에게** 로드 밸런서를 만들어 달라"는 요청일 뿐입니다. kind에서는 아무도 받지 않아 영원히 `<pending>`이고, EKS에서는 LBC가 NLB를, GKE에서는 구글의 컨트롤러가 GCP 로드 밸런서를 만듭니다. 그래서 주석은 **클라우드마다** 다르고, 그것이 '플랫폼' 쪽에 있어야 합니다.
+
+> **🎓 학술 노트 — 이식성의 층**
+>
+> Kubernetes가 클라우드 사이의 **이식성**을 준다는 주장은 '어느 층에서'를 따져야 합니다. Burns 외(2016)는 컨테이너 API가 앱을 인프라에서 떼어 낸다고 했지만, 스토리지 · 로드 밸런서 · 신원은 여전히 클라우드마다 다릅니다. Kubernetes는 이것을 **인터페이스**(CSI · Service LoadBalancer · Gateway API)와 **구현**(EBS CSI · LBC · Envoy Gateway)으로 나눠, 앱은 인터페이스에만 기대게 했습니다. 오늘 바뀐 것이 모두 구현 쪽이라는 것이 그 설계의 결과입니다.
+
+> **📈 트렌드 2026 — 플랫폼도 GitOps로**
+>
+> 오늘 `install.sh`로 한 일을 실무에서는 Argo CD의 **app of apps**(4주차 3일차)나 ApplicationSet으로 둡니다 — 클러스터마다 "플랫폼 Application" 묶음을 Git에서 맞춥니다. EKS **Capabilities**(관리형 Argo CD · ACK)나 Auto Mode의 내장 로드 밸런서 · 스토리지를 쓰면 이 목록 자체가 줄어듭니다.
+
+> **✅ 확인 문제**
+>
+> 1. gp3 StorageClass의 `WaitForFirstConsumer`가 필요한 이유는?
+> 2. EnvoyProxy에서 kind와 달라진 것과, 그대로인 것은?
+> 3. Gateway의 ADDRESS가 4주차와 달라진 이유는?
+> 4. NLB를 지우지 않고 terraform destroy하면 생기는 일은?
+>
+> <details><summary>정답</summary>
+>
+> 1. EBS는 AZ 하나에 묶여서, Pod가 갈 AZ가 정해진 뒤에 같은 AZ에 볼륨을 만들어야 붙일 수 있기 때문
+> 2. 달라진 것: envoyService type이 LoadBalancer + LBC 주석. 그대로: 차트 버전, GatewayClass, Gateway
+> 3. LBC가 Service(LoadBalancer)를 보고 NLB를 만들어 그 DNS 이름이 주소가 되었기 때문
+> 4. NLB가 Terraform 장부에 없어 남고(계속 과금), public 서브넷을 붙잡아 VPC 삭제가 실패할 수 있다
+>
+> </details>
+
+## 참고 문헌
+
+- AWS Docs. *Route internet traffic with AWS Load Balancer Controller — Network Load Balancers*. docs.aws.amazon.com/eks
+- AWS Docs. *Use Kubernetes volume storage with Amazon EBS (EBS CSI driver)*. docs.aws.amazon.com/eks
+- Envoy Gateway Docs. *Customize EnvoyProxy — Service type and annotations*. gateway.envoyproxy.io
+
+---
+
+⬅️ 이전: [3교시 · 기다리는 동안 — 신원 두 방향 · kubeconfig](lesson-03.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 같은 배포 저장소를 EKS에](lesson-05.md) ➡️

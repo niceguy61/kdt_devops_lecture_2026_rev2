@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [2일차](README.md)
+
 # 2교시 · 컨테이너 안에 들어가 보기
 
 > [!NOTE]
@@ -131,7 +133,7 @@ exit
 > ```
 > 파일이 없습니다. 이번 것은 **같은 이미지로 찍은 새 컨테이너**이기 때문입니다. 1교시의 "요리에 소금을 넣어도 밀키트는 그대로"를 확인했습니다. 그리고 이번에는 `Pulling` 줄이 없이 바로 들어갔습니다. 이미지가 이미 내 컴퓨터에 있기 때문입니다.
 
-![컨테이너 안과 밖 — 파일 시스템·프로세스·호스트 이름은 따로, 커널은 함께](../../assets/week2/day2/w2d2-inside-outside.png)
+![컨테이너 안과 밖 — 파일 시스템·프로세스·호스트 이름은 따로, 커널은 함께](../../v3/assets/week2/day2/w2d2-inside-outside.png)
 
 | 확인한 것 | 컨테이너 안 | 바깥(호스트) | 담당 기술 |
 |---|---|---|---|
@@ -190,3 +192,7 @@ exit
 - Linux man-pages. *namespaces(7)*, *pid_namespaces(7)*.
 - Young, E. G. et al. (2019). The true cost of containing: A gVisor case study. *HotCloud '19*.
 - Alpine Linux. *About*. alpinelinux.org
+
+---
+
+⬅️ 이전: [1교시 · 이미지와 컨테이너](lesson-01.md) &nbsp;|&nbsp; [⬆️ 2일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · nginx를 백그라운드로 실행](lesson-03.md) ➡️

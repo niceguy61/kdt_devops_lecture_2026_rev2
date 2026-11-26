@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+
 # 5교시 · 빌드 캐시와 명령 순서
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 Docker는 각 명령을 실행하기 전에 "**같은 명령을, 같은 재료로** 전에 만든 층이 있나?"를 확인합니다. 있으면 다시 만들지 않고 그 층을 **재사용**합니다(`CACHED`). 그런데 한 층이 바뀌면, 그 **위에 쌓인 층은 전부** 다시 만들어야 합니다. 아래층이 바뀌었으니 위층의 결과도 달라질 수 있기 때문입니다.
 
-![빌드 캐시 — 자주 바뀌는 것을 위에 두면 아래층은 재사용된다](../../assets/week2/day3/w2d3-cache-order.png)
+![빌드 캐시 — 자주 바뀌는 것을 위에 두면 아래층은 재사용된다](../../v3/assets/week2/day3/w2d3-cache-order.png)
 
 > **🧩 비유 — 탑 쌓기 블록**
 >
@@ -212,3 +214,7 @@ git push
 - Docker Docs. *Building best practices*. docs.docker.com/build/building/best-practices
 - Feldman, S. I. (1979). Make — A program for maintaining computer programs. *Software: Practice and Experience*, 9(4).
 - Mokhov, A., Mitchell, N., & Peyton Jones, S. (2018). Build systems à la carte. *PACMPL*, 2(ICFP).
+
+---
+
+⬅️ 이전: [4교시 · 빌드 컨텍스트와 .dockerignore](lesson-04.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · 태그와 Docker Hub](lesson-06.md) ➡️

@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+
 # 1교시 · 컨테이너의 데이터는 어디에
 
 > [!NOTE]
@@ -42,7 +44,7 @@ docker rm -f api
 
 웹 서버나 상품 API처럼 **기억할 것이 없는** 프로그램은 이게 오히려 장점입니다. 고장 나면 지우고 새로 띄우면 그만이니까요(1주차 4일차 "애완동물이 아니라 가축"). 하지만 **데이터베이스**는 다릅니다. 주문, 회원, 상품 정보가 컨테이너와 함께 사라지면 회사가 문을 닫아야 합니다.
 
-![컨테이너의 쓰기 가능한 층은 컨테이너와 함께 사라진다 — 데이터는 컨테이너 바깥의 볼륨에 둬야 한다](../../assets/week2/day4/w2d4-ephemeral.png)
+![컨테이너의 쓰기 가능한 층은 컨테이너와 함께 사라진다 — 데이터는 컨테이너 바깥의 볼륨에 둬야 한다](../../v3/assets/week2/day4/w2d4-ephemeral.png)
 
 > **🧩 비유 — 호텔 방과 개인 금고**
 >
@@ -226,3 +228,7 @@ docker system df -v | grep -A5 "VOLUME NAME"
 - Docker Docs. *Volumes*. docs.docker.com/engine/storage/volumes
 - Docker Hub. *postgres Docker Official Image — PGDATA, Where to store data*. hub.docker.com/_/postgres
 - Härder, T., & Reuter, A. (1983). Principles of transaction-oriented database recovery. *ACM Computing Surveys, 15*(4).
+
+---
+
+⬅️ 이전: [2주차 4일차 목차](README.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [2교시 · 이름 있는 볼륨](lesson-02.md) ➡️

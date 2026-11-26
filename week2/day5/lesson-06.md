@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [5일차](README.md)
+
 # 6교시 · 충돌 해결
 
 > [!NOTE]
@@ -23,7 +25,7 @@ Git은 똑똑해서 대부분의 병합을 **알아서** 합니다. 두 사람�
 >
 > 편집자 두 명이 원고의 **다른 쪽**을 고쳤다면 둘 다 반영하면 됩니다. 그런데 둘이 **같은 문장**을 서로 다르게 고쳤다면, 작가가 직접 보고 "이걸로 하자" 또는 "둘을 섞자"를 정해야 합니다. Git은 그 문장 자리에 **두 버전을 나란히 적어 두고** 작가를 부릅니다.
 
-![충돌 — 같은 줄을 두 브랜치가 다르게 고치면 Git이 두 버전을 표시하고 사람이 고른다](../../assets/week2/day5/w2d5-conflict.png)
+![충돌 — 같은 줄을 두 브랜치가 다르게 고치면 Git이 두 버전을 표시하고 사람이 고른다](../../v3/assets/week2/day5/w2d5-conflict.png)
 
 ## 실습 12 · 일부러 충돌 만들기
 
@@ -264,3 +266,7 @@ git log --oneline -3
 - GitHub Docs. *Resolving a merge conflict using the command line*. docs.github.com/pull-requests
 - VS Code Docs. *Resolve merge conflicts — 3-way merge editor*. code.visualstudio.com/docs/sourcecontrol
 - Brun, Y., Holmes, R., Ernst, M. D., & Notkin, D. (2011). Proactive detection of collaboration conflicts. *ESEC/FSE '11*.
+
+---
+
+⬅️ 이전: [5교시 · Pull Request와 코드 리뷰](lesson-05.md) &nbsp;|&nbsp; [⬆️ 5일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 2주차 회고와 정리](lesson-07.md) ➡️

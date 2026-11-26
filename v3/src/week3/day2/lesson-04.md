@@ -49,7 +49,7 @@
 ```bash
 cd ~/devops-lab
 mkdir -p .github/workflows
-cp ~/course/v3/labs/week3/day2/.github/workflows/hello.yml .github/workflows/
+cp ~/course/labs/week3/day2/.github/workflows/hello.yml .github/workflows/
 code .github/workflows/hello.yml
 ```
 

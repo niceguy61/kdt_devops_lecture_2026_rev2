@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+
 # 2교시 · DevMart API와 Dockerfile 문법
 
 > [!NOTE]
@@ -144,7 +146,7 @@ psycopg[binary]==3.3.9
 
 **Dockerfile**은 "이 이미지를 어떻게 만드는가"를 위에서 아래로 적은 **텍스트 파일**입니다. 명령 하나가 1교시에서 본 **층 하나**가 됩니다.
 
-![Dockerfile의 각 줄이 이미지의 층이 된다 — FROM부터 CMD까지](../../assets/week2/day3/w2d3-dockerfile-anatomy.png)
+![Dockerfile의 각 줄이 이미지의 층이 된다 — FROM부터 CMD까지](../../v3/assets/week2/day3/w2d3-dockerfile-anatomy.png)
 
 ## 실습 3 · Dockerfile 작성
 
@@ -307,3 +309,7 @@ ls
 - Docker Hub. *python Docker Official Image*. hub.docker.com/_/python
 - Morris, K. (2020). *Infrastructure as Code* (2nd ed.). O'Reilly.
 - Flask Docs. *Deploying to Production — Gunicorn*. flask.palletsprojects.com
+
+---
+
+⬅️ 이전: [1교시 · 이미지 레이어](lesson-01.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · 첫 빌드와 실행](lesson-03.md) ➡️

@@ -1,51 +1,42 @@
-# Week 1 Day 1: 과정별 OT, 5주 로드맵, DevOps 마인드셋, 데이터센터와 클라우드
+[🏠 과정 목차](../../README.md) › [1주차](../README.md) › [1일차](README.md)
 
-## Day Goal
-학생은 과정 운영 방식, 5주 로드맵, Week 1 컴퓨팅 spine의 의미, DevOps 학습 태도, 데이터센터와 클라우드의 운영 책임/비용 구조 차이를 이해하고, Live QA로 남은 질문을 정리한다.
+# 1주차 1일차 — OT와 클라우드의 큰 그림
 
-## Confirmed Schedule
-- 일시: 2026-06-10(수) 12:00~18:00
-- 점심시간: 13:00~14:00
-- 총 수업 시간: 5시간
-- 장소: ZEP 과정별 강의실
+📕 1주차 이북 PDF: [보기](../../downloads/pdf/week1.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week1.pdf) &nbsp;|&nbsp; 📊 1일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week1-day1.pptx)
 
-## Computing Spine Focus
-| Component | Day 1 focus |
-|---|---|
-| Identity/access | ZEP/학습 채널 접근, 클라우드 권한 책임의 기초 |
-| Configuration | 개인 학습 환경과 운영 채널 확인 |
-| Observability | 학습 목표, blocker, 질문을 기록 가능한 형태로 남김 |
-| Handoff | 운영팀/강사/동료가 파악 가능한 준비 상태와 책임 범위 공유 |
+## 오늘의 목표
 
-## Timetable
-| Time | Session | Focus |
+오늘은 아무것도 설치하지 않습니다. 앞으로 5주 동안 어디로 가는지 지도를 펼쳐 보고, 그 지도의 출발점인 **클라우드**가 무엇인지 이해하는 날입니다.
+
+- 5주 과정의 구조와 수업 방식을 알고, 막혔을 때 도움을 요청하는 방법을 익힙니다.
+- DevOps·클라우드 엔지니어가 어떤 일을 하는지 큰 그림을 그립니다.
+- AI가 코드를 써 주는 시대에도 왜 인프라와 운영 지식이 필요한지 설명할 수 있습니다.
+- 데이터센터에서 클라우드로 오기까지의 흐름과 클라우드의 정의를 설명할 수 있습니다.
+- IaaS·PaaS·SaaS, 공유 책임 모델, 클라우드 비용 구조를 구분할 수 있습니다.
+
+## 시간표
+
+| 시간 | 교시 | 주제 |
 |---|---|---|
-| 12:00~13:00 | 과정별 OT 개요 | 강사 소개, 운영 방식, ZEP/소통 채널, 평가 증거 원칙 |
-| 13:00~14:00 | 점심시간 | - |
-| 14:00~15:00 | 5주 커리큘럼 로드맵 | Week 1 컴퓨팅 spine과 Week 2~5 기술 연결 |
-| 15:00~16:00 | 마인드셋 특강 | AI coding agent 시대의 개발, 비즈니스 서비스화 과정, DevOps/인프라 절차 |
-| 16:00~17:00 | 데이터센터 vs 클라우드 | 운영 책임, 비용 구조, 변경 속도, 공유 책임 모델 |
-| 17:00~18:00 | 데이터센터 vs 클라우드 확장 + Live QA | CAPEX/OPEX/TCO/Cloud Cost, 규모의 경제, 학생 질문 정리 |
+| 12:00~13:00 | 1교시 | 과정 OT — 수업 방식과 약속 |
+| 13:00~14:00 | — | 점심시간 |
+| 14:00~15:00 | 2교시 | 5주 로드맵과 DevOps 직무 |
+| 15:00~16:00 | 3교시 | AI 시대의 DevOps 마인드셋 |
+| 16:00~17:00 | 4교시 | 데이터센터에서 클라우드까지 |
+| 17:00~18:00 | 5교시 | 서비스 모델·공유 책임·비용 + Live Q&A |
 
-## Lesson Index
-- 1세션: 과정별 OT 개요 - 강사 소개, 운영 방식, 평가 증거 원칙
-- 2세션: 5주 커리큘럼 로드맵 - Week 1 spine과 Week 2~5 기술 연결
-- 3세션: AI coding agent 시대의 Cloud Native/DevOps 마인드셋 특강
-- 4세션: 데이터센터 vs 클라우드 - 운영 책임이 어디로 이동하는가
+## 오늘의 키워드
 
-## Official References
-- AWS: What is DevOps? https://aws.amazon.com/devops/what-is-devops/
-- Google SRE Book: Postmortem Culture https://sre.google/sre-book/postmortem-culture/
-- CNCF Cloud Native Definition https://github.com/cncf/toc/blob/main/DEFINITION.md
-- OpenAI: Introducing the Codex app https://openai.com/index/introducing-the-codex-app/
-- OpenAI: Introducing Codex https://openai.com/index/introducing-codex/
-- Anthropic Claude Code overview https://docs.anthropic.com/ko/docs/claude-code/overview
-- Anthropic Claude Code common workflows https://docs.anthropic.com/ko/docs/claude-code/common-tasks
-- GitHub Docs: About README files https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
+`DevOps` `SRE` `서비스화` `데이터센터` `가상화` `하이퍼바이저` `클라우드` `IaaS` `PaaS` `SaaS` `공유 책임 모델` `CAPEX` `OPEX` `TCO` `리전` `가용 영역`
 
-## Deliverables
-- 개인 학습 목표 3문장
-- 데이터센터 vs 클라우드 비교표
-- 5주 로드맵에서 기대/불안 요소 1개씩
-- 데이터센터/클라우드 비용 개념 질문과 답변 메모
-- 운영팀 공유용 상세 타임테이블
+## 교시별 자료
+
+1. [과정 OT — 수업 방식과 약속](lesson-01.md)
+2. [5주 로드맵과 DevOps 직무](lesson-02.md)
+3. [AI 시대의 DevOps 마인드셋](lesson-03.md)
+4. [데이터센터에서 클라우드까지](lesson-04.md)
+5. [서비스 모델·공유 책임·비용](lesson-05.md)
+
+---
+
+다음: [1교시 · 과정 OT — 수업 방식과 약속](lesson-01.md) ➡️

@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+
 # 5교시 · 첫 저장소 — commit과 push
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 1주차 5일차 3교시에 강사가 시연한 흐름을 이제 직접 합니다. 앞으로 5주 동안 수백 번 돌게 될 바퀴입니다.
 
-![Git 한 바퀴 — 고치고, 확인하고(status·diff), 담고(add), 기록하고(commit), 올린다(push)](../../assets/week2/day1/w2d1-git-loop.png)
+![Git 한 바퀴 — 고치고, 확인하고(status·diff), 담고(add), 기록하고(commit), 올린다(push)](../../v3/assets/week2/day1/w2d1-git-loop.png)
 
 ## 실습 8 · 첫 커밋
 
@@ -280,3 +282,7 @@ git push
 - GitHub CLI Manual. *gh repo create*. cli.github.com/manual/gh_repo_create
 - Bacchelli, A., & Bird, C. (2013). Expectations, outcomes, and challenges of modern code review. *ICSE 2013*.
 - Conventional Commits. *Conventional Commits 1.0.0*. conventionalcommits.org
+
+---
+
+⬅️ 이전: [4교시 · GitHub 계정과 인증](lesson-04.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [6교시 · Docker Desktop 설치](lesson-06.md) ➡️

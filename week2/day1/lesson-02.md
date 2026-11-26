@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [1일차](README.md)
+
 # 2교시 · 터미널과 VS Code
 
 > [!NOTE]
@@ -103,6 +105,22 @@ ls -la
 - **Windows**: [code.visualstudio.com](https://code.visualstudio.com)에서 Windows용을 받아 **Windows에** 설치합니다(WSL 안이 아님). 설치 중 **"PATH에 추가"**가 체크되어 있는지 확인합니다.
 - **Mac**: 같은 사이트에서 Mac용을 받아 응용 프로그램 폴더로 옮깁니다. 또는 터미널에서 `brew install --cask visual-studio-code`.
 
+설치 파일을 받는 대신 명령 한 줄로 깔 수도 있습니다.
+
+**Windows — PowerShell (winget)**
+
+```powershell
+winget install -e --id Microsoft.VisualStudioCode
+```
+
+**Mac — 터미널 (Homebrew)**
+
+```bash
+brew install --cask visual-studio-code
+```
+
+winget은 Windows 10(1809 이상)·11에 기본으로 들어 있는 패키지 관리자입니다. Mac의 Homebrew와 같은 역할입니다.
+
 ### 단계 2 — 확장 설치
 
 VS Code 왼쪽의 **확장(Extensions)** 아이콘(네모 네 개)을 누르고 검색해 설치합니다.
@@ -201,3 +219,7 @@ pwd
 - Docker. *WSL 2 best practices for Docker Desktop on Windows*. docs.docker.com
 - Bourne, S. R. (1978). The UNIX shell. *Bell System Technical Journal*, 57(6).
 - Stack Overflow (2026). *2026 Developer Survey*. survey.stackoverflow.co
+
+---
+
+⬅️ 이전: [1교시 · 1주차 요약과 작업 환경 준비](lesson-01.md) &nbsp;|&nbsp; [⬆️ 1일차 목차](README.md) &nbsp;|&nbsp; 다음: [3교시 · Git 설치와 설정](lesson-03.md) ➡️

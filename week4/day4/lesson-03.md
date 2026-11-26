@@ -1,226 +1,157 @@
-# 3교시: app Pod와 ServiceAccount
+[🏠 과정 목차](../../README.md) › [4주차](../README.md) › [4일차](README.md)
 
-![Week 4 Day 4 Lesson 3](./assets/lesson-03-serviceaccount-token.png)
+# 3교시 · mTLS 확인과 Kiali
 
-## 수업 목표
-- Pod가 어떤 ServiceAccount로 실행되는지 확인한다.
-- default ServiceAccount를 무심코 쓰는 위험을 설명한다.
-- automountServiceAccountToken 설정을 보고 token mount 여부를 확인한다.
+> [!NOTE]
+> **이번 시간에 할 일**
+>
+> - ztunnel 로그에서 **누가 누구를** 불렀는지 — 신원(SPIFFE ID)을 읽습니다.
+> - 메시 밖 Pod에서 보면 통신이 **어떻게 보이는지** 확인합니다.
+> - Istio의 지표를 어제의 Prometheus가 **긁게** 합니다.
+> - **Kiali**를 설치해 DevMart의 **메시 지도**를 봅니다.
 
-## Pod와 identity
-Kubernetes 안에서 실행되는 application도 API를 호출할 수 있다. 이때 사용되는 identity가 ServiceAccount다.
+## 신원 — SPIFFE ID
+
+메시 안의 모든 Pod는 istiod에게서 **인증서**를 받습니다. 그 인증서에 적힌 이름이 신원입니다.
 
 ```text
-Pod
-  -> ServiceAccount
-  -> token
-  -> Kubernetes API 호출
-  -> RBAC 판단
+spiffe://cluster.local/ns/devmart/sa/default
+         └ 신뢰 도메인 └ 네임스페이스 └ ServiceAccount
 ```
 
-모든 앱이 Kubernetes API를 호출할 필요는 없다. API를 쓰지 않는 앱에는 token을 mount하지 않는 편이 낫다.
+IP가 아니라 **네임스페이스 + ServiceAccount**가 신원이 됩니다. Pod가 죽고 다시 떠서 IP가 바뀌어도(3주차 4일차) 신원은 같습니다. 이 형식은 CNCF 표준 **SPIFFE**입니다.
 
-## sample workload 확인
-```bash
-kubectl -n week4-security get deploy security-api -o yaml
-```
+> [!IMPORTANT]
+> **지금 DevMart는 모두 sa/default**
+>
+> 3주차 5일차의 Deployment에는 `serviceAccountName`이 없습니다. 그래서 db · catalog-api · order-api 모두 **같은 신원**(`sa/default`)입니다. 오늘은 네임스페이스 단위로 허가하고(6교시), 서비스마다 ServiceAccount를 나눠 **서비스 단위 신원**을 만드는 것은 내일(5일차 RBAC) 합니다.
 
-핵심:
-```yaml
-serviceAccountName: app-runner
-automountServiceAccountToken: false
-```
-
-이 설정은 "이 앱은 app-runner identity로 실행하지만, Pod 안에 API token을 자동 mount하지 않는다"는 뜻이다.
-
-## default ServiceAccount 위험
-Deployment에서 `serviceAccountName`을 생략하면 default ServiceAccount가 사용된다.
-
-| 방식 | 문제 |
-|---|---|
-| 생략 | 어떤 identity인지 의도가 안 보임 |
-| default에 권한 부여 | 같은 namespace의 여러 Pod가 권한 공유 |
-| token 자동 mount | 앱 취약점이 API token 노출로 이어질 수 있음 |
-
-운영 기준은 "workload마다 이름 있는 ServiceAccount"다.
-
-## token mount 확인
-token을 mount하는 Pod를 만든다.
+## 실습 4 · ztunnel 로그에서 신원 읽기
 
 ```bash
-kubectl apply -f week4/day4/labs/rbac/token-mounted-pod.yaml
-kubectl -n week4-security get pod token-mounted-demo
+curl -s -X POST localhost:30080/api/orders -H 'content-type: application/json' -d '{"product_id":2,"quantity":1}' >/dev/null
+kubectl logs -n istio-system -l app=ztunnel --tail=200 | grep catalog-api | tail -2
 ```
 
-Pod 안에서 확인:
+> **🟢 확인: 확인**
+>
+> ```text
+> 2026-11-26T02:14:07.511Z info access connection complete src.addr=10.244.2.18:51234 src.workload="order-api-6c9d7b8f5-k2m4x" src.namespace="devmart" src.identity="spiffe://cluster.local/ns/devmart/sa/default" dst.addr=10.244.1.15:15008 dst.hbone_addr=10.244.1.15:8000 dst.service="catalog-api.devmart.svc.cluster.local" dst.workload="catalog-api-5d8c7b9f6-2xkq4" dst.namespace="devmart" dst.identity="spiffe://cluster.local/ns/devmart/sa/default" direction="outbound" bytes_sent=213 bytes_recv=402 duration="12ms"
+> ```
+> - `src.identity` · `dst.identity` — 양쪽의 **증명된 신원**. mTLS의 '상호'가 여기에 있습니다.
+> - `dst.addr=…:15008` — 실제로는 catalog-api의 8000이 아니라 **HBONE 포트 15008**로 갔습니다. 앱은 8000으로 보냈고, ztunnel이 가로채 감쌌습니다.
+
+## 실습 5 · 메시 밖에서 보면
+
+메시 밖(`default` 네임스페이스)에 Pod를 하나 띄워 catalog-api를 부릅니다.
+
 ```bash
-kubectl -n week4-security exec token-mounted-demo -- \
-  ls /var/run/secrets/kubernetes.io/serviceaccount
+kubectl run plain -n default --image=curlimages/curl:8.17.0 --restart=Never -- sleep 3600
+kubectl wait -n default --for=condition=Ready pod/plain
+kubectl exec -n default plain -- curl -s -m 3 catalog-api.devmart:8000/api/info; echo
 ```
 
-예상:
-```text
-ca.crt
-namespace
-token
-```
+> **🟢 확인: 확인**
+>
+> ```text
+> {"env":"kind","hostname":"catalog-api-5d8c7b9f6-2xkq4","service":"catalog-api","version":"2.0.0"}
+> ```
+> **아직은 열립니다.** 메시의 기본값은 **PERMISSIVE** — mTLS로 오면 mTLS로, 평문으로 오면 평문으로 받습니다. 메시를 처음 켤 때 메시 밖의 손님(Envoy Gateway · Prometheus 등)이 끊기지 않게 하려는 기본값입니다. 6교시에 **STRICT**로 바꿔 이것을 막습니다. `plain` Pod는 6교시에 다시 씁니다.
 
-이 파일들은 Pod가 API Server에 자신을 증명할 때 쓰인다.
+## 실습 6 · Istio 지표를 Prometheus로
 
-실제 검증 예시:
-```text
-ca.crt
-namespace
-token
-```
-
-여기서 token 파일이 보인다는 것은 Pod 안의 process가 해당 token을 읽을 수 있다는 뜻이다. 앱이 Kubernetes API를 호출할 일이 없다면 굳이 이 경로를 열어둘 필요가 없다.
-
-## token이 없는 Pod 확인
 ```bash
-pod="$(kubectl -n week4-security get pod -l app=security-api -o jsonpath='{.items[0].metadata.name}')"
-kubectl -n week4-security exec "$pod" -- \
-  ls /var/run/secrets/kubernetes.io/serviceaccount
+cd ~/devops-lab/k8s/w4d4
+kubectl apply -f monitoring/istio-monitors.yaml
 ```
 
-예상:
-```text
-No such file or directory
+> [!TIP]
+> **이건 kubectl apply여도 되나?**
+>
+> istio-system · monitoring은 DevMart가 아니라 **플랫폼**의 것이라 devmart Application이 관리하지 않습니다. 실무라면 플랫폼용 배포 저장소(또는 Application)를 따로 두고 거기에 커밋합니다. 오늘은 3일차의 경계 — "devmart 네임스페이스만 Git으로" — 를 지킵니다.
+
+1분 뒤 Prometheus(`kubectl port-forward -n monitoring svc/kps-prometheus 9090:9090 &` → <http://localhost:9090>)의 **Status → Target health**에서 `serviceMonitor/istio-system/istiod/0`, `podMonitor/istio-system/ztunnel/0`이 UP인지 봅니다. 그리고 쿼리:
+
+```promql
+sum by (source_workload, destination_workload) (rate(istio_tcp_connections_opened_total{reporter="destination"}[5m]))
 ```
 
-`automountServiceAccountToken: false`라서 token directory가 없다.
+> **🟢 확인: 확인**
+>
+> ```text
+> {destination_workload="catalog-api", source_workload="order-api"}   0.02
+> {destination_workload="db",          source_workload="catalog-api"} 0.05
+> {destination_workload="db",          source_workload="order-api"}   0.02
+> {destination_workload="redis",       source_workload="order-api"}   0.02
+> …
+> ```
+> 2일차에는 Envoy Gateway(입구)에서만 숫자를 셀 수 있었습니다. 이제 **서비스 사이의 연결**도 셉니다 — 앱에 /metrics가 없는데도요. 다만 ztunnel은 L4라 **연결 수와 바이트**만 압니다. HTTP 요청 수 · 상태 코드는 4교시 waypoint부터입니다.
 
-실제 검증 예시:
-```text
-ls: /var/run/secrets/kubernetes.io/serviceaccount: No such file or directory
-command terminated with exit code 1
-```
+## 실습 7 · Kiali 설치
 
-이 실패는 장애가 아니라 의도한 보안 상태다. "token directory가 없다"는 결과를 성공 evidence로 기록한다.
-
-## 언제 token이 필요한가
-| workload | token 필요 여부 |
-|---|---|
-| 일반 web API | 대개 필요 없음 |
-| batch job이 API를 안 씀 | 필요 없음 |
-| controller/operator | 필요 |
-| external secret controller | 필요 |
-| deployment automation agent | 필요 |
-
-필요한 경우에도 최소 권한 Role을 붙인다.
-
-## External Secrets Operator 권한 모델
-External Secrets Operator는 app Pod와 성격이 다르다. 일반 web API가 Kubernetes API를 몰라도 되는 것과 달리, operator는 Kubernetes API와 외부 secret provider를 모두 다룬다.
-
-```text
-External Secrets Operator Pod
-  -> Kubernetes API에서 ExternalSecret object watch
-  -> AWS Secrets Manager 또는 SSM Parameter Store 조회
-  -> Kubernetes Secret 생성/갱신
-```
-
-그래서 권한도 두 방향으로 나뉜다.
-
-| 권한 | 설명 |
-|---|---|
-| Kubernetes RBAC | ExternalSecret을 읽고 Secret을 만들거나 갱신할 권한 |
-| cloud IAM | AWS Secrets Manager/SSM Parameter Store 값을 읽을 권한 |
-| app Pod 권한 | 만들어진 Kubernetes Secret을 env/volume으로 참조할 권한 |
-
-중요한 구분:
-
-```text
-app Pod가 AWS secret store를 직접 읽는 구조가 아니다.
-ESO controller가 외부 secret을 읽고 Kubernetes Secret으로 동기화한다.
-app Pod는 Kubernetes Secret을 참조한다.
-```
-
-현업에서는 EKS에서 IRSA나 EKS Pod Identity 같은 workload identity로 ESO ServiceAccount에 AWS IAM 권한을 연결하는 패턴을 자주 사용한다. local kind에서는 실제 AWS 권한을 붙이지 않고 구조만 preview한다.
-
-## Secret Manager와 Parameter Store 선택 기준
-AWS에서는 External Secrets Operator가 Secrets Manager와 SSM Parameter Store를 provider로 사용할 수 있다.
-
-| 저장소 | 수업에서 설명할 기준 |
-|---|---|
-| Secrets Manager | rotation, DB credential, secret lifecycle이 중요한 값 |
-| SSM Parameter Store | 설정값/parameter, 단순 secret, 비용과 운영 단순성이 중요한 값 |
-
-두 경우 모두 Git에 실제 secret 값을 넣지 않는다는 원칙은 같다. Git에는 `ExternalSecret` 같은 참조와 mapping을 넣고, 값은 외부 store에 둔다.
-
-## workload identity preview
-cloud 환경에서는 Kubernetes ServiceAccount와 cloud IAM을 연결하는 방식이 자주 쓰인다.
-
-| 환경 | 예시 |
-|---|---|
-| AWS | IRSA/EKS Pod Identity |
-| GCP | Workload Identity |
-| Azure | Workload Identity |
-
-오늘은 local kind이므로 cloud IAM 연동은 하지 않는다. 대신 "Pod identity는 ServiceAccount에서 시작한다"는 기준만 잡는다.
-
-## 위험 시나리오
-앱에 RCE 취약점이 있고 token이 mount되어 있다면 공격자는 Pod 안에서 token을 읽어 API를 호출할 수 있다.
-
-```text
-app exploit
-  -> serviceaccount token read
-  -> Kubernetes API call
-  -> RBAC 권한만큼 cluster 영향
-```
-
-그래서 token mount와 RBAC 최소 권한은 함께 봐야 한다.
-
-## 확인 명령 모음
 ```bash
-kubectl -n week4-security get pod -o custom-columns=NAME:.metadata.name,SA:.spec.serviceAccountName
-kubectl -n week4-security get sa app-runner -o yaml
-kubectl -n week4-security describe pod token-mounted-demo
+helm repo add kiali https://kiali.org/helm-charts
+helm repo update
+helm search repo kiali/kiali-server
+KVER=$(helm search repo kiali/kiali-server -o json | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['version'])")
+echo "kiali-server $KVER" | tee -a VERSIONS.txt
+helm install kiali-server kiali/kiali-server -n istio-system --version $KVER -f kiali/kiali-values.yaml --wait
+kubectl port-forward -n istio-system svc/kiali 20001:20001 >/dev/null 2>&1 &
 ```
 
-## ServiceAccount 확인표
-| 확인 | 명령 | 기대 |
-|---|---|---|
-| Pod가 어떤 SA를 쓰는가 | `get pod -o custom-columns` | `app-runner`, `token-demo` |
-| token mount 여부 | `exec ls /var/run/secrets/...` | true면 파일 3개 |
-| app Pod token 차단 | `exec ls /var/run/secrets/...` | No such file |
-| SA 권한 | `kubectl auth can-i --as=...` | 필요한 verb만 yes |
+values의 요점은 둘입니다 — `external_services.prometheus.url`로 **어제의 Prometheus를 그대로** 쓰고, `view_only_mode: true`로 **화면에서 설정을 바꾸지 못하게** 합니다(설정은 Git으로, 3일차).
 
-이 네 가지를 함께 봐야 "Pod identity가 의도대로 제한됐다"고 말할 수 있다.
+손님을 흉내 낸 뒤 지도를 봅니다.
 
-## 오해하기 쉬운 지점
-| 오해 | 정리 |
-|---|---|
-| ServiceAccount를 만들면 자동으로 권한이 생김 | RoleBinding이 있어야 함 |
-| token이 없으면 Pod 실행이 안 됨 | API 호출이 필요 없으면 없어도 됨 |
-| default ServiceAccount는 안전함 | 권한이 붙으면 추적이 어려움 |
-| RBAC만 있으면 충분함 | manifest 품질은 admission policy도 필요 |
-
-## Evidence Note
-```markdown
-# W4D4S3 ServiceAccount
-- app workload ServiceAccount:
-- automountServiceAccountToken:
-- token-mounted-demo token files:
-- security-api token directory result:
-- token이 필요한 workload 예시:
-- ESO가 필요한 권한:
-- app Pod와 ESO controller의 차이:
+```bash
+for i in $(seq 60); do
+  curl -s -o /dev/null localhost:30080/api/products
+  curl -s -o /dev/null -X POST localhost:30080/api/orders -H 'content-type: application/json' -d '{"product_id":1,"quantity":1}'
+  sleep 1
+done &
 ```
 
-## 한 줄 요약
-```text
-ServiceAccount는 Pod의 identity이고, token mount는 앱이 Kubernetes API에 접근할 수 있는 문을 열지 결정하는 설정이다.
-```
+<http://localhost:20001> → 왼쪽 **Traffic Graph** → Namespace: `devmart` → Display에서 **Traffic Animation** 켜기.
 
+> **🟢 확인: 확인**
+>
+> order-api → catalog-api, order-api → db, order-api → redis, order-worker → redis · db, catalog-api → db로 **선이 그려집니다.** 3주차 1일차에 손으로 그렸던 DevMart 구조도와 같은 그림이 **실제 트래픽으로** 그려졌습니다. 선을 누르면 오른쪽에 초당 연결 · 바이트가 나옵니다. 선 위의 자물쇠 표시가 **mTLS**입니다.
 
-## 학습 제어
-### 시작 3분 회상
-- RoleBinding이 허용하는 subject와 verb/resource/scope는 무엇인가?
-- Pod identity와 ServiceAccount token은 API 접근에서 어떤 책임인가?
-### 오늘 반드시 가져갈 것
-- Pod는 사용자 계정이 아니라 ServiceAccount identity로 API에 요청한다.
-- token 존재와 실제 RBAC 허용은 별도 증거다.
-### 최소 복구 경로
-- Pod의 ServiceAccount를 확인한다 → RoleBinding을 찾는다 → `can-i`와 API 요청 결과를 확인한다.
-- 성공 판정은 identity→binding→허용 요청 경로가 맞는 것이다. 첫 실패는 ServiceAccount/Binding과 Forbidden response에서 찾는다.
-- 다음 lesson 진입 조건은 RBAC와 admission operator를 구분하는 것이다.
+> **❓ 오해 — 지도는 설계도다**
+>
+> Kiali의 지도는 **최근 몇 분 동안 실제로 오간 것**입니다. 호출이 없던 경로는 그려지지 않고, 설계에 없던 호출(누군가 몰래 부른 것)은 그려집니다. 그래서 오히려 **설계와 실제가 다른 곳**을 찾는 도구입니다.
+
+> **🎓 학술 노트 — 의존 관계를 관찰로 알아내기**
+>
+> 서비스 사이의 의존 관계를 **실제 트래픽으로** 알아내는 연구는 분산 추적과 함께 발전했습니다. Aguilera 외의 *Performance debugging for distributed systems of black boxes*(SOSP 2003)는 앱을 고치지 않고 **메시지만 관찰해** 호출 경로와 지연을 추정할 수 있음을 보였습니다. 메시의 지도는 이 '블랙박스 관찰'을 프록시 단에서 정확하게 하는 것입니다.
+
+> **📈 트렌드 2026 — SPIFFE 신원의 확장**
+>
+> SPIFFE 신원은 메시 밖으로도 넓어지고 있습니다. 서비스가 클라우드 API에 접근할 때 비밀 키 대신 **워크로드 신원**으로 인증하는 방식(AWS IAM Roles Anywhere, EKS Pod Identity, GCP Workload Identity Federation)이 표준이 되었고, AI 에이전트에도 SPIFFE 신원을 주자는 논의가 활발합니다. 5주차 EKS에서 Pod가 AWS 권한을 얻는 방식으로 다시 만납니다.
+
+> **✅ 확인 문제**
+>
+> 1. SPIFFE ID `spiffe://cluster.local/ns/devmart/sa/default`의 세 부분은?
+> 2. 메시 밖 Pod가 아직 catalog-api를 부를 수 있는 이유는?
+> 3. ztunnel 지표만으로 알 수 없는 것은?
+> 4. Kiali를 view_only로 둔 이유는?
+>
+> <details><summary>정답</summary>
+>
+> 1. 신뢰 도메인(cluster.local), 네임스페이스(devmart), ServiceAccount(default)
+> 2. 기본 mTLS 모드가 PERMISSIVE라 평문도 받기 때문
+> 3. HTTP 요청 수 · 상태 코드 · 경로 같은 L7 정보 (waypoint가 있어야)
+> 4. 설정 변경은 Git(배포 저장소)으로만 하기 위해 — 화면에서 바꾸면 어긋남이 생긴다
+>
+> </details>
+
+## 참고 문헌
+
+- SPIFFE. *SPIFFE Concepts — SPIFFE ID*. spiffe.io/docs
+- Istio Docs. *Ambient — Verify mutual TLS is enabled*, *Prometheus integration*. istio.io
+- Kiali Docs. *Installation — Helm*, *Configuration — external services*. kiali.io/docs
+- Aguilera, M. K. 외 (2003). *Performance debugging for distributed systems of black boxes*. SOSP '03.
+
+---
+
+⬅️ 이전: [2교시 · Istio 설치와 메시 등록](lesson-02.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [4교시 · waypoint와 트래픽 나누기](lesson-04.md) ➡️

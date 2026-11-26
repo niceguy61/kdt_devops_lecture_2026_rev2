@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [3일차](README.md)
+
 # 4교시 · 빌드 컨텍스트와 .dockerignore
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 `docker build -t 이름 .`을 실행하면, Docker CLI는 **`.` 폴더 안의 파일 전체를 묶어서** 엔진(주방)에 보냅니다. 이 묶음을 **빌드 컨텍스트**라고 합니다. Dockerfile의 `COPY`는 이 상자 **안에 있는 것만** 꺼낼 수 있습니다.
 
-![빌드 컨텍스트 — 폴더 전체가 엔진으로 보내지고, .dockerignore가 상자에 넣지 않을 것을 거른다](../../assets/week2/day3/w2d3-build-context.png)
+![빌드 컨텍스트 — 폴더 전체가 엔진으로 보내지고, .dockerignore가 상자에 넣지 않을 것을 거른다](../../v3/assets/week2/day3/w2d3-build-context.png)
 
 > **🧩 비유 — 이삿짐 상자**
 >
@@ -225,3 +227,7 @@ git push
 - Docker Docs. *Build secrets*. docs.docker.com/build/building/secrets
 - Dahlmanns, M., Sander, C., Decker, R., & Wehrle, K. (2023). Secrets revealed in container images. *ACM ASIA CCS '23*. arxiv.org/abs/2307.03958
 - OWASP. *Docker Security Cheat Sheet*. cheatsheetseries.owasp.org
+
+---
+
+⬅️ 이전: [3교시 · 첫 빌드와 실행](lesson-03.md) &nbsp;|&nbsp; [⬆️ 3일차 목차](README.md) &nbsp;|&nbsp; 다음: [5교시 · 빌드 캐시와 명령 순서](lesson-05.md) ➡️

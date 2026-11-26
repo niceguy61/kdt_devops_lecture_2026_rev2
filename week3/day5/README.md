@@ -1,94 +1,59 @@
-# Week 3 Day5: Kubernetes 첫 앱 실행 - Pod, Deployment, Service
+[🏠 과정 목차](../../README.md) › [3주차](../README.md) › [5일차](README.md)
 
-## Overview
-Day 5는 W3D4에서 만든 kind cluster 위에 실제 workload를 올리는 날이다. 목표는 많은 object를 한 번에 외우는 것이 아니라 `kubectl`로 현재 상태를 읽고, manifest로 원하는 상태를 선언하고, 장애가 났을 때 `describe`, `events`, `logs`, `rollout`으로 증거를 찾는 감각을 만드는 것이다.
+# 3주차 5일차 — 운영 가능한 워크로드
 
-오늘은 add-on을 설치하지 않는다. Helm, metrics-server, ingress-nginx, Prometheus/Grafana, Kyverno, Argo CD, Istio는 Week4에서 주제별로 하나씩 심는다. Day5는 그 전에 반드시 잡아야 하는 기본 object인 Pod, Deployment, Service에 집중한다.
+📕 3주차 이북 PDF: [보기](../../downloads/pdf/week3.pdf) · [내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pdf/week3.pdf) &nbsp;|&nbsp; 📊 5일차 슬라이드: [PPTX 내려받기](https://github.com/niceguy61/kdt_devops_lecture_2026_rev2/raw/main/downloads/pptx/week3-day5.pptx)
 
-## Learning Goals
-- `kubectl` context와 namespace를 확인하고, 잘못된 cluster에 배포하는 위험을 설명한다.
-- Pod가 Kubernetes의 최소 workload 단위라는 점과 container와의 차이를 설명한다.
-- `ImagePullBackOff`, `CrashLoopBackOff`, `Pending` 계열 장애에서 먼저 볼 증거를 구분한다.
-- Deployment의 `replicas`, `selector`, `template`, ReplicaSet, self-healing 흐름을 설명한다.
-- Service가 Pod IP 변화를 가리고 안정적인 DNS/ClusterIP를 제공하는 이유를 endpoint로 확인한다.
-- rollout status/history/undo로 image 변경과 복구 흐름을 확인한다.
-- Week4의 ConfigMap/Secret, Ingress, Observability, RBAC/Kyverno, Argo CD, Istio로 이어질 질문을 정리한다.
+## 오늘의 목표
 
-## Lesson Index
-| 교시 | 주제 | 핵심 확인 |
+어제 catalog-api를 Kubernetes에 올렸지만, 운영하기에는 모자란 곳이 많았습니다. DB가 없어 상품 목록은 503이었고, 설정은 매니페스트에 박혀 있었고, 롤링 업데이트 중에 요청이 실패했고, Pod가 메모리를 얼마나 써도 되는지 아무도 정하지 않았습니다.
+
+오늘은 그 빈칸을 하나씩 채운 뒤, **DevMart MSA 여섯 서비스 전체**를 Kubernetes 위에 올립니다. 1일차에 `docker compose up` 한 줄로 띄우던 그 앱이, 금요일 오후에는 `kubectl apply -k` 한 줄로 클러스터에 뜹니다. 마지막으로 짝끼리 서로의 DevMart를 망가뜨리고 고치며 한 주를 마무리합니다.
+
+- **Namespace**로 DevMart만의 공간을 만듭니다.
+- 설정은 **ConfigMap**, 비밀번호는 **Secret**으로 이미지 밖에서 넣습니다.
+- **readiness · liveness probe**로 "준비됐나 · 살아 있나"를 Kubernetes가 직접 묻게 합니다. 어제의 FAIL이 사라지는 것을 확인합니다.
+- **requests · limits**로 자원을 예약하고 상한을 정합니다. 메모리 상한을 넘은 Pod가 죽는 것을 봅니다.
+- DevMart MSA 전체를 배포하고, 브라우저 `localhost:30080`에서 주문합니다.
+- 짝이 넣은 장애를 **바깥에서 안으로** 진단하고 장애 보고서를 씁니다.
+- 3주차를 회고합니다.
+
+## 시간표
+
+| 교시 | 주제 | 실습 결과물 |
 |---|---|---|
-| 1교시 | Day4 요약 + kubectl 운영 루프 | context, namespace, get/describe/logs/events/apply/delete |
-| 2교시 | 첫 Pod 실행 | Pod manifest, image, port, logs, exec, delete |
-| 3교시 | Pod 장애 읽기 | ImagePullBackOff, CrashLoopBackOff, Pending 증거 구분 |
-| 4교시 | Deployment가 필요한 이유 | replica, ReplicaSet, self-healing, 직접 Pod의 한계 |
-| 5교시 | Deployment manifest 해부 | apiVersion, kind, metadata, spec, selector, template |
-| 6교시 | Service와 내부 DNS | ClusterIP, selector, endpoint, service name DNS |
-| 7교시 | rollout과 내부 통신 검증 | image tag 변경, rollout status/history/undo, curlbox |
-| 8교시 | 구름 EXP 배움일기 | 오늘의 evidence, Week4 plugin 질문 정리 |
+| 1교시 | 4일차 요약 + Namespace | `devmart` 네임스페이스 |
+| 2교시 | ConfigMap과 Secret | DB + catalog-api, 상품 목록 200 |
+| 3교시 | probe — 준비됐나, 살아 있나 | FAIL 없는 롤링 업데이트 |
+| 4교시 | requests와 limits | 노드 예약량 확인, OOMKilled 관찰 |
+| 5교시 | DevMart MSA를 Kubernetes에 | 브라우저 주문 → completed |
+| 6교시 | 장애 연습 | 장애 보고서 |
+| 7교시 | 3주차 회고 | KPT + Compose ↔ Kubernetes 대응표 |
+| 8교시 | 배움일기 | |
 
-## Practice Files
-| 자료 | 용도 |
-|---|---|
-| `hands-on-lab.md` | 당일 실습 명령, 예상 결과, 장애 확인 순서 |
-| `academic-foundations.md` | Pod/Deployment/Service 공식 개념과 운영 기준 |
-| `labs/k8s-first-app/` | Pod, 장애 Pod, Deployment, Service 실습 manifest |
+## 교시별 자료
 
-## Evidence Policy
-오늘 evidence는 화면 캡처보다 명령과 핵심 출력 패턴을 우선한다.
+1. [4일차 요약 + Namespace](lesson-01.md)
+2. [ConfigMap과 Secret](lesson-02.md)
+3. [probe — 준비됐나, 살아 있나](lesson-03.md)
+4. [requests와 limits](lesson-04.md)
+5. [DevMart MSA를 Kubernetes에](lesson-05.md)
+6. [장애 연습](lesson-06.md)
+7. [3주차 회고](lesson-07.md)
 
-| Evidence | 남길 내용 |
-|---|---|
-| cluster target | `kubectl config current-context`, `kubectl get nodes` |
-| Pod 정상 | `kubectl -n week3 get pods -o wide`, `kubectl logs` |
-| Pod 장애 | `kubectl describe pod`, event의 `Reason`, `Message` |
-| Deployment | `kubectl get deploy,rs,pod`, replica 변화 |
-| Service | `kubectl get svc,endpoints`, curlbox 응답 |
-| rollout | `rollout status/history/undo` 결과 |
+> [!IMPORTANT]
+> **오늘 실습 전에 확인할 것**
+>
+> - `kubectl get nodes`에서 세 노드가 `Ready`.
+> - 2일차 CI가 만든 **세 이미지**(catalog-api · order-api · order-worker)가 GHCR에 **같은 SHA 태그**로 있어야 합니다. 1교시에 확인합니다.
+> - 오늘 처음 클러스터가 받는 이미지: `postgres:18`(약 150MB), `redis:8-alpine`, `nginx:1.30-alpine`, `python:3.14-slim`. 노트북에는 2주차에 받아 두었지만 **kind 노드는 따로 받습니다**(노드는 별도의 컨테이너 런타임을 쓰기 때문, 3일차 3교시).
+> - 실습 파일은 강의 저장소의 `labs/week3/day5/`입니다.
 
-## Helm/Add-on Boundary
-Day5에는 Helm add-on을 설치하지 않는다. 대신 Week4에서 아래 흐름으로 확장한다.
+> [!WARNING]
+> **오늘의 공통 주의 — 네임스페이스를 빠뜨리지 않는다**
+>
+> 오늘은 대부분의 명령에 `-n devmart`가 붙습니다. 빠뜨리면 `default` 네임스페이스를 보게 되어 "아무것도 없다"거나 어제의 catalog-api가 보입니다. 1교시 실습 2에서 기본 네임스페이스를 `devmart`로 바꾸는 방법도 배웁니다.
 
-| Week4 | 연결되는 Day5 개념 |
-|---|---|
-| Helm + metrics-server | Pod resource 사용량과 `kubectl top` |
-| ingress-nginx | Service 뒤의 app을 외부 traffic으로 노출 |
-| kube-prometheus-stack | Pod/Deployment/Service 상태를 metric/dashboard로 관찰 |
-| RBAC + Kyverno | 누가 배포할 수 있는지, 어떤 manifest가 차단되는지 확인 |
-| Argo CD | 오늘 작성한 manifest를 Git 기준으로 sync |
-| Istio/Kiali | Service 간 traffic을 mesh graph와 policy로 확인 |
+---
 
-## Official References
-| Topic | Reference |
-|---|---|
-| Pods | https://kubernetes.io/docs/concepts/workloads/pods/ |
-| Deployments | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ |
-| Services | https://kubernetes.io/docs/concepts/services-networking/service/ |
-| kubectl Quick Reference | https://kubernetes.io/docs/reference/kubectl/quick-reference/ |
-
-## End-Of-Day Checklist
-- [ ] 지금 바라보는 cluster/context를 확인했다.
-- [ ] Pod와 container의 차이를 설명했다.
-- [ ] `ImagePullBackOff`와 `CrashLoopBackOff`에서 보는 증거를 구분했다.
-- [ ] Deployment가 Pod를 다시 만드는 흐름을 확인했다.
-- [ ] Service selector와 endpoint가 연결되는 것을 확인했다.
-- [ ] rollout 실패와 undo 흐름을 설명했다.
-- [ ] Week4에서 Helm add-on으로 확장할 질문을 남겼다.
-
-## 학습 제어: 회상·핵심·복구
-
-### 시작 5분 회상
-자료를 다시 보지 않고 다음 운영 루프를 설명한다.
-
-```text
-manifest → apply → get → describe/events → logs → 복구 → delete
-```
-
-각 단계가 답하는 질문을 한 문장씩 적는다.
-
-### 오늘 반드시 가져갈 것
-1. `kubectl`은 node가 아니라 API Server에 요청한다.
-2. `get`은 현재 상태 요약, `describe/events/logs`는 상태의 이유를 찾는 증거다.
-3. Pod·Deployment·Service는 실행·유지·발견이라는 서로 다른 책임을 가진다.
-
-### 최소 복구 경로
-`kubectl config current-context` → `kubectl get nodes` → namespace 확인 → `kubectl get pods` → 문제 Pod의 `describe`와 `logs` 순서로 회복한다. 다음 날로 넘어가기 전 `ImagePullBackOff`, `CrashLoopBackOff`, `Pending` 각각의 첫 확인 명령을 말할 수 있어야 한다.
+⬅️ 이전: [7교시 · 롤링 업데이트와 되돌리기](../day4/lesson-07.md) &nbsp;|&nbsp; 다음: [1교시 · 4일차 요약 + Namespace](lesson-01.md) ➡️

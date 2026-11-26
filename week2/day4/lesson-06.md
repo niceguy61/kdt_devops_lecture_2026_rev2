@@ -1,3 +1,5 @@
+[🏠 과정 목차](../../README.md) › [2주차](../README.md) › [4일차](README.md)
+
 # 6교시 · 환경 변수와 비밀값
 
 > [!NOTE]
@@ -12,7 +14,7 @@
 
 어제와 오늘, 우리는 같은 이미지 `devmart/catalog-api:1.0.1`에 환경 변수만 바꿔서 샘플 모드와 DB 모드를 오갔습니다. 1주차 4일차 6교시에 배운 **12-Factor App의 III번 "설정(Config)"** 원칙입니다. 환경마다 달라지는 것은 코드나 이미지가 아니라 **환경에** 둡니다.
 
-![같은 이미지에 환경별 설정을 바깥에서 넣는다 — 비밀값은 특히 이미지·Git·명령어에 남기지 않는다](../../assets/week2/day4/w2d4-config.png)
+![같은 이미지에 환경별 설정을 바깥에서 넣는다 — 비밀값은 특히 이미지·Git·명령어에 남기지 않는다](../../v3/assets/week2/day4/w2d4-config.png)
 
 | 구분 | 예 | 어디에 |
 |---|---|---|
@@ -273,3 +275,7 @@ docker run --rm --env-file /tmp/test.env -e APP_ENV=from-cli devmart/catalog-api
 - Docker Docs. *Secrets in Compose*. docs.docker.com/compose/how-tos/use-secrets
 - Meli, M., McNiece, M. R., & Reaves, B. (2019). How bad can it git? *NDSS 2019*.
 - GitHub Docs. *About push protection*. docs.github.com/code-security/secret-scanning
+
+---
+
+⬅️ 이전: [5교시 · API와 DB 연결하기](lesson-05.md) &nbsp;|&nbsp; [⬆️ 4일차 목차](README.md) &nbsp;|&nbsp; 다음: [7교시 · 세 컨테이너 손으로 조립하기](lesson-07.md) ➡️
